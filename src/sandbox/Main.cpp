@@ -62,10 +62,33 @@ void SignalExample2()
 	cout << endl;
 }
 
+void EventExample1()
+{
+	cout << "Event Example 1" << endl;
+
+	auto numbers1 = TestDomain::MakeEventSource<int>();
+	auto numbers2 = TestDomain::MakeEventSource<int>();
+
+	auto anyNumber = numbers1 | numbers2;
+
+	Observe(anyNumber, [] (int v) {
+		cout << "Number: " << v << endl;
+	});
+
+	numbers1 << 10 << 20 << 30;
+	numbers2 << 40 << 50 << 60;
+
+	cout << endl;
+
+	// Note: Observer must be detached explicitly.
+	// This is likely to change in the future.
+}
+
 int main()
 {
 	SignalExample1();
 	SignalExample2();
+	EventExample1();
 
 	return 0;
 }
