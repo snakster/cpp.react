@@ -1,4 +1,4 @@
-Experimental reactive programming framework for C++.
+Experimental reactive programming framework for C++11.
 
 I've only tested the build with Visual Studio 2012 and the Intel C++ Compiler 14.0.
 
