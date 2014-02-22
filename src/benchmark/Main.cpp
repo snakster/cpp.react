@@ -1,14 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <thread>
-#include <random>
-#include <chrono>
-#include <functional>
-#include <vector>
-#include <ctime>
-#include <typeinfo>
-
 #include "tbb/tick_count.h"
 #include "tbb/tbbmalloc_proxy.h"
 
@@ -35,7 +24,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 namespace {
 
-using std::cin;
 using namespace react;
 
 REACTIVE_DOMAIN(FloodingDomain, FloodingEngine, EventLog);
@@ -198,8 +186,6 @@ void runBenchmarks()
 	//runBenchmarkLifeSim(logfile);
 
 	logfile.close();
-
-	cin.get();
 }
 
 void debugBenchmarks()
@@ -246,8 +232,6 @@ void debugBenchmarks()
 
 	//TestDomain::Log().Write(logfile);
 	//logfile.close();
-
-	cin.get();
 }
 
 void profileBenchmark()
