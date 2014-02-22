@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CppReactBenchmark", "CppRea
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CppReactTest", "CppReactTest.vcxproj", "{52A9EC67-C6A7-453B-AD65-F027CA07AF44}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CppReactSandbox", "CppReactSandbox.vcxproj", "{CC0CD982-AE7D-4797-A122-58E6BBE70DDB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -25,6 +27,10 @@ Global
 		{52A9EC67-C6A7-453B-AD65-F027CA07AF44}.Debug|Win32.Build.0 = Debug|Win32
 		{52A9EC67-C6A7-453B-AD65-F027CA07AF44}.Release|Win32.ActiveCfg = Release|Win32
 		{52A9EC67-C6A7-453B-AD65-F027CA07AF44}.Release|Win32.Build.0 = Release|Win32
+		{CC0CD982-AE7D-4797-A122-58E6BBE70DDB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CC0CD982-AE7D-4797-A122-58E6BBE70DDB}.Debug|Win32.Build.0 = Debug|Win32
+		{CC0CD982-AE7D-4797-A122-58E6BBE70DDB}.Release|Win32.ActiveCfg = Release|Win32
+		{CC0CD982-AE7D-4797-A122-58E6BBE70DDB}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
