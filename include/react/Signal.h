@@ -232,6 +232,27 @@ inline auto operator ## op(const TLeftHandle<TDomain,TLeftVal>& lhs, \
 	return Signal_<TDomain,TLeftVal>(								\
 		std::make_shared<FunctionNode<TDomain,TLeftVal,TLeftVal>>(	\
 			lhs.GetPtr(), [=] (TLeftVal a) { return a op rhs; }, false)); \
+}																	\
+																	\
+template															\
+<																	\
+	typename TDomain,												\
+	template <typename D_, typename V_> class TRightHandle,			\
+	typename TLeftVal,												\
+	typename TRightVal,												\
+	class = std::enable_if<std::is_base_of<							\
+		Signal_<TDomain,TRightVal>,									\
+		TRightHandle<TDomain,TRightVal>>::value>::type,				\
+	class = std::enable_if<											\
+		std::is_integral<TLeftVal>::value>::type					\
+>																	\
+inline auto operator ## op(const TLeftVal& lhs,						\
+						   const TRightHandle<TDomain,TRightVal>& rhs) \
+	-> Signal_<TDomain,TRightVal>									\
+{																	\
+	return Signal_<TDomain,TRightVal>(								\
+		std::make_shared<FunctionNode<TDomain,TRightVal,TRightVal>>( \
+			rhs.GetPtr(), [=] (TRightVal a) { return lhs op a; }, false)); \
 }
 
 DECLARE_ARITHMETIC_OP2(+);
