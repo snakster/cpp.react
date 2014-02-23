@@ -153,7 +153,7 @@ public:
 
 		if (auto p = subject_.lock())
 		{
-			for (const auto& e : p->Events())
+			for (const auto& e : p->REvents())
 				func_(e);
 		}
 

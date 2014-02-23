@@ -18,16 +18,16 @@
 namespace react {
 
 template <typename TDomain, typename S>
-class Signal_;
+class RSignal;
 
 template <typename TDomain, typename S>
-class VarSignal_;
+class RVarSignal;
 
 template <typename TDomain, typename E>
-class Events_;
+class REvents;
 
 template <typename TDomain, typename E>
-class EventSource_;
+class REventSource;
 
 template
 <
@@ -35,8 +35,8 @@ template
 	typename TFunc,
 	typename ... TArgs
 >
-inline auto MakeSignal(TFunc func, const Signal_<TDomain,TArgs>& ... args)
-	-> Signal_<TDomain,decltype(func(args() ...))>;
+inline auto MakeSignal(TFunc func, const RSignal<TDomain,TArgs>& ... args)
+	-> RSignal<TDomain,decltype(func(args() ...))>;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// TransactionInput
@@ -420,16 +420,16 @@ public:
 	/// Aliases for handles of current domain
 	////////////////////////////////////////////////////////////////////////////////////////
 	template <typename S>
-	using Signal = Signal_<TDomain,S>;
+	using Signal = RSignal<TDomain,S>;
 
 	template <typename S>
-	using VarSignal = VarSignal_<TDomain,S>;
+	using VarSignal = RVarSignal<TDomain,S>;
 
 	template <typename E>
-	using Events = Events_<TDomain,E>;
+	using Events = REvents<TDomain,E>;
 
 	template <typename E>
-	using EventSource = EventSource_<TDomain,E>;
+	using EventSource = REventSource<TDomain,E>;
 
 	using Observer = Observer_<TDomain>;
 

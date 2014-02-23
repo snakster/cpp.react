@@ -141,7 +141,7 @@ protected:
 	virtual S calcNewValue() const override
 	{
 		S newValue = value_;
-		for (auto e : events_->Events())
+		for (auto e : events_->REvents())
 			newValue = evaluate(ApplyHelper_(newValue,e,func_));
 		return newValue;
 	}
@@ -210,7 +210,7 @@ protected:
 	virtual S calcNewValue() const override
 	{
 		S newValue = value_;
-		for (int i=0; i < events_->Events().size(); i++)
+		for (int i=0; i < events_->REvents().size(); i++)
 			newValue = evaluate(ApplyHelper_(newValue,func_));
 		return newValue;
 	}
@@ -251,8 +251,8 @@ public:
 
 		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		S newValue = value_;
-		if (! events_->Events().empty())
-			newValue = events_->Events().back();
+		if (! events_->REvents().empty())
+			newValue = events_->REvents().back();
 		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (newValue != value_)
@@ -315,7 +315,7 @@ public:
 
 		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		S newValue = value_;
-		if (! trigger_->Events().empty())
+		if (! trigger_->REvents().empty())
 			newValue = target_->Value();
 		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
@@ -437,7 +437,7 @@ public:
 		trigger_->SetCurrentTurn(turn);
 
 		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
-		for (int i=0; i < trigger_->Events().size(); i++)
+		for (int i=0; i < trigger_->REvents().size(); i++)
 			events_.push_back(target_->ValueRef());
 		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
@@ -516,7 +516,7 @@ public:
 		}
 
 		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
-		events_.insert(events_.end(), inner_->Events().begin(), inner_->Events().end());
+		events_.insert(events_.end(), inner_->REvents().begin(), inner_->REvents().end());
 		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (events_.size() > 0)

@@ -15,14 +15,14 @@
 namespace react {
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Signal_
+/// RSignal
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
 	typename TDomain,
 	typename S
 >
-class Signal_ : public Reactive_<SignalNode<TDomain,S>>
+class RSignal : public Reactive<SignalNode<TDomain,S>>
 {
 protected:
 	typedef SignalNode<TDomain,S> NodeT;
@@ -30,18 +30,18 @@ protected:
 public:
 	typedef S ValueT;
 
-	Signal_() :
-		Reactive_()
+	RSignal() :
+		Reactive()
 	{
 	}
 	
-	explicit Signal_(const std::shared_ptr<NodeT>& ptr) :
-		Reactive_(ptr)
+	explicit RSignal(const std::shared_ptr<NodeT>& ptr) :
+		Reactive(ptr)
 	{
 	}
 
-	explicit Signal_(std::shared_ptr<NodeT>&& ptr) :
-		Reactive_(std::move(ptr))
+	explicit RSignal(std::shared_ptr<NodeT>&& ptr) :
+		Reactive(std::move(ptr))
 	{
 	}
 
@@ -57,35 +57,35 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// VarSignal_
+/// RVarSignal
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
 	typename TDomain,
 	typename S
 >
-class VarSignal_ : public Signal_<TDomain,S>
+class RVarSignal : public RSignal<TDomain,S>
 {
 protected:
 	typedef VarNode<TDomain,S> NodeT;
 
 public:	
-	VarSignal_() :
-		Signal_()
+	RVarSignal() :
+		RSignal()
 	{
 	}
 	
-	explicit VarSignal_(const std::shared_ptr<NodeT>& ptr) :
-		Signal_(ptr)
+	explicit RVarSignal(const std::shared_ptr<NodeT>& ptr) :
+		RSignal(ptr)
 	{
 	}
 
-	explicit VarSignal_(std::shared_ptr<NodeT>&& ptr) :
-		Signal_(std::move(ptr))
+	explicit RVarSignal(std::shared_ptr<NodeT>&& ptr) :
+		RSignal(std::move(ptr))
 	{
 	}
 
-	VarSignal_& operator<<=(const S& newValue)
+	RVarSignal& operator<<=(const S& newValue)
 	{
 		if (! Domain::TransactionInputContinuation::IsNull())
 		{
@@ -118,10 +118,10 @@ template
 	typename TInner
 >
 inline auto MakeVar(const TOuter<TDomain,TInner>& value)
-	-> VarSignal_<TDomain,Signal_<TDomain,TInner>>
+	-> RVarSignal<TDomain,RSignal<TDomain,TInner>>
 {
-	return VarSignal_<TDomain,Signal_<TDomain,TInner>>(
-		std::make_shared<VarNode<TDomain,Signal_<TDomain,TInner>>>(
+	return RVarSignal<TDomain,RSignal<TDomain,TInner>>(
+		std::make_shared<VarNode<TDomain,RSignal<TDomain,TInner>>>(
 			value, false));
 }
 
@@ -130,9 +130,9 @@ inline auto MakeVar(const TOuter<TDomain,TInner>& value)
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename TDomain, typename S>
 inline auto MakeVar(const S& value)
-	-> VarSignal_<TDomain,S>
+	-> RVarSignal<TDomain,S>
 {
-	return VarSignal_<TDomain,S>(std::make_shared<VarNode<TDomain,S>>(value, false));
+	return RVarSignal<TDomain,S>(std::make_shared<VarNode<TDomain,S>>(value, false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -140,9 +140,9 @@ inline auto MakeVar(const S& value)
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename TDomain, typename S>
 inline auto MakeVal(const S& value)
-	-> Signal_<TDomain,S>
+	-> RSignal<TDomain,S>
 {
-	return Signal_<TDomain,S>(std::make_shared<ValNode<TDomain,S>>(value, false));
+	return RSignal<TDomain,S>(std::make_shared<ValNode<TDomain,S>>(value, false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -154,12 +154,12 @@ template
 	typename TFunc,
 	typename ... TArgs
 >
-inline auto MakeSignal(TFunc func, const Signal_<TDomain,TArgs>& ... args)
-	-> Signal_<TDomain,decltype(func(args() ...))>
+inline auto MakeSignal(TFunc func, const RSignal<TDomain,TArgs>& ... args)
+	-> RSignal<TDomain,decltype(func(args() ...))>
 {
 	typedef decltype(func(args() ...)) S;
 
-	return Signal_<TDomain,S>(
+	return RSignal<TDomain,S>(
 		std::make_shared<FunctionNode<TDomain, S, TArgs ...>>(
 			args.GetPtr() ..., func, false));
 }
@@ -173,10 +173,10 @@ template															\
 	typename TDomain,												\
 	typename TVal													\
 >																	\
-inline auto operator ## op(const Signal_<TDomain,TVal>& arg)		\
-	-> Signal_<TDomain,TVal>										\
+inline auto operator ## op(const RSignal<TDomain,TVal>& arg)		\
+	-> RSignal<TDomain,TVal>										\
 {																	\
-	return Signal_<TDomain,TVal>(									\
+	return RSignal<TDomain,TVal>(									\
 		std::make_shared<FunctionNode<TDomain,TVal,TVal>>(			\
 			arg.GetPtr(), [] (TVal a) { return op a; }, false));	\
 }
@@ -198,17 +198,17 @@ template															\
 	typename TLeftVal,												\
 	typename TRightVal,												\
 	class = std::enable_if<std::is_base_of<							\
-		Signal_<TDomain,TLeftVal>,									\
+		RSignal<TDomain,TLeftVal>,									\
 		TLeftHandle<TDomain,TLeftVal>>::value>::type,				\
 	class = std::enable_if<std::is_base_of<							\
-		Signal_<TDomain,TRightVal>,									\
+		RSignal<TDomain,TRightVal>,									\
 		TRightHandle<TDomain,TLeftVal>>::value>::type				\
 >																	\
 inline auto operator ## op(const TLeftHandle<TDomain,TLeftVal>& lhs, \
 						   const TRightHandle<TDomain,TRightVal>& rhs) \
-	-> Signal_<TDomain,TLeftVal>									\
+	-> RSignal<TDomain,TLeftVal>									\
 {																	\
-	return Signal_<TDomain,TLeftVal>(								\
+	return RSignal<TDomain,TLeftVal>(								\
 		std::make_shared<FunctionNode<TDomain,TLeftVal,TLeftVal,TRightVal>>( \
 			lhs.GetPtr(), rhs.GetPtr(), [] (TLeftVal a, TRightVal b) { return a op b; }, false)); \
 }																	\
@@ -220,16 +220,16 @@ template															\
 	typename TLeftVal,												\
 	typename TRightVal,												\
 	class = std::enable_if<std::is_base_of<							\
-		Signal_<TDomain,TLeftVal>,									\
+		RSignal<TDomain,TLeftVal>,									\
 		TLeftHandle<TDomain,TLeftVal>>::value>::type,				\
 	class = std::enable_if<											\
 		std::is_integral<TRightVal>::value>::type					\
 >																	\
 inline auto operator ## op(const TLeftHandle<TDomain,TLeftVal>& lhs, \
 						   const TRightVal& rhs)					\
-	-> Signal_<TDomain,TLeftVal>									\
+	-> RSignal<TDomain,TLeftVal>									\
 {																	\
-	return Signal_<TDomain,TLeftVal>(								\
+	return RSignal<TDomain,TLeftVal>(								\
 		std::make_shared<FunctionNode<TDomain,TLeftVal,TLeftVal>>(	\
 			lhs.GetPtr(), [=] (TLeftVal a) { return a op rhs; }, false)); \
 }																	\
@@ -241,16 +241,16 @@ template															\
 	typename TLeftVal,												\
 	typename TRightVal,												\
 	class = std::enable_if<std::is_base_of<							\
-		Signal_<TDomain,TRightVal>,									\
+		RSignal<TDomain,TRightVal>,									\
 		TRightHandle<TDomain,TRightVal>>::value>::type,				\
 	class = std::enable_if<											\
 		std::is_integral<TLeftVal>::value>::type					\
 >																	\
 inline auto operator ## op(const TLeftVal& lhs,						\
 						   const TRightHandle<TDomain,TRightVal>& rhs) \
-	-> Signal_<TDomain,TRightVal>									\
+	-> RSignal<TDomain,TRightVal>									\
 {																	\
-	return Signal_<TDomain,TRightVal>(								\
+	return RSignal<TDomain,TRightVal>(								\
 		std::make_shared<FunctionNode<TDomain,TRightVal,TRightVal>>( \
 			rhs.GetPtr(), [=] (TRightVal a) { return lhs op a; }, false)); \
 }
@@ -273,11 +273,11 @@ template															\
 	typename TLeftVal,												\
 	typename TRightVal												\
 >																	\
-inline auto operator ## op(const Signal_<TDomain,TLeftVal>& lhs,	\
-						   const Signal_<TDomain,TRightVal>& rhs)	\
-	-> Signal_<TDomain,bool>										\
+inline auto operator ## op(const RSignal<TDomain,TLeftVal>& lhs,	\
+						   const RSignal<TDomain,TRightVal>& rhs)	\
+	-> RSignal<TDomain,bool>										\
 {																	\
-	return Signal_<TDomain,bool>(									\
+	return RSignal<TDomain,bool>(									\
 		std::make_shared<FunctionNode<TDomain,bool,TLeftVal,TRightVal>>( \
 			lhs.GetPtr(), rhs.GetPtr(), [] (TLeftVal a, TRightVal b) { return a op b; }, false)); \
 }																	\
@@ -288,10 +288,10 @@ template															\
 	typename TLeftVal,												\
 	typename TRightVal												\
 >																	\
-inline auto operator ## op(const Signal_<TDomain,TLeftVal>& lhs, const TRightVal& rhs) \
-	-> Signal_<TDomain,bool>											\
+inline auto operator ## op(const RSignal<TDomain,TLeftVal>& lhs, const TRightVal& rhs) \
+	-> RSignal<TDomain,bool>											\
 {																	\
-	return Signal_<TDomain,bool>(									\
+	return RSignal<TDomain,bool>(									\
 		std::make_shared<FunctionNode<TDomain,bool,TLeftVal>>(		\
 			lhs.GetPtr(), [=] (TLeftVal a) { return a op rhs; }, false)); \
 }
@@ -314,10 +314,10 @@ template															\
 	typename TDomain,												\
 	typename TVal													\
 >																	\
-inline auto operator ## op(const Signal_<TDomain,TVal>& arg)		\
-	-> Signal_<TDomain,bool>										\
+inline auto operator ## op(const RSignal<TDomain,TVal>& arg)		\
+	-> RSignal<TDomain,bool>										\
 {																	\
-	return Signal_<TDomain,TVal>(									\
+	return RSignal<TDomain,TVal>(									\
 		std::make_shared<FunctionNode<TDomain,bool,TVal>>(			\
 			arg.GetPtr(), [] (TVal a) { return op a; }, false));	\
 }
@@ -336,11 +336,11 @@ template															\
 	typename TLeftVal,												\
 	typename TRightVal												\
 >																	\
-inline auto operator ## op(const Signal_<TDomain,TLeftVal>& lhs,	\
-						   const Signal_<TDomain,TRightVal>& rhs)	\
-	-> Signal_<TDomain,bool>										\
+inline auto operator ## op(const RSignal<TDomain,TLeftVal>& lhs,	\
+						   const RSignal<TDomain,TRightVal>& rhs)	\
+	-> RSignal<TDomain,bool>										\
 {																	\
-	return Signal_<TDomain,bool>(									\
+	return RSignal<TDomain,bool>(									\
 		std::make_shared<FunctionNode<TDomain,bool,TLeftVal,TRightVal>>( \
 			lhs.GetPtr(), rhs.GetPtr(), [] (TLeftVal a, TRightVal b) { return a op b; }, false)); \
 }																	\
@@ -351,10 +351,10 @@ template															\
 	typename TLeftVal,												\
 	typename TRightVal												\
 >																	\
-inline auto operator ## op(const Signal_<TDomain,TLeftVal>& lhs, const TRightVal& rhs) \
-	-> Signal_<TDomain,bool>										\
+inline auto operator ## op(const RSignal<TDomain,TLeftVal>& lhs, const TRightVal& rhs) \
+	-> RSignal<TDomain,bool>										\
 {																	\
-	return Signal_<TDomain,bool>(									\
+	return RSignal<TDomain,bool>(									\
 		std::make_shared<FunctionNode<TDomain,bool,TLeftVal>>(		\
 			lhs.GetPtr(), [=] (TLeftVal a) { return a op rhs; }, false)); \
 }
@@ -374,16 +374,16 @@ template
 >
 struct InputPack
 {
-	std::tuple<Signal_<TDomain, TValues> ...> Data;
+	std::tuple<RSignal<TDomain, TValues> ...> Data;
 
 	template <typename TFirstValue, typename TSecondValue>
-	InputPack(const Signal_<TDomain,TFirstValue>& first, const Signal_<TDomain,TSecondValue>& second) :
+	InputPack(const RSignal<TDomain,TFirstValue>& first, const RSignal<TDomain,TSecondValue>& second) :
 		Data(std::make_tuple(first, second))
 	{
 	}
 
 	template <typename ... TCurValues, typename TAppendValue>
-	InputPack(const InputPack<TDomain, TCurValues ...>& curArgs, const Signal_<TDomain,TAppendValue>& newArg) :
+	InputPack(const InputPack<TDomain, TCurValues ...>& curArgs, const RSignal<TDomain,TAppendValue>& newArg) :
 		Data(std::tuple_cat(curArgs.Data, std::make_tuple(newArg)))
 	{
 	}
@@ -398,7 +398,7 @@ template
 	typename TLeftVal,
 	typename TRightVal
 >
-inline auto operator,(const Signal_<TDomain,TLeftVal>& a, const Signal_<TDomain,TRightVal>& b)
+inline auto operator,(const RSignal<TDomain,TLeftVal>& a, const RSignal<TDomain,TRightVal>& b)
 	-> InputPack<TDomain,TLeftVal, TRightVal>
 {
 	return InputPack<TDomain, TLeftVal, TRightVal>(a, b);
@@ -413,7 +413,7 @@ template
 	typename ... TCurValues,
 	typename TAppendValue
 >
-inline auto operator,(const InputPack<TDomain, TCurValues ...>& cur, const Signal_<TDomain,TAppendValue>& append)
+inline auto operator,(const InputPack<TDomain, TCurValues ...>& cur, const RSignal<TDomain,TAppendValue>& append)
 	-> InputPack<TDomain,TCurValues ... , TAppendValue>
 {
 	return InputPack<TDomain, TCurValues ... , TAppendValue>(cur, append);
@@ -430,7 +430,7 @@ template
 >
 struct ApplyHelper_
 {
-	static inline auto MakeSignal(const TFunc& func, const Signal_<TDomain,TValues>& ... args)
+	static inline auto MakeSignal(const TFunc& func, const RSignal<TDomain,TValues>& ... args)
 		-> decltype(TDomain::MakeSignal(func, args ...))
 	{
 		return TDomain::MakeSignal(func, args ...);
@@ -444,7 +444,7 @@ template
 	typename TFunc,
 	typename TValue
 >
-inline auto operator>>=(const Signal_<TDomain,TValue>& inputNode, TFunc func)
+inline auto operator>>=(const RSignal<TDomain,TValue>& inputNode, TFunc func)
 	-> decltype(TDomain::MakeSignal(func, inputNode))
 {
 	return TDomain::MakeSignal(func, inputNode);
@@ -471,11 +471,11 @@ template
 	typename TDomain,
 	typename TInnerValue
 >
-inline auto Flatten(const Signal_<TDomain,Signal_<TDomain,TInnerValue>>& node)
-	-> Signal_<TDomain,TInnerValue>
+inline auto Flatten(const RSignal<TDomain,RSignal<TDomain,TInnerValue>>& node)
+	-> RSignal<TDomain,TInnerValue>
 {
-	return Signal_<TDomain,TInnerValue>(
-		std::make_shared<FlattenNode<TDomain, Signal_<TDomain,TInnerValue>, TInnerValue>>(
+	return RSignal<TDomain,TInnerValue>(
+		std::make_shared<FlattenNode<TDomain, RSignal<TDomain,TInnerValue>, TInnerValue>>(
 			node.GetPtr(), node().GetPtr(), false));
 }
 

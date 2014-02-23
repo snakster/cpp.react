@@ -12,13 +12,13 @@
 namespace react {
 
 template <typename T>
-class Reactive_;
+class Reactive;
 
 template <typename TDomain, typename S>
 class Signal_;
 
 template <typename TDomain, typename E>
-class Events_;
+class REvents;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// SignalNode
@@ -139,7 +139,7 @@ private:
 
 	// todo - ugly
 	template <typename L, typename R>
-	static bool equals(const Events_<TDomain,L>& lhs, const Events_<TDomain,R>& rhs)
+	static bool equals(const REvents<TDomain,L>& lhs, const REvents<TDomain,R>& rhs)
 	{
 		return lhs.Equals(rhs);
 	}
@@ -265,7 +265,7 @@ private:
 
 	// todo - ugly
 	template <typename L, typename R>
-	static bool equals(const Events_<TDomain,L>& lhs, const Events_<TDomain,R>& rhs)
+	static bool equals(const REvents<TDomain,L>& lhs, const REvents<TDomain,R>& rhs)
 	{
 		return lhs.Equals(rhs);
 	}

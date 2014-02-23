@@ -7,25 +7,25 @@
 namespace react {
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Reactive_
+/// Reactive
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-class Reactive_
+class Reactive
 {
 public:
 	typedef typename T::Domain			Domain;
 
-	Reactive_() :
+	Reactive() :
 		ptr_{ nullptr }
 	{
 	}
 
-	explicit Reactive_(const std::shared_ptr<T>& ptr) :
+	explicit Reactive(const std::shared_ptr<T>& ptr) :
 		ptr_{ ptr }
 	{
 	}
 
-	explicit Reactive_(std::shared_ptr<T>&& ptr) :
+	explicit Reactive(std::shared_ptr<T>&& ptr) :
 		ptr_{ std::move(ptr) }
 	{
 	}
@@ -35,7 +35,7 @@ public:
 		return ptr_;
 	}
 
-	bool Equals(const Reactive_& other) const
+	bool Equals(const Reactive& other) const
 	{
 		return ptr_ == other.ptr_;
 	}

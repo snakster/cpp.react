@@ -11,58 +11,58 @@
 namespace react {
 
 template <typename T>
-class Reactive_;
+class Reactive;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Events_
+/// REvents
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
 	typename TDomain,
 	typename E
 >
-class Events_ : public Reactive_<EventStreamNode<TDomain,E>>
+class REvents : public Reactive<EventStreamNode<TDomain,E>>
 {
 private:
 	typedef EventStreamNode<TDomain, E> NodeT;
 
 public:
-	Events_() :
-		Reactive_()
+	REvents() :
+		Reactive()
 	{
 	}
 
-	explicit Events_(const std::shared_ptr<NodeT>& ptr) :
-		Reactive_(ptr)
+	explicit REvents(const std::shared_ptr<NodeT>& ptr) :
+		Reactive(ptr)
 	{
 	}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// EventSource_
+/// REventSource
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
 	typename TDomain,
 	typename E
 >
-class EventSource_ : public Events_<TDomain,E>
+class REventSource : public REvents<TDomain,E>
 {
 private:
 	typedef EventSourceNode<TDomain, E> NodeT;
 
 public:
-	EventSource_() :
-		Events_()
+	REventSource() :
+		REvents()
 	{
 	}
 
-	explicit EventSource_(const std::shared_ptr<NodeT>& ptr) :
-		Events_(ptr)
+	explicit REventSource(const std::shared_ptr<NodeT>& ptr) :
+		REvents(ptr)
 	{
 	}
 
-	EventSource_& operator<<(const E& e)
+	REventSource& operator<<(const E& e)
 	{
 		if (! Domain::TransactionInputContinuation::IsNull())
 		{
@@ -90,9 +90,9 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename TDomain, typename E>
 inline auto MakeEventSource()
-	-> EventSource_<TDomain,E>
+	-> REventSource<TDomain,E>
 {
-	return EventSource_<TDomain,E>(
+	return REventSource<TDomain,E>(
 		std::make_shared<EventSourceNode<TDomain,E>>(false));
 }
 
@@ -106,13 +106,13 @@ template
 	typename TArg2,
 	typename ... TArgs
 >
-inline auto Merge(const Events_<TDomain,TArg1>& arg1,
-				  const Events_<TDomain,TArg2>& arg2,
-				  const Events_<TDomain,TArgs>& ... args)
-	-> Events_<TDomain,TArg1>
+inline auto Merge(const REvents<TDomain,TArg1>& arg1,
+				  const REvents<TDomain,TArg2>& arg2,
+				  const REvents<TDomain,TArgs>& ... args)
+	-> REvents<TDomain,TArg1>
 {
 	typedef TArg1 E;
-	return Events_<TDomain,E>(
+	return REvents<TDomain,E>(
 		std::make_shared<EventMergeNode<TDomain, E, TArg1, TArg2, TArgs ...>>(
 			arg1.GetPtr(), arg2.GetPtr(), args.GetPtr() ..., false));
 }
@@ -123,9 +123,9 @@ template
 	typename TLeftArg,
 	typename TRightArg
 >
-inline auto operator|(const Events_<TDomain,TLeftArg>& lhs,
-					  const Events_<TDomain,TRightArg>& rhs)
-	-> Events_<TDomain, TLeftArg>
+inline auto operator|(const REvents<TDomain,TLeftArg>& lhs,
+					  const REvents<TDomain,TRightArg>& rhs)
+	-> REvents<TDomain, TLeftArg>
 {
 	return Merge(lhs,rhs);
 }
@@ -139,10 +139,10 @@ template
 	typename E,
 	typename F
 >
-inline auto Filter(const Events_<TDomain,E>& src, const F& filter)
-	-> Events_<TDomain,E>
+inline auto Filter(const REvents<TDomain,E>& src, const F& filter)
+	-> REvents<TDomain,E>
 {
-	return Events_<TDomain,E>(
+	return REvents<TDomain,E>(
 		std::make_shared<EventFilterNode<TDomain, E, F>>(src.GetPtr(), filter, false));
 }
 
@@ -156,8 +156,8 @@ template																\
 	typename TDomain,													\
 	typename E															\
 >																		\
-inline auto operator ## op(const Events_<TDomain,E>& lhs, const E& rhs)	\
-	-> Events_<TDomain,E>												\
+inline auto operator ## op(const REvents<TDomain,E>& lhs, const E& rhs)	\
+	-> REvents<TDomain,E>												\
 {																		\
 	return Filter(lhs, [=] (const E& e) { return e op rhs; });			\
 }
@@ -180,12 +180,12 @@ template
 	typename TIn,
 	typename F
 >
-inline auto Transform(const Events_<TDomain,TIn>& src, const F& func)
-	-> Events_<TDomain, decltype(func(src.GetPtr()->Front()))>
+inline auto Transform(const REvents<TDomain,TIn>& src, const F& func)
+	-> REvents<TDomain, decltype(func(src.GetPtr()->Front()))>
 {
 	typedef decltype(func(src.GetPtr()->Front())) TOut;
 
-	return Events_<TDomain,TOut>(
+	return REvents<TDomain,TOut>(
 		std::make_shared<EventTransformNode<TDomain, TIn, TOut, F>>(
 			src.GetPtr(), func, false));
 }

@@ -7,24 +7,24 @@
 namespace react {
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// DynamicSignal_
+/// DynamicRSignal
 ////////////////////////////////////////////////////////////////////////////////////////
 //template
 //<
 //	typename TDomain,
 //	typename S
 //>
-//class DynamicSignal_ : public Signal_<TDomain,S>
+//class DynamicRSignal : public RSignal<TDomain,S>
 //{
 //public:
-//	DynamicSignal_() :
-//		Signal_(),
+//	DynamicRSignal() :
+//		RSignal(),
 //		owner_{ nullptr }
 //	{
 //	}
 //
-//	DynamicSignal_(Signal_&& other, void* owner) :
-//		Signal_(std::move(other)),
+//	DynamicRSignal(RSignal&& other, void* owner) :
+//		RSignal(std::move(other)),
 //		owner_{ owner }
 //	{
 //	}
@@ -46,19 +46,19 @@ public:
 	/// Aliases
 	////////////////////////////////////////////////////////////////////////////////////////
 	template <typename S>
-	using Signal = Signal_<TDomain,S>;
+	using Signal = RSignal<TDomain,S>;
 
 	template <typename S>
-	using VarSignal = VarSignal_<TDomain,S>;
+	using VarSignal = RVarSignal<TDomain,S>;
 
 	//template <typename S>
-	//using DynamicSignal = DynamicSignal_<TDomain,S>;
+	//using DynamicSignal = DynamicRSignal<TDomain,S>;
 
 	template <typename E>
-	using Events = Events_<TDomain,E>;
+	using Events = REvents<TDomain,E>;
 
 	template <typename E>
-	using EventSource = EventSource_<TDomain,E>;
+	using EventSource = REventSource<TDomain,E>;
 
 	using Observer = Observer_<TDomain>;
 

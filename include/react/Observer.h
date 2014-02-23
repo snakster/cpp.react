@@ -9,13 +9,13 @@
 namespace react {
 
 template <typename T>
-class Reactive_;
+class Reactive;
 
 template <typename TDomain, typename TValue>
-class Signal_;
+class RSignal;
 
 template <typename TDomain, typename TValue>
-class Events_;
+class REvents;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Observer_
@@ -135,7 +135,7 @@ template
 	typename TFunc,
 	typename TArg
 >
-inline auto Observe(const Signal_<TDomain,TArg>& subject, const TFunc& func)
+inline auto Observe(const RSignal<TDomain,TArg>& subject, const TFunc& func)
 	-> Observer_<TDomain>
 {
 	std::unique_ptr<ObserverNode<TDomain>> pUnique(
@@ -154,7 +154,7 @@ template
 	typename TFunc,
 	typename TArg
 >
-inline auto Observe(const Events_<TDomain,TArg>& subject, const TFunc& func)
+inline auto Observe(const REvents<TDomain,TArg>& subject, const TFunc& func)
 	-> Observer_<TDomain>
 {
 	std::unique_ptr<ObserverNode<TDomain>> pUnique(
@@ -176,7 +176,7 @@ template
 	template <typename Domain_, typename Val_> class TNode,
 	typename TArg
 >
-inline void DetachAllObservers(const Reactive_<TNode<TDomain,TArg>>& subject)
+inline void DetachAllObservers(const Reactive<TNode<TDomain,TArg>>& subject)
 {
 	TDomain::Observers().UnregisterFrom(subject.GetPtr().get());
 }

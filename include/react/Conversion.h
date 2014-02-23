@@ -22,11 +22,11 @@ template
 	typename TFunc,
 	typename ... TArgs
 >
-inline auto Fold(const S& initialValue, const Events_<TDomain,E>& events,
-				 const TFunc& func, const Signal_<TDomain,TArgs>& ... args)
-	-> Signal_<TDomain,S>
+inline auto Fold(const S& initialValue, const REvents<TDomain,E>& events,
+				 const TFunc& func, const RSignal<TDomain,TArgs>& ... args)
+	-> RSignal<TDomain,S>
 {
-	return Signal_<TDomain,S>(
+	return RSignal<TDomain,S>(
 		std::make_shared<FoldNode<TDomain,S,E,TArgs ...>>(
 			initialValue, events.GetPtr(), args.GetPtr() ..., func, false));
 }
@@ -42,11 +42,11 @@ template
 	typename TFunc,
 	typename ... TArgs
 >
-inline auto Iterate(const S& initialValue, const Events_<TDomain,E>& events,
-					const TFunc& func, const Signal_<TDomain,TArgs>& ... args)
-	-> Signal_<TDomain,S>
+inline auto Iterate(const S& initialValue, const REvents<TDomain,E>& events,
+					const TFunc& func, const RSignal<TDomain,TArgs>& ... args)
+	-> RSignal<TDomain,S>
 {
-	return Signal_<TDomain,S>(
+	return RSignal<TDomain,S>(
 		std::make_shared<IterateNode<TDomain,S,E,TArgs ...>>(
 			initialValue, events.GetPtr(), args.GetPtr() ..., func, false));
 }
@@ -59,10 +59,10 @@ template
 	typename TDomain,
 	typename T
 >
-inline auto Hold(const T& initialValue, const Events_<TDomain,T>& events)
-	-> Signal_<TDomain,T>
+inline auto Hold(const T& initialValue, const REvents<TDomain,T>& events)
+	-> RSignal<TDomain,T>
 {
-	return Signal_<TDomain,T>(
+	return RSignal<TDomain,T>(
 		std::make_shared<HoldNode<TDomain,T>>(
 			initialValue, events.GetPtr(), false));
 }
@@ -76,10 +76,10 @@ template
 	typename S,
 	typename E
 >
-inline auto Snapshot(const Signal_<TDomain,S>& target, const Events_<TDomain,E>& trigger)
-	-> Signal_<TDomain,S>
+inline auto Snapshot(const RSignal<TDomain,S>& target, const REvents<TDomain,E>& trigger)
+	-> RSignal<TDomain,S>
 {
-	return Signal_<TDomain,S>(
+	return RSignal<TDomain,S>(
 		std::make_shared<SnapshotNode<TDomain,S,E>>(
 			target.GetPtr(), trigger.GetPtr(), false));
 }
@@ -90,9 +90,9 @@ template
 	typename S,
 	typename E
 >
-inline auto operator&(const Events_<TDomain,E>& trigger,
-					  const Signal_<TDomain,S>& target)
-	-> Signal_<TDomain,S>
+inline auto operator&(const REvents<TDomain,E>& trigger,
+					  const RSignal<TDomain,S>& target)
+	-> RSignal<TDomain,S>
 {
 	return Snapshot(target,trigger);
 }
@@ -105,10 +105,10 @@ template
 	typename TDomain,
 	typename S
 >
-inline auto Monitor(const Signal_<TDomain,S>& target)
-	-> Events_<TDomain,S>
+inline auto Monitor(const RSignal<TDomain,S>& target)
+	-> REvents<TDomain,S>
 {
-	return Events_<TDomain,S>(
+	return REvents<TDomain,S>(
 		std::make_shared<MonitorNode<TDomain, S>>(
 			target.GetPtr(), false));
 }
@@ -121,8 +121,8 @@ template
 	typename TDomain,
 	typename S
 >
-inline auto Changed(const Signal_<TDomain,S>& target)
-	-> Events_<TDomain,bool>
+inline auto Changed(const RSignal<TDomain,S>& target)
+	-> REvents<TDomain,bool>
 {
 	return Transform(Monitor(target), [] (const S& v) { return true; });
 }
@@ -135,8 +135,8 @@ template
 	typename TDomain,
 	typename S
 >
-inline auto ChangedTo(const Signal_<TDomain,S>& target, const S& value)
-	-> Events_<TDomain,bool>
+inline auto ChangedTo(const RSignal<TDomain,S>& target, const S& value)
+	-> REvents<TDomain,bool>
 {
 	auto transformFunc	= [=] (const S& v)	{ return v == value; };
 	auto filterFunc		= [=] (bool v)		{ return v == true; };
@@ -153,10 +153,10 @@ template
 	typename S,
 	typename E
 >
-inline auto Pulse(const Signal_<TDomain,S>& target, const Events_<TDomain,E>& trigger)
-	-> Events_<TDomain,S>
+inline auto Pulse(const RSignal<TDomain,S>& target, const REvents<TDomain,E>& trigger)
+	-> REvents<TDomain,S>
 {
-	return Events_<TDomain,S>(
+	return REvents<TDomain,S>(
 		std::make_shared<PulseNode<TDomain,S,E>>(
 			target.GetPtr(), trigger.GetPtr(), false));
 }
@@ -170,14 +170,14 @@ template
 	template <typename Domain_, typename Val_> class THandle,
 	typename TInnerValue,
 	class = std::enable_if<std::is_base_of<
-		Events_<TDomain,TInnerValue>,
+		REvents<TDomain,TInnerValue>,
 		THandle<TDomain,TInnerValue>>::value>::type
 >
-inline auto Flatten(const Signal_<TDomain,THandle<TDomain,TInnerValue>>& node)
-	-> Events_<TDomain,TInnerValue>
+inline auto Flatten(const RSignal<TDomain,THandle<TDomain,TInnerValue>>& node)
+	-> REvents<TDomain,TInnerValue>
 {
-	return Events_<TDomain,TInnerValue>(
-		std::make_shared<EventFlattenNode<TDomain, Events_<TDomain,TInnerValue>, TInnerValue>>(
+	return REvents<TDomain,TInnerValue>(
+		std::make_shared<EventFlattenNode<TDomain, REvents<TDomain,TInnerValue>, TInnerValue>>(
 			node.GetPtr(), node().GetPtr(), false));
 }
 

@@ -45,7 +45,7 @@ public:
 
 	virtual const char* GetNodeType() const override	{ return "EventStreamNode"; }
 
-	EventListT& Events()
+	EventListT& REvents()
 	{
 		return events_;
 	}
@@ -62,7 +62,7 @@ public:
 		}
 	}
 
-	void		ClearEvents()	{ events_.clear(); }
+	void		ClearREvents()	{ events_.clear(); }
 
 	const E&	Front()			{ events_.front(); }
 
@@ -205,7 +205,7 @@ private:
 	{
 		arg->SetCurrentTurn(turn);
 
-		events_.insert(events_.end(), arg->Events().begin(), arg->Events().end()); // TODO
+		events_.insert(events_.end(), arg->REvents().begin(), arg->REvents().end()); // TODO
 	}
 };
 
@@ -248,7 +248,7 @@ public:
 		SetCurrentTurn(turn, true);
 
 		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
-		std::copy_if(src_->Events().begin(), src_->Events().end(), std::back_inserter(events_), filter_);
+		std::copy_if(src_->REvents().begin(), src_->REvents().end(), std::back_inserter(events_), filter_);
 		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (events_.size() > 0)
@@ -311,7 +311,7 @@ public:
 		SetCurrentTurn(turn, true);
 
 		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
-		std::transform(src_->Events().begin(), src_->Events().end(), std::back_inserter(events_), func_);	
+		std::transform(src_->REvents().begin(), src_->REvents().end(), std::back_inserter(events_), func_);	
 		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (events_.size() > 0)
