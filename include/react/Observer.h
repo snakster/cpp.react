@@ -24,15 +24,17 @@ template <typename TDomain>
 class Observer_
 {
 public:
-	typedef TDomain	Domain;
+	typedef NodeBase<TDomain>	SubjectT;
 
 	Observer_() :
-		ptr_{ nullptr }
+		ptr_{ nullptr },
+		subject_{ nullptr }
 	{
 	}
 
-	Observer_(ObserverNode<TDomain>* ptr) :
-		ptr_{ ptr }
+	Observer_(ObserverNode<TDomain>* ptr, const std::shared_ptr<SubjectT>& subject) :
+		ptr_{ ptr },
+		subject_{ subject }
 	{
 	}
 
@@ -51,8 +53,11 @@ public:
 	}
 
 private:
-	//Ownership managed by registry
-	ObserverNode<TDomain>*	ptr_;
+	// Ownership managed by registry
+	ObserverNode<TDomain>*		ptr_;
+
+	// While the observer handle exists, the subject is not destroyed
+	std::shared_ptr<SubjectT>	subject_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -140,7 +145,7 @@ inline auto Observe(const Signal_<TDomain,TArg>& subject, const TFunc& func)
 
 	TDomain::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
-	return Observer_<TDomain>(raw);
+	return Observer_<TDomain>(raw, subject.GetPtr());
 }
 
 template
@@ -159,7 +164,7 @@ inline auto Observe(const Events_<TDomain,TArg>& subject, const TFunc& func)
 
 	TDomain::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
-	return Observer_<TDomain>(raw);
+	return Observer_<TDomain>(raw, subject.GetPtr());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

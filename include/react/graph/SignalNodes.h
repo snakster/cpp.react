@@ -32,6 +32,7 @@ class SignalNode : public ReactiveNode<TDomain,S,S>
 {
 public:
 	typedef std::shared_ptr<SignalNode> NodePtrT;
+	typedef std::weak_ptr<SignalNode>	NodeWeakPtrT;
 
 	explicit SignalNode(bool registered) :
 		ReactiveNode{ true }
@@ -77,6 +78,9 @@ protected:
 
 template <typename TDomain, typename S>
 using SignalNodePtr = typename SignalNode<TDomain,S>::NodePtrT;
+
+template <typename TDomain, typename S>
+using SignalNodeWeakPtr = typename SignalNode<TDomain,S>::NodeWeakPtrT;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// VarNode

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <functional>
 
@@ -52,9 +53,8 @@ class NodeBase : public std::enable_shared_from_this<NodeBase<TDomain>>
 {
 public:
 	typedef std::shared_ptr<NodeBase>	SharedPtrType;
-	typedef std::weak_ptr<NodeBase>		WeakPtrType;
 
-	SharedPtrType GetSharedPtr()
+	SharedPtrType GetSharedPtr() const
 	{
 		return shared_from_this();
 	}
@@ -74,13 +74,14 @@ class ReactiveNode : public NodeBase<TDomain>, public TDomain::Policy::Engine::N
 public:
 	typedef std::shared_ptr<ReactiveNode> NodePtrT;
 
-	typedef TDomain					Domain;
+	typedef TDomain		Domain;
 	typedef typename Domain::Policy			Policy;
 	typedef typename Domain::Engine			Engine;
 	typedef typename Engine::NodeInterface	NodeInterface;
 	typedef typename Engine::TurnInterface	TurnInterface;
 
-	explicit ReactiveNode(bool registered)
+	explicit ReactiveNode(bool registered) :
+		obsCount_(0)
 	{
 		if (!registered)
 			registerNode();
@@ -88,6 +89,9 @@ public:
 
 	~ReactiveNode()
 	{
+		if (GetObsCount() > 0)
+			TDomain::Observers().UnregisterFrom(this);
+
 		Engine::OnNodeDestroy(*this);
 	}
 
@@ -99,11 +103,18 @@ public:
 
 	virtual int		DependencyCount() const		{ return 0; }
 
+	void	IncObsCount()		{ obsCount_.fetch_add(1, std::memory_order_relaxed); }
+	void	DecObsCount()		{ obsCount_.fetch_sub(1, std::memory_order_relaxed); }
+	uint	GetObsCount() const	{ return obsCount_.load(std::memory_order_relaxed); }
+
 protected:
 	void registerNode()
 	{
 		Engine::OnNodeCreate(*this);
 	}
+
+private:
+	std::atomic<uint>	obsCount_;
 };
 
 template <typename TDomain, typename P, typename V>

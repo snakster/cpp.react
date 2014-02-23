@@ -30,6 +30,7 @@ public:
 	typedef tbb::spin_mutex	EventMutexT;
 
 	typedef std::shared_ptr<EventStreamNode> NodePtrT;
+	typedef std::weak_ptr<EventStreamNode> NodeWeakPtrT;
 
 	typedef typename TDomain::Engine EngineT;
 	typedef typename EngineT::TurnInterface TurnInterface;
@@ -73,6 +74,9 @@ protected:
 
 template <typename TDomain, typename E>
 using EventStreamNodePtr = typename EventStreamNode<TDomain,E>::NodePtrT;
+
+template <typename TDomain, typename E>
+using EventStreamNodeWeakPtr = typename EventStreamNode<TDomain,E>::NodeWeakPtrT;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// EventSourceNode

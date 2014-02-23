@@ -38,7 +38,7 @@ public:
 	{
 	}
 
-	virtual const char*GetNodeType() const		{ return "ObserverNode"; }
+	virtual const char*	GetNodeType() const		{ return "ObserverNode"; }
 	virtual bool		IsOutputNode() const	{ return true; }
 };
 
@@ -65,7 +65,9 @@ public:
 		if (!registered)
 			registerNode();
 
-		Engine::OnNodeAttach(*this, *subject_);
+		subject->IncObsCount();
+
+		Engine::OnNodeAttach(*this, *subject);
 	}
 
 	virtual const char* GetNodeType() const override { return "SignalObserverNode"; }
@@ -81,7 +83,8 @@ public:
 
 		TDomain::TransactionInputContinuation::Set(&turn.InputContinuation());
 
-		func_(subject_->ValueRef());
+		if (auto p = subject_.lock())
+			func_(p->ValueRef());
 
 		TDomain::TransactionInputContinuation::Reset();
 
@@ -96,16 +99,18 @@ public:
 
 	virtual void Detach()
 	{
-		if (subject_ != nullptr)
+		if (auto p = subject_.lock())
 		{
-			Engine::OnNodeDetach(*this, *subject_);
+			p->DecObsCount();
+
+			Engine::OnNodeDetach(*this, *p);
 			subject_.reset();
 		}
 	}
 
 private:
-	SignalNodePtr<TDomain,TArg>		subject_;
-	std::function<void(TArg)>		func_;
+	SignalNodeWeakPtr<TDomain,TArg>		subject_;
+	std::function<void(TArg)>			func_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -128,7 +133,9 @@ public:
 		if (!registered)
 			registerNode();
 
-		Engine::OnNodeAttach(*this, *subject_);
+		subject->IncObsCount();
+
+		Engine::OnNodeAttach(*this, *subject);
 	}
 
 	virtual const char* GetNodeType() const override { return "EventObserverNode"; }
@@ -144,8 +151,11 @@ public:
 
 		TDomain::TransactionInputContinuation::Set(&turn.InputContinuation());
 
-		for (const auto& e : subject_->Events())
-			func_(e);
+		if (auto p = subject_.lock())
+		{
+			for (const auto& e : p->Events())
+				func_(e);
+		}
 
 		TDomain::TransactionInputContinuation::Reset();
 
@@ -161,16 +171,18 @@ public:
 
 	virtual void Detach()
 	{
-		if (subject_ != nullptr)
+		if (auto p = subject_.lock())
 		{
-			Engine::OnNodeDetach(*this, *subject_);
+			p->DecObsCount();
+
+			Engine::OnNodeDetach(*this, *p);
 			subject_.reset();
 		}
 	}
 
 private:
-	EventStreamNodePtr<TDomain,TArg>	subject_;
-	std::function<void(TArg)>			func_;
+	EventStreamNodeWeakPtr<TDomain,TArg>	subject_;
+	std::function<void(TArg)>				func_;
 };
 
 // ---
