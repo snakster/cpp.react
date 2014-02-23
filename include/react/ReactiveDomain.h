@@ -326,8 +326,8 @@ template
 >
 struct ReactiveEngineInterface
 {
-	typedef typename TEngine::NodeInterface		NodeInterface;
-	typedef typename TEngine::TurnInterface		TurnInterface;
+	typedef TEngine::NodeInterface		NodeInterface;
+	typedef TEngine::TurnInterface		TurnInterface;
 
 	static TEngine& Engine()
 	{
@@ -527,8 +527,8 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Aliases for transactions
 	////////////////////////////////////////////////////////////////////////////////////////
-	typedef TransactionData<typename Engine::TurnInterface>		TransactionData;
-	typedef TransactionInput<typename Engine::TurnInterface>	TransactionInput;
+	typedef TransactionData<Engine::TurnInterface>	TransactionData;
+	typedef TransactionInput<Engine::TurnInterface>	TransactionInput;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Transaction

@@ -1,39 +1,7 @@
 #pragma once
 
-#include "Observer.h"
-#include "Conversion.h"
-
 ////////////////////////////////////////////////////////////////////////////////////////
 namespace react {
-
-////////////////////////////////////////////////////////////////////////////////////////
-/// DynamicRSignal
-////////////////////////////////////////////////////////////////////////////////////////
-//template
-//<
-//	typename TDomain,
-//	typename S
-//>
-//class DynamicRSignal : public RSignal<TDomain,S>
-//{
-//public:
-//	DynamicRSignal() :
-//		RSignal(),
-//		owner_{ nullptr }
-//	{
-//	}
-//
-//	DynamicRSignal(RSignal&& other, void* owner) :
-//		RSignal(std::move(other)),
-//		owner_{ owner }
-//	{
-//	}
-//
-//	void*	Owner() const		{ return owner_; }
-//
-//protected:
-//	void*	owner_;
-//};
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ReactiveObject
@@ -50,9 +18,6 @@ public:
 
 	template <typename S>
 	using VarSignal = RVarSignal<TDomain,S>;
-
-	//template <typename S>
-	//using DynamicSignal = DynamicRSignal<TDomain,S>;
 
 	template <typename E>
 	using Events = REvents<TDomain,E>;
