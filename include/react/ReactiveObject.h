@@ -6,7 +6,7 @@ namespace react {
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ReactiveObject
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TDomain>
+template <typename D>
 class ReactiveObject
 {
 public:
@@ -14,18 +14,18 @@ public:
 	/// Aliases
 	////////////////////////////////////////////////////////////////////////////////////////
 	template <typename S>
-	using Signal = RSignal<TDomain,S>;
+	using Signal = RSignal<D,S>;
 
 	template <typename S>
-	using VarSignal = RVarSignal<TDomain,S>;
+	using VarSignal = RVarSignal<D,S>;
 
 	template <typename E>
-	using Events = REvents<TDomain,E>;
+	using Events = REvents<D,E>;
 
 	template <typename E>
-	using EventSource = REventSource<TDomain,E>;
+	using EventSource = REventSource<D,E>;
 
-	using Observer = Observer_<TDomain>;
+	using Observer = Observer_<D>;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// MakeVar (higher order signal)
@@ -35,10 +35,10 @@ public:
 		template <typename Domain_, typename Val_> class TOuter,
 		typename TInner
 	>
-	inline auto MakeVar(const TOuter<TDomain,TInner>& value)
+	inline auto MakeVar(const TOuter<D,TInner>& value)
 		-> VarSignal<Signal<TInner>>
 	{
-		return react::MakeVar<TDomain>(value);
+		return react::MakeVar<D>(value);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -48,7 +48,7 @@ public:
 	inline auto MakeVar(const S& value)
 		-> VarSignal<S>
 	{
-		return react::MakeVar<TDomain>(value);
+		return react::MakeVar<D>(value);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ public:
 	{
 		typedef decltype(func(args() ...)) S;
 
-		return react::MakeSignal<TDomain>(func, args ...);
+		return react::MakeSignal<D>(func, args ...);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ public:
 	inline auto MakeEventSource()
 		-> EventSource<E>
 	{
-		return react::MakeEventSource<TDomain,E>();
+		return react::MakeEventSource<D,E>();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////

@@ -31,12 +31,12 @@ struct BenchmarkParams_Sequence
 	}
 };
 
-template <typename TDomain>
-struct Benchmark_Sequence : public BenchmarkBase<TDomain>
+template <typename D>
+struct Benchmark_Sequence : public BenchmarkBase<D>
 {
 	double Run(const BenchmarkParams_Sequence& params)
 	{
-		using MyDomain = TDomain;
+		using MyDomain = D;
 		using MyHandle = MyDomain::Signal<int>;
 
 		bool initializing = true;

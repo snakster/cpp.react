@@ -25,16 +25,16 @@ namespace current_observer_state_
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverNode
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TDomain>
+template <typename D>
 class ObserverNode :
-	public ReactiveNode<TDomain,void,void>,
+	public ReactiveNode<D,void,void>,
 	public IObserverNode
 {
 public:
 	typedef std::shared_ptr<ObserverNode> NodePtr;
 
 	explicit ObserverNode(bool registered) :
-		ReactiveNode<TDomain,void,void>(true)
+		ReactiveNode<D,void,void>(true)
 	{
 	}
 
@@ -42,23 +42,23 @@ public:
 	virtual bool		IsOutputNode() const	{ return true; }
 };
 
-template <typename TDomain>
-using ObserverNodePtr = typename ObserverNode<TDomain>::NodePtr;
+template <typename D>
+using ObserverNodePtr = typename ObserverNode<D>::NodePtr;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// SignalObserverNode
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename TArg
 >
-class SignalObserverNode : public ObserverNode<TDomain>
+class SignalObserverNode : public ObserverNode<D>
 {
 public:
 	template <typename F>
-	SignalObserverNode(const SignalNodePtr<TDomain,TArg>& subject, const F& func, bool registered) :
-		ObserverNode<TDomain>(true),
+	SignalObserverNode(const SignalNodePtr<D,TArg>& subject, const F& func, bool registered) :
+		ObserverNode<D>(true),
 		subject_{ subject },
 		func_{ func }
 	{
@@ -74,24 +74,24 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		typedef typename TDomain::Engine::TurnInterface TurnInterface;
+		typedef typename D::Engine::TurnInterface TurnInterface;
 		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
-		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		current_observer_state_::shouldDetach = false;
 
-		TDomain::TransactionInputContinuation::Set(&turn.InputContinuation());
+		D::TransactionInputContinuation::Set(&turn.InputContinuation());
 
 		if (auto p = subject_.lock())
 			func_(p->ValueRef());
 
-		TDomain::TransactionInputContinuation::Reset();
+		D::TransactionInputContinuation::Reset();
 
 		if (current_observer_state_::shouldDetach)
 			turn.QueueForDetach(*this);
 
-		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		return ETickResult::none;
 	}
 
@@ -109,7 +109,7 @@ public:
 	}
 
 private:
-	SignalNodeWeakPtr<TDomain,TArg>		subject_;
+	SignalNodeWeakPtr<D,TArg>		subject_;
 	std::function<void(TArg)>			func_;
 };
 
@@ -118,15 +118,15 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename TArg
 >
-class EventObserverNode : public ObserverNode<TDomain>
+class EventObserverNode : public ObserverNode<D>
 {
 public:
 	template <typename F>
-	EventObserverNode(const EventStreamNodePtr<TDomain,TArg>& subject, const F& func, bool registered) :
-		ObserverNode<TDomain>(true),
+	EventObserverNode(const EventStreamNodePtr<D,TArg>& subject, const F& func, bool registered) :
+		ObserverNode<D>(true),
 		subject_{ subject },
 		func_{ func }
 	{
@@ -142,14 +142,14 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		typedef typename TDomain::Engine::TurnInterface TurnInterface;
+		typedef typename D::Engine::TurnInterface TurnInterface;
 		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
-		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		
 		current_observer_state_::shouldDetach = false;
 
-		TDomain::TransactionInputContinuation::Set(&turn.InputContinuation());
+		D::TransactionInputContinuation::Set(&turn.InputContinuation());
 
 		if (auto p = subject_.lock())
 		{
@@ -157,12 +157,12 @@ public:
 				func_(e);
 		}
 
-		TDomain::TransactionInputContinuation::Reset();
+		D::TransactionInputContinuation::Reset();
 
 		if (current_observer_state_::shouldDetach)
 			turn.QueueForDetach(*this);
 
-		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		return ETickResult::none;
 	}
@@ -181,7 +181,7 @@ public:
 	}
 
 private:
-	EventStreamNodeWeakPtr<TDomain,TArg>	subject_;
+	EventStreamNodeWeakPtr<D,TArg>	subject_;
 	std::function<void(TArg)>				func_;
 };
 

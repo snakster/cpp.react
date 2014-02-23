@@ -12,14 +12,14 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename TValue
 >
 class RandomGraphGenerator
 {
 public:
-	typedef TDomain::Signal<TValue>			MyHandle;
-	typedef TDomain::VarSignal<TValue>		MyInputHandle;
+	typedef D::Signal<TValue>			MyHandle;
+	typedef D::VarSignal<TValue>		MyInputHandle;
 
 	typedef std::vector<MyHandle>		HandleVect;
 	typedef std::vector<MyInputHandle>	InputHandleVect;
@@ -204,12 +204,12 @@ struct BenchmarkParams_Random
 	}
 };
 
-template <typename TDomain>
-struct Benchmark_Random : public BenchmarkBase<TDomain>
+template <typename D>
+struct Benchmark_Random : public BenchmarkBase<D>
 {
 	double Run(const BenchmarkParams_Random& params)
 	{
-		using MyDomain = TDomain;
+		using MyDomain = D;
 
 		RandomGraphGenerator<MyDomain,int> generator;
 

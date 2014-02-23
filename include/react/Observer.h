@@ -11,20 +11,20 @@ namespace react {
 template <typename T>
 class Reactive;
 
-template <typename TDomain, typename TValue>
+template <typename D, typename TValue>
 class RSignal;
 
-template <typename TDomain, typename TValue>
+template <typename D, typename TValue>
 class REvents;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Observer_
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TDomain>
+template <typename D>
 class Observer_
 {
 public:
-	typedef NodeBase<TDomain>	SubjectT;
+	typedef NodeBase<D>	SubjectT;
 
 	Observer_() :
 		ptr_{ nullptr },
@@ -32,13 +32,13 @@ public:
 	{
 	}
 
-	Observer_(ObserverNode<TDomain>* ptr, const std::shared_ptr<SubjectT>& subject) :
+	Observer_(ObserverNode<D>* ptr, const std::shared_ptr<SubjectT>& subject) :
 		ptr_{ ptr },
 		subject_{ subject }
 	{
 	}
 
-	const ObserverNode<TDomain>* GetPtr() const
+	const ObserverNode<D>* GetPtr() const
 	{
 		return ptr_;
 	}
@@ -48,13 +48,13 @@ public:
 		if (ptr_ == nullptr)
 			return false;
 
-		TDomain::Observers().Unregister(ptr_);
+		D::Observers().Unregister(ptr_);
 		return true;
 	}
 
 private:
 	// Ownership managed by registry
-	ObserverNode<TDomain>*		ptr_;
+	ObserverNode<D>*		ptr_;
 
 	// While the observer handle exists, the subject is not destroyed
 	std::shared_ptr<SubjectT>	subject_;
@@ -63,11 +63,11 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverRegistry
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TDomain>
+template <typename D>
 class ObserverRegistry
 {
 public:
-	typedef NodeBase<TDomain>	SubjectT;
+	typedef NodeBase<D>	SubjectT;
 
 private:
 	class Entry_
@@ -131,40 +131,40 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename TFunc,
 	typename TArg
 >
-inline auto Observe(const RSignal<TDomain,TArg>& subject, const TFunc& func)
-	-> Observer_<TDomain>
+inline auto Observe(const RSignal<D,TArg>& subject, const TFunc& func)
+	-> Observer_<D>
 {
-	std::unique_ptr<ObserverNode<TDomain>> pUnique(
-		new SignalObserverNode<TDomain,TArg>(subject.GetPtr(), func, false));
+	std::unique_ptr<ObserverNode<D>> pUnique(
+		new SignalObserverNode<D,TArg>(subject.GetPtr(), func, false));
 
 	auto* raw = pUnique.get();
 
-	TDomain::Observers().Register(std::move(pUnique), subject.GetPtr().get());
+	D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
-	return Observer_<TDomain>(raw, subject.GetPtr());
+	return Observer_<D>(raw, subject.GetPtr());
 }
 
 template
 <
-	typename TDomain,
+	typename D,
 	typename TFunc,
 	typename TArg
 >
-inline auto Observe(const REvents<TDomain,TArg>& subject, const TFunc& func)
-	-> Observer_<TDomain>
+inline auto Observe(const REvents<D,TArg>& subject, const TFunc& func)
+	-> Observer_<D>
 {
-	std::unique_ptr<ObserverNode<TDomain>> pUnique(
-		new EventObserverNode<TDomain,TArg>(subject.GetPtr(), func, false));
+	std::unique_ptr<ObserverNode<D>> pUnique(
+		new EventObserverNode<D,TArg>(subject.GetPtr(), func, false));
 
 	auto* raw = pUnique.get();
 
-	TDomain::Observers().Register(std::move(pUnique), subject.GetPtr().get());
+	D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
-	return Observer_<TDomain>(raw, subject.GetPtr());
+	return Observer_<D>(raw, subject.GetPtr());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -172,13 +172,13 @@ inline auto Observe(const REvents<TDomain,TArg>& subject, const TFunc& func)
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	template <typename Domain_, typename Val_> class TNode,
 	typename TArg
 >
-inline void DetachAllObservers(const Reactive<TNode<TDomain,TArg>>& subject)
+inline void DetachAllObservers(const Reactive<TNode<D,TArg>>& subject)
 {
-	TDomain::Observers().UnregisterFrom(subject.GetPtr().get());
+	D::Observers().UnregisterFrom(subject.GetPtr().get());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -189,5 +189,4 @@ inline void DetachThisObserver()
 	current_observer_state_::shouldDetach = true;
 }
 
-// ---
-}
+} // ~namespace react

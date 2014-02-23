@@ -31,12 +31,12 @@ struct BenchmarkParams_Fanout
 	}
 };
 
-template <typename TDomain>
-struct Benchmark_Fanout : public BenchmarkBase<TDomain>
+template <typename D>
+struct Benchmark_Fanout : public BenchmarkBase<D>
 {
 	double Run(const BenchmarkParams_Fanout& params)
 	{
-		using MyDomain = TDomain;
+		using MyDomain = D;
 		using MyHandle = MyDomain::Signal<int>;
 
 		bool initializing = true;

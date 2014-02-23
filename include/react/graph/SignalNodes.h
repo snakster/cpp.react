@@ -14,10 +14,10 @@ namespace react {
 template <typename T>
 class Reactive;
 
-template <typename TDomain, typename S>
-class Signal_;
+template <typename D, typename S>
+class RSignal;
 
-template <typename TDomain, typename E>
+template <typename D, typename E>
 class REvents;
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -25,10 +25,10 @@ class REvents;
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename S
 >
-class SignalNode : public ReactiveNode<TDomain,S,S>
+class SignalNode : public ReactiveNode<D,S,S>
 {
 public:
 	typedef std::shared_ptr<SignalNode> NodePtrT;
@@ -76,25 +76,25 @@ protected:
 	S		value_;
 };
 
-template <typename TDomain, typename S>
-using SignalNodePtr = typename SignalNode<TDomain,S>::NodePtrT;
+template <typename D, typename S>
+using SignalNodePtr = typename SignalNode<D,S>::NodePtrT;
 
-template <typename TDomain, typename S>
-using SignalNodeWeakPtr = typename SignalNode<TDomain,S>::NodeWeakPtrT;
+template <typename D, typename S>
+using SignalNodeWeakPtr = typename SignalNode<D,S>::NodeWeakPtrT;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// VarNode
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename S
 >
-class VarNode : public SignalNode<TDomain,S>
+class VarNode : public SignalNode<D,S>
 {
 public:
 	VarNode(S value, bool registered) :
-		SignalNode<TDomain,S>(value, true)
+		SignalNode<D,S>(value, true)
 	{
 		if (!registered)
 			registerNode();
@@ -139,13 +139,13 @@ private:
 
 	// todo - ugly
 	template <typename L, typename R>
-	static bool equals(const REvents<TDomain,L>& lhs, const REvents<TDomain,R>& rhs)
+	static bool equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
 	{
 		return lhs.Equals(rhs);
 	}
 
 	template <typename L, typename R>
-	static bool equals(const Signal_<TDomain,L>& lhs, const Signal_<TDomain,R>& rhs)
+	static bool equals(const RSignal<D,L>& lhs, const RSignal<D,R>& rhs)
 	{
 		return lhs.Equals(rhs);
 	}
@@ -156,14 +156,14 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename S
 >
-class ValNode : public SignalNode<TDomain,S>
+class ValNode : public SignalNode<D,S>
 {
 public:
 	ValNode(const S value, bool registered) :
-		SignalNode<TDomain,S>(value, true)
+		SignalNode<D,S>(value, true)
 	{
 		if (!registered)
 			registerNode();
@@ -183,15 +183,15 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename S,
 	typename ... TArgs
 >
-class FunctionNode : public SignalNode<TDomain,S>
+class FunctionNode : public SignalNode<D,S>
 {
 public:
-	FunctionNode(const SignalNodePtr<TDomain,TArgs>& ... args, std::function<S(TArgs ...)> func, bool registered) :
-		SignalNode<TDomain, S>(true),
+	FunctionNode(const SignalNodePtr<D,TArgs>& ... args, std::function<S(TArgs ...)> func, bool registered) :
+		SignalNode<D, S>(true),
 		deps_{ make_tuple(args ...) },
 		func_{ func }
 	{
@@ -207,7 +207,7 @@ public:
 	{
 		apply
 		(
-			[this] (const SignalNodePtr<TDomain,TArgs>& ... args)
+			[this] (const SignalNodePtr<D,TArgs>& ... args)
 			{
 				EXPAND_PACK(Engine::OnNodeDetach(*this, *args));
 			},
@@ -219,12 +219,12 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		typedef typename TDomain::Engine::TurnInterface TurnInterface;
+		typedef typename D::Engine::TurnInterface TurnInterface;
 		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
-		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		S newValue = evaluate();
-		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		
 		//if (newValue != value_)
@@ -244,7 +244,7 @@ public:
 	virtual int DependencyCount() const override	{ return sizeof ... (TArgs); }
 
 private:
-	std::tuple<SignalNodePtr<TDomain,TArgs> ...>	deps_;
+	std::tuple<SignalNodePtr<D,TArgs> ...>	deps_;
 	std::function<S(TArgs ...)>						func_;
 
 	S evaluate() const
@@ -252,7 +252,7 @@ private:
 		return apply(func_, apply(unpackValues, deps_));
 	}
 
-	static inline auto unpackValues(const SignalNodePtr<TDomain,TArgs>& ... args) -> std::tuple<TArgs ...>
+	static inline auto unpackValues(const SignalNodePtr<D,TArgs>& ... args) -> std::tuple<TArgs ...>
 	{
 		return std::make_tuple(args->ValueRef() ...);
 	}
@@ -265,13 +265,13 @@ private:
 
 	// todo - ugly
 	template <typename L, typename R>
-	static bool equals(const REvents<TDomain,L>& lhs, const REvents<TDomain,R>& rhs)
+	static bool equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
 	{
 		return lhs.Equals(rhs);
 	}
 
 	template <typename L, typename R>
-	static bool equals(const Signal_<TDomain,L>& lhs, const Signal_<TDomain,R>& rhs)
+	static bool equals(const RSignal<D,L>& lhs, const RSignal<D,R>& rhs)
 	{
 		return lhs.Equals(rhs);
 	}
@@ -282,15 +282,15 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename TOuter,
 	typename TInner
 >
-class FlattenNode : public SignalNode<TDomain,TInner>
+class FlattenNode : public SignalNode<D,TInner>
 {
 public:
-	FlattenNode(const SignalNodePtr<TDomain,TOuter>& outer, const SignalNodePtr<TDomain,TInner>& inner, bool registered) :
-		SignalNode<TDomain, TInner>(inner->Value(), true),
+	FlattenNode(const SignalNodePtr<D,TOuter>& outer, const SignalNodePtr<D,TInner>& inner, bool registered) :
+		SignalNode<D, TInner>(inner->Value(), true),
 		outer_{ outer },
 		inner_{ inner }
 	{
@@ -315,7 +315,7 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		typedef typename TDomain::Engine::TurnInterface TurnInterface;
+		typedef typename D::Engine::TurnInterface TurnInterface;
 		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
 		auto newInner = outer_->Value().GetPtr();
@@ -329,9 +329,9 @@ public:
 			return ETickResult::invalidated;
 		}
 
-		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		TInner newValue = inner_->Value();
-		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (newValue != value_)
 		{
@@ -349,8 +349,8 @@ public:
 	virtual int DependencyCount() const override	{ return 2; }
 
 private:
-	SignalNodePtr<TDomain,TOuter>	outer_;
-	SignalNodePtr<TDomain,TInner>	inner_;
+	SignalNodePtr<D,TOuter>	outer_;
+	SignalNodePtr<D,TInner>	inner_;
 };
 
 // ---

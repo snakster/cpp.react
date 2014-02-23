@@ -12,13 +12,13 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename TValue
 >
 class GridGraphGenerator
 {
 public:
-	typedef TDomain::Signal<TValue>	MyHandle;
+	typedef D::Signal<TValue>	MyHandle;
 
 	typedef std::function<TValue(TValue)>			Func1T;
 	typedef std::function<TValue(TValue,TValue)>	Func2T;
@@ -125,12 +125,12 @@ struct BenchmarkParams_Grid
 	}
 };
 
-template <typename TDomain>
-struct Benchmark_Grid : public BenchmarkBase<TDomain>
+template <typename D>
+struct Benchmark_Grid : public BenchmarkBase<D>
 {
 	double Run(const BenchmarkParams_Grid& params)
 	{
-		using MyDomain = TDomain;
+		using MyDomain = D;
 
 		auto in = MyDomain::MakeVar(1);
 

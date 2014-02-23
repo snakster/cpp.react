@@ -20,10 +20,10 @@ namespace react {
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename E
 >
-class EventStreamNode : public ReactiveNode<TDomain,E,void>
+class EventStreamNode : public ReactiveNode<D,E,void>
 {
 public:
 	typedef std::vector<E>	EventListT;
@@ -32,7 +32,7 @@ public:
 	typedef std::shared_ptr<EventStreamNode> NodePtrT;
 	typedef std::weak_ptr<EventStreamNode> NodeWeakPtrT;
 
-	typedef typename TDomain::Engine EngineT;
+	typedef typename D::Engine EngineT;
 	typedef typename EngineT::TurnInterface TurnInterface;
 
 	explicit EventStreamNode(bool registered) :
@@ -72,21 +72,21 @@ protected:
 	uint			curTurnId_;
 };
 
-template <typename TDomain, typename E>
-using EventStreamNodePtr = typename EventStreamNode<TDomain,E>::NodePtrT;
+template <typename D, typename E>
+using EventStreamNodePtr = typename EventStreamNode<D,E>::NodePtrT;
 
-template <typename TDomain, typename E>
-using EventStreamNodeWeakPtr = typename EventStreamNode<TDomain,E>::NodeWeakPtrT;
+template <typename D, typename E>
+using EventStreamNodeWeakPtr = typename EventStreamNode<D,E>::NodeWeakPtrT;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// EventSourceNode
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename E
 >
-class EventSourceNode : public EventStreamNode<TDomain,E>
+class EventSourceNode : public EventStreamNode<D,E>
 {
 public:
 	explicit EventSourceNode(bool registered) :
@@ -129,18 +129,18 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename E,
 	typename ... TArgs
 >
-class EventMergeNode : public EventStreamNode<TDomain, E>
+class EventMergeNode : public EventStreamNode<D, E>
 {
 public:
-	typedef typename TDomain::Engine EngineT;
+	typedef typename D::Engine EngineT;
 	typedef typename EngineT::TurnInterface TurnInterface;
 
-	EventMergeNode(const EventStreamNodePtr<TDomain, TArgs>& ... args, bool registered) :
-		EventStreamNode<TDomain, E>(true),
+	EventMergeNode(const EventStreamNodePtr<D, TArgs>& ... args, bool registered) :
+		EventStreamNode<D, E>(true),
 		deps_{ make_tuple(args ...) },
 		func_{ std::bind(&EventMergeNode::expand, this, std::placeholders::_1, args ...) }
 	{
@@ -154,7 +154,7 @@ public:
 	{
 		apply
 			(
-			[this](const EventStreamNodePtr<TDomain, TArgs>& ... args)
+			[this](const EventStreamNodePtr<D, TArgs>& ... args)
 		{
 			EXPAND_PACK(Engine::OnNodeDetach(*this, *args));
 		},
@@ -173,9 +173,9 @@ public:
 
 		SetCurrentTurn(turn, true);
 
-		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		func_(std::cref(turn));
-		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (events_.size() > 0)
 		{
@@ -192,16 +192,16 @@ public:
 	virtual int DependencyCount() const override	{ return sizeof ... (TArgs); }
 
 private:
-	std::tuple<EventStreamNodePtr<TDomain, TArgs> ...>	deps_;
+	std::tuple<EventStreamNodePtr<D, TArgs> ...>	deps_;
 	std::function<void(const TurnInterface&)>			func_;
 
-	inline void expand(const TurnInterface& turn, const EventStreamNodePtr<TDomain, TArgs>& ... args)
+	inline void expand(const TurnInterface& turn, const EventStreamNodePtr<D, TArgs>& ... args)
 	{
 		EXPAND_PACK(processArgs<TArgs>(turn, args));
 	}
 
 	template <typename TArg>
-	inline void processArgs(const TurnInterface& turn, const EventStreamNodePtr<TDomain, TArg>& arg)
+	inline void processArgs(const TurnInterface& turn, const EventStreamNodePtr<D, TArg>& arg)
 	{
 		arg->SetCurrentTurn(turn);
 
@@ -214,15 +214,15 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename E,
 	typename F
 >
-class EventFilterNode : public EventStreamNode<TDomain, E>
+class EventFilterNode : public EventStreamNode<D, E>
 {
 public:
-	EventFilterNode(const EventStreamNodePtr<TDomain, E>& src, F filter, bool registered) :
-		EventStreamNode<TDomain, E>(true),
+	EventFilterNode(const EventStreamNodePtr<D, E>& src, F filter, bool registered) :
+		EventStreamNode<D, E>(true),
 		src_{ src },
 		filter_{ filter }
 	{
@@ -241,15 +241,15 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		typedef typename TDomain::Engine EngineT;
+		typedef typename D::Engine EngineT;
 		typedef typename EngineT::TurnInterface TurnInterface;
 		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
 		SetCurrentTurn(turn, true);
 
-		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		std::copy_if(src_->REvents().begin(), src_->REvents().end(), std::back_inserter(events_), filter_);
-		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (events_.size() > 0)
 		{
@@ -266,7 +266,7 @@ public:
 	virtual int DependencyCount() const override	{ return 1; }
 
 private:
-	EventStreamNodePtr<TDomain,E>	src_;
+	EventStreamNodePtr<D,E>	src_;
 
 	F	filter_;
 };
@@ -276,16 +276,16 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename TIn,
 	typename TOut,
 	typename F
 >
-class EventTransformNode : public EventStreamNode<TDomain,TOut>
+class EventTransformNode : public EventStreamNode<D,TOut>
 {
 public:
-	EventTransformNode(const EventStreamNodePtr<TDomain,TIn>& src, F func, bool registered) :
-		EventStreamNode<TDomain,TOut>(true),
+	EventTransformNode(const EventStreamNodePtr<D,TIn>& src, F func, bool registered) :
+		EventStreamNode<D,TOut>(true),
 		src_{ src },
 		func_{ func }
 	{
@@ -304,15 +304,15 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		typedef typename TDomain::Engine EngineT;
+		typedef typename D::Engine EngineT;
 		typedef typename EngineT::TurnInterface TurnInterface;
 		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
 		SetCurrentTurn(turn, true);
 
-		TDomain::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		std::transform(src_->REvents().begin(), src_->REvents().end(), std::back_inserter(events_), func_);	
-		TDomain::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (events_.size() > 0)
 		{
@@ -329,7 +329,7 @@ public:
 	virtual int DependencyCount() const override	{ return 1; }
 
 private:
-	EventStreamNodePtr<TDomain,TIn>	src_;
+	EventStreamNodePtr<D,TIn>	src_;
 
 	F	func_;
 };

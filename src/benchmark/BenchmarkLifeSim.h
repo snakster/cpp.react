@@ -30,8 +30,8 @@ enum class Migration	{ enter,  leave };
 
 typedef pair<int,int> PositionT;
 
-template <typename TDomain>
-class Time : public ReactiveObject<TDomain>
+template <typename D>
+class Time : public ReactiveObject<D>
 {
 public:
 	EventSource<bool>	NewDay	= MakeEventSource<bool>();
@@ -49,10 +49,10 @@ public:
 	}
 };
 
-template <typename TDomain>
-class Region : public ReactiveObject<TDomain>
+template <typename D>
+class Region : public ReactiveObject<D>
 {
-	Time<TDomain>&			theTime;
+	Time<D>&			theTime;
 
 public:
 	typedef tuple<int,int,int,int> BoundsT;
@@ -76,7 +76,7 @@ public:
 
 	Events<int> FoodOutput = Pulse(FoodOutputPerDay, theTime.NewDay);
 
-	Region(Time<TDomain>& time, int x, int y):
+	Region(Time<D>& time, int x, int y):
 		theTime { time },
 		Bounds  { make_tuple(x*10, x*10+9, y*10, y*10+9) }
 	{
@@ -102,23 +102,23 @@ public:
 	}
 };
 
-template <typename TDomain>
-class World : public ReactiveObject<TDomain>
+template <typename D>
+class World : public ReactiveObject<D>
 {
 	int w_;
 
 public:
-	vector<unique_ptr<Region<TDomain>>>	Regions;
+	vector<unique_ptr<Region<D>>>	Regions;
 
-	World(Time<TDomain>& time, int w) :
+	World(Time<D>& time, int w) :
 		w_( w )
 	{
 		for (int x=0; x<w; x++)
 			for (int y=0; y<w; y++)
-				Regions.push_back(unique_ptr<Region<TDomain>>(new Region<TDomain>(time, x, y)));
+				Regions.push_back(unique_ptr<Region<D>>(new Region<D>(time, x, y)));
 	}
 
-	Region<TDomain>* GetRegion(PositionT pos)
+	Region<D>* GetRegion(PositionT pos)
 	{
 		for (auto& r : Regions)
 		{
@@ -139,20 +139,20 @@ public:
 	}
 };
 
-template <typename TDomain>
-class Animal : public ReactiveObject<TDomain>
+template <typename D>
+class Animal : public ReactiveObject<D>
 {
-	Time<TDomain>&	theTime;
-	World<TDomain>&	theWorld;
+	Time<D>&	theTime;
+	World<D>&	theWorld;
 
 	std::mt19937 generator;
 
 public:
 	Signal<PositionT>			Position;
-	VarSignal<Region<TDomain>*>	CurrentRegion;
-	Signal<Region<TDomain>*>	NewRegion;
+	VarSignal<Region<D>*>	CurrentRegion;
+	Signal<Region<D>*>	NewRegion;
 
-	Animal(Time<TDomain>& time, World<TDomain>&	world, Region<TDomain>* initRegion, unsigned seed) :
+	Animal(Time<D>& time, World<D>&	world, Region<D>* initRegion, unsigned seed) :
 		theTime( time ),
 		theWorld( world ),
 		CurrentRegion( MakeVar(initRegion) ),
@@ -181,7 +181,7 @@ public:
 
 		initRegion->EnterOrLeave << Migration::enter;
 
-		Observe(NewRegion, [this] (Region<TDomain>* newRegion) {
+		Observe(NewRegion, [this] (Region<D>* newRegion) {
 			CurrentRegion.Value()->EnterOrLeave << Migration::leave;
 			newRegion->EnterOrLeave << Migration::enter;
 
@@ -232,15 +232,15 @@ struct BenchmarkParams_LifeSim
 	}
 };
 
-template <typename TDomain>
-struct Benchmark_LifeSim : public BenchmarkBase<TDomain>
+template <typename D>
+struct Benchmark_LifeSim : public BenchmarkBase<D>
 {
 	double Run(const BenchmarkParams_LifeSim& params)
 	{
-		auto theTime	= Time<TDomain>();
-		auto theWorld	= World<TDomain>(theTime, params.W);
+		auto theTime	= Time<D>();
+		auto theWorld	= World<D>(theTime, params.W);
 
-		auto animals	= vector<unique_ptr<Animal<TDomain>>>();
+		auto animals	= vector<unique_ptr<Animal<D>>>();
 
 		std::mt19937 gen(2015);
 		std::uniform_int_distribution<int> dist(0,theWorld.Regions.size()-1);
@@ -248,7 +248,7 @@ struct Benchmark_LifeSim : public BenchmarkBase<TDomain>
 		for (int i=0; i<params.N; i++)
 		{
 			auto r = theWorld.Regions[dist(gen)].get();
-			animals.push_back(unique_ptr<Animal<TDomain>>(new Animal<TDomain>(theTime, theWorld, r, i+1)));
+			animals.push_back(unique_ptr<Animal<D>>(new Animal<D>(theTime, theWorld, r, i+1)));
 		}
 
 		atomic<int> c(0);
@@ -297,7 +297,7 @@ struct Benchmark_LifeSim : public BenchmarkBase<TDomain>
 /*		std::ofstream logfile;
 		logfile.open("log.txt");
 
-		TDomain::Log().Write(logfile);
+		D::Log().Write(logfile);
 		logfile.close()*/;
 
 		return d;

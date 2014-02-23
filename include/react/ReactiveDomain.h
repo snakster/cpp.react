@@ -17,26 +17,26 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 namespace react {
 
-template <typename TDomain, typename S>
+template <typename D, typename S>
 class RSignal;
 
-template <typename TDomain, typename S>
+template <typename D, typename S>
 class RVarSignal;
 
-template <typename TDomain, typename E>
+template <typename D, typename E>
 class REvents;
 
-template <typename TDomain, typename E>
+template <typename D, typename E>
 class REventSource;
 
 template
 <
-	typename TDomain,
+	typename D,
 	typename TFunc,
 	typename ... TArgs
 >
-inline auto MakeSignal(TFunc func, const RSignal<TDomain,TArgs>& ... args)
-	-> RSignal<TDomain,decltype(func(args() ...))>;
+inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
+	-> RSignal<D,decltype(func(args() ...))>;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// TransactionInput
@@ -321,7 +321,7 @@ enum CommitFlags
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename TEngine
 >
 struct ReactiveEngineInterface
@@ -337,56 +337,56 @@ struct ReactiveEngineInterface
 
 	static void OnNodeCreate(NodeInterface& node)
 	{
-		TDomain::Log().template Append<NodeCreateEvent>(GetObjectId(node), node.GetNodeType());
+		D::Log().template Append<NodeCreateEvent>(GetObjectId(node), node.GetNodeType());
 		Engine().OnNodeCreate(node);
 	}
 
 	static void OnNodeDestroy(NodeInterface& node)
 	{
-		TDomain::Log().template Append<NodeDestroyEvent>(GetObjectId(node));
+		D::Log().template Append<NodeDestroyEvent>(GetObjectId(node));
 		Engine().OnNodeDestroy(node);
 	}
 
 	static void OnNodeAttach(NodeInterface& node, NodeInterface& parent)
 	{
-		TDomain::Log().template Append<NodeAttachEvent>(GetObjectId(node), GetObjectId(parent));
+		D::Log().template Append<NodeAttachEvent>(GetObjectId(node), GetObjectId(parent));
 		Engine().OnNodeAttach(node, parent);
 	}
 
 	static void OnNodeDetach(NodeInterface& node, NodeInterface& parent)
 	{
-		TDomain::Log().template Append<NodeDetachEvent>(GetObjectId(node), GetObjectId(parent));
+		D::Log().template Append<NodeDetachEvent>(GetObjectId(node), GetObjectId(parent));
 		Engine().OnNodeDetach(node, parent);
 	}
 
 	static void OnTransactionCommit(TransactionData<TurnInterface>& transaction)
 	{
-		TDomain::Log().template Append<TransactionBeginEvent>(transaction.Id());
+		D::Log().template Append<TransactionBeginEvent>(transaction.Id());
 		Engine().OnTransactionCommit(transaction);
-		TDomain::Log().template Append<TransactionEndEvent>(transaction.Id());
+		D::Log().template Append<TransactionEndEvent>(transaction.Id());
 	}
 
 	static void OnInputNodeAdmission(NodeInterface& node, TurnInterface& turn)
 	{
-		TDomain::Log().template Append<InputNodeAdmissionEvent>(GetObjectId(node), turn.Id());
+		D::Log().template Append<InputNodeAdmissionEvent>(GetObjectId(node), turn.Id());
 		Engine().OnInputNodeAdmission(node, turn);
 	}
 
 	static void OnNodePulse(NodeInterface& node, TurnInterface& turn)
 	{
-		TDomain::Log().template Append<NodePulseEvent>(GetObjectId(node), turn.Id());
+		D::Log().template Append<NodePulseEvent>(GetObjectId(node), turn.Id());
 		Engine().OnNodePulse(node, turn);
 	}
 
 	static void OnNodeIdlePulse(NodeInterface& node, TurnInterface& turn)
 	{
-		TDomain::Log().template Append<NodeIdlePulseEvent>(GetObjectId(node), turn.Id());
+		D::Log().template Append<NodeIdlePulseEvent>(GetObjectId(node), turn.Id());
 		Engine().OnNodeIdlePulse(node, turn);
 	}
 
 	static void OnNodeShift(NodeInterface& node, NodeInterface& oldParent, NodeInterface& newParent, TurnInterface& turn)
 	{
-		TDomain::Log().template Append<NodeInvalidateEvent>(GetObjectId(node), GetObjectId(oldParent), GetObjectId(newParent), turn.Id());
+		D::Log().template Append<NodeInvalidateEvent>(GetObjectId(node), GetObjectId(oldParent), GetObjectId(newParent), turn.Id());
 		Engine().OnNodeShift(node, oldParent, newParent, turn);
 	}
 };
@@ -408,30 +408,30 @@ struct DomainPolicy
 ////////////////////////////////////////////////////////////////////////////////////////
 /// DomainBase
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TDomain, typename TPolicy>
+template <typename D, typename TPolicy>
 class DomainBase
 {
 public:
 	typedef TPolicy	Policy;
 
-	typedef ReactiveEngineInterface<TDomain, Policy::Engine>	Engine;
+	typedef ReactiveEngineInterface<D, Policy::Engine>	Engine;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Aliases for handles of current domain
 	////////////////////////////////////////////////////////////////////////////////////////
 	template <typename S>
-	using Signal = RSignal<TDomain,S>;
+	using Signal = RSignal<D,S>;
 
 	template <typename S>
-	using VarSignal = RVarSignal<TDomain,S>;
+	using VarSignal = RVarSignal<D,S>;
 
 	template <typename E>
-	using Events = REvents<TDomain,E>;
+	using Events = REvents<D,E>;
 
 	template <typename E>
-	using EventSource = REventSource<TDomain,E>;
+	using EventSource = REventSource<D,E>;
 
-	using Observer = Observer_<TDomain>;
+	using Observer = Observer_<D>;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Ensure singletons are created immediately after domain declaration (TODO hax)
@@ -449,9 +449,9 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// ObserverRegistry
 	////////////////////////////////////////////////////////////////////////////////////////
-	static ObserverRegistry<TDomain>& Observers()
+	static ObserverRegistry<D>& Observers()
 	{
-		static ObserverRegistry<TDomain> registry;
+		static ObserverRegistry<D> registry;
 		return registry;
 	}
 
@@ -472,10 +472,10 @@ public:
 		template <typename Domain_, typename Val_> class TOuter,
 		typename TInner
 	>
-	static inline auto MakeVar(const TOuter<TDomain,TInner>& value)
+	static inline auto MakeVar(const TOuter<D,TInner>& value)
 		-> VarSignal<Signal<TInner>>
 	{
-		return react::MakeVar<TDomain>(value);
+		return react::MakeVar<D>(value);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -485,7 +485,7 @@ public:
 	static inline auto MakeVar(const S& value)
 		-> VarSignal<S>
 	{
-		return react::MakeVar<TDomain>(value);
+		return react::MakeVar<D>(value);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -495,7 +495,7 @@ public:
 	static inline auto MakeVal(const S& value)
 		-> Signal<S>
 	{
-		return react::MakeVal<TDomain>(value);
+		return react::MakeVal<D>(value);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -511,7 +511,7 @@ public:
 	{
 		typedef decltype(func(args() ...)) S;
 
-		return react::MakeSignal<TDomain>(func, args ...);
+		return react::MakeSignal<D>(func, args ...);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -521,7 +521,7 @@ public:
 	static inline auto MakeEventSource()
 		-> EventSource<E>
 	{
-		return react::MakeEventSource<TDomain,E>();
+		return react::MakeEventSource<D,E>();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -662,15 +662,14 @@ private:
 	DomainBase();
 };
 
-template <typename TDomain, typename TPolicy>
-std::atomic<int> DomainBase<TDomain,TPolicy>::nextTransactionId_(0);
+template <typename D, typename TPolicy>
+std::atomic<int> DomainBase<D,TPolicy>::nextTransactionId_(0);
 
-template <typename TDomain, typename TPolicy>
-int DomainBase<TDomain,TPolicy>::defaultCommitFlags_(0);
+template <typename D, typename TPolicy>
+int DomainBase<D,TPolicy>::defaultCommitFlags_(0);
 
 #define REACTIVE_DOMAIN(domain, ...) \
 	struct domain : public react::DomainBase<domain, react::DomainPolicy<__VA_ARGS__ >> {}; \
 	domain ## ::Initializer_ domain ## _initializer_;
 
-// ---
-}
+} // ~namespace react

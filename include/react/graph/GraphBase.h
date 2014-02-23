@@ -48,8 +48,8 @@ struct IReactiveNode
 ////////////////////////////////////////////////////////////////////////////////////////
 /// NodeBase
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TDomain>
-class NodeBase : public std::enable_shared_from_this<NodeBase<TDomain>>
+template <typename D>
+class NodeBase : public std::enable_shared_from_this<NodeBase<D>>
 {
 public:
 	typedef std::shared_ptr<NodeBase>	SharedPtrType;
@@ -65,16 +65,16 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TDomain,
+	typename D,
 	typename P,
 	typename V
 >
-class ReactiveNode : public NodeBase<TDomain>, public TDomain::Policy::Engine::NodeInterface
+class ReactiveNode : public NodeBase<D>, public D::Policy::Engine::NodeInterface
 {
 public:
 	typedef std::shared_ptr<ReactiveNode> NodePtrT;
 
-	typedef TDomain		Domain;
+	typedef D		Domain;
 	typedef typename Domain::Policy			Policy;
 	typedef typename Domain::Engine			Engine;
 	typedef typename Engine::NodeInterface	NodeInterface;
@@ -90,7 +90,7 @@ public:
 	~ReactiveNode()
 	{
 		if (GetObsCount() > 0)
-			TDomain::Observers().UnregisterFrom(this);
+			D::Observers().UnregisterFrom(this);
 
 		Engine::OnNodeDestroy(*this);
 	}
@@ -117,8 +117,8 @@ private:
 	std::atomic<uint>	obsCount_;
 };
 
-template <typename TDomain, typename P, typename V>
-using ReactiveNodePtr = typename ReactiveNode<TDomain,P,V>::NodePtrT;
+template <typename D, typename P, typename V>
+using ReactiveNodePtr = typename ReactiveNode<D,P,V>::NodePtrT;
 
 // ---
 }

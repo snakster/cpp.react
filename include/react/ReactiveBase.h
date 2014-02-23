@@ -44,5 +44,4 @@ protected:
 	std::shared_ptr<T> ptr_;
 };
 
-// ---
-}
+} // ~namespace react

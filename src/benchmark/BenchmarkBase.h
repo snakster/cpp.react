@@ -10,11 +10,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 /// BenchmarkBase
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TDomain>
+template <typename D>
 class BenchmarkBase
 {
 public:
-	typedef TDomain Domain;
+	typedef D Domain;
 
 	double		Run();
 };
@@ -71,7 +71,7 @@ template
 	int RUN_COUNT,
 	template <typename> class TBenchmark,
 	typename TParams,
-	typename ... TDomains
+	typename ... Ds
 >
 void RunBenchmarkClass(const char* name, std::ostream& out, const TParams& params)
 {
@@ -83,7 +83,7 @@ void RunBenchmarkClass(const char* name, std::ostream& out, const TParams& param
 	params.Print(out);
 	out	<< ") =====" << std::endl << std::endl;
 
-	EXPAND_PACK(RunBenchmark<RUN_COUNT>(out, TBenchmark<TDomains>(), params));
+	EXPAND_PACK(RunBenchmark<RUN_COUNT>(out, TBenchmark<Ds>(), params));
 }
 
 #define RUN_BENCHMARK(out, runCount, benchmarkClass, params, ...) \
