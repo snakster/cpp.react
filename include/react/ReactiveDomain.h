@@ -11,6 +11,7 @@
 #include "Observer.h"
 
 #include "react/common/Types.h"
+#include "react/logging/EventLog.h"
 #include "react/logging/EventRecords.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
