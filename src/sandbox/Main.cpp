@@ -1,9 +1,10 @@
 #include <iostream>
 
 #include "react/Signal.h"
-#include "react/propagation/SourceSetEngine.h"
-
+#include "react/EventStream.h"
 #include "react/ReactiveObject.h"
+
+#include "react/propagation/SourceSetEngine.h"
 
 using namespace react;
 using namespace std;
@@ -87,7 +88,6 @@ void EventExample1()
 	cout << endl;
 }
 
-
 class Person : public ReactiveObject<TestDomain>
 {
 public:
@@ -96,7 +96,7 @@ public:
 	Signal<int>		Wisdom  = Age * Age / 100;
 
 	// Note: Initializing them directly uses the same lambda for both signals...
-	// Compiler bug?
+	// compiler bug?
 	Observer	wisdomObs;
 	Observer	weaknessObs;
 

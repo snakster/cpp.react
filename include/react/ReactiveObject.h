@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Signal.h"
-#include "EventStream.h"
 #include "Observer.h"
 #include "Conversion.h"
 

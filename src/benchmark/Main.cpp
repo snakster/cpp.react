@@ -8,7 +8,7 @@
 #include "BenchmarkLifeSim.h"
 
 #include "react/Signal.h"
-//#include "react/Conversion.h"
+#include "react/Conversion.h"
 #include "react/common/Util.h"
 #include "react/logging/EventLog.h"
 
