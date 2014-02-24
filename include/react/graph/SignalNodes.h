@@ -5,20 +5,9 @@
 #include <tuple>
 
 #include "GraphBase.h"
-#include "react/Signal.h"
-#include "react/EventStream.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 namespace react {
-
-template <typename T>
-class Reactive;
-
-template <typename D, typename S>
-class RSignal;
-
-template <typename D, typename E>
-class REvents;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// SignalNode
@@ -64,7 +53,7 @@ public:
 
 	S operator()(void) const
 	{
-		return value_;
+		return Value();
 	}
 
 	const S& ValueRef() const
@@ -117,7 +106,7 @@ public:
 
 	bool ApplyNewValue()
 	{
-		if (! equals(value_, newValue_))
+		if (! impl::Equals(value_, newValue_))
 		{
 			value_ = newValue_;
 			return true;
@@ -130,25 +119,6 @@ public:
 
 private:
 	S		newValue_;
-
-	template <typename L, typename R>
-	static bool equals(L lhs, R rhs)
-	{
-		return lhs == rhs;
-	}
-
-	// todo - ugly
-	template <typename L, typename R>
-	static bool equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
-	{
-		return lhs.Equals(rhs);
-	}
-
-	template <typename L, typename R>
-	static bool equals(const RSignal<D,L>& lhs, const RSignal<D,R>& rhs)
-	{
-		return lhs.Equals(rhs);
-	}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -226,9 +196,7 @@ public:
 		S newValue = evaluate();
 		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
-		
-		//if (newValue != value_)
-		if (! equals(value_, newValue))
+		if (! impl::Equals(value_, newValue))
 		{
 			value_ = newValue;
 			Engine::OnNodePulse(*this, turn);
@@ -245,7 +213,7 @@ public:
 
 private:
 	std::tuple<SignalNodePtr<D,TArgs> ...>	deps_;
-	std::function<S(TArgs ...)>						func_;
+	std::function<S(TArgs ...)>				func_;
 
 	S evaluate() const
 	{
@@ -255,25 +223,6 @@ private:
 	static inline auto unpackValues(const SignalNodePtr<D,TArgs>& ... args) -> std::tuple<TArgs ...>
 	{
 		return std::make_tuple(args->ValueRef() ...);
-	}
-
-	template <typename L, typename R>
-	static bool equals(L lhs, R rhs)
-	{
-		return lhs == rhs;
-	}
-
-	// todo - ugly
-	template <typename L, typename R>
-	static bool equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
-	{
-		return lhs.Equals(rhs);
-	}
-
-	template <typename L, typename R>
-	static bool equals(const RSignal<D,L>& lhs, const RSignal<D,R>& rhs)
-	{
-		return lhs.Equals(rhs);
 	}
 };
 

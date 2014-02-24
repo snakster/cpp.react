@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <thread>
 #include <vector>
 
 #include "tbb/spin_mutex.h"

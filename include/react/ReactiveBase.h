@@ -44,4 +44,16 @@ protected:
 	std::shared_ptr<T> ptr_;
 };
 
+////////////////////////////////////////////////////////////////////////////////////////
+namespace impl
+{
+
+template <typename L, typename R>
+bool Equals(L lhs, R rhs)
+{
+	return lhs == rhs;
+}
+
+} // ~namespace react::impl
+
 } // ~namespace react

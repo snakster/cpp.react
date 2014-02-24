@@ -12,16 +12,16 @@ using namespace std;
 // Defines a domain.
 // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
 // Reactives of different domains can not be combined.
-REACTIVE_DOMAIN(TestDomain, SourceSetEngine);
+REACTIVE_DOMAIN(D, SourceSetEngine);
 
 
 void SignalExample1()
 {
 	cout << "Signal Example 1" << endl;
 
-	auto width = TestDomain::MakeVar(60);
-	auto height = TestDomain::MakeVar(70);
-	auto depth = TestDomain::MakeVar(8);
+	auto width = D::MakeVar(60);
+	auto height = D::MakeVar(70);
+	auto depth = D::MakeVar(8);
 
 	auto area	= width * height;
 	auto volume	= area * depth;
@@ -44,9 +44,9 @@ void SignalExample2()
 {
 	cout << "Signal Example 2" << endl;
 
-	auto width = TestDomain::MakeVar(60);
-	auto height = TestDomain::MakeVar(70);
-	auto depth = TestDomain::MakeVar(8);
+	auto width = D::MakeVar(60);
+	auto height = D::MakeVar(70);
+	auto depth = D::MakeVar(8);
 
 	auto volume = (width,height,depth) >>= [] (int w, int h, int d) {
 		return w * h * d;
@@ -61,7 +61,7 @@ void SignalExample2()
 	});
 
 	{
-		TestDomain::ScopedTransaction _;
+		D::ScopedTransaction _;
 		width <<= 90;
 		depth <<= 80;
 	}
@@ -73,8 +73,8 @@ void EventExample1()
 {
 	cout << "Event Example 1" << endl;
 
-	auto numbers1 = TestDomain::MakeEventSource<int>();
-	auto numbers2 = TestDomain::MakeEventSource<int>();
+	auto numbers1 = D::MakeEventSource<int>();
+	auto numbers2 = D::MakeEventSource<int>();
 
 	auto anyNumber = numbers1 | numbers2;
 
@@ -88,7 +88,7 @@ void EventExample1()
 	cout << endl;
 }
 
-class Person : public ReactiveObject<TestDomain>
+class Person : public ReactiveObject<D>
 {
 public:
 	VarSignal<int>	Age		= MakeVar(1);
