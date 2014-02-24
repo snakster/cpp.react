@@ -4,9 +4,9 @@
 #include <functional>
 #include <memory>
 
-#include "tbb/spin_mutex.h"
-#include "tbb/queuing_mutex.h"
 #include "tbb/concurrent_vector.h"
+#include "tbb/queuing_mutex.h"
+#include "tbb/spin_mutex.h"
 
 #include "Observer.h"
 
@@ -326,8 +326,8 @@ template
 >
 struct ReactiveEngineInterface
 {
-	typedef TEngine::NodeInterface		NodeInterface;
-	typedef TEngine::TurnInterface		TurnInterface;
+	typedef typename TEngine::NodeInterface		NodeInterface;
+	typedef typename TEngine::TurnInterface		TurnInterface;
 
 	static TEngine& Engine()
 	{
@@ -414,10 +414,10 @@ class DomainBase
 public:
 	typedef TPolicy	Policy;
 
-	typedef ReactiveEngineInterface<D, Policy::Engine>	Engine;
+	typedef ReactiveEngineInterface<D, typename Policy::Engine>	Engine;
 
 	////////////////////////////////////////////////////////////////////////////////////////
-	/// Aliases for handles of current domain
+	/// Aliases for reactives of current domain
 	////////////////////////////////////////////////////////////////////////////////////////
 	template <typename S>
 	using Signal = RSignal<D,S>;
@@ -527,8 +527,8 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Aliases for transactions
 	////////////////////////////////////////////////////////////////////////////////////////
-	typedef TransactionData<Engine::TurnInterface>	TransactionData;
-	typedef TransactionInput<Engine::TurnInterface>	TransactionInput;
+	typedef TransactionData<typename Engine::TurnInterface>		TransactionData;
+	typedef TransactionInput<typename Engine::TurnInterface>	TransactionInput;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Transaction
@@ -537,14 +537,12 @@ public:
 	{
 	public:
 		Transaction() :
-			committed_(false),
-			flags_(defaultCommitFlags_)
+			flags_{ defaultCommitFlags_ }
 		{
 		}
 
 		Transaction(int flags) :
-			committed_(false),
-			flags_(flags)
+			flags_{ flags }
 		{
 		}
 
@@ -578,7 +576,7 @@ public:
 	private:
 
 		int		flags_;
-		bool	committed_;
+		bool	committed_ = false;
 
 		TransactionData		data_;
 	};
@@ -590,7 +588,7 @@ public:
 	{
 	public:
 		ScopedTransaction() :
-			transaction_(defaultCommitFlags_)
+			transaction_{ defaultCommitFlags_ }
 		{
 			ASSERT_(ScopedTransactionInput::IsNull(), "Nested scoped transactions are not supported.");
 			ASSERT_(TransactionInputContinuation::IsNull(), "Scoped transactions are not supported inside of observer functions.");
@@ -598,7 +596,7 @@ public:
 		}
 
 		ScopedTransaction(int flags) :
-			transaction_(flags)
+			transaction_{ flags }
 		{
 			ASSERT_(ScopedTransactionInput::IsNull(), "Nested scoped transactions are not supported.");
 			ASSERT_(TransactionInputContinuation::IsNull(), "Scoped transactions are not supported inside of observer functions.");
@@ -638,7 +636,7 @@ public:
 		defaultCommitFlags_ = flags;
 	}
 
-	static int SetDefaultCommitFlags()
+	static int GetDefaultCommitFlags()
 	{
 		return defaultCommitFlags_;
 	}
@@ -650,7 +648,7 @@ private:
 
 	static int nextTransactionId()
 	{
-		int curId = nextTransactionId_.fetch_add(1);
+		int curId = nextTransactionId_.fetch_add(1, std::memory_order_relaxed);
 
 		if (curId == INT_MAX)
 			nextTransactionId_.fetch_sub(INT_MAX);

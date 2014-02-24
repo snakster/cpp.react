@@ -18,7 +18,7 @@ template
 class GridGraphGenerator
 {
 public:
-	typedef D::Signal<TValue>	MyHandle;
+	typedef typename D::template Signal<TValue>	MyHandle;
 
 	typedef std::function<TValue(TValue)>			Func1T;
 	typedef std::function<TValue(TValue,TValue)>	Func2T;

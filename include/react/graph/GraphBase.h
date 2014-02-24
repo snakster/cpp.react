@@ -6,6 +6,7 @@
 
 //#include "react/ReactiveDomain.h"
 #include "react/common/Util.h"
+#include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 namespace react {

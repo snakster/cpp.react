@@ -4,6 +4,8 @@
 #include <functional>
 
 #include "GraphBase.h"
+#include "EventStreamNodes.h"
+#include "SignalNodes.h"
 
 namespace react {
 

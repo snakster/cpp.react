@@ -14,6 +14,12 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 namespace react {
 
+template <typename D, typename S>
+class SignalNode;
+
+template <typename D, typename S>
+class VarNode;
+
 ////////////////////////////////////////////////////////////////////////////////////////
 /// RSignal
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -52,7 +58,7 @@ public:
 
 	S operator()(void) const
 	{
-		return (*ptr_)();
+		return Value();
 	}
 };
 
@@ -167,7 +173,7 @@ inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Unary arithmetic operators
 ////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_ARITHMETIC_OP1(op)									\
+#define DECLARE_OP(op)												\
 template															\
 <																	\
 	typename D,														\
@@ -181,15 +187,15 @@ inline auto operator ## op(const RSignal<D,TVal>& arg)				\
 			arg.GetPtr(), [] (TVal a) { return op a; }, false));	\
 }
 
-DECLARE_ARITHMETIC_OP1(+);
-DECLARE_ARITHMETIC_OP1(-);
+DECLARE_OP(+);
+DECLARE_OP(-);
 
-#undef DECLARE_ARITHMETIC_OP1
+#undef DECLARE_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Binary arithmetic operators
 ////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_ARITHMETIC_OP2(op)									\
+#define DECLARE_OP(op)												\
 template															\
 <																	\
 	typename D,														\
@@ -255,18 +261,18 @@ inline auto operator ## op(const TLeftVal& lhs,						\
 			rhs.GetPtr(), [=] (TRightVal a) { return lhs op a; }, false)); \
 }
 
-DECLARE_ARITHMETIC_OP2(+);
-DECLARE_ARITHMETIC_OP2(-);
-DECLARE_ARITHMETIC_OP2(*);
-DECLARE_ARITHMETIC_OP2(/);
-DECLARE_ARITHMETIC_OP2(%);
+DECLARE_OP(+);
+DECLARE_OP(-);
+DECLARE_OP(*);
+DECLARE_OP(/);
+DECLARE_OP(%);
 
-#undef DECLARE_ARITHMETIC_OP2
+#undef DECLARE_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Comparison operators
 ////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_COMP_OP(op)											\
+#define DECLARE_OP(op)												\
 template															\
 <																	\
 	typename D,														\
@@ -296,19 +302,19 @@ inline auto operator ## op(const RSignal<D,TLeftVal>& lhs, const TRightVal& rhs)
 			lhs.GetPtr(), [=] (TLeftVal a) { return a op rhs; }, false)); \
 }
 
-DECLARE_COMP_OP(==);
-DECLARE_COMP_OP(!=);
-DECLARE_COMP_OP(<);
-DECLARE_COMP_OP(<=);
-DECLARE_COMP_OP(>);
-DECLARE_COMP_OP(>=);
+DECLARE_OP(==);
+DECLARE_OP(!=);
+DECLARE_OP(<);
+DECLARE_OP(<=);
+DECLARE_OP(>);
+DECLARE_OP(>=);
 
-#undef DECLARE_COMP_OP
+#undef DECLARE_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Unary logical operators
 ////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_LOGICAL_OP1(op)										\
+#define DECLARE_OP(op)												\
 template															\
 <																	\
 	typename D,														\
@@ -322,14 +328,14 @@ inline auto operator ## op(const RSignal<D,TVal>& arg)				\
 			arg.GetPtr(), [] (TVal a) { return op a; }, false));	\
 }
 
-DECLARE_LOGICAL_OP1(!);
+DECLARE_OP(!);
 
-#undef DECLARE_LOGICAL_OP1
+#undef DECLARE_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Binary logical operators
 ////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_LOGICAL_OP2(op)										\
+#define DECLARE_OP(op)												\
 template															\
 <																	\
 	typename D,														\
@@ -359,10 +365,10 @@ inline auto operator ## op(const RSignal<D,TLeftVal>& lhs, const TRightVal& rhs)
 			lhs.GetPtr(), [=] (TLeftVal a) { return a op rhs; }, false)); \
 }
 
-DECLARE_LOGICAL_OP2(&&);
-DECLARE_LOGICAL_OP2(||);
+DECLARE_OP(&&);
+DECLARE_OP(||);
 
-#undef DECLARE_LOGICAL_OP2
+#undef DECLARE_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// InputPack - Wraps several nodes in a tuple. Create with comma operator.

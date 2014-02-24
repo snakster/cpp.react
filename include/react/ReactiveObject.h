@@ -35,7 +35,7 @@ public:
 		template <typename Domain_, typename Val_> class TOuter,
 		typename TInner
 	>
-	inline auto MakeVar(const TOuter<D,TInner>& value)
+	static inline auto MakeVar(const TOuter<D,TInner>& value)
 		-> VarSignal<Signal<TInner>>
 	{
 		return react::MakeVar<D>(value);
@@ -45,7 +45,7 @@ public:
 	/// MakeVar
 	////////////////////////////////////////////////////////////////////////////////////////
 	template <typename S>
-	inline auto MakeVar(const S& value)
+	static inline auto MakeVar(const S& value)
 		-> VarSignal<S>
 	{
 		return react::MakeVar<D>(value);
@@ -59,7 +59,7 @@ public:
 		typename TFunc,
 		typename ... TArgs
 	>
-	inline auto MakeSignal(TFunc func, const Signal<TArgs>& ... args)
+	static inline auto MakeSignal(TFunc func, const Signal<TArgs>& ... args)
 		-> Signal<decltype(func(args() ...))>
 	{
 		typedef decltype(func(args() ...)) S;
@@ -71,7 +71,7 @@ public:
 	/// MakeEventSource
 	////////////////////////////////////////////////////////////////////////////////////////
 	template <typename E>
-	inline auto MakeEventSource()
+	static inline auto MakeEventSource()
 		-> EventSource<E>
 	{
 		return react::MakeEventSource<D,E>();

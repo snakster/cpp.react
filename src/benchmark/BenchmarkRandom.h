@@ -18,8 +18,8 @@ template
 class RandomGraphGenerator
 {
 public:
-	typedef D::Signal<TValue>			MyHandle;
-	typedef D::VarSignal<TValue>		MyInputHandle;
+	typedef typename D::template Signal<TValue>			MyHandle;
+	typedef typename D::template VarSignal<TValue>		MyInputHandle;
 
 	typedef std::vector<MyHandle>		HandleVect;
 	typedef std::vector<MyInputHandle>	InputHandleVect;

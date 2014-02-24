@@ -50,7 +50,6 @@ public:
 
 private:
 	ThreadLocalStaticPtr() {}
-	~ThreadLocalStaticPtr() {}
 
 	static __declspec(thread) T*	ptr_;
 };
