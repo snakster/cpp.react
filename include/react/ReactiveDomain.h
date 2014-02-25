@@ -29,6 +29,8 @@ class REvents;
 template <typename D, typename E>
 class REventSource;
 
+enum class EventToken;
+
 template
 <
 	typename D,
@@ -425,13 +427,13 @@ public:
 	template <typename S>
 	using VarSignal = RVarSignal<D,S>;
 
-	template <typename E>
+	template <typename E = EventToken>
 	using Events = REvents<D,E>;
 
-	template <typename E>
+	template <typename E = EventToken>
 	using EventSource = REventSource<D,E>;
 
-	using Observer = Observer_<D>;
+	using Observer = RObserver<D>;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// ObserverRegistry
@@ -511,6 +513,12 @@ public:
 		return react::MakeEventSource<D,E>();
 	}
 
+	static inline auto MakeEventSource()
+		-> EventSource<EventToken>
+	{
+		return react::MakeEventSource<D>();
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Aliases for transactions
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -535,7 +543,7 @@ public:
 
 		void Commit()
 		{
-			ASSERT_(committed_ == false, "Transaction already committed.");
+			REACT_ASSERT(committed_ == false, "Transaction already committed.");
 
 			if (!committed_)
 			{
@@ -577,16 +585,16 @@ public:
 		ScopedTransaction() :
 			transaction_{ defaultCommitFlags_ }
 		{
-			ASSERT_(ScopedTransactionInput::IsNull(), "Nested scoped transactions are not supported.");
-			ASSERT_(TransactionInputContinuation::IsNull(), "Scoped transactions are not supported inside of observer functions.");
+			REACT_ASSERT(ScopedTransactionInput::IsNull(), "Nested scoped transactions are not supported.");
+			REACT_ASSERT(TransactionInputContinuation::IsNull(), "Scoped transactions are not supported inside of observer functions.");
 			ScopedTransactionInput::Set(&transaction_.Data().Input());
 		}
 
 		ScopedTransaction(int flags) :
 			transaction_{ flags }
 		{
-			ASSERT_(ScopedTransactionInput::IsNull(), "Nested scoped transactions are not supported.");
-			ASSERT_(TransactionInputContinuation::IsNull(), "Scoped transactions are not supported inside of observer functions.");
+			REACT_ASSERT(ScopedTransactionInput::IsNull(), "Nested scoped transactions are not supported.");
+			REACT_ASSERT(TransactionInputContinuation::IsNull(), "Scoped transactions are not supported inside of observer functions.");
 			ScopedTransactionInput::Set(&transaction_.Data().Input());
 		}
 

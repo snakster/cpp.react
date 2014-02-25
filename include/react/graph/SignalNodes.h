@@ -42,7 +42,7 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		ASSERT_(false, "Don't tick SignalNode\n");
+		REACT_ASSERT(false, "Don't tick SignalNode\n");
 		return ETickResult::none;
 	}
 
@@ -62,7 +62,7 @@ public:
 	}
 
 protected:
-	S		value_;
+	S value_;
 };
 
 template <typename D, typename S>
@@ -93,7 +93,7 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		ASSERT_(false, "Don't tick VarNode\n");
+		REACT_ASSERT(false, "Don't tick VarNode\n");
 		return ETickResult::none;
 	}
 
@@ -143,7 +143,7 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		ASSERT_(false, "Don't tick the ValNode\n");
+		REACT_ASSERT(false, "Don't tick the ValNode\n");
 		return ETickResult::none;
 	}
 };
@@ -170,7 +170,7 @@ public:
 
 		value_ = func_(args->Value() ...);
 
-		EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
+		REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
 	}
 
 	~FunctionNode()
@@ -179,7 +179,7 @@ public:
 		(
 			[this] (const SignalNodePtr<D,TArgs>& ... args)
 			{
-				EXPAND_PACK(Engine::OnNodeDetach(*this, *args));
+				REACT_EXPAND_PACK(Engine::OnNodeDetach(*this, *args));
 			},
 			deps_
 		);

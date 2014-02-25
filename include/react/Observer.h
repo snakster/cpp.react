@@ -11,28 +11,30 @@ namespace react {
 template <typename T>
 class Reactive;
 
-template <typename D, typename TValue>
+template <typename D, typename S>
 class RSignal;
 
-template <typename D, typename TValue>
+template <typename D, typename E>
 class REvents;
 
+enum class EventToken;
+
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Observer_
+/// RObserver
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
-class Observer_
+class RObserver
 {
 public:
 	typedef NodeBase<D>	SubjectT;
 
-	Observer_() :
+	RObserver() :
 		ptr_{ nullptr },
 		subject_{ nullptr }
 	{
 	}
 
-	Observer_(ObserverNode<D>* ptr, const std::shared_ptr<SubjectT>& subject) :
+	RObserver(ObserverNode<D>* ptr, const std::shared_ptr<SubjectT>& subject) :
 		ptr_{ ptr },
 		subject_{ subject }
 	{
@@ -136,7 +138,7 @@ template
 	typename TArg
 >
 inline auto Observe(const RSignal<D,TArg>& subject, const TFunc& func)
-	-> Observer_<D>
+	-> RObserver<D>
 {
 	std::unique_ptr<ObserverNode<D>> pUnique(
 		new SignalObserverNode<D,TArg>(subject.GetPtr(), func, false));
@@ -145,17 +147,19 @@ inline auto Observe(const RSignal<D,TArg>& subject, const TFunc& func)
 
 	D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
-	return Observer_<D>(raw, subject.GetPtr());
+	return RObserver<D>(raw, subject.GetPtr());
 }
 
 template
 <
 	typename D,
 	typename TFunc,
-	typename TArg
+	typename TArg,
+	typename = std::enable_if<
+		! std::is_same<TArg,EventToken>::value>::type
 >
 inline auto Observe(const REvents<D,TArg>& subject, const TFunc& func)
-	-> Observer_<D>
+	-> RObserver<D>
 {
 	std::unique_ptr<ObserverNode<D>> pUnique(
 		new EventObserverNode<D,TArg>(subject.GetPtr(), func, false));
@@ -164,7 +168,26 @@ inline auto Observe(const REvents<D,TArg>& subject, const TFunc& func)
 
 	D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
-	return Observer_<D>(raw, subject.GetPtr());
+	return RObserver<D>(raw, subject.GetPtr());
+}
+
+template
+<
+	typename D,
+	typename TFunc
+>
+inline auto Observe(const REvents<D,EventToken>& subject, const TFunc& func)
+	-> RObserver<D>
+{
+	std::unique_ptr<ObserverNode<D>> pUnique(
+		new EventObserverNode<D,EventToken>(
+			subject.GetPtr(), [func] (EventToken _) { func(); }, false));
+
+	auto* raw = pUnique.get();
+
+	D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
+
+	return RObserver<D>(raw, subject.GetPtr());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

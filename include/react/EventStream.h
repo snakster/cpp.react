@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <thread>
+#include <type_traits>
 
 #include "ReactiveBase.h"
 #include "ReactiveDomain.h"
@@ -13,13 +14,19 @@ namespace react {
 template <typename T>
 class Reactive;
 
+enum class EventToken
+{
+	token
+};
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 /// REvents
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
 	typename D,
-	typename E
+	typename E = EventToken
 >
 class REvents : public Reactive<EventStreamNode<D,E>>
 {
@@ -56,7 +63,7 @@ bool Equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
 template
 <
 	typename D,
-	typename E
+	typename E = EventToken
 >
 class REventSource : public REvents<D,E>
 {
@@ -74,7 +81,7 @@ public:
 	{
 	}
 
-	REventSource& operator<<(const E& e)
+	void Emit(const E& e) const
 	{
 		if (! Domain::TransactionInputContinuation::IsNull())
 		{
@@ -93,6 +100,23 @@ public:
 			t.Data().Input().AddEventInput(*sourceNode, e);
 			t.Commit();
 		}
+	}
+
+	template <typename = std::enable_if<std::is_same<E,EventToken>::value>::type>
+	void Emit() const
+	{
+		Emit(EventToken::token);
+	}
+
+	REventSource& operator<<(const E& e)
+	{
+		Emit(e);
+		return *this;
+	}
+
+	const REventSource& operator<<(const E& e) const
+	{
+		Emit(e);
 		return *this;
 	}
 };
@@ -106,6 +130,14 @@ inline auto MakeEventSource()
 {
 	return REventSource<D,E>(
 		std::make_shared<EventSourceNode<D,E>>(false));
+}
+
+template <typename D>
+inline auto MakeEventSource()
+	-> REventSource<D,EventToken>
+{
+	return REventSource<D,EventToken>(
+		std::make_shared<EventSourceNode<D,EventToken>>(false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

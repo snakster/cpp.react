@@ -232,7 +232,7 @@ void TopoSortO1Engine::OnTransactionCommit(TransactionData<Turn>& transaction)
 			turn.ScheduledNodes.Pop();
 
 #ifdef _DEBUG
-			ASSERT_(turn.CurrentLevel() == node->Level, "Processed node with level != curLevel");
+			REACT_ASSERT(turn.CurrentLevel() == node->Level, "Processed node with level != curLevel");
 #endif
 
 			node->Collected = false;

@@ -14,13 +14,13 @@
 namespace react {
 
 #ifdef _DEBUG
-#define MESSAGE_(...) printf(__VA_ARGS__ ## "\n")
+#define REACT_MESSAGE(...) printf(__VA_ARGS__ ## "\n")
 #else
 #define MESSAGE
 #endif
 
 // Assert with message
-#define ASSERT_(condition, ...) for (; !(condition); assert(condition)) printf(__VA_ARGS__ ## "\n")
+#define REACT_ASSERT(condition, ...) for (; !(condition); assert(condition)) printf(__VA_ARGS__ ## "\n")
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// NonCopyable
@@ -101,7 +101,7 @@ inline void pass(TArgs&& ...) {}
 
 // Expand args by wrapping them in a dummy function
 // Use comma operator to replace potential void return value with 0
-#define EXPAND_PACK(...) pass((__VA_ARGS__ , 0) ...)
+#define REACT_EXPAND_PACK(...) pass((__VA_ARGS__ , 0) ...)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Format print bits

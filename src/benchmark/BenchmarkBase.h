@@ -83,7 +83,7 @@ void RunBenchmarkClass(const char* name, std::ostream& out, const TParams& param
 	params.Print(out);
 	out	<< ") =====" << std::endl << std::endl;
 
-	EXPAND_PACK(RunBenchmark<RUN_COUNT>(out, TBenchmark<Ds>(), params));
+	REACT_EXPAND_PACK(RunBenchmark<RUN_COUNT>(out, TBenchmark<Ds>(), params));
 }
 
 #define RUN_BENCHMARK(out, runCount, benchmarkClass, params, ...) \

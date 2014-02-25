@@ -19,13 +19,13 @@ public:
 	template <typename S>
 	using VarSignal = RVarSignal<D,S>;
 
-	template <typename E>
+	template <typename E = EventToken>
 	using Events = REvents<D,E>;
 
-	template <typename E>
+	template <typename E = EventToken>
 	using EventSource = REventSource<D,E>;
 
-	using Observer = Observer_<D>;
+	using Observer = RObserver<D>;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// MakeVar (higher order signal)

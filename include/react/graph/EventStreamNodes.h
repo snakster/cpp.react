@@ -105,7 +105,7 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		ASSERT_(false, "Don't tick EventSourceNode\n");
+		REACT_ASSERT(false, "Don't tick EventSourceNode\n");
 		return ETickResult::none;
 	}
 
@@ -148,19 +148,19 @@ public:
 		if (!registered)
 			registerNode();
 
-		EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
+		REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
 	}
 
 	~EventMergeNode()
 	{
 		apply
-			(
-			[this](const EventStreamNodePtr<D, TArgs>& ... args)
-		{
-			EXPAND_PACK(Engine::OnNodeDetach(*this, *args));
-		},
+		(
+			[this] (const EventStreamNodePtr<D, TArgs>& ... args)
+			{
+				REACT_EXPAND_PACK(Engine::OnNodeDetach(*this, *args));
+			},
 			deps_
-			);
+		);
 	}
 
 	virtual const char* GetNodeType() const override	{ return "EventMergeNode"; }
@@ -190,15 +190,15 @@ public:
 		}
 	}
 
-	virtual int DependencyCount() const override	{ return sizeof ... (TArgs); }
+	virtual int DependencyCount() const override	{ return sizeof... (TArgs); }
 
 private:
 	std::tuple<EventStreamNodePtr<D, TArgs> ...>	deps_;
-	std::function<void(const TurnInterface&)>			func_;
+	std::function<void(const TurnInterface&)>		func_;
 
 	inline void expand(const TurnInterface& turn, const EventStreamNodePtr<D, TArgs>& ... args)
 	{
-		EXPAND_PACK(processArgs<TArgs>(turn, args));
+		REACT_EXPAND_PACK(processArgs<TArgs>(turn, args));
 	}
 
 	template <typename TArg>
