@@ -193,28 +193,29 @@ inline auto Filter(const REvents<D,E>& src, const F& filter)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Comparison operators
+/// TODO: Bad idea...
 ////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_COMP_OP(op)												\
-																		\
-template																\
-<																		\
-	typename D,															\
-	typename E															\
->																		\
-inline auto operator ## op(const REvents<D,E>& lhs, const E& rhs)		\
-	-> REvents<D,E>														\
-{																		\
-	return Filter(lhs, [=] (const E& e) { return e op rhs; });			\
-}
-
-DECLARE_COMP_OP(==);
-DECLARE_COMP_OP(!=);
-DECLARE_COMP_OP(<);
-DECLARE_COMP_OP(<=);
-DECLARE_COMP_OP(>);
-DECLARE_COMP_OP(>=);
-
-#undef DECLARE_COMP_OP
+//#define DECLARE_COMP_OP(op)												\
+//																		\
+//template																\
+//<																		\
+//	typename D,															\
+//	typename E															\
+//>																		\
+//inline auto operator ## op(const REvents<D,E>& lhs, const E& rhs)		\
+//	-> REvents<D,E>														\
+//{																		\
+//	return Filter(lhs, [=] (const E& e) { return e op rhs; });			\
+//}
+//
+//DECLARE_COMP_OP(==);
+//DECLARE_COMP_OP(!=);
+//DECLARE_COMP_OP(<);
+//DECLARE_COMP_OP(<=);
+//DECLARE_COMP_OP(>);
+//DECLARE_COMP_OP(>=);
+//
+//#undef DECLARE_COMP_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Transform
