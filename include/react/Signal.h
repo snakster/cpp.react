@@ -111,7 +111,7 @@ public:
 	{
 	}
 
-	RVarSignal& operator<<=(const S& newValue)
+	void Set(const S& newValue) const
 	{
 		if (! Domain::TransactionInputContinuation::IsNull())
 		{
@@ -130,6 +130,11 @@ public:
 			t.Data().Input().AddSignalInput(*varNode, newValue);
 			t.Commit();
 		}
+	}
+
+	const RVarSignal& operator<<=(const S& newValue) const
+	{
+		Set(newValue);
 		return *this;
 	}
 };
