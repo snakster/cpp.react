@@ -40,7 +40,7 @@ public:
 		S newValue = calcNewValue();
 		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
-		if (impl::Equals(newValue, value_))
+		if (! impl::Equals(newValue, value_))
 		{
 			value_ = newValue;
 			Engine::OnNodePulse(*this, turn);
@@ -99,6 +99,7 @@ protected:
 		S newValue = value_;
 		for (const auto& e : events_->Events())
 			newValue = func_(newValue,e);
+			
 		return newValue;
 	}
 };
