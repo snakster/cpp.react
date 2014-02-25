@@ -1,6 +1,8 @@
 Experimental reactive programming framework for C++11.
 
-I've only tested the build with Visual Studio 2012 and the Intel C++ Compiler 14.0.
+Tested build environments:
+* Intel C++ Compiler 14.0 in Visual Studio 2012/13
+* Visual Studio 2013
 
 [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) is a required dependency.
 To compile and run the unit tests, the [Google test framework](https://code.google.com/p/googletest/) is required.
