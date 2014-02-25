@@ -72,7 +72,7 @@ void SourceSetNode::Destroy()
 
 void SourceSetNode::Pulse(SourceSetTurn& turn, bool updated)
 {
-	bool invalidate = flags_ & kFlag_Invaliated;
+	bool invalidate = (flags_ & kFlag_Invaliated) != 0;
 	flags_ &= ~(kFlag_Invaliated | kFlag_Updated | kFlag_Visited);
 
 	// shiftMutex_
