@@ -121,7 +121,8 @@ inline auto Merge(const REvents<D,TArg1>& arg1,
 				  const REvents<D,TArgs>& ... args)
 	-> REvents<D,TArg1>
 {
-	static_assert(sizeof...(TArgs) > 0, "react::Merge requires at least 2 arguments.");
+	static_assert(sizeof...(TArgs) > 0,
+		"react::Merge requires at least 2 arguments.");
 
 	typedef TArg1 E;
 	return REvents<D,E>(

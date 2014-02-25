@@ -183,6 +183,9 @@ template
 inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
 	-> RSignal<D,decltype(func(args() ...))>
 {
+	static_assert(sizeof...(TArgs) > 0,
+		"react::MakeSignal requires at least 1 signal dependency.");
+
 	typedef decltype(func(args() ...)) S;
 
 	return RSignal<D,S>(
