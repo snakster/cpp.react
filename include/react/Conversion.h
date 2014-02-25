@@ -19,16 +19,15 @@ template
 	typename D,
 	typename E,
 	typename S,
-	typename TFunc,
-	typename ... TArgs
+	typename TFunc
 >
 inline auto Fold(const S& initialValue, const REvents<D,E>& events,
-				 const TFunc& func, const RSignal<D,TArgs>& ... args)
+				 const TFunc& func)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
-		std::make_shared<FoldNode<D,S,E,TArgs ...>>(
-			initialValue, events.GetPtr(), args.GetPtr() ..., func, false));
+		std::make_shared<FoldNode<D,S,E>>(
+			initialValue, events.GetPtr(), func, false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -39,16 +38,15 @@ template
 	typename D,
 	typename E,
 	typename S,
-	typename TFunc,
-	typename ... TArgs
+	typename TFunc
 >
 inline auto Iterate(const S& initialValue, const REvents<D,E>& events,
-					const TFunc& func, const RSignal<D,TArgs>& ... args)
+					const TFunc& func)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
-		std::make_shared<IterateNode<D,S,E,TArgs ...>>(
-			initialValue, events.GetPtr(), args.GetPtr() ..., func, false));
+		std::make_shared<IterateNode<D,S,E>>(
+			initialValue, events.GetPtr(), func, false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

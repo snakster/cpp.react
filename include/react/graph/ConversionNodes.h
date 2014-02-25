@@ -19,21 +19,17 @@ template
 <
 	typename D,
 	typename S,
-	typename E,
-	typename ... TArgs
+	typename E
 >
 class FoldBaseNode : public SignalNode<D,S>
 {
 public:
 	FoldBaseNode(const S& initialValue, const EventStreamNodePtr<D,E>& events,
-			 const SignalNodePtr<D,TArgs>& ... args, bool registered) :
+				 bool registered) :
 		SignalNode<D, S>(initialValue, true),
-		deps_{ std::make_tuple(args ...) },
 		events_{ events }
 	{
 	}
-
-	virtual const char* GetNodeType() const override	{ return "FoldBaseNode"; }
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
@@ -44,7 +40,7 @@ public:
 		S newValue = calcNewValue();
 		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
-		if (newValue != value_)
+		if (impl::Equals(newValue, value_))
 		{
 			value_ = newValue;
 			Engine::OnNodePulse(*this, turn);
@@ -57,24 +53,12 @@ public:
 		}
 	}
 
-	virtual int DependencyCount() const	override	{ return 1 + sizeof ... (TArgs); }
+	virtual int DependencyCount() const	override	{ return 1; }
 
 protected:
-	const EventStreamNodePtr<D,E>					events_;
-	const std::tuple<SignalNodePtr<D,TArgs> ...>	deps_;
+	const EventStreamNodePtr<D,E> events_;
 
 	virtual S calcNewValue() const = 0;
-
-	template <typename A>
-	S evaluate(const A& a) const
-	{
-		return apply(a, apply(unpackValues, deps_));
-	}
-
-	static inline auto unpackValues(const SignalNodePtr<D,TArgs>& ... args) -> std::tuple<TArgs ...>
-	{
-		return std::make_tuple(args->ValueRef() ...);
-	}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -84,65 +68,37 @@ template
 <
 	typename D,
 	typename S,
-	typename E,
-	typename ... TArgs
+	typename E
 >
-class FoldNode : public FoldBaseNode<D,S,E,TArgs...>
+class FoldNode : public FoldBaseNode<D,S,E>
 {
 public:
 	FoldNode(const S& initialValue, const EventStreamNodePtr<D,E>& events,
-			 const SignalNodePtr<D,TArgs>& ... args, std::function<S(S,E,TArgs ...)> func, bool registered) :
-		FoldBaseNode<D, S, E, TArgs...>(initialValue, events, args ..., true),
+			 std::function<S(S,E)> func, bool registered) :
+		FoldBaseNode<D,S,E>(initialValue, events, true),
 		func_{ func }
 	{
 		if (!registered)
 			registerNode();
 
 		Engine::OnNodeAttach(*this, *events);
-		EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
 	}
 
 	~FoldNode()
 	{
 		Engine::OnNodeDetach(*this, *events_);
-
-		apply
-		(
-			[this] (const SignalNodePtr<D,TArgs>& ... args)
-			{
-				EXPAND_PACK(Engine::OnNodeDetach(*this, *args));
-			},
-			deps_
-		);
 	}
 
 	virtual const char* GetNodeType() const override	{ return "FoldNode"; }
 
 protected:
-	const std::function<S(S,E,TArgs ...)>	func_;
-
-	struct ApplyHelper_
-	{
-		ApplyHelper_(const S& s, const E& e, const std::function<S(S,E,TArgs ...)> func) :
-			s_{ s }, e_{ e }, func_{ func }
-		{
-		}
-
-		S operator() (TArgs ... args) const
-		{
-			return func_(s_, e_, args ...);
-		}
-
-		const S& s_;
-		const E& e_;
-		const std::function<S(S,E,TArgs ...)> func_;
-	};
+	const std::function<S(S,E)>	func_;
 
 	virtual S calcNewValue() const override
 	{
 		S newValue = value_;
-		for (auto e : events_->REvents())
-			newValue = evaluate(ApplyHelper_(newValue,e,func_));
+		for (const auto& e : events_->REvents())
+			newValue = func_(newValue,e);
 		return newValue;
 	}
 };
@@ -154,64 +110,37 @@ template
 <
 	typename D,
 	typename S,
-	typename E,
-	typename ... TArgs
+	typename E
 >
-class IterateNode : public FoldBaseNode<D,S,E,TArgs...>
+class IterateNode : public FoldBaseNode<D,S,E>
 {
 public:
 	IterateNode(const S& initialValue, const EventStreamNodePtr<D,E>& events,
-			 const SignalNodePtr<D,TArgs>& ... args, std::function<S(S,TArgs ...)> func, bool registered) :
-		FoldBaseNode<D, S, E, TArgs...>(initialValue, events, args ..., true),
+				std::function<S(S)> func, bool registered) :
+		FoldBaseNode<D,S,E>(initialValue, events, true),
 		 func_{ func }
 	{
 		if (!registered)
 			registerNode();
 
 		Engine::OnNodeAttach(*this, *events);
-		EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
 	}
 
 	~IterateNode()
 	{
 		Engine::OnNodeDetach(*this, *events_);
-
-		apply
-		(
-			[this] (const SignalNodePtr<D,TArgs>& ... args)
-			{
-				EXPAND_PACK(Engine::OnNodeDetach(*this, *args));
-			},
-			deps_
-		);
 	}
 
 	virtual const char* GetNodeType() const override	{ return "IterateNode"; }
 
 protected:
-	const std::function<S(S,TArgs ...)>	func_;
-
-	struct ApplyHelper_
-	{
-		ApplyHelper_(const S& s, const std::function<S(S,TArgs ...)> func) :
-			s_{ s }, func_{ func }
-		{
-		}
-
-		S operator() (TArgs ... args) const
-		{
-			return func_(s_, args ...);
-		}
-
-		const S& s_;
-		const std::function<S(S,TArgs ...)> func_;
-	};
+	const std::function<S(S)>	func_;
 
 	virtual S calcNewValue() const override
 	{
 		S newValue = value_;
-		for (int i=0; i < events_->REvents().size(); i++)
-			newValue = evaluate(ApplyHelper_(newValue,func_));
+		for (const auto& e : events_->REvents())
+			newValue = func_(newValue);
 		return newValue;
 	}
 };

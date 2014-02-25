@@ -667,7 +667,7 @@ template <typename D, typename TPolicy>
 int DomainBase<D,TPolicy>::defaultCommitFlags_(0);
 
 #define REACTIVE_DOMAIN(domain, ...) \
-	struct domain : public react::DomainBase<domain, react::DomainPolicy<__VA_ARGS__ >> {}; \
-	domain ## ::Initializer_ domain ## _initializer_;
+	struct domain : public DomainBase<domain, DomainPolicy<__VA_ARGS__ >> {}; \
+	typename domain ## ::Initializer_ domain ## _initializer_;
 
 } // ~namespace react

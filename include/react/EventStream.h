@@ -115,18 +115,18 @@ template
 <
 	typename D,
 	typename TArg1,
-	typename TArg2,
 	typename ... TArgs
 >
 inline auto Merge(const REvents<D,TArg1>& arg1,
-				  const REvents<D,TArg2>& arg2,
 				  const REvents<D,TArgs>& ... args)
 	-> REvents<D,TArg1>
 {
+	static_assert(sizeof...(TArgs) > 0, "react::Merge requires at least 2 arguments.");
+
 	typedef TArg1 E;
 	return REvents<D,E>(
-		std::make_shared<EventMergeNode<D, E, TArg1, TArg2, TArgs ...>>(
-			arg1.GetPtr(), arg2.GetPtr(), args.GetPtr() ..., false));
+		std::make_shared<EventMergeNode<D, E, TArg1, TArgs ...>>(
+			arg1.GetPtr(), args.GetPtr() ..., false));
 }
 
 template
