@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <thread>
 #include <type_traits>
+#include <vector>
 
 #include "ReactiveBase.h"
 #include "ReactiveDomain.h"
