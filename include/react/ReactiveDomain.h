@@ -434,19 +434,6 @@ public:
 	using Observer = Observer_<D>;
 
 	////////////////////////////////////////////////////////////////////////////////////////
-	/// Ensure singletons are created immediately after domain declaration (TODO hax)
-	////////////////////////////////////////////////////////////////////////////////////////
-	class Initializer_
-	{
-	public:
-		Initializer_()
-		{
-			Log();
-			Engine::Engine();
-		}
-	};
-
-	////////////////////////////////////////////////////////////////////////////////////////
 	/// ObserverRegistry
 	////////////////////////////////////////////////////////////////////////////////////////
 	static ObserverRegistry<D>& Observers()
@@ -666,8 +653,27 @@ std::atomic<int> DomainBase<D,TPolicy>::nextTransactionId_(0);
 template <typename D, typename TPolicy>
 int DomainBase<D,TPolicy>::defaultCommitFlags_(0);
 
-#define REACTIVE_DOMAIN(domain, ...) \
-	struct domain : public DomainBase<domain, DomainPolicy<__VA_ARGS__ >> {}; \
-	typename domain ## ::Initializer_ domain ## _initializer_;
+////////////////////////////////////////////////////////////////////////////////////////
+/// Ensure singletons are created immediately after domain declaration (TODO hax)
+////////////////////////////////////////////////////////////////////////////////////////
+namespace impl
+{
+
+template <typename D>
+class DomainInitializer
+{
+public:
+	DomainInitializer()
+	{
+		D::Log();
+		typename D::Engine::Engine();
+	}
+};
+
+} // ~namespace react::impl
+
+#define REACTIVE_DOMAIN(name, ...) \
+	struct name : public react::DomainBase<name, react::DomainPolicy<__VA_ARGS__ >> {}; \
+	react::impl::DomainInitializer< name > name ## _initializer_;
 
 } // ~namespace react
