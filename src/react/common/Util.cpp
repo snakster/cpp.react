@@ -23,15 +23,13 @@ void PrintBits(size_t const size, void const* const p)
 
 const std::string CurrentDateTime()
 {
-	struct tm  tstruct;
 	char       buf[80];
-    __time64_t now;
-
-	errno_t err = _localtime64_s(&tstruct, &now); 
-
-    strftime(buf, sizeof(buf), "%Y-%m-%d___%H.%M.%S", &tstruct);
-
-    return buf;
+	time_t     now = time(0);
+	struct tm  tstruct = *localtime(&now);
+ 
+	strftime(buf, sizeof(buf), "%Y-%m-%d___%H.%M.%S", &tstruct);
+ 
+	return buf;
 }
 
 }

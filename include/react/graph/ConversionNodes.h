@@ -366,7 +366,7 @@ public:
 		trigger_->SetCurrentTurn(turn);
 
 		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
-		for (int i=0; i < trigger_->REvents().size(); i++)
+		for (const auto& e : trigger_->REvents())
 			events_.push_back(target_->ValueRef());
 		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 

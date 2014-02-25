@@ -45,7 +45,7 @@ public:
 		HandleVect* curBuf = &buf1;
 		HandleVect* nextBuf = &buf2;
 
-		uint curWidth = InputSignals.size();
+		int curWidth = InputSignals.size();
 
 		int nodeCount = 1;
 		nodeCount += curWidth;

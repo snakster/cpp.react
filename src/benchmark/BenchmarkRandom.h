@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "BenchmarkBase.h"
+#include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// DiamondGraphGenerator
@@ -81,14 +82,14 @@ public:
 		uint cur = 0;
 		HandleVect nodes(nodeCount);
 
-		for (uint w=0; w<Width; w++)
+		for (int w=0; w<Width; w++)
 			nodes[cur++] = InputSignals[w];
 
-		for (uint h=1; h<Height; h++)
+		for (int h=1; h<Height; h++)
 		{
 			std::uniform_int_distribution<int> nodeDist(0, Width*h - 1);
 
-			for (uint w=0; w<Width; w++)
+			for (int w=0; w<Width; w++)
 			{
 				Func1T f1 = f1Fast;
 				Func2T f2 = f2Fast;
@@ -153,7 +154,7 @@ public:
 		}
 
 		OutputSignals.clear();
-		for (uint i=Width*(Height-1); i<nodeCount; i++)
+		for (int i=Width*(Height-1); i<nodeCount; i++)
 			OutputSignals.push_back(nodes[i]);
 	}
 };
@@ -213,7 +214,7 @@ struct Benchmark_Random : public BenchmarkBase<D>
 
 		RandomGraphGenerator<MyDomain,int> generator;
 
-		for (uint i=0; i<params.W; i++)
+		for (int i=0; i<params.W; i++)
 			generator.InputSignals.push_back(MyDomain::MakeVar(1));
 
 		generator.Width = params.W;
