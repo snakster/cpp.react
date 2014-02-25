@@ -80,7 +80,7 @@ TYPED_TEST_P(TransactionTest, Concurrent1)
 
 	ASSERT_EQ(results.size(), 3);
 
-	ASSERT_TRUE(std::find(results.begin(), results.end(), 7732) != results.end()); // TODO: Failed once. Try to reproduce
+	ASSERT_TRUE(std::find(results.begin(), results.end(), 7732) != results.end());
 	ASSERT_TRUE(std::find(results.begin(), results.end(), 68572) != results.end());
 	ASSERT_TRUE(std::find(results.begin(), results.end(), 676972) != results.end());
 }

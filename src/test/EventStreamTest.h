@@ -90,11 +90,11 @@ TYPED_TEST_P(EventStreamTest, EventMerge1)
 
 	auto merged = Merge(a1, a2, a3);
 
-	std::queue<int> results;
+	std::vector<int> results;
 
 	Observe(merged, [&] (int v)
 	{
-		results.push(v);
+		results.push_back(v);
 	});
 	
 	{
@@ -104,19 +104,10 @@ TYPED_TEST_P(EventStreamTest, EventMerge1)
 		a3 << 30;
 	}
 
-	ASSERT_FALSE(results.empty());
-	ASSERT_EQ(results.front(),10);
-	results.pop();
-
-	ASSERT_FALSE(results.empty());
-	ASSERT_EQ(results.front(),20);
-	results.pop();
-
-	ASSERT_FALSE(results.empty());
-	ASSERT_EQ(results.front(),30);
-	results.pop();
-
-	ASSERT_TRUE(results.empty());
+	ASSERT_EQ(results.size(), 3);
+	ASSERT_TRUE(std::find(results.begin(), results.end(), 10) != results.end());
+	ASSERT_TRUE(std::find(results.begin(), results.end(), 20) != results.end());
+	ASSERT_TRUE(std::find(results.begin(), results.end(), 30) != results.end());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -130,11 +121,11 @@ TYPED_TEST_P(EventStreamTest, EventMerge2)
 
 	auto merged = Merge(a1, a2, a3);
 
-	std::queue<std::string> results;
+	std::vector<std::string> results;
 
 	Observe(merged, [&] (std::string s)
 	{
-		results.push(s);
+		results.push_back(s);
 	});
 
 	std::string s1("one");
@@ -142,26 +133,16 @@ TYPED_TEST_P(EventStreamTest, EventMerge2)
 	std::string s3("three");
 
 	{
-		MyDomain::ScopedTransaction t;
-
+		MyDomain::ScopedTransaction _;
 		a1 << s1;
 		a2 << s2;
 		a3 << s3;
 	}
 
-	ASSERT_FALSE(results.empty());
-	ASSERT_EQ(results.front(), "one");
-	results.pop();
-
-	ASSERT_FALSE(results.empty());
-	ASSERT_EQ(results.front(), "two");
-	results.pop();
-
-	ASSERT_FALSE(results.empty());
-	ASSERT_EQ(results.front(), "three");
-	results.pop();
-
-	ASSERT_TRUE(results.empty());
+	ASSERT_EQ(results.size(), 3);
+	ASSERT_TRUE(std::find(results.begin(), results.end(), "one") != results.end());
+	ASSERT_TRUE(std::find(results.begin(), results.end(), "two") != results.end());
+	ASSERT_TRUE(std::find(results.begin(), results.end(), "three") != results.end());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -237,7 +218,7 @@ TYPED_TEST_P(EventStreamTest, EventFilter)
 ////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(EventStreamTest, EventTransform)
 {
-	std::queue<std::string> results;
+	std::vector<std::string> results;
 
 	auto in1 = MyDomain::MakeEventSource<std::string>();
 	auto in2 = MyDomain::MakeEventSource<std::string>();
@@ -247,36 +228,22 @@ TYPED_TEST_P(EventStreamTest, EventTransform)
 	auto transformed = Transform(merged, [] (std::string s) -> std::string
 	{
 		std::transform(s.begin(), s.end(), s.begin(), ::toupper);
-
 		return s;
 	});
 
-	int obsCount = 0;
 
 	Observe(transformed, [&] (const std::string& s)
 	{
-		obsCount++;
-		results.push(s);
+		results.push_back(s);
 	});
 
 	in1 << "Hello Worlt" << "Hello World";
 	in2 << "Hello Vorld";
 
-	ASSERT_EQ(obsCount, 3);
-
-	ASSERT_FALSE(results.empty());
-	ASSERT_EQ(results.front(), "HELLO WORLT");
-	results.pop();
-
-	ASSERT_FALSE(results.empty());
-	ASSERT_EQ(results.front(), "HELLO WORLD");
-	results.pop();
-
-	ASSERT_FALSE(results.empty());
-	ASSERT_EQ(results.front(), "HELLO VORLD");
-	results.pop();
-
-	ASSERT_TRUE(results.empty());
+	ASSERT_EQ(results.size(), 3);
+	ASSERT_TRUE(std::find(results.begin(), results.end(), "HELLO WORLT") != results.end());
+	ASSERT_TRUE(std::find(results.begin(), results.end(), "HELLO WORLD") != results.end());
+	ASSERT_TRUE(std::find(results.begin(), results.end(), "HELLO VORLD") != results.end());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

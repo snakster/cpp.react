@@ -287,16 +287,16 @@ TYPED_TEST_P(SignalTest, FunctionBind2)
 	auto f = -e + 100;
 
 	ASSERT_EQ(c(),103);
-	ASSERT_EQ(d(),51);
-	ASSERT_EQ(e(),2601);
-	ASSERT_EQ(f(),-2501);
+	ASSERT_EQ(d(),51.5f);
+	ASSERT_EQ(e(),2652.25f);
+	ASSERT_EQ(f(),-2552.25);
 
 	a <<= 10;
 
 	ASSERT_EQ(c(),121);
-	ASSERT_EQ(d(),60);
-	ASSERT_EQ(e(),3600);
-	ASSERT_EQ(f(),-3500);
+	ASSERT_EQ(d(),60.5f);
+	ASSERT_EQ(e(),3660.25f);
+	ASSERT_EQ(f(),-3560.25f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
