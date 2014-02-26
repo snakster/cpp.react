@@ -83,12 +83,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\test\ConversionTest.h" />
     <ClInclude Include="..\..\src\test\EventStreamTest.h" />
     <ClInclude Include="..\..\src\test\ObserverTest.h" />
     <ClInclude Include="..\..\src\test\SignalTest.h" />
     <ClInclude Include="..\..\src\test\TransactionTest.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\test\ConversionTest.cpp" />
     <ClCompile Include="..\..\src\test\EventStreamTest.cpp" />
     <ClCompile Include="..\..\src\test\ObserverTest.cpp" />
     <ClCompile Include="..\..\src\test\SignalTest.cpp" />
