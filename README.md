@@ -9,4 +9,8 @@ To compile and run the unit tests, the [Google test framework](https://code.goog
 
 License/documentation will be added in the future.
 
-[See here](https://github.com/schlangster/cpp.react/blob/master/src/sandbox/Main.cpp) for some usage examples.
+Usage examples:
+
+* [Examples](https://github.com/schlangster/cpp.react/blob/master/src/sandbox/Main.cpp)
+* [Benchmark](https://github.com/schlangster/cpp.react/blob/master/src/benchmark/BenchmarkLifeSim.h)
+* [Test cases](https://github.com/schlangster/cpp.react/tree/master/src/test)
