@@ -58,17 +58,17 @@ class PulseCountEngine :
 public:
 	typedef Node::ShiftMutexT	NodeShiftMutexT;
 
-	virtual void OnNodeAttach(Node& node, Node& parent);
-	virtual void OnNodeDetach(Node& node, Node& parent);
+	void OnNodeAttach(Node& node, Node& parent);
+	void OnNodeDetach(Node& node, Node& parent);
 
-	virtual void OnTransactionCommit(TransactionData<Turn>& transaction);
+	void OnTransactionCommit(TransactionData<Turn>& transaction);
 
-	virtual void OnInputNodeAdmission(Node& node, Turn& turn);
+	void OnInputNodeAdmission(Node& node, Turn& turn);
 
-	virtual void OnNodePulse(Node& node, Turn& turn);
-	virtual void OnNodeIdlePulse(Node& node, Turn& turn);
+	void OnNodePulse(Node& node, Turn& turn);
+	void OnNodeIdlePulse(Node& node, Turn& turn);
 
-	virtual void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
 
 private:
 	void initTurn(Node& node, Turn& turn);

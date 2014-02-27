@@ -74,13 +74,13 @@ public:
 
 	TopoSortEngine();
 
-	virtual void OnNodeAttach(Node& node, Node& parent);
-	virtual void OnNodeDetach(Node& node, Node& parent);
+	void OnNodeAttach(Node& node, Node& parent);
+	void OnNodeDetach(Node& node, Node& parent);
 
-	virtual void OnTransactionCommit(TransactionData<Turn>& transaction);
+	void OnTransactionCommit(TransactionData<Turn>& transaction);
 
-	virtual void OnNodePulse(Node& node, Turn& turn);
-	virtual void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void OnNodePulse(Node& node, Turn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
 
 private:
 	void applyShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);

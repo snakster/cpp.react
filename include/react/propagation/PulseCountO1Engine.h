@@ -88,17 +88,17 @@ class PulseCountO1Engine :
 public:
 	PulseCountO1Engine();
 
-	virtual void OnNodeAttach(PulseCountO1Node& node, PulseCountO1Node& parent);
-	virtual void OnNodeDetach(PulseCountO1Node& node, PulseCountO1Node& parent);
+	void OnNodeAttach(PulseCountO1Node& node, PulseCountO1Node& parent);
+	void OnNodeDetach(PulseCountO1Node& node, PulseCountO1Node& parent);
 
-	virtual void OnTransactionCommit(TransactionData<PulseCountO1Turn>& transaction);
+	void OnTransactionCommit(TransactionData<PulseCountO1Turn>& transaction);
 
-	virtual void OnInputNodeAdmission(PulseCountO1Node& node, PulseCountO1Turn& turn);
+	void OnInputNodeAdmission(PulseCountO1Node& node, PulseCountO1Turn& turn);
 
-	virtual void OnNodePulse(PulseCountO1Node& node, PulseCountO1Turn& turn);
-	virtual void OnNodeIdlePulse(PulseCountO1Node& node, PulseCountO1Turn& turn);
+	void OnNodePulse(PulseCountO1Node& node, PulseCountO1Turn& turn);
+	void OnNodeIdlePulse(PulseCountO1Node& node, PulseCountO1Turn& turn);
 
-	virtual void OnNodeShift(PulseCountO1Node& node, PulseCountO1Node& oldParent, PulseCountO1Node& newParent, PulseCountO1Turn& turn);
+	void OnNodeShift(PulseCountO1Node& node, PulseCountO1Node& oldParent, PulseCountO1Node& newParent, PulseCountO1Turn& turn);
 
 private:
 	typedef PulseCountO1Node::ShiftMutexT	NodeShiftMutexT;
