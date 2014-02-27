@@ -6,6 +6,7 @@
 
 #include "ReactiveBase.h"
 #include "ReactiveDomain.h"
+#include "Observer.h"
 #include "react/graph/EventStreamNodes.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -18,7 +19,6 @@ enum class EventToken
 {
 	token
 };
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// REvents
@@ -42,6 +42,24 @@ public:
 	explicit REvents(const std::shared_ptr<NodeT>& ptr) :
 		Reactive(ptr)
 	{
+	}
+
+	template <typename F>
+	REvents Filter(const F& f)
+	{
+		return react::Filter(*this, f);
+	}
+
+	template <typename F>
+	REvents Transform(const F& f)
+	{
+		return react::Transform(*this, f);
+	}
+
+	template <typename F>
+	RObserver<D> Observe(const F& f)
+	{
+		return react::Observe(*this, f);
 	}
 };
 
@@ -106,12 +124,6 @@ public:
 	void Emit() const
 	{
 		Emit(EventToken::token);
-	}
-
-	REventSource& operator<<(const E& e)
-	{
-		Emit(e);
-		return *this;
 	}
 
 	const REventSource& operator<<(const E& e) const

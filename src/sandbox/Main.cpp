@@ -2,6 +2,7 @@
 
 #include "react/Signal.h"
 #include "react/EventStream.h"
+#include "react/Operations.h"
 #include "react/ReactiveObject.h"
 
 #include "react/propagation/SourceSetEngine.h"
@@ -132,13 +133,39 @@ void ObjectExample1()
 	cout << endl;
 }
 
+void FoldExample1()
+{
+	cout << "Fold Example 1" << endl;
+
+	auto src = D::MakeEventSource<int>();
+	auto fold1 = Fold(0, src, [] (int v, int d) {
+		return v + d;
+	});
+
+	for (auto i=1; i<=100; i++)
+		src << i;
+
+	cout << fold1() << endl;
+
+	auto charSrc = D::MakeEventSource<char>();
+	auto strFold = Fold(std::string(""), charSrc, [] (std::string s, char c) {
+		return s + c;
+	});
+
+	charSrc << 'T' << 'e' << 's' << 't';
+
+	cout << "Str: " << strFold().c_str() << endl;
+}
+
 int main()
 {
-	SignalExample1();
-	SignalExample2();
-	EventExample1();
+	//SignalExample1();
+	//SignalExample2();
+	//EventExample1();
 
-	ObjectExample1();
+	//ObjectExample1();
+
+	FoldExample1();
 
 	return 0;
 }

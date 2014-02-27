@@ -68,6 +68,12 @@ public:
 	{
 		return Value();
 	}
+
+	template <typename F>
+	RObserver<D> Observe(const F& f)
+	{
+		return react::Observe(*this, f);
+	}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

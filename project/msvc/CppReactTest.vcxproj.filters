@@ -27,7 +27,7 @@
     <ClInclude Include="..\..\src\test\TransactionTest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\test\ConversionTest.h">
+    <ClInclude Include="..\..\src\test\OperationsTest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -44,7 +44,7 @@
     <ClCompile Include="..\..\src\test\TransactionTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\test\ConversionTest.cpp">
+    <ClCompile Include="..\..\src\test\OperationsTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

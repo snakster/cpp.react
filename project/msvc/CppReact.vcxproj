@@ -84,7 +84,7 @@
     <ClInclude Include="..\..\include\react\common\TopoQueue.h" />
     <ClInclude Include="..\..\include\react\common\Types.h" />
     <ClInclude Include="..\..\include\react\common\Util.h" />
-    <ClInclude Include="..\..\include\react\Conversion.h" />
+    <ClInclude Include="..\..\include\react\Operations.h" />
     <ClInclude Include="..\..\include\react\EventStream.h" />
     <ClInclude Include="..\..\include\react\graph\ConversionNodes.h" />
     <ClInclude Include="..\..\include\react\graph\EventStreamNodes.h" />
