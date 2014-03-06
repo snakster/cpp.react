@@ -15,9 +15,9 @@ namespace elm_impl {
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-Turn::Turn(TransactionData<Turn>& transactionData) :
-	TurnBase(transactionData),
-	ExclusiveSequentialTransaction(transactionData.Input())
+Turn::Turn(TurnIdT id, TurnFlagsT flags) :
+	TurnBase(id, flags),
+	ExclusiveTurnManager::ExclusiveTurn(false)
 {
 }
 
@@ -56,29 +56,29 @@ void ELMEngine::OnNodeDetach(Node& node, Node& parent)
 	parent.Successors.Remove(node);
 }
 
-void ELMEngine::OnTransactionCommit(TransactionData<Turn>& transaction)
+void ELMEngine::OnTurnAdmissionStart(Turn& turn)
 {
-	Turn turn(transaction);
+	StartTurn(turn);
+}
 
-	if (! BeginTransaction(turn))
-		return;
+void ELMEngine::OnTurnAdmissionEnd(Turn& turn)
+{
+	turn.RunMergedInputs();
+}
 
-	unchangedInputNodes_ = inputNodes_;
-	transaction.Input().RunAdmission(turn);
+void ELMEngine::OnTurnInputChange(Node& node, Turn& turn)
+{
+	node.LastTurnId = turn.Id();
+}
 
-	for (auto* node : unchangedInputNodes_)
-		nudgeChildren(*node, false, turn);
-
-	transaction.Input().RunPropagation(turn);
+void ELMEngine::OnTurnPropagate(Turn& turn)
+{
+	for (auto* node : inputNodes_)
+		nudgeChildren(*node, node->LastTurnId == turn.Id(), turn);
 
 	tasks_.wait();
 
-	EndTransaction(turn);
-}
-
-void ELMEngine::OnInputNodeAdmission(Node& node, Turn& turn)
-{
-	unchangedInputNodes_.erase(&node);
+	EndTurn(turn);
 }
 
 void ELMEngine::OnNodePulse(Node& node, Turn& turn)
@@ -95,16 +95,13 @@ void ELMEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& 
 {
 	bool shouldTick = false;
 
-	// oldParent.ShiftMutex
-	{
+	{// oldParent.ShiftMutex
 		NodeShiftMutexT::scoped_lock	lock(oldParent.ShiftMutex);
 
 		oldParent.Successors.Remove(node);
-	}
-	// ~oldParent.ShiftMutex
+	}// ~oldParent.ShiftMutex
 
-	// newParent.ShiftMutex
-	{
+	{// newParent.ShiftMutex
 		NodeShiftMutexT::scoped_lock	lock(newParent.ShiftMutex);
 		
 		newParent.Successors.Add(node);
@@ -118,8 +115,7 @@ void ELMEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& 
 			node.ShouldUpdate = true;
 			node.Counter = node.DependencyCount() - 1;
 		}
-	}
-	// ~newParent.ShiftMutex
+	}// ~newParent.ShiftMutex
 
 	if (shouldTick)
 		node.Tick(&turn);
@@ -142,29 +138,24 @@ void ELMEngine::processChild(Node& node, bool update, Turn& turn)
 }
 
 void ELMEngine::nudgeChildren(Node& node, bool update, Turn& turn)
-{
-	// node.ShiftMutex
+{// node.ShiftMutex
+	NodeShiftMutexT::scoped_lock	lock(node.ShiftMutex);
+
+	for (auto* succ : node.Successors)
 	{
-		NodeShiftMutexT::scoped_lock	lock(node.ShiftMutex);
+		if (update)
+			succ->ShouldUpdate = true;
 
-		// Select first child as next node, dispatch tasks for rest
-		for (auto* succ : node.Successors)
-		{
-			if (update)
-				succ->ShouldUpdate = true;
+		// Delay tick?
+		if (++succ->Counter < succ->DependencyCount())
+			continue;
 
-			// Delay tick?
-			if (++succ->Counter < succ->DependencyCount())
-				continue;
-
-			succ->Counter = 0;
-			tasks_.run(std::bind(&ELMEngine::processChild, this, std::ref(*succ), update, std::ref(turn)));
-		}
-
-		node.LastTurnId = turn.Id();
+		succ->Counter = 0;
+		tasks_.run(std::bind(&ELMEngine::processChild, this, std::ref(*succ), update, std::ref(turn)));
 	}
-	// ~node.ShiftMutex
-}
+
+	node.LastTurnId = turn.Id();	
+}// ~node.ShiftMutex
 
 } // ~namespace react::elm_impl
 } // ~namespace react

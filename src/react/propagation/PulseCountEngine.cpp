@@ -15,9 +15,9 @@ namespace pulse_count_impl {
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-Turn::Turn(TransactionData<Turn>& transactionData) :
-	TurnBase(transactionData),
-	ExclusiveSequentialTransaction(transactionData.Input())
+Turn::Turn(TurnIdT id, TurnFlagsT flags) :
+	TurnBase(id, flags),
+	ExclusiveTurnManager::ExclusiveTurn(false)
 {
 }
 
@@ -44,29 +44,34 @@ void PulseCountEngine::OnNodeDetach(Node& node, Node& parent)
 	parent.Successors.Remove(node);
 }
 
-void PulseCountEngine::OnTransactionCommit(TransactionData<Turn>& transaction)
+void PulseCountEngine::OnTurnAdmissionStart(Turn& turn)
 {
-	Turn turn(transaction);
-
-	if (! BeginTransaction(turn))
-		return;
-
-	//auto t0 = tbb::tick_count::now();
-	transaction.Input().RunAdmission(turn);
-	tasks_.wait();
-	//auto t1 = tbb::tick_count::now();
-	//double d = (t1 - t0).seconds();
-	//printf("Time %f\n", d);
-
-	transaction.Input().RunPropagation(turn);
-	tasks_.wait();
-
-	EndTransaction(turn);
+	StartTurn(turn);
 }
 
-void PulseCountEngine::OnInputNodeAdmission(Node& node, Turn& turn)
+void PulseCountEngine::OnTurnAdmissionEnd(Turn& turn)
 {
-	tasks_.run(std::bind(&PulseCountEngine::initTurn, this, std::ref(node), std::ref(turn)));
+	turn.RunMergedInputs();
+}
+
+void PulseCountEngine::OnTurnInputChange(Node& node, Turn& turn)
+{
+	changedInputs_.push_back(&node);
+}
+
+void PulseCountEngine::OnTurnPropagate(Turn& turn)
+{
+	for (auto* node : changedInputs_)
+		tasks_.run(std::bind(&PulseCountEngine::initTurn, this, std::ref(*node), std::ref(turn)));
+	tasks_.wait();
+
+	for (auto* node : changedInputs_)
+		nudgeChildren(*node, true, turn);
+	tasks_.wait();
+
+	changedInputs_.clear();
+
+	EndTurn(turn);
 }
 
 void PulseCountEngine::OnNodePulse(Node& node, Turn& turn)

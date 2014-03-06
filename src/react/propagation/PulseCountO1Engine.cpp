@@ -13,26 +13,26 @@ namespace react {
 namespace pulse_count_o1_impl {
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// PulseCountO1Node
+/// Node
 ////////////////////////////////////////////////////////////////////////////////////////
-PulseCountO1Node::PulseCountO1Node() :
-	Counter(0),
-	ShouldUpdate(false),
-	Pulsed(false),
-	State(EState::init),
-	marker_(0),
-	weight_(1),
-	cost_(1)
+Node::Node() :
+	Counter{ 0 },
+	ShouldUpdate{ false },
+	Pulsed{ false },
+	State{ EState::init },
+	marker_{ 0 },
+	weight_{ 1 },
+	cost_{ 1 }
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// PulseCountO1Turn
+/// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-PulseCountO1Turn::PulseCountO1Turn(TransactionData<PulseCountO1Turn>& transactionData) :
-	TurnBase(transactionData),
-	ExclusiveSequentialTransaction(transactionData.Input()),
-	Marker(0)
+Turn::Turn(TurnIdT id, TurnFlagsT flags) :
+	TurnBase(id, flags),
+	ExclusiveTurnManager::ExclusiveTurn(false),
+	Marker{ 0 }
 {
 }
 
@@ -40,18 +40,18 @@ PulseCountO1Turn::PulseCountO1Turn(TransactionData<PulseCountO1Turn>& transactio
 /// PulseCountO1Engine
 ////////////////////////////////////////////////////////////////////////////////////////
 PulseCountO1Engine::PulseCountO1Engine() :
-	curMarker_(1)
+	curMarker_{ 1 }
 {
 }
 
-void PulseCountO1Engine::OnNodeAttach(PulseCountO1Node& node, PulseCountO1Node& parent)
+void PulseCountO1Engine::OnNodeAttach(Node& node, Node& parent)
 {
 	parent.Successors.Add(node);
 	node.Predecessors.Add(parent);
 
-	if (node.State != PulseCountO1Node::EState::attaching)
+	if (node.State != Node::EState::attaching)
 	{
-		node.State = PulseCountO1Node::EState::attaching;
+		node.State = Node::EState::attaching;
 		node.SetMarker(nextMarker());
 	}
 
@@ -59,81 +59,75 @@ void PulseCountO1Engine::OnNodeAttach(PulseCountO1Node& node, PulseCountO1Node& 
 	//tasks_.wait();
 }
 
-void PulseCountO1Engine::OnNodeDetach(PulseCountO1Node& node, PulseCountO1Node& parent)
+void PulseCountO1Engine::OnNodeDetach(Node& node, Node& parent)
 {
 	parent.Successors.Remove(node);
 	node.Predecessors.Remove(parent);
 
-	if (node.State != PulseCountO1Node::EState::detaching)
+	if (node.State != Node::EState::detaching)
 	{
-		node.State = PulseCountO1Node::EState::detaching;
+		node.State = Node::EState::detaching;
 		node.SetMarker(nextMarker());
 	}
 
 	updateNodeWeight(parent, node.GetMarker(), -node.Weight(), -node.Cost());
 }
 
-void PulseCountO1Engine::OnTransactionCommit(TransactionData<PulseCountO1Turn>& transaction)
+void PulseCountO1Engine::OnTurnAdmissionStart(Turn& turn)
 {
-	PulseCountO1Turn turn(transaction);
+	StartTurn(turn);
+}
 
-	if (! BeginTransaction(turn))
-		return;
+void PulseCountO1Engine::OnTurnAdmissionEnd(Turn& turn)
+{
+	turn.RunMergedInputs();
+}
 
+void PulseCountO1Engine::OnTurnInputChange(Node& node, Turn& turn)
+{
+	changedInputs_.push_back(&node);
+}
+
+void PulseCountO1Engine::OnTurnPropagate(Turn& turn)
+{
 	turn.Marker = nextMarker();
 
-	//auto t0 = tbb::tick_count::now();
-	//auto t1 = tbb::tick_count::now();
-	//double d = (t1 - t0).seconds();
-	//printf("Time %f\n");
-
-
-	//auto t0 = tbb::tick_count::now();
-	transaction.Input().RunAdmission(turn);
-	runInitReachableNodesTask(std::move(changedInputNodes_), turn.Marker);
-	tasks_.wait();
-	//auto t1 = tbb::tick_count::now();
-	//double d = (t1 - t0).seconds();
-	//printf("Time %f\n", d);
-	
-	transaction.Input().RunPropagation(turn);
+	// Note: Copies the vector
+	runInitReachableNodesTask(changedInputs_, turn.Marker);
 	tasks_.wait();
 
-	changedInputNodes_.clear();
+	for (auto* node : changedInputs_)
+		nudgeChildren(*node, true, turn);
+	tasks_.wait();
 
-	EndTransaction(turn);
+	changedInputs_.clear();
+
+	EndTurn(turn);
 }
 
-void PulseCountO1Engine::OnInputNodeAdmission(PulseCountO1Node& node, PulseCountO1Turn& turn)
-{
-	changedInputNodes_.push_back(&node);
-}
-
-void PulseCountO1Engine::OnNodePulse(PulseCountO1Node& node, PulseCountO1Turn& turn)
+void PulseCountO1Engine::OnNodePulse(Node& node, Turn& turn)
 {
 	nudgeChildren(node, true, turn);
 }
 
-void PulseCountO1Engine::OnNodeIdlePulse(PulseCountO1Node& node, PulseCountO1Turn& turn)
+void PulseCountO1Engine::OnNodeIdlePulse(Node& node, Turn& turn)
 {
 	nudgeChildren(node, false, turn);
 }
 
-void PulseCountO1Engine::OnNodeShift(PulseCountO1Node& node, PulseCountO1Node& oldParent, PulseCountO1Node& newParent, PulseCountO1Turn& turn)
+void PulseCountO1Engine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn)
 {
 	bool shouldTick = false;
 
-	// oldParent.ShiftMutex (write)
-	{
+	{// oldParent.ShiftMutex (write)
 		NodeShiftMutexT::scoped_lock	lock(oldParent.ShiftMutex, true);
 
 		oldParent.Successors.Remove(node);
 		node.Predecessors.Remove(oldParent);
-	}
-	// ~oldParent.ShiftMutex (write)
+	}// ~oldParent.ShiftMutex (write)
 
-	// newParent.ShiftMutex (write)
-	{
+	
+	{// newParent.ShiftMutex (write)
 		NodeShiftMutexT::scoped_lock	lock(newParent.ShiftMutex, true);
 		
 		newParent.Successors.Add(node);
@@ -148,8 +142,7 @@ void PulseCountO1Engine::OnNodeShift(PulseCountO1Node& node, PulseCountO1Node& o
 			node.Counter = 1;
 			node.ShouldUpdate = true;
 		}
-	}
-	// ~newParent.ShiftMutex (write)
+	}// ~newParent.ShiftMutex (write)
 
 	if (shouldTick)
 		node.Tick(&turn);
@@ -162,10 +155,9 @@ void PulseCountO1Engine::runInitReachableNodesTask(NodeVectorT leftNodes, Marker
 	// Manage two balanced stacks of nodes.
 	// Left size is always >= right size.
 	// If left size exceeds threshold, move work to another task
-
 	do
 	{
-		PulseCountO1Node* node = nullptr;
+		Node* node = nullptr;
 
 		if (leftNodes.size() > rightNodes.size())
 		{
@@ -201,7 +193,7 @@ void PulseCountO1Engine::runInitReachableNodesTask(NodeVectorT leftNodes, Marker
 	while (true);
 }
 
-void PulseCountO1Engine::processChild(PulseCountO1Node& node, bool update, PulseCountO1Turn& turn)
+void PulseCountO1Engine::processChild(Node& node, bool update, Turn& turn)
 {
 	// Invalidated, this node has to be ticked
 	if (node.ShouldUpdate)
@@ -217,12 +209,11 @@ void PulseCountO1Engine::processChild(PulseCountO1Node& node, bool update, Pulse
 	}
 }
 
-void PulseCountO1Engine::nudgeChildren(PulseCountO1Node& node, bool update, PulseCountO1Turn& turn)
+void PulseCountO1Engine::nudgeChildren(Node& node, bool update, Turn& turn)
 {
-	PulseCountO1Node* next = nullptr;
+	Node* next = nullptr;
 
-	// node.ShiftMutex (read)
-	{
+	{// node.ShiftMutex (read)
 		NodeShiftMutexT::scoped_lock	lock(node.ShiftMutex);
 
 		// Select first child as next node, dispatch tasks for rest
@@ -240,14 +231,13 @@ void PulseCountO1Engine::nudgeChildren(PulseCountO1Node& node, bool update, Puls
 			else
 				next = succ;
 		}
-	}
-	// ~node.ShiftMutex (read)
+	}// ~node.ShiftMutex (read)
 
 	if (next)
 		processChild(*next, update, turn);
 }
 
-void PulseCountO1Engine::updateNodeWeight(PulseCountO1Node& node, MarkerT mark, int weightDelta, int costDelta)
+void PulseCountO1Engine::updateNodeWeight(Node& node, MarkerT mark, int weightDelta, int costDelta)
 {
 	node.AdjustWeight(weightDelta, costDelta);
 

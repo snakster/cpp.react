@@ -117,25 +117,10 @@ public:
 	{
 	}
 
-	void Set(const S& newValue) const
+	template <typename V>
+	void Set(V&& newValue) const
 	{
-		if (! Domain::TransactionInputContinuation::IsNull())
-		{
-			auto varNode = std::static_pointer_cast<NodeT>(ptr_);
-			Domain::TransactionInputContinuation::Get()->AddSignalInput_Safe(*varNode, newValue);
-		}
-		else if (! Domain::ScopedTransactionInput::IsNull())
-		{
-			auto varNode = std::static_pointer_cast<NodeT>(ptr_);
-			Domain::ScopedTransactionInput::Get()->AddSignalInput(*varNode, newValue);
-		}
-		else
-		{
-			auto varNode = std::static_pointer_cast<NodeT>(ptr_);
-			Domain::Transaction t;
-			t.Data().Input().AddSignalInput(*varNode, newValue);
-			t.Commit();
-		}
+		D::AddInput(*std::static_pointer_cast<NodeT>(ptr_), std::forward<V>(newValue));
 	}
 
 	const RVarSignal& operator<<=(const S& newValue) const

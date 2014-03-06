@@ -17,9 +17,9 @@ Node::Node() :
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-Turn::Turn(TransactionData<Turn>& transactionData) :
-TurnBase(transactionData),
-	ExclusiveSequentialTransaction(transactionData.Input())
+Turn::Turn(TurnIdT id, TurnFlagsT flags) :
+	TurnBase(id, flags),
+	ExclusiveTurnManager::ExclusiveTurn(false)
 {
 }
 
@@ -43,16 +43,23 @@ void TopoSortEngine::OnNodeDetach(Node& node, Node& parent)
 	parent.Successors.Remove(node);
 }
 
-void TopoSortEngine::OnTransactionCommit(TransactionData<Turn>& transaction)
+void TopoSortEngine::OnTurnAdmissionStart(Turn& turn)
 {
-	Turn turn(transaction);
+	StartTurn(turn);
+}
 
-	if (! BeginTransaction(turn))
-		return;
+void TopoSortEngine::OnTurnAdmissionEnd(Turn& turn)
+{
+	turn.RunMergedInputs();
+}
 
-	transaction.Input().RunAdmission(turn);
-	transaction.Input().RunPropagation(turn);	
+void TopoSortEngine::OnTurnInputChange(Node& node, Turn& turn)
+{
+	processChildren(node, turn);
+}
 
+void TopoSortEngine::OnTurnPropagate(Turn& turn)
+{
 	while (!collectBuffer_.empty() || !scheduledNodes_.Empty())
 	{
 		// Merge thread-safe buffer of nodes that pulsed during last turn into queue
@@ -99,7 +106,7 @@ void TopoSortEngine::OnTransactionCommit(TransactionData<Turn>& transaction)
 		}
 	}
 
-	EndTransaction(turn);
+	EndTurn(turn);
 }
 
 void TopoSortEngine::OnNodePulse(Node& node, Turn& turn)

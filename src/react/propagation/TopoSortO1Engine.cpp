@@ -1,5 +1,7 @@
 #include "react/propagation/TopoSortO1Engine.h"
 
+#if 0
+
 ////////////////////////////////////////////////////////////////////////////////////////
 namespace react {
 namespace topo_sort_o1_impl {
@@ -179,7 +181,7 @@ void TopoSortO1Engine::OnNodeDetach(Node& node, Node& parent)
 	}
 }
 
-void TopoSortO1Engine::OnTransactionCommit(TransactionData<Turn>& transaction)
+void TopoSortO1Engine::OnTurnPropagate(Turn& turn)
 {
 	Turn turn(transaction);
 
@@ -369,3 +371,5 @@ void TopoSortO1Engine::advanceTurn(Turn& turn)
 
 } // ~namespace react::topo_sort_o1_impl
 } // ~namespace react
+
+#endif

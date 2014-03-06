@@ -32,10 +32,11 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-class Turn : public TurnBase<Turn>
+class Turn :
+	public TurnBase
 {
 public:
-	explicit Turn(TransactionData<Turn>& transactionData);
+	Turn(TurnIdT id, TurnFlagsT flags);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -44,7 +45,6 @@ public:
 class TopoSortSTEngine : public IReactiveEngine<Node,Turn>
 {
 public:
-	typedef queuing_rw_mutex			GraphMutex;
 	typedef TopoQueue<Node>	TopoQueue;
 
 	TopoSortSTEngine();
@@ -52,7 +52,11 @@ public:
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTransactionCommit(TransactionData<Turn>& transaction);
+	void OnTurnAdmissionStart(Turn& turn);
+	void OnTurnAdmissionEnd(Turn& turn);
+
+	void OnTurnInputChange(Node& node, Turn& turn);
+	void OnTurnPropagate(Turn& turn);
 
 	void OnNodePulse(Node& node, Turn& turn);
 	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
@@ -61,7 +65,6 @@ private:
 	void processChildren(Node& node, Turn& turn);
 	void invalidateSuccessors(Node& node);
 
-	GraphMutex		graphMutex_;
 	TopoQueue		scheduledNodes_;
 };
 

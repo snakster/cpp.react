@@ -40,273 +40,81 @@ template
 inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
 	-> RSignal<D,decltype(func(args() ...))>;
 
+//
+//template <typename TTurnInterface>
+//class TransactionData
+//{
+//public:
+//	TransactionData() :
+//		id_{ INT_MIN },
+//		curInputPtr_{ &input1_},
+//		nextInputPtr_{ &input2_ }
+//	{
+//	}
+//
+//	int		Id() const		{ return id_; }
+//	void	SetId(int id)	{ id_ = id; }
+//
+//	tbb::concurrent_vector<IObserverNode*>	DetachedObservers;
+//
+//	TransactionInput<TTurnInterface>& Input()		{ return *curInputPtr_; }
+//	TransactionInput<TTurnInterface>& NextInput()	{ return *nextInputPtr_; }
+//
+//	bool ContinueTransaction()
+//	{
+//		if (nextInputPtr_->IsEmpty())
+//			return false;
+//
+//		id_ = INT_MIN;
+//		DetachedObservers.clear();
+//
+//		std::swap(curInputPtr_, nextInputPtr_);
+//		nextInputPtr_->Reset();
+//		return true;
+//	}
+//
+//private:
+//	int		id_;
+//
+//	TransactionInput<TTurnInterface>*	curInputPtr_;
+//	TransactionInput<TTurnInterface>*	nextInputPtr_;
+//
+//	TransactionInput<TTurnInterface>	input1_;
+//	TransactionInput<TTurnInterface>	input2_;
+//};
+
 ////////////////////////////////////////////////////////////////////////////////////////
-/// TransactionInput
+/// ContinuationInput
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurnInterface>
-class TransactionInput
+class ContinuationInput
 {
 public:
-	TransactionInput() :
-		flags_{ 0 },
-		isEmpty_{ true },
-		admissionPrepareFunc_{ nullFunc },
-		admissionCommitFunc_{ nullFunc },
-		propagationFunc_{ nullFunc }
+	typedef std::function<void()>	InputClosureT;
+
+	ContinuationInput() :
+		isEmpty_{ true }
 	{
 	}
 
-	void Reset()
+	inline bool IsEmpty() const { return isEmpty_; }
+
+	template <typename F>
+	void Add(F&& input)
 	{
-		flags_ = 0;
+		bufferedInputs_.push_back(std::forward<F>(input));
+	}
+
+	inline void Execute()
+	{
 		isEmpty_ = true;
-		admissionPrepareFunc_ = nullFunc;
-		admissionCommitFunc_ = nullFunc;
-		propagationFunc_ = nullFunc;
-
-		concAdmissionPrepareBuf_.clear();
-		concAdmissionCommitBuf_.clear();
-		concPropagationBuf_.clear();
-	}
-
-	int		Flags() const			{ return flags_; }
-	void	SetFlags(int flags)		{ flags_ = flags; }
-
-	bool	IsEmpty() const	{ return isEmpty_; }
-
-	template <typename R, typename V>
-	void AddSignalInput(R& r, const V& v)
-	{
-		isEmpty_ = false;
-
-		auto prevAdmissionPrepareFunc = admissionPrepareFunc_;
-		admissionPrepareFunc_ = [prevAdmissionPrepareFunc, &r, v] (TTurnInterface& turn)
-		{
-			// First decide on new value for this transaction (last input wins)
-			prevAdmissionPrepareFunc(turn);
-			r.SetNewValue(v);
-		};
-
-		auto prevAdmissionCommitFunc = admissionCommitFunc_;
-		admissionCommitFunc_ = [this, prevAdmissionCommitFunc, &r] (TTurnInterface& turn)
-		{
-			// Then apply all new values. If it's different to the old one.
-			// Multiple inputs to the same node will call apply several times.
-			// But only the first one returns true. Only for this one, a pulse event is scheduled.
-			prevAdmissionCommitFunc(turn);
-
-			if (r.ApplyNewValue())
-			{
-				R::Engine::OnInputNodeAdmission(r, turn);
-
-				auto prevPropagationFunc = propagationFunc_;
-				propagationFunc_ = [prevPropagationFunc, &r] (TTurnInterface& turn)
-				{
-					prevPropagationFunc(turn);
-					R::Engine::OnNodePulse(r, turn);
-				};
-			}
-		};
-	}
-
-	template <typename R, typename V>
-	void AddEventInput(R& r, const V& v)
-	{
-		isEmpty_ = false;
-
-		auto prevAdmissionCommitFunc = admissionCommitFunc_;
-		admissionCommitFunc_ = [prevAdmissionCommitFunc, &r, v] (TTurnInterface& turn)
-		{
-			prevAdmissionCommitFunc(turn);
-			r.SetCurrentTurn(turn);
-			r.Push(v);
-
-			if (! r.admissionFlag_.test_and_set())
-			{
-				r.propagationFlag_.clear();
-				R::Engine::OnInputNodeAdmission(r, turn);
-			}
-		};
-		
-		auto prevPropagationFunc = propagationFunc_;
-		propagationFunc_ = [prevPropagationFunc, &r, v] (TTurnInterface& turn)
-		{
-			prevPropagationFunc(turn);
-
-			if (! r.propagationFlag_.test_and_set())
-			{
-				r.admissionFlag_.clear();
-				R::Engine::OnNodePulse(r, turn);
-			}
-		};
-	}
-
-	template <typename R, typename V>
-	void AddSignalInput_Safe(R& r, const V& v)
-	{
-		isEmpty_ = false;
-
-		concAdmissionPrepareBuf_.push_back([&r, v] (TTurnInterface& turn)
-		{
-			r.SetNewValue(v);
-		});
-
-		concAdmissionCommitBuf_.push_back([this, &r] (TTurnInterface& turn)
-		{
-			if (r.ApplyNewValue())
-			{
-				R::Engine::OnInputNodeAdmission(r, turn);
-
-				auto prevPropagationFunc = propagationFunc_;
-				propagationFunc_ = [prevPropagationFunc, &r] (TTurnInterface& turn)
-				{
-					prevPropagationFunc(turn);
-					R::Engine::OnNodePulse(r, turn);
-				};
-			}
-		});
-	}
-
-	template <typename R, typename V>
-	void AddEventInput_Safe(R& r, const V& v)
-	{
-		isEmpty_ = false;
-
-		concAdmissionCommitBuf_.push_back([&r, v] (TTurnInterface& turn)
-		{
-			r.SetCurrentTurn(turn);
-			r.Push(v);
-
-			if (! r.admissionFlag_.test_and_set())
-			{
-				r.propagationFlag_.clear();
-				R::Engine::OnInputNodeAdmission(r, turn);
-			}
-		});
-
-		concPropagationBuf_.push_back([&r] (TTurnInterface& turn)
-		{
-			if (! r.propagationFlag_.test_and_set())
-			{
-				r.admissionFlag_.clear();
-				R::Engine::OnNodePulse(r, turn);
-			}
-		});
-	}
-
-	void Merge(TransactionInput& other)
-	{
-		isEmpty_ = isEmpty_ && other.IsEmpty();
-
-		auto myAdmissionPrepareFunc = admissionPrepareFunc_;
-		auto otherAdmissionPrepareFunc = other.admissionPrepareFunc_;
-
-		admissionPrepareFunc_ = [=] (TTurnInterface& turn)
-		{
-			myAdmissionPrepareFunc(turn);
-			otherAdmissionPrepareFunc(turn);
-		};
-
-		auto myAdmissionCommitFunc = admissionCommitFunc_;
-		auto otherAdmissionCommitFunc = other.admissionCommitFunc_;
-
-		admissionCommitFunc_ = [=] (TTurnInterface& turn)
-		{
-			myAdmissionCommitFunc(turn);
-			otherAdmissionCommitFunc(turn);
-		};
-
-		auto myPropagationFunc = propagationFunc_;
-		auto otherPropagationFunc = other.propagationFunc_;
-
-		propagationFunc_ = [=] (TTurnInterface& turn)
-		{
-			myPropagationFunc(turn);
-			otherPropagationFunc(turn);
-		};
-	}
-
-	void RunAdmission(TTurnInterface& turn)
-	{
-		for (const auto& f : concAdmissionPrepareBuf_)
-			f(turn);
-
-		admissionPrepareFunc_(turn);
-
-		for (const auto& f : concAdmissionCommitBuf_)
-			f(turn);
-
-		admissionCommitFunc_(turn);
-	}
-
-	void RunPropagation(TTurnInterface& turn)
-	{
-		for (const auto& f : concPropagationBuf_)
-			f(turn);
-
-		propagationFunc_(turn);
+		for (auto f : bufferedInputs_)
+			f();
+		bufferedInputs_.clear();
 	}
 
 private:
-	typedef tbb::queuing_mutex		InputMutexT;
-	typedef std::function<void(TTurnInterface&)>	InputClosureT;
-
-	static void	nullFunc(TTurnInterface& other)	{}
-
-	InputClosureT	admissionPrepareFunc_;
-	InputClosureT	admissionCommitFunc_;
-	InputClosureT	propagationFunc_;
-
-	int		flags_;
 	bool	isEmpty_;
-
-	InputMutexT addInputMutex_;
-
-	tbb::concurrent_vector<InputClosureT>	concAdmissionPrepareBuf_;
-	tbb::concurrent_vector<InputClosureT>	concAdmissionCommitBuf_;
-	tbb::concurrent_vector<InputClosureT>	concPropagationBuf_;
-};
-
-template <typename TTurnInterface>
-class TransactionData
-{
-public:
-	TransactionData() :
-		id_{ INT_MIN },
-		curInputPtr_{ &input1_},
-		nextInputPtr_{ &input2_ }
-	{
-	}
-
-	int		Id() const		{ return id_; }
-	void	SetId(int id)	{ id_ = id; }
-
-	tbb::concurrent_vector<IObserverNode*>	DetachedObservers;
-
-	TransactionInput<TTurnInterface>& Input()		{ return *curInputPtr_; }
-	TransactionInput<TTurnInterface>& NextInput()	{ return *nextInputPtr_; }
-
-	bool ContinueTransaction()
-	{
-		if (nextInputPtr_->IsEmpty())
-			return false;
-
-		id_ = INT_MIN;
-		DetachedObservers.clear();
-
-		std::swap(curInputPtr_, nextInputPtr_);
-		nextInputPtr_->Reset();
-		return true;
-	}
-
-private:
-	int		id_;
-
-	TransactionInput<TTurnInterface>*	curInputPtr_;
-	TransactionInput<TTurnInterface>*	nextInputPtr_;
-
-	TransactionInput<TTurnInterface>	input1_;
-	TransactionInput<TTurnInterface>	input2_;
+	tbb::concurrent_vector<InputClosureT>	bufferedInputs_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -319,14 +127,14 @@ enum CommitFlags
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// ReactiveEngineInterface
+/// EngineInterface
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
 	typename D,
 	typename TEngine
 >
-struct ReactiveEngineInterface
+struct EngineInterface
 {
 	typedef typename TEngine::NodeInterface		NodeInterface;
 	typedef typename TEngine::TurnInterface		TurnInterface;
@@ -361,19 +169,6 @@ struct ReactiveEngineInterface
 		Engine().OnNodeDetach(node, parent);
 	}
 
-	static void OnTransactionCommit(TransactionData<TurnInterface>& transaction)
-	{
-		D::Log().template Append<TransactionBeginEvent>(transaction.Id());
-		Engine().OnTransactionCommit(transaction);
-		D::Log().template Append<TransactionEndEvent>(transaction.Id());
-	}
-
-	static void OnInputNodeAdmission(NodeInterface& node, TurnInterface& turn)
-	{
-		D::Log().template Append<InputNodeAdmissionEvent>(GetObjectId(node), turn.Id());
-		Engine().OnInputNodeAdmission(node, turn);
-	}
-
 	static void OnNodePulse(NodeInterface& node, TurnInterface& turn)
 	{
 		D::Log().template Append<NodePulseEvent>(GetObjectId(node), turn.Id());
@@ -391,10 +186,39 @@ struct ReactiveEngineInterface
 		D::Log().template Append<NodeInvalidateEvent>(GetObjectId(node), GetObjectId(oldParent), GetObjectId(newParent), turn.Id());
 		Engine().OnNodeShift(node, oldParent, newParent, turn);
 	}
+
+	static void OnTurnAdmissionStart(TurnInterface& turn)
+	{
+		Engine().OnTurnAdmissionStart(turn);
+	}
+
+	static void OnTurnAdmissionEnd(TurnInterface& turn)
+	{
+		Engine().OnTurnAdmissionEnd(turn);
+	}
+
+	static void OnTurnInputChange(NodeInterface& node, TurnInterface& turn)
+	{
+		D::Log().template Append<InputNodeAdmissionEvent>(GetObjectId(node), turn.Id());
+		Engine().OnTurnInputChange(node, turn);
+	}
+
+	static void OnTurnPropagate(TurnInterface& turn)
+	{
+		D::Log().template Append<TransactionBeginEvent>(turn.Id());
+		Engine().OnTurnPropagate(turn);
+		D::Log().template Append<TransactionEndEvent>(turn.Id());
+	}
+
+	template <typename F>
+	static bool TryMerge(F&& f)
+	{
+		return Engine().TryMerge(std::forward<F>(f));
+	}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// DomainPolicy
+/// Domain
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -403,20 +227,21 @@ template
 >
 struct DomainPolicy
 {
-	typedef TEngine			Engine;
-	typedef TLog			Log;
+	using Engine	= TEngine;
+	using Log		= TLog;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
-/// DomainBase
-////////////////////////////////////////////////////////////////////////////////////////
+using TurnIdT = uint;
+using TurnFlagsT = uint;
+
 template <typename D, typename TPolicy>
 class DomainBase
 {
 public:
-	typedef TPolicy	Policy;
+	DomainBase() = delete;
 
-	typedef ReactiveEngineInterface<D, typename Policy::Engine>	Engine;
+	using Policy = TPolicy;
+	using Engine = EngineInterface<D, typename Policy::Engine>;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Aliases for reactives of current domain
@@ -522,144 +347,225 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Aliases for transactions
 	////////////////////////////////////////////////////////////////////////////////////////
-	typedef TransactionData<typename Engine::TurnInterface>		TransactionData;
+	//typedef TransactionData<typename Engine::TurnInterface>		TransactionData;
 	typedef TransactionInput<typename Engine::TurnInterface>	TransactionInput;
 
+	//////////////////////////////////////////////////////////////////////////////////////////
+	///// Transaction
+	//////////////////////////////////////////////////////////////////////////////////////////
+	//class Transaction
+	//{
+	//public:
+	//	Transaction() :
+	//		flags_{ defaultCommitFlags_ }
+	//	{
+	//	}
+
+	//	Transaction(int flags) :
+	//		flags_{ flags }
+	//	{
+	//	}
+
+	//	void Init()
+	//	{
+	//	}
+
+	//	template <typename R, typename V>
+	//	void AddSignalInput(R& r, const V& v)
+	//	{
+	//		r.SetNewValue(v);
+	//		changedSignals_.push_back(&r);
+	//	}
+
+	//	void Commit()
+	//	{
+	//		REACT_ASSERT(committed_ == false, "Transaction already committed.");
+	//		committed_ = true;
+
+	//		for (auto* p : changedSignals_)
+	//			if (r.ApplyNewValue())
+	//				Engine::OnTurnInputChange(*p, turn);
+
+	//		Engine::OnTurnCommit(data_);
+
+	//		do
+	//		{
+	//			data_.SetId(nextTransactionId());
+	//			data_.Input().SetFlags(flags_);
+	//			Engine::OnTransactionCommit(data_);
+
+	//			// Apply detachments requested by DetachThisObserver
+	//			for (auto* o : data_.DetachedObservers)
+	//				Observers().Unregister(o);
+	//		}
+	//		while (data_.ContinueTransaction());
+	//	}
+
+	//	TransactionData& Data()
+	//	{
+	//		return data_;
+	//	}
+
+	//private:
+	//	static std::vector<IReactiveNode*>	changedInputs_;
+
+	//	int		flags_;
+	//	bool	committed_ = false;
+
+	//	TransactionData		data_;
+	//};
+
 	////////////////////////////////////////////////////////////////////////////////////////
-	/// Transaction
+	/// DoTransaction
 	////////////////////////////////////////////////////////////////////////////////////////
-	class Transaction
+	template <typename F>
+	static void DoTransaction(F&& func)
 	{
-	public:
-		Transaction() :
-			flags_{ defaultCommitFlags_ }
-		{
-		}
+		// Attempt to add input to another turn.
+		// If successful, blocks until other turn is done and returns.
+		if (Engine::TryMerge(std::forward<F>(func)))
+			return;
 
-		Transaction(int flags) :
-			flags_{ flags }
-		{
-		}
+		bool shouldPropagate = false;
 
-		void Commit()
-		{
-			REACT_ASSERT(committed_ == false, "Transaction already committed.");
+		auto turn = makeTurn();
 
-			if (!committed_)
-			{
-				committed_ = true;
+		// Phase 1 - Input admission
+		transactionState_.active = true;
+		Engine::OnTurnAdmissionStart(turn);
+		func();
+		Engine::OnTurnAdmissionEnd(turn);
+		transactionState_.active = false;
 
-				do
-				{
-					data_.SetId(nextTransactionId());
-					data_.Input().SetFlags(flags_);
-					Engine::OnTransactionCommit(data_);
+		// Phase 2 - Apply input node changes
+		for (auto* p : transactionState_.inputs)
+			if (p->Tick(&turn) == ETickResult::pulsed)
+				shouldPropagate = true;
+		transactionState_.inputs.clear();
 
-					// Apply detachments requested by DetachThisObserver
-					for (auto* o : data_.DetachedObservers)
-						Observers().Unregister(o);
-				}
-				while (data_.ContinueTransaction());
-			}
-		}
-
-		TransactionData& Data()
-		{
-			return data_;
-		}
-
-	private:
-
-		int		flags_;
-		bool	committed_ = false;
-
-		TransactionData		data_;
-	};
+		// Phase 3 - Propagate changes
+		if (shouldPropagate)
+			Engine::OnTurnPropagate(turn);
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
-	/// ScopedTransaction
+	/// AddInput
 	////////////////////////////////////////////////////////////////////////////////////////
-	class ScopedTransaction
+	template <typename R, typename V>
+	static void AddInput(R&& r, V&& v)
 	{
-	public:
-		ScopedTransaction() :
-			transaction_{ defaultCommitFlags_ }
-		{
-			REACT_ASSERT(ScopedTransactionInput::IsNull(), "Nested scoped transactions are not supported.");
-			REACT_ASSERT(TransactionInputContinuation::IsNull(), "Scoped transactions are not supported inside of observer functions.");
-			ScopedTransactionInput::Set(&transaction_.Data().Input());
-		}
+		if (! ContinuationHolder_::IsNull())
+			addContinuationInput(std::forward<R>(r), std::forward<V>(v));
 
-		ScopedTransaction(int flags) :
-			transaction_{ flags }
-		{
-			REACT_ASSERT(ScopedTransactionInput::IsNull(), "Nested scoped transactions are not supported.");
-			REACT_ASSERT(TransactionInputContinuation::IsNull(), "Scoped transactions are not supported inside of observer functions.");
-			ScopedTransactionInput::Set(&transaction_.Data().Input());
-		}
+		else if (transactionState_.active)
+			addTransactionInput(std::forward<R>(r), std::forward<V>(v));
 
-		~ScopedTransaction()
-		{
-			ScopedTransactionInput::Reset();
-			transaction_.Commit();
-		}
-
-		TransactionData& Data()
-		{
-			return transaction_.Data();
-		}
-
-	private:
-		Transaction		transaction_;
-	};
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	/// Scoped transaction input
-	////////////////////////////////////////////////////////////////////////////////////////
-	struct ScopedTransactionInput : public ThreadLocalStaticPtr<TransactionInput> {};
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	/// Transaction input continuation
-	////////////////////////////////////////////////////////////////////////////////////////
-	struct TransactionInputContinuation : public ThreadLocalStaticPtr<TransactionInput> {};
+		else
+			addSimpleInput(std::forward<R>(r), std::forward<V>(v));
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Default commit flags
 	////////////////////////////////////////////////////////////////////////////////////////
-	static void SetDefaultCommitFlags(int flags)
+	static void SetDefaultCommitFlags(TurnFlagsT flags)
 	{
 		defaultCommitFlags_ = flags;
 	}
 
-	static int GetDefaultCommitFlags()
+	static TurnFlagsT GetDefaultCommitFlags()
 	{
 		return defaultCommitFlags_;
 	}
 
-private:
-	static __declspec(thread) int defaultCommitFlags_;
-
-	static std::atomic<int> nextTransactionId_;
-
-	static int nextTransactionId()
+	////////////////////////////////////////////////////////////////////////////////////////
+	/// Set/Clear continuation
+	////////////////////////////////////////////////////////////////////////////////////////
+	static void SetCurrentContinuation(ContinuationInput& c)
 	{
-		int curId = nextTransactionId_.fetch_add(1, std::memory_order_relaxed);
+		ContinuationHolder_::Set(&c);
+	}
+
+	static void ClearCurrentContinuation()
+	{
+		ContinuationHolder_::Reset();
+	}
+
+private:
+	using TurnT = typename TPolicy::Engine::TurnInterface;
+
+	////////////////////////////////////////////////////////////////////////////////////////
+	/// Transaction input continuation
+	////////////////////////////////////////////////////////////////////////////////////////
+	struct ContinuationHolder_ : public ThreadLocalStaticPtr<ContinuationInput> {};
+
+	static __declspec(thread) TurnFlagsT defaultCommitFlags_;
+
+	static std::atomic<TurnIdT> nextTurnId_;
+
+	static TurnIdT nextTurnId()
+	{
+		auto curId = nextTurnId_.fetch_add(1, std::memory_order_relaxed);
 
 		if (curId == INT_MAX)
-			nextTransactionId_.fetch_sub(INT_MAX);
+			nextTurnId_.fetch_sub(INT_MAX);
 
 		return curId;
 	}
 
-	// Can't be instantiated
-	DomainBase();
+	struct TransactionState
+	{
+		bool	active = false;
+		std::vector<IReactiveNode*>	inputs;
+	};
+
+	static TransactionState transactionState_;
+
+	static TurnT makeTurn()
+	{
+		return TurnT(nextTurnId(), 0);
+	}
+
+	// Create a turn with a single input
+	template <typename R, typename V>
+	static void addSimpleInput(R&& r, V&& v)
+	{
+		auto turn = makeTurn();
+
+		Engine::OnTurnAdmissionStart(turn);
+		r.AddInput(std::forward<V>(v));
+		Engine::OnTurnAdmissionEnd(turn);
+
+		if (r.Tick(&turn) == ETickResult::pulsed)
+			Engine::OnTurnPropagate(turn);
+	}
+
+	// This input is part of an active transaction
+	template <typename R, typename V>
+	static void addTransactionInput(R&& r, V&& v)
+	{
+		r.AddInput(std::forward<V>(v));
+		transactionState_.inputs.push_back(&r);
+	}
+
+	// Input happened during a turn - buffer in continuation
+	template <typename R, typename V>
+	static void addContinuationInput(R&& r, V&& v)
+	{
+		// Copy v
+		ContinuationHolder_::Get()->Add(
+			[&r,v] { addTransactionInput(r, std::move(v)); }
+		);
+	}
 };
 
 template <typename D, typename TPolicy>
-std::atomic<int> DomainBase<D,TPolicy>::nextTransactionId_(0);
+std::atomic<TurnIdT> DomainBase<D,TPolicy>::nextTurnId_( 0 );
 
 template <typename D, typename TPolicy>
-int DomainBase<D,TPolicy>::defaultCommitFlags_(0);
+int DomainBase<D,TPolicy>::defaultCommitFlags_( 0 );
+
+template <typename D, typename TPolicy>
+typename DomainBase<D,TPolicy>::TransactionState DomainBase<D,TPolicy>::transactionState_;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Ensure singletons are created immediately after domain declaration (TODO hax)

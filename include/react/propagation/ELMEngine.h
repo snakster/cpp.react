@@ -23,12 +23,12 @@ using tbb::spin_mutex;
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-struct Turn :
-	public TurnBase<Turn>,
-	public ExclusiveSequentialTransaction<Turn>
+class Turn :
+	public TurnBase,
+	public ExclusiveTurnManager::ExclusiveTurn
 {
 public:
-	explicit Turn(TransactionData<Turn>& transactionData);
+	Turn(TurnIdT id, TurnFlagsT flags);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +37,7 @@ public:
 class Node : public IReactiveNode
 {
 public:
-	typedef spin_mutex	ShiftMutexT;
+	using ShiftMutexT = spin_mutex;
 
 	Node();
 
@@ -47,7 +47,7 @@ public:
 	atomic<int16_t>		Counter;
 	atomic<bool>		ShouldUpdate;
 
-	uint	LastTurnId;
+	TurnIdT				LastTurnId;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -55,35 +55,35 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 class ELMEngine :
 	public IReactiveEngine<Node,Turn>,
-	public ExclusiveSequentialTransactionEngine<Turn>
+	public ExclusiveTurnManager
 {
 public:
-	typedef Node::ShiftMutexT	NodeShiftMutexT;
-	typedef set<Node*>			NodeSet;
+	using NodeShiftMutexT = Node::ShiftMutexT;
+	using NodeSetT = set<Node*>;
 
-	virtual void OnNodeCreate(NodeInterface& node);
-	virtual void OnNodeDestroy(NodeInterface& node);
+	void OnNodeCreate(NodeInterface& node);
+	void OnNodeDestroy(NodeInterface& node);
 
-	virtual void OnNodeAttach(Node& node, Node& parent);
-	virtual void OnNodeDetach(Node& node, Node& parent);
+	void OnNodeAttach(Node& node, Node& parent);
+	void OnNodeDetach(Node& node, Node& parent);
 
-	virtual void OnTransactionCommit(TransactionData<Turn>& transaction);
+	void OnTurnAdmissionStart(Turn& turn);
+	void OnTurnAdmissionEnd(Turn& turn);
 
-	virtual void OnInputNodeAdmission(Node& node, Turn& turn);
+	void OnTurnInputChange(Node& node, Turn& turn);
+	void OnTurnPropagate(Turn& turn);
 
-	virtual void OnNodePulse(Node& node, Turn& turn);
-	virtual void OnNodeIdlePulse(Node& node, Turn& turn);
+	void OnNodePulse(Node& node, Turn& turn);
+	void OnNodeIdlePulse(Node& node, Turn& turn);
 
-	virtual void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
 
 private:
 	void processChild(Node& node, bool update, Turn& turn);
 	void nudgeChildren(Node& parent, bool update, Turn& turn);
 
 	task_group	tasks_;
-
-	NodeSet		inputNodes_;
-	NodeSet		unchangedInputNodes_;
+	NodeSetT	inputNodes_;
 };
 
 } // ~namespace react::elm_impl

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <atomic>
+#include <vector>
+
 #include "tbb/queuing_mutex.h"
 #include "tbb/spin_mutex.h"
 #include "tbb/task_group.h"
@@ -14,24 +17,25 @@
 namespace react {
 namespace source_set_impl {
 
-class SourceSetNode;
+class Node;
 
 using std::atomic;
+using std::vector;
 using tbb::task_group;
 using tbb::queuing_mutex;
 using tbb::spin_mutex;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// SourceSetTurn
+/// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-struct SourceSetTurn :
-	public TurnBase<SourceSetTurn>,
-	public ExclusiveSequentialTransaction<SourceSetTurn>
+class Turn :
+	public TurnBase,
+	public ExclusiveTurnManager::ExclusiveTurn
 {
 public:
-	typedef SourceIdSet<ObjectId>	SourceIdSetT;
+	using SourceIdSetT = SourceIdSet<ObjectId>;
 
-	explicit SourceSetTurn(TransactionData<SourceSetTurn>& transactionData);
+	Turn(TurnIdT id, TurnFlagsT flags);
 
 	void AddSourceId(ObjectId id);
 
@@ -42,32 +46,32 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// SourceSetNode
+/// Node
 ////////////////////////////////////////////////////////////////////////////////////////
-class SourceSetNode : public IReactiveNode
+class Node : public IReactiveNode
 {
 public:
-	typedef SourceSetTurn::SourceIdSetT	SourceIdSetT;
+	typedef Turn::SourceIdSetT	SourceIdSetT;
 
 	typedef queuing_mutex	NudgeMutexT;
 	typedef spin_mutex		ShiftMutexT;
 
-	SourceSetNode();
+	Node();
 
 	void AddSourceId(ObjectId id);
 
-	void AttachSuccessor(SourceSetNode& node);
-	void DetachSuccessor(SourceSetNode& node);
+	void AttachSuccessor(Node& node);
+	void DetachSuccessor(Node& node);
 
 	void Destroy();
 
-	void Pulse(SourceSetTurn& turn, bool updated);
-	void Shift(SourceSetNode& oldParent, SourceSetNode& newParent, SourceSetTurn& turn);
+	void Pulse(Turn& turn, bool updated);
+	void Shift(Node& oldParent, Node& newParent, Turn& turn);
 
-	bool IsDependency(SourceSetTurn& turn);
-	bool CheckCurrentTurn(SourceSetTurn& turn);
+	bool IsDependency(Turn& turn);
+	bool CheckCurrentTurn(Turn& turn);
 
-	void Nudge(SourceSetTurn& turn, bool update, bool invalidate);
+	void Nudge(Turn& turn, bool update, bool invalidate);
 
 	void CheckForCycles(ObjectId startId) const;
 
@@ -79,8 +83,8 @@ private:
 		kFlag_Invaliated =	1 << 2
 	};
 
-	NodeVector<SourceSetNode>	predecessors_;
-	NodeVector<SourceSetNode>	successors_;
+	NodeVector<Node>	predecessors_;
+	NodeVector<Node>	successors_;
 
 	SourceIdSetT	sources_;
 
@@ -99,23 +103,29 @@ private:
 /// SourceSetEngine
 ////////////////////////////////////////////////////////////////////////////////////////
 class SourceSetEngine :
-	public IReactiveEngine<SourceSetNode,SourceSetTurn>,
-	public ExclusiveSequentialTransactionEngine<SourceSetTurn>
+	public IReactiveEngine<Node,Turn>,
+	public ExclusiveTurnManager
 {
 public:
-	void SourceSetEngine::OnNodeCreate(SourceSetNode& node);
+	void SourceSetEngine::OnNodeCreate(Node& node);
 
-	void OnNodeAttach(SourceSetNode& node, SourceSetNode& parent);
-	void OnNodeDetach(SourceSetNode& node, SourceSetNode& parent);
+	void OnNodeAttach(Node& node, Node& parent);
+	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnNodeDestroy(SourceSetNode& node);
+	void OnNodeDestroy(Node& node);
 
-	void OnTransactionCommit(TransactionData<SourceSetTurn>& transaction);
-	void OnInputNodeAdmission(SourceSetNode& node, SourceSetTurn& turn);
+	void OnTurnAdmissionStart(Turn& turn);
+	void OnTurnAdmissionEnd(Turn& turn);
 
-	void OnNodePulse(SourceSetNode& node, SourceSetTurn& turn);
-	void OnNodeIdlePulse(SourceSetNode& node, SourceSetTurn& turn);
-	void OnNodeShift(SourceSetNode& node, SourceSetNode& oldParent, SourceSetNode& newParent, SourceSetTurn& turn);
+	void OnTurnInputChange(Node& node, Turn& turn);
+	void OnTurnPropagate(Turn& turn);
+
+	void OnNodePulse(Node& node, Turn& turn);
+	void OnNodeIdlePulse(Node& node, Turn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+
+private:
+	vector<Node*>	changedInputs_;
 };
 
 } // ~namespace react::source_set_impl

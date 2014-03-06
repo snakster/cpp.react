@@ -73,13 +73,13 @@ template
 class ReactiveNode : public NodeBase<D>, public D::Policy::Engine::NodeInterface
 {
 public:
-	typedef std::shared_ptr<ReactiveNode> NodePtrT;
+	using NodePtrT = std::shared_ptr<ReactiveNode>;
 
-	typedef D		Domain;
-	typedef typename Domain::Policy			Policy;
-	typedef typename Domain::Engine			Engine;
-	typedef typename Engine::NodeInterface	NodeInterface;
-	typedef typename Engine::TurnInterface	TurnInterface;
+	using Domain = D;
+	using Policy = typename D::Policy;
+	using Engine = typename D::Engine;
+	using NodeInterface = typename Engine::NodeInterface;
+	using TurnInterface = typename Engine::TurnInterface;
 
 	explicit ReactiveNode(bool registered) :
 		obsCount_(0)

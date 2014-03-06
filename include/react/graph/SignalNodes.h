@@ -93,28 +93,26 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		REACT_ASSERT(false, "Don't tick VarNode\n");
-		return ETickResult::none;
+		if (! impl::Equals(value_, newValue_))
+		{
+			typedef typename D::Engine::TurnInterface TurnInterface;
+			TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+
+			value_ = newValue_;
+			Engine::OnTurnInputChange(*this, turn);
+			return ETickResult::pulsed;
+		}
+		else
+		{
+			return ETickResult::idle_pulsed;
+		}
 	}
 
 	virtual bool IsInputNode() const override	{ return true; }
 
-	void SetNewValue(const S& newValue)
+	void AddInput(const S& newValue)
 	{
 		newValue_ = newValue;
-	}
-
-	bool ApplyNewValue()
-	{
-		if (! impl::Equals(value_, newValue_))
-		{
-			value_ = newValue_;
-			return true;
-		}
-		else
-		{
-			return false;
-		}
 	}
 
 private:

@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <set>
+#include <vector>
 
 #include "tbb/concurrent_vector.h"
 #include "tbb/task_group.h"
@@ -19,6 +20,7 @@ namespace topo_sort_impl {
 
 using std::atomic;
 using std::set;
+using std::vector;
 using tbb::concurrent_vector;
 using tbb::task_group;
 
@@ -51,11 +53,11 @@ struct ShiftRequestData
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
 class Turn :
-	public TurnBase<Turn>,
-	public ExclusiveSequentialTransaction<Turn>
+	public TurnBase,
+	public ExclusiveTurnManager::ExclusiveTurn
 {
 public:
-	explicit Turn(TransactionData<Turn>& transactionData);
+	Turn(TurnIdT id, TurnFlagsT flags);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -63,21 +65,24 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 class TopoSortEngine :
 	public IReactiveEngine<Node,Turn>,
-	public ExclusiveSequentialTransactionEngine<Turn>
+	public ExclusiveTurnManager
 {
 public:
-	typedef set<Node*>	NodeSet;
-
-	typedef concurrent_vector<Node*>		ConcNodeVector;
-	typedef concurrent_vector<ShiftRequestData>		ShiftRequestVector;
-	typedef TopoQueue<Node>					TopoQueue;
+	using NodeSetT = set<Node*>;
+	using ConcNodeVectorT = concurrent_vector<Node*>;
+	using ShiftRequestVectorT = concurrent_vector<ShiftRequestData>;
+	using TopoQueueT = TopoQueue<Node>;
 
 	TopoSortEngine();
 
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTransactionCommit(TransactionData<Turn>& transaction);
+	void OnTurnAdmissionStart(Turn& turn);
+	void OnTurnAdmissionEnd(Turn& turn);
+
+	void OnTurnInputChange(Node& node, Turn& turn);
+	void OnTurnPropagate(Turn& turn);
 
 	void OnNodePulse(Node& node, Turn& turn);
 	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
@@ -88,9 +93,9 @@ private:
 	void processChildren(Node& node, Turn& turn);
 	void invalidateSuccessors(Node& node);
 
-	TopoQueue			scheduledNodes_;
-	ConcNodeVector		collectBuffer_;
-	ShiftRequestVector	shiftRequests_;
+	TopoQueueT			scheduledNodes_;
+	ConcNodeVectorT		collectBuffer_;
+	ShiftRequestVectorT	shiftRequests_;
 
 	task_group	tasks_;
 };

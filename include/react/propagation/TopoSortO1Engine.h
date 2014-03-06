@@ -1,5 +1,8 @@
 #pragma once
 
+// TODO: Refactor
+#if 0
+
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
@@ -153,3 +156,5 @@ private:
 using topo_sort_o1_impl::TopoSortO1Engine;
 
 } // ~namespace react
+
+#endif

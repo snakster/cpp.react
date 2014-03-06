@@ -13,7 +13,7 @@ template <typename T>
 class Reactive
 {
 public:
-	typedef typename T::Domain			Domain;
+	using Domain = typename T::Domain;
 
 	Reactive() :
 		ptr_{ nullptr }

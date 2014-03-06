@@ -17,8 +17,8 @@ Node::Node() :
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-Turn::Turn(TransactionData<Turn>& transactionData) :
-	TurnBase(transactionData)
+Turn::Turn(TurnIdT id, TurnFlagsT flags) :
+	TurnBase(id, flags)
 {
 }
 
@@ -42,35 +42,29 @@ void TopoSortSTEngine::OnNodeDetach(Node& node, Node& parent)
 	parent.Successors.Remove(node);
 }
 
-void TopoSortSTEngine::OnTransactionCommit(TransactionData<Turn>& transaction)
+void TopoSortSTEngine::OnTurnInputChange(Node& node, Turn& turn)
 {
-	// graphMutex_
+	processChildren(node, turn);
+}
+
+void TopoSortSTEngine::OnTurnPropagate(Turn& turn)
+{
+	while (!scheduledNodes_.Empty())
 	{
-		GraphMutex::scoped_lock lock(graphMutex_);
+		auto node = scheduledNodes_.Top();
+		scheduledNodes_.Pop();
 
-		Turn turn(transaction);
-
-		transaction.Input().RunAdmission(turn);
-		transaction.Input().RunPropagation(turn);
-
-		while (!scheduledNodes_.Empty())
+		if (node->Level < node->NewLevel)
 		{
-			auto node = scheduledNodes_.Top();
-			scheduledNodes_.Pop();
-
-			if (node->Level < node->NewLevel)
-			{
-				node->Level = node->NewLevel;
-				invalidateSuccessors(*node);
-				scheduledNodes_.Push(node);
-				continue;
-			}
-
-			node->Queued = false;
-			node->Tick(&turn);
+			node->Level = node->NewLevel;
+			invalidateSuccessors(*node);
+			scheduledNodes_.Push(node);
+			continue;
 		}
+
+		node->Queued = false;
+		node->Tick(&turn);
 	}
-	// ~graphMutex_
 }
 
 void TopoSortSTEngine::OnNodePulse(Node& node, Turn& turn)

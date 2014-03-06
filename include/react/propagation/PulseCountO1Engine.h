@@ -23,16 +23,16 @@ using tbb::spin_rw_mutex;
 typedef int		MarkerT;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// PulseCountO1Node
+/// Node
 ////////////////////////////////////////////////////////////////////////////////////////
-class PulseCountO1Node : public IReactiveNode
+class Node : public IReactiveNode
 {
 public:
 	enum class EState { init, attaching, detaching };
 
 	typedef spin_rw_mutex		ShiftMutexT;
 
-	PulseCountO1Node();
+	Node();
 
 	void AdjustWeight(int weightDelta, int costDelta)
 	{
@@ -47,8 +47,8 @@ public:
 	int		Weight() const	{ return weight_; }
 	int		Cost() const	{ return cost_; }
 
-	NodeVector<PulseCountO1Node>	Successors;
-	NodeVector<PulseCountO1Node>	Predecessors;
+	NodeVector<Node>	Successors;
+	NodeVector<Node>	Predecessors;
 
 	atomic<int>		Counter;
 	atomic<bool>	ShouldUpdate;
@@ -66,14 +66,14 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// PulseCountO1Turn
+/// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-struct PulseCountO1Turn :
-	public TurnBase<PulseCountO1Turn>,
-	public ExclusiveSequentialTransaction<PulseCountO1Turn>
+class Turn :
+	public TurnBase,
+	public ExclusiveTurnManager::ExclusiveTurn
 {
 public:
-	explicit PulseCountO1Turn(TransactionData<PulseCountO1Turn>& transactionData);
+	Turn(TurnIdT id, TurnFlagsT flags);
 
 	MarkerT	Marker;
 };
@@ -82,40 +82,43 @@ public:
 /// PulseCountO1Engine
 ////////////////////////////////////////////////////////////////////////////////////////
 class PulseCountO1Engine :
-	public IReactiveEngine<PulseCountO1Node,PulseCountO1Turn>,
-	public ExclusiveSequentialTransactionEngine<PulseCountO1Turn>
+	public IReactiveEngine<Node,Turn>,
+	public ExclusiveTurnManager
 {
 public:
 	PulseCountO1Engine();
 
-	void OnNodeAttach(PulseCountO1Node& node, PulseCountO1Node& parent);
-	void OnNodeDetach(PulseCountO1Node& node, PulseCountO1Node& parent);
+	void OnNodeAttach(Node& node, Node& parent);
+	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTransactionCommit(TransactionData<PulseCountO1Turn>& transaction);
+	void OnTurnAdmissionStart(Turn& turn);
+	void OnTurnAdmissionEnd(Turn& turn);
 
-	void OnInputNodeAdmission(PulseCountO1Node& node, PulseCountO1Turn& turn);
+	void OnTurnInputChange(Node& node, Turn& turn);
+	void OnTurnPropagate(Turn& turn);
 
-	void OnNodePulse(PulseCountO1Node& node, PulseCountO1Turn& turn);
-	void OnNodeIdlePulse(PulseCountO1Node& node, PulseCountO1Turn& turn);
+	void OnNodePulse(Node& node, Turn& turn);
+	void OnNodeIdlePulse(Node& node, Turn& turn);
 
-	void OnNodeShift(PulseCountO1Node& node, PulseCountO1Node& oldParent, PulseCountO1Node& newParent, PulseCountO1Turn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
 
 private:
-	typedef PulseCountO1Node::ShiftMutexT	NodeShiftMutexT;
-	typedef vector<PulseCountO1Node*>		NodeVectorT;
+	typedef Node::ShiftMutexT	NodeShiftMutexT;
+	typedef vector<Node*>		NodeVectorT;
 
 	void	runInitReachableNodesTask(NodeVectorT leftNodes, MarkerT marker);
 
-	void	updateNodeWeight(PulseCountO1Node& node, MarkerT marker, int weightDelta, int costDelta);
+	void	updateNodeWeight(Node& node, MarkerT marker, int weightDelta, int costDelta);
 
-	void	processChild(PulseCountO1Node& node, bool update, PulseCountO1Turn& turn);
-	void	nudgeChildren(PulseCountO1Node& parent, bool update, PulseCountO1Turn& turn);
+	void	processChild(Node& node, bool update, Turn& turn);
+	void	nudgeChildren(Node& parent, bool update, Turn& turn);
 
 	MarkerT	nextMarker();
 
 	task_group		tasks_;
 	MarkerT			curMarker_;
-	NodeVectorT		changedInputNodes_;
+	
+	NodeVectorT		changedInputs_;
 };
 
 } // ~namespace react::pulse_count_o1_impl

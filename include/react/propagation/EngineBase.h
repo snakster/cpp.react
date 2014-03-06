@@ -2,14 +2,19 @@
 
 #include <set>
 #include <atomic>
-#include <mutex>
-#include <condition_variable>
 
 #include "tbb/queuing_mutex.h"
 
 #include "react/ReactiveDomain.h"
+#include "react/common/Concurrency.h"
 
 namespace react {
+
+enum class ETransactionMode
+{
+	none,
+	exclusive
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveEngine
@@ -21,21 +26,23 @@ template
 >
 struct IReactiveEngine
 {
-	typedef TNodeInterface	NodeInterface;
-	typedef TTurnInterface	TurnInterface;
+	using NodeInterface = TNodeInterface;
+	using TurnInterface = TTurnInterface;
 
-	void OnNodeCreate(NodeInterface& node)	{}
-	void OnNodeDestroy(NodeInterface& node)	{}
+	void OnNodeCreate(NodeInterface& node)								{}
+	void OnNodeDestroy(NodeInterface& node)								{}
 
 	void OnNodeAttach(NodeInterface& node, NodeInterface& parent)		{}
 	void OnNodeDetach(NodeInterface& node, NodeInterface& parent)		{}
 
-	void OnTransactionCommit(const TransactionData<TurnInterface>& transaction)	{}
+	void OnTurnAdmissionStart(TurnInterface& turn)						{}
+	void OnTurnAdmissionEnd(TurnInterface& turn)						{}
 
-	void OnInputNodeAdmission(NodeInterface& node, TurnInterface& turn)	{}
+	void OnTurnInputChange(NodeInterface& node, TurnInterface& turn)	{}
+	void OnTurnPropagate(TurnInterface& turn)							{}
 
-	void OnNodePulse(NodeInterface& node, TurnInterface& turn)		{}
-	void OnNodeIdlePulse(NodeInterface& node, TurnInterface& turn)	{}
+	void OnNodePulse(NodeInterface& node, TurnInterface& turn)			{}
+	void OnNodeIdlePulse(NodeInterface& node, TurnInterface& turn)		{}
 
 	void OnNodeShift(NodeInterface& node, NodeInterface& oldParent, NodeInterface& newParent, TurnInterface& turn)	{}
 };
@@ -43,187 +50,147 @@ struct IReactiveEngine
 ////////////////////////////////////////////////////////////////////////////////////////
 /// TurnBase
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurnInterface>
 class TurnBase
 {
 public:
-	TurnBase(TransactionData<TTurnInterface>& transactionData) :
-		transactionData_(transactionData)
+	typedef std::function<void()>	InputClosureT;
+
+	TurnBase(TurnIdT id, TurnFlagsT flags) :
+		id_{ id }
 	{
 	}
 
-	int Id() const		{ return transactionData_.Id(); }
+	inline TurnIdT Id() const		{ return id_; }
 
-	TransactionInput<TTurnInterface>& InputContinuation()
+	inline ContinuationInput& Continuation()
 	{
-		return transactionData_.NextInput();
+		return continuation_;
 	}
 
-	void QueueForDetach(IObserverNode& obs)
+	inline void QueueForDetach(IObserverNode& obs)
 	{
-		transactionData_.DetachedObservers.push_back(&obs);
+		detachedObservers_.push_back(&obs);
 	}
 
 private:
-	TransactionData<TTurnInterface>&	transactionData_;
+	TurnIdT	id_;
+
+	tbb::concurrent_vector<IObserverNode*>	detachedObservers_;
+	ContinuationInput continuation_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// ExclusiveSequentialTransaction
+/// ExclusiveTurnManager
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurnInterface>
-class ExclusiveSequentialTransaction
+class ExclusiveTurnManager
 {
 public:
-	typedef std::vector<ExclusiveSequentialTransaction*>	TransactionVector;
-
-	explicit ExclusiveSequentialTransaction(TransactionInput<TTurnInterface>& input) :
-		blocked_(false),
-		successor_(nullptr),
-		input_(input)
+	class ExclusiveTurn
 	{
-	}
+	public:
+		typedef std::vector<BlockingCondition*>	TransactionVector;
 
-	void Append(ExclusiveSequentialTransaction& tr)
-	{
-		successor_ = &tr;
-		tr.Block();
-	}
-
-	void Block()
-	{
-		// blockMutex_
+		explicit ExclusiveTurn(bool isMergeable) :
+			isMergeable_{ isMergeable }
 		{
-			std::lock_guard<std::mutex> scopedLock(blockMutex_);
-
-			blocked_ = true;
 		}
-		// ~blockMutex_
-	}
 
-	void Unblock()
-	{
-		// blockMutex_
+		inline void Append(ExclusiveTurn& tr)
 		{
-			std::lock_guard<std::mutex> scopedLock(blockMutex_);
-
-			blocked_ = false;
-			blockCondition_.notify_all();
+			successor_ = &tr;
+			tr.blockCondition_.Block();
 		}
-		// ~blockMutex_
-	}
 
-	void WaitForUnblock()
-	{
-		std::unique_lock<std::mutex> lock(blockMutex_);
-
-		while (blocked_)
-			blockCondition_.wait(lock);
-	}
-
-	void Finish()
-	{
-		for (auto p : mergedTransactions_)
-			p->Unblock();
-
-		if (successor_)
-			successor_->Unblock();
-	}
-
-	bool TryMerge(ExclusiveSequentialTransaction& other)
-	{
-		if ((input_.Flags() & allow_transaction_merging) && (other.input_.Flags() & allow_transaction_merging))
+		inline void WaitForUnblock()
 		{
-			// blockMutex_
-			{
-				std::lock_guard<std::mutex> scopedLock(blockMutex_);
-
-				// Already started?
-				if (!blocked_)
-					return false;
-
-				other.Block();
-
-				input_.Merge(other.input_);
-
-				mergedTransactions_.push_back(&other);
-
-				return true;
-			}
-			// ~blockMutex_
+			blockCondition_.WaitForUnblock();
 		}
+
+		inline void RunMergedInputs()
+		{
+			for (const auto& e : merged_)
+				e.first();
+		}
+
+		inline void UnblockSuccessors()
+		{
+			for (const auto& e : merged_)
+				e.second->Unblock();
+
+			if (successor_)
+				successor_->blockCondition_.Unblock();
+		}
+
+		template <typename F>
+		inline bool TryMerge(F&& inputFunc)
+		{
+			if (!isMergeable_)
+				return false;
+
+			BlockingCondition caller;
+
+			// Only merge if target is still blocked
+			blockCondition_.RunIfBlocked([&] {
+				caller.Block();
+				merged_.emplace_back(std::make_pair(std::forward<F>(inputFunc), &caller));
+			});
+
+			caller.WaitForUnblock();
+
+			return true;
+		}
+
+	private:
+		using MergedDataVectT = std::vector<std::pair<std::function<void()>,BlockingCondition*>>;
+
+		bool				isMergeable_;
+		ExclusiveTurn*		successor_ = nullptr;
+		MergedDataVectT		merged_;
+		BlockingCondition	blockCondition_;
+	};
+
+	template <typename F>
+	inline bool TryMerge(F&& inputFunc)
+	{// seqMutex_
+		SeqMutexT::scoped_lock lock(seqMutex_);
+
+		if (tail_)
+			return tail_->TryMerge(std::forward<F>(inputFunc));
 		else
-		{
 			return false;
-		}
-	}
+	}// ~seqMutex_
 
-private:
-	TransactionInput<TTurnInterface>&	input_;
-	ExclusiveSequentialTransaction*		successor_;
-	TransactionVector					mergedTransactions_;
-
-	std::mutex					blockMutex_;
-	std::condition_variable		blockCondition_;
-
-	
-	bool			blocked_;
-};
-
-////////////////////////////////////////////////////////////////////////////////////////
-/// BlockingSeqEngine
-////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurnInterface>
-class ExclusiveSequentialTransactionEngine
-{
-public:
-	bool BeginTransaction(ExclusiveSequentialTransaction<TTurnInterface>& tr)
+	inline void StartTurn(ExclusiveTurn& turn)
 	{
-		bool merged = false;
-
-		// sequenceMutex_
-		{
-			SeqMutex::scoped_lock	lock(sequenceMutex_);
+		{// seqMutex_
+			SeqMutexT::scoped_lock lock(seqMutex_);
 
 			if (tail_)
-			{
-				merged = tail_->TryMerge(tr);
+				tail_->Append(turn);
+			else
+				tail_ = &turn;
+		}// ~seqMutex_
 
-				if (!merged)
-					tail_->Append(tr);
-			}
-		
-			if (!merged)
-				tail_ = &tr;
-		}
-		// ~sequenceMutex_
-
-		tr.WaitForUnblock();
-
-		return !merged;
+		turn.WaitForUnblock();
 	}
 
-	void EndTransaction(ExclusiveSequentialTransaction<TTurnInterface>& tr)
+	inline void EndTurn(ExclusiveTurn& turn)
 	{
-		// sequenceMutex_
-		{
-			SeqMutex::scoped_lock	lock(sequenceMutex_);
+		turn.UnblockSuccessors();
 
-			tr.Finish();
+		{// seqMutex_
+			SeqMutexT::scoped_lock lock(seqMutex_);
 
-			if (tail_ == &tr)
+			if (tail_ == &turn)
 				tail_ = nullptr;
-		}
-		// ~sequenceMutex_
-
+		}// ~seqMutex_
 	}
 
 private:
-	typedef tbb::queuing_mutex		SeqMutex;
+	using SeqMutexT = tbb::queuing_mutex;
 
-	SeqMutex	sequenceMutex_;
-
-	ExclusiveSequentialTransaction<TTurnInterface>*	tail_;
+	SeqMutexT		seqMutex_;
+	ExclusiveTurn*	tail_;
 };
 
 // ---

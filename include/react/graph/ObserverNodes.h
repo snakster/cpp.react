@@ -83,12 +83,15 @@ public:
 
 		current_observer_state_::shouldDetach = false;
 
-		D::TransactionInputContinuation::Set(&turn.InputContinuation());
+		//ContinuationInputHolder_::Set(&turn.Continuation());
+		D::SetCurrentContinuation(turn.Continuation());
 
 		if (auto p = subject_.lock())
 			func_(p->ValueRef());
 
-		D::TransactionInputContinuation::Reset();
+		D::ClearCurrentContinuation();
+
+		//D::TransactionInputContinuation::Reset();
 
 		if (current_observer_state_::shouldDetach)
 			turn.QueueForDetach(*this);

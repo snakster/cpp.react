@@ -17,6 +17,7 @@ namespace flooding_impl {
 
 using std::atomic;
 using std::set;
+using std::vector;
 using tbb::queuing_mutex;
 using tbb::task_group;
 using tbb::spin_mutex;
@@ -24,12 +25,12 @@ using tbb::spin_mutex;
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-struct Turn :
-	public TurnBase<Turn>,
-	public ExclusiveSequentialTransaction<Turn>
+class Turn :
+	public TurnBase,
+	public ExclusiveTurnManager::ExclusiveTurn
 {
 public:
-	explicit Turn(TransactionData<Turn>& transactionData);
+	Turn(TurnIdT id, TurnFlagsT flags);
 };
 
 
@@ -39,7 +40,7 @@ public:
 class Node : public IReactiveNode
 {
 public:
-	typedef spin_mutex		ShiftMutexT;
+	using ShiftMutexT = spin_mutex;
 
 	Node();
 
@@ -51,7 +52,7 @@ public:
 	ShiftMutexT		ShiftMutex;
 
 private:
-	typedef spin_mutex		EvalMutexT;
+	using EvalMutexT = spin_mutex;
 
 	atomic<bool>	isScheduled_;
 
@@ -66,27 +67,32 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 class FloodingEngine :
 	public IReactiveEngine<Node,Turn>,
-	public ExclusiveSequentialTransactionEngine<Turn>
+	public ExclusiveTurnManager
 {
 public:
-	void OnTransactionCommit(TransactionData<Turn>& transaction);
-
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
+
+	void OnTurnAdmissionStart(Turn& turn);
+	void OnTurnAdmissionEnd(Turn& turn);
+
+	void OnTurnInputChange(Node& node, Turn& turn);
+	void OnTurnPropagate(Turn& turn);
 
 	void OnNodePulse(Node& node, Turn& turn);
 	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
 
 private:
-	typedef set<Node*>		NodeSetT;
-	typedef queuing_mutex			OutputMutexT;
-	typedef Node::ShiftMutexT	NodeShiftMutexT;
+	using OutputMutexT = queuing_mutex;
+	using NodeShiftMutexT = Node::ShiftMutexT;
 
-	NodeSetT		outputNodes_;
+	set<Node*>		outputNodes_;
 	OutputMutexT	outputMutex_;
+	vector<Node*>	changedInputs_;
 
 	task_group		tasks_;
 
+	void pulse(Node& node, Turn& turn);
 	void process(Node& node, Turn& turn);
 };
 

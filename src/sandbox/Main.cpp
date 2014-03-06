@@ -1,21 +1,21 @@
 #include <iostream>
 
 #include "react/Signal.h"
-#include "react/EventStream.h"
-#include "react/Operations.h"
-#include "react/ReactiveObject.h"
-
+//#include "react/EventStream.h"
+//#include "react/Operations.h"
+//#include "react/ReactiveObject.h"
+//
 #include "react/propagation/SourceSetEngine.h"
-
-using namespace react;
+//
 using namespace std;
-
-// Defines a domain.
-// Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
-// Reactives of different domains can not be combined.
+using namespace react;
+//
+//// Defines a domain.
+//// Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
+//// Reactives of different domains can not be combined.
 REACTIVE_DOMAIN(D, SourceSetEngine);
-
-
+//
+//
 void SignalExample1()
 {
 	cout << "Signal Example 1" << endl;
@@ -26,6 +26,10 @@ void SignalExample1()
 
 	auto area	= width * height;
 	auto volume	= area * depth;
+
+	Observe(volume, [] (int v) {
+		cout << "Volume changed to: " << v << endl;
+	});
 
 	cout << "t0" << endl;
 	cout << "\tArea: " << area() << endl;
@@ -61,111 +65,174 @@ void SignalExample2()
 		cout << "Volume changed to: " << v << endl;
 	});
 
-	{
-		D::ScopedTransaction _;
+	D::DoTransaction([&] {
 		width <<= 90;
 		depth <<= 80;
-	}
+	});
 
 	cout << endl;
 }
 
-void EventExample1()
-{
-	cout << "Event Example 1" << endl;
+//
+//void EventExample1()
+//{
+//	cout << "Event Example 1" << endl;
+//
+//	auto numbers1 = D::MakeEventSource<int>();
+//	auto numbers2 = D::MakeEventSource<int>();
+//
+//	auto anyNumber = numbers1 | numbers2;
+//
+//	Observe(anyNumber, [] (int v) {
+//		cout << "Number: " << v << endl;
+//	});
+//
+//	numbers1 << 10 << 20 << 30;
+//	numbers2 << 40 << 50 << 60;
+//
+//	cout << endl;
+//}
+//
+//class Person : public ReactiveObject<D>
+//{
+//public:
+//	VarSignal<int>	Age		= MakeVar(1);
+//	Signal<int>		Health	= 100 - Age;
+//	Signal<int>		Wisdom  = Age * Age / 100;
+//
+//	// Note: Initializing them directly uses the same lambda for both signals...
+//	// compiler bug?
+//	Observer	wisdomObs;
+//	Observer	weaknessObs;
+//
+//	Person()
+//	{
+//		wisdomObs = Observe(Wisdom > 50, [] (bool isWise)
+//		{
+//			if (isWise)	cout << "I'll do it next week!" << endl;
+//			else		cout << "I'll do it next month!" << endl;
+//		});
+//
+//		weaknessObs = Observe(Health < 25, [] (bool isWeak)
+//		{
+//			if (isWeak)	cout << ":<" << endl;
+//			else		cout << ":D" << endl;
+//		});
+//	}
+//};
+//
+//void ObjectExample1()
+//{
+//	cout << "Object Example 1" << endl;
+//
+//	Person somePerson;
+//
+//	somePerson.Age <<= 30;
+//	somePerson.Age <<= 60;
+//	somePerson.Age <<= 90;
+//
+//	cout << "Health: " << somePerson.Health() << endl;
+//	cout << "Wisdom: " << somePerson.Wisdom() << endl;
+//
+//	cout << endl;
+//}
+//
+//void FoldExample1()
+//{
+//	cout << "Fold Example 1" << endl;
+//
+//	auto src = D::MakeEventSource<int>();
+//	auto fold1 = Fold(0, src, [] (int v, int d) {
+//		return v + d;
+//	});
+//
+//	for (auto i=1; i<=100; i++)
+//		src << i;
+//
+//	cout << fold1() << endl;
+//
+//	auto charSrc = D::MakeEventSource<char>();
+//	auto strFold = Fold(std::string(""), charSrc, [] (std::string s, char c) {
+//		return s + c;
+//	});
+//
+//	charSrc << 'T' << 'e' << 's' << 't';
+//
+//	cout << "Str: " << strFold() << endl;
+//}
 
-	auto numbers1 = D::MakeEventSource<int>();
-	auto numbers2 = D::MakeEventSource<int>();
+#include "tbb/tick_count.h"
 
-	auto anyNumber = numbers1 | numbers2;
-
-	Observe(anyNumber, [] (int v) {
-		cout << "Number: " << v << endl;
-	});
-
-	numbers1 << 10 << 20 << 30;
-	numbers2 << 40 << 50 << 60;
-
-	cout << endl;
-}
-
-class Person : public ReactiveObject<D>
-{
-public:
-	VarSignal<int>	Age		= MakeVar(1);
-	Signal<int>		Health	= 100 - Age;
-	Signal<int>		Wisdom  = Age * Age / 100;
-
-	// Note: Initializing them directly uses the same lambda for both signals...
-	// compiler bug?
-	Observer	wisdomObs;
-	Observer	weaknessObs;
-
-	Person()
-	{
-		wisdomObs = Observe(Wisdom > 50, [] (bool isWise)
-		{
-			if (isWise)	cout << "I'll do it next week!" << endl;
-			else		cout << "I'll do it next month!" << endl;
-		});
-
-		weaknessObs = Observe(Health < 25, [] (bool isWeak)
-		{
-			if (isWeak)	cout << ":<" << endl;
-			else		cout << ":D" << endl;
-		});
-	}
-};
-
-void ObjectExample1()
-{
-	cout << "Object Example 1" << endl;
-
-	Person somePerson;
-
-	somePerson.Age <<= 30;
-	somePerson.Age <<= 60;
-	somePerson.Age <<= 90;
-
-	cout << "Health: " << somePerson.Health() << endl;
-	cout << "Wisdom: " << somePerson.Wisdom() << endl;
-
-	cout << endl;
-}
-
-void FoldExample1()
-{
-	cout << "Fold Example 1" << endl;
-
-	auto src = D::MakeEventSource<int>();
-	auto fold1 = Fold(0, src, [] (int v, int d) {
-		return v + d;
-	});
-
-	for (auto i=1; i<=100; i++)
-		src << i;
-
-	cout << fold1() << endl;
-
-	auto charSrc = D::MakeEventSource<char>();
-	auto strFold = Fold(std::string(""), charSrc, [] (std::string s, char c) {
-		return s + c;
-	});
-
-	charSrc << 'T' << 'e' << 's' << 't';
-
-	cout << "Str: " << strFold().c_str() << endl;
-}
+#include "react/common/Concurrency.h"
 
 int main()
 {
-	//SignalExample1();
-	//SignalExample2();
+	SignalExample1();
+	SignalExample2();
 	//EventExample1();
 
 	//ObjectExample1();
 
-	FoldExample1();
+	//FoldExample1();
+
+	react::BlockingCondition b;
+	b.RunIfBlocked([] { printf("Test\n"); });
+
+	//{
+	//	int x = 0;
+
+	//	auto t0 = tbb::tick_count::now();
+
+	//	for (int i=0; i<1000000000; i+=3)
+	//	{
+	//		x += i;
+	//	}
+
+	//	auto t1 = tbb::tick_count::now();
+
+	//	auto d = (t1 - t0).seconds();
+
+	//	cout << x << endl;
+	//	cout << d << endl;
+	//}
+
+	//{
+	//	int x = 0;
+
+	//	auto t0 = tbb::tick_count::now();
+
+	//	for (int i=0; i<1000000000; i+=3)
+	//	{
+	//		auto l = [&x, i] {
+	//			x += i;
+	//		};
+	//		l();
+	//	}
+
+	//	auto t1 = tbb::tick_count::now();
+
+	//	auto d = (t1 - t0).seconds();
+
+	//	cout << x << endl;
+	//	cout << d << endl;
+	//}
+
+	//{
+	//	auto x = D::MakeVar(0);
+
+	//	auto t0 = tbb::tick_count::now();
+
+	//	for (int i=0; i<1000000; i+=3)
+	//	{
+	//		x <<= i;
+	//	}
+
+	//	auto t1 = tbb::tick_count::now();
+
+	//	auto d = (t1 - t0).seconds();
+
+	//	cout << d << endl;
+	//}
 
 	return 0;
 }

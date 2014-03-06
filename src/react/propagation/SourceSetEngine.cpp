@@ -6,38 +6,39 @@
 namespace react {
 namespace source_set_impl {
 
+// Todo
 tbb::task_group		tasks;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// SourceSetTurn
+/// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-SourceSetTurn::SourceSetTurn(TransactionData<SourceSetTurn>& transactionData) :
-	TurnBase(transactionData),
-	ExclusiveSequentialTransaction(transactionData.Input())
+Turn::Turn(TurnIdT id, TurnFlagsT flags) :
+	TurnBase(id, flags),
+	ExclusiveTurnManager::ExclusiveTurn(false)
 {
 }
 
-void SourceSetTurn::AddSourceId(ObjectId id)
+void Turn::AddSourceId(ObjectId id)
 {
 	sources_.Insert(id);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// SourceSetNode
+/// Node
 ////////////////////////////////////////////////////////////////////////////////////////
-SourceSetNode::SourceSetNode() :
+Node::Node() :
 	curTurnId_(UINT_MAX),
 	tickThreshold_(0),
 	flags_(0)
 {
 }
 
-void SourceSetNode::AddSourceId(ObjectId id)
+void Node::AddSourceId(ObjectId id)
 {
 	sources_.Insert(id);
 }
 
-void SourceSetNode::AttachSuccessor(SourceSetNode& node)
+void Node::AttachSuccessor(Node& node)
 {
 	successors_.Add(node);
 	node.predecessors_.Add(*this);
@@ -45,7 +46,7 @@ void SourceSetNode::AttachSuccessor(SourceSetNode& node)
 	node.sources_.Insert(sources_);
 }
 
-void SourceSetNode::DetachSuccessor(SourceSetNode& node)
+void Node::DetachSuccessor(Node& node)
 {
 	successors_.Remove(node);
 	node.predecessors_.Remove(*this);
@@ -53,7 +54,7 @@ void SourceSetNode::DetachSuccessor(SourceSetNode& node)
 	node.invalidateSources();
 }
 
-void SourceSetNode::Destroy()
+void Node::Destroy()
 {
 	auto predIt = predecessors_.begin();
 	while (predIt != predecessors_.end())
@@ -70,7 +71,7 @@ void SourceSetNode::Destroy()
 	}
 }
 
-void SourceSetNode::Pulse(SourceSetTurn& turn, bool updated)
+void Node::Pulse(Turn& turn, bool updated)
 {
 	bool invalidate = (flags_ & kFlag_Invaliated) != 0;
 	flags_ &= ~(kFlag_Invaliated | kFlag_Updated | kFlag_Visited);
@@ -82,22 +83,22 @@ void SourceSetNode::Pulse(SourceSetTurn& turn, bool updated)
 		curTurnId_ = turn.Id();
 
 		for (auto succ : successors_)
-			tasks.run(std::bind(&SourceSetNode::Nudge, succ, std::ref(turn), updated, invalidate));
+			tasks.run(std::bind(&Node::Nudge, succ, std::ref(turn), updated, invalidate));
 	}
 	// ~shiftMutex_
 }
 
-bool SourceSetNode::IsDependency(SourceSetTurn& turn)
+bool Node::IsDependency(Turn& turn)
 {
 	return turn.Sources().IntersectsWith(sources_);
 }
 
-bool SourceSetNode::CheckCurrentTurn(SourceSetTurn& turn)
+bool Node::CheckCurrentTurn(Turn& turn)
 {
 	return curTurnId_ == turn.Id();
 }
 
-void SourceSetNode::Nudge(SourceSetTurn& turn, bool update, bool invalidate)
+void Node::Nudge(Turn& turn, bool update, bool invalidate)
 {
 	bool shouldTick = false;
 
@@ -145,7 +146,7 @@ void SourceSetNode::Nudge(SourceSetTurn& turn, bool update, bool invalidate)
 		Pulse(turn, false);
 }
 
-void SourceSetNode::Shift(SourceSetNode& oldParent, SourceSetNode& newParent, SourceSetTurn& turn)
+void Node::Shift(Node& oldParent, Node& newParent, Turn& turn)
 {
 	bool shouldTick = false;
 
@@ -183,7 +184,7 @@ void SourceSetNode::Shift(SourceSetNode& oldParent, SourceSetNode& newParent, So
 		Tick(&turn);
 }
 
-void SourceSetNode::invalidateSources()
+void Node::invalidateSources()
 {
 	// Recalc union
 	sources_.Clear();
@@ -195,58 +196,65 @@ void SourceSetNode::invalidateSources()
 ////////////////////////////////////////////////////////////////////////////////////////
 /// SourceSetEngine
 ////////////////////////////////////////////////////////////////////////////////////////
-void SourceSetEngine::OnNodeCreate(SourceSetNode& node)
+void SourceSetEngine::OnNodeCreate(Node& node)
 {
 	if (node.IsInputNode())
 		node.AddSourceId(GetObjectId(node));
 }
 
-void SourceSetEngine::OnNodeAttach(SourceSetNode& node, SourceSetNode& parent)
+void SourceSetEngine::OnNodeAttach(Node& node, Node& parent)
 {
 	parent.AttachSuccessor(node);
 }
 
-void SourceSetEngine::OnNodeDetach(SourceSetNode& node, SourceSetNode& parent)
+void SourceSetEngine::OnNodeDetach(Node& node, Node& parent)
 {
 	parent.DetachSuccessor(node);
 }
 
-void SourceSetEngine::OnNodeDestroy(SourceSetNode& node)
+void SourceSetEngine::OnNodeDestroy(Node& node)
 {
 	node.Destroy();
 }
 
-void SourceSetEngine::OnTransactionCommit(TransactionData<SourceSetTurn>& transaction)
+void SourceSetEngine::OnTurnAdmissionStart(Turn& turn)
 {
-	SourceSetTurn turn(transaction);
-
-	if (! BeginTransaction(turn))
-		return;
-
-	transaction.Input().RunAdmission(turn);
-
-	transaction.Input().RunPropagation(turn);
-	tasks.wait();
-
-	EndTransaction(turn);
+	StartTurn(turn);
 }
 
-void SourceSetEngine::OnInputNodeAdmission(SourceSetNode& node, SourceSetTurn& turn)
+void SourceSetEngine::OnTurnAdmissionEnd(Turn& turn)
+{
+	turn.RunMergedInputs();
+}
+
+void SourceSetEngine::OnTurnInputChange(Node& node, Turn& turn)
 {
 	turn.AddSourceId(GetObjectId(node));
+	changedInputs_.push_back(&node);
 }
 
-void SourceSetEngine::OnNodePulse(SourceSetNode& node, SourceSetTurn& turn)
+void SourceSetEngine::OnTurnPropagate(Turn& turn)
+{
+	for (auto* node : changedInputs_)
+		node->Pulse(turn, true);
+	tasks.wait();
+
+	changedInputs_.clear();
+
+	EndTurn(turn);
+}
+
+void SourceSetEngine::OnNodePulse(Node& node, Turn& turn)
 {
 	node.Pulse(turn, true);
 }
 
-void SourceSetEngine::OnNodeIdlePulse(SourceSetNode& node, SourceSetTurn& turn)
+void SourceSetEngine::OnNodeIdlePulse(Node& node, Turn& turn)
 {
 	node.Pulse(turn, false);
 }
 
-void SourceSetEngine::OnNodeShift(SourceSetNode& node, SourceSetNode& oldParent, SourceSetNode& newParent, SourceSetTurn& turn)
+void SourceSetEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn)
 {
 	node.Shift(oldParent, newParent, turn);
 }

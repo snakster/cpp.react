@@ -23,11 +23,11 @@ using tbb::spin_rw_mutex;
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
 struct Turn :
-	public TurnBase<Turn>,
-	public ExclusiveSequentialTransaction<Turn>
+	public TurnBase,
+	public ExclusiveTurnManager::ExclusiveTurn
 {
 public:
-	explicit Turn(TransactionData<Turn>& transactionData);
+	Turn(TurnIdT id, TurnFlagsT flags);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -40,7 +40,7 @@ public:
 
 	Node();
 
-	ShiftMutexT					ShiftMutex;
+	ShiftMutexT			ShiftMutex;
 	NodeVector<Node>	Successors;
 
 	atomic<int>		TickThreshold;
@@ -53,17 +53,19 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 class PulseCountEngine :
 	public IReactiveEngine<Node,Turn>,
-	public ExclusiveSequentialTransactionEngine<Turn>
+	public ExclusiveTurnManager
 {
 public:
-	typedef Node::ShiftMutexT	NodeShiftMutexT;
+	typedef Node::ShiftMutexT	NodeShiftMutexT;	
 
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTransactionCommit(TransactionData<Turn>& transaction);
+	void OnTurnAdmissionStart(Turn& turn);
+	void OnTurnAdmissionEnd(Turn& turn);
 
-	void OnInputNodeAdmission(Node& node, Turn& turn);
+	void OnTurnInputChange(Node& node, Turn& turn);
+	void OnTurnPropagate(Turn& turn);
 
 	void OnNodePulse(Node& node, Turn& turn);
 	void OnNodeIdlePulse(Node& node, Turn& turn);
@@ -76,7 +78,8 @@ private:
 	void processChild(Node& node, bool update, Turn& turn);
 	void nudgeChildren(Node& parent, bool update, Turn& turn);
 
-	task_group		tasks_;
+	std::vector<Node*>	changedInputs_;
+	task_group			tasks_;
 };
 
 } // ~namespace react::pulse_count_impl
