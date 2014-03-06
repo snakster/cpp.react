@@ -77,7 +77,10 @@ void ELMEngine::OnTurnPropagate(Turn& turn)
 		nudgeChildren(*node, node->LastTurnId == turn.Id(), turn);
 
 	tasks_.wait();
+}
 
+void ELMEngine::OnTurnEnd(Turn& turn)
+{
 	EndTurn(turn);
 }
 

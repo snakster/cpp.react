@@ -240,7 +240,10 @@ void SourceSetEngine::OnTurnPropagate(Turn& turn)
 	tasks.wait();
 
 	changedInputs_.clear();
+}
 
+void SourceSetEngine::OnTurnEnd(Turn& turn)
+{
 	EndTurn(turn);
 }
 

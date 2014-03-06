@@ -105,7 +105,10 @@ void TopoSortEngine::OnTurnPropagate(Turn& turn)
 			shiftRequests_.clear();
 		}
 	}
+}
 
+void TopoSortEngine::OnTurnEnd(Turn& turn)
+{
 	EndTurn(turn);
 }
 

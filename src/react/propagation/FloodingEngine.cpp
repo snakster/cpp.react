@@ -110,7 +110,10 @@ void FloodingEngine::OnTurnPropagate(Turn& turn)
 
 	outputNodes_.clear();
 	changedInputs_.clear();
+}
 
+void FloodingEngine::OnTurnEnd(Turn& turn)
+{
 	EndTurn(turn);
 }
 

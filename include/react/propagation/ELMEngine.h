@@ -69,6 +69,7 @@ public:
 
 	void OnTurnAdmissionStart(Turn& turn);
 	void OnTurnAdmissionEnd(Turn& turn);
+	void OnTurnEnd(Turn& turn);
 
 	void OnTurnInputChange(Node& node, Turn& turn);
 	void OnTurnPropagate(Turn& turn);

@@ -70,7 +70,10 @@ void PulseCountEngine::OnTurnPropagate(Turn& turn)
 	tasks_.wait();
 
 	changedInputs_.clear();
+}
 
+void PulseCountEngine::OnTurnEnd(Turn& turn)
+{
 	EndTurn(turn);
 }
 

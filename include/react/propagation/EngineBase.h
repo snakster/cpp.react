@@ -37,6 +37,7 @@ struct IReactiveEngine
 
 	void OnTurnAdmissionStart(TurnInterface& turn)						{}
 	void OnTurnAdmissionEnd(TurnInterface& turn)						{}
+	void OnTurnEnd(TurnInterface& turn)									{}
 
 	void OnTurnInputChange(NodeInterface& node, TurnInterface& turn)	{}
 	void OnTurnPropagate(TurnInterface& turn)							{}

@@ -101,7 +101,10 @@ void PulseCountO1Engine::OnTurnPropagate(Turn& turn)
 	tasks_.wait();
 
 	changedInputs_.clear();
+}
 
+void PulseCountO1Engine::OnTurnEnd(Turn& turn)
+{
 	EndTurn(turn);
 }
 

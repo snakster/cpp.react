@@ -181,12 +181,19 @@ struct EngineInterface
 
 	static void OnTurnAdmissionStart(TurnInterface& turn)
 	{
+		D::Log().template Append<TransactionBeginEvent>(turn.Id());
 		Engine().OnTurnAdmissionStart(turn);
 	}
 
 	static void OnTurnAdmissionEnd(TurnInterface& turn)
 	{
 		Engine().OnTurnAdmissionEnd(turn);
+	}
+
+	static void OnTurnEnd(TurnInterface& turn)
+	{
+		Engine().OnTurnEnd(turn);
+		D::Log().template Append<TransactionEndEvent>(turn.Id());
 	}
 
 	static void OnTurnInputChange(NodeInterface& node, TurnInterface& turn)
@@ -197,9 +204,7 @@ struct EngineInterface
 
 	static void OnTurnPropagate(TurnInterface& turn)
 	{
-		D::Log().template Append<TransactionBeginEvent>(turn.Id());
 		Engine().OnTurnPropagate(turn);
-		D::Log().template Append<TransactionEndEvent>(turn.Id());
 	}
 
 	template <typename F>
@@ -338,71 +343,6 @@ public:
 		return react::MakeEventSource<D>();
 	}
 
-	//////////////////////////////////////////////////////////////////////////////////////////
-	///// Transaction
-	//////////////////////////////////////////////////////////////////////////////////////////
-	//class Transaction
-	//{
-	//public:
-	//	Transaction() :
-	//		flags_{ defaultCommitFlags_ }
-	//	{
-	//	}
-
-	//	Transaction(int flags) :
-	//		flags_{ flags }
-	//	{
-	//	}
-
-	//	void Init()
-	//	{
-	//	}
-
-	//	template <typename R, typename V>
-	//	void AddSignalInput(R& r, const V& v)
-	//	{
-	//		r.SetNewValue(v);
-	//		changedSignals_.push_back(&r);
-	//	}
-
-	//	void Commit()
-	//	{
-	//		REACT_ASSERT(committed_ == false, "Transaction already committed.");
-	//		committed_ = true;
-
-	//		for (auto* p : changedSignals_)
-	//			if (r.ApplyNewValue())
-	//				Engine::OnTurnInputChange(*p, turn);
-
-	//		Engine::OnTurnCommit(data_);
-
-	//		do
-	//		{
-	//			data_.SetId(nextTransactionId());
-	//			data_.Input().SetFlags(flags_);
-	//			Engine::OnTransactionCommit(data_);
-
-	//			// Apply detachments requested by DetachThisObserver
-	//			for (auto* o : data_.DetachedObservers)
-	//				Observers().Unregister(o);
-	//		}
-	//		while (data_.ContinueTransaction());
-	//	}
-
-	//	TransactionData& Data()
-	//	{
-	//		return data_;
-	//	}
-
-	//private:
-	//	static std::vector<IReactiveNode*>	changedInputs_;
-
-	//	int		flags_;
-	//	bool	committed_ = false;
-
-	//	TransactionData		data_;
-	//};
-
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// DoTransaction
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -440,6 +380,8 @@ public:
 		// Phase 3 - Propagate changes
 		if (shouldPropagate)
 			Engine::OnTurnPropagate(turn);
+
+		Engine::OnTurnEnd(turn);
 
 		postProcessTurn(turn);
 	}
@@ -544,6 +486,8 @@ private:
 		if (r.Tick(&turn) == ETickResult::pulsed)
 			Engine::OnTurnPropagate(turn);
 
+		Engine::OnTurnEnd(turn);
+
 		postProcessTurn(turn);
 	}
 
@@ -564,7 +508,6 @@ private:
 			[&r,v] { addTransactionInput(r, std::move(v)); }
 		);
 	}
-
 
 	static void postProcessTurn(TurnT& turn)
 	{
@@ -600,6 +543,8 @@ private:
 			if (shouldPropagate)
 				Engine::OnTurnPropagate(turn);
 
+			Engine::OnTurnEnd(turn);
+
 			for (auto* o : turn.detachedObservers_)
 				Observers().Unregister(o);
 
@@ -608,7 +553,6 @@ private:
 
 			cont = std::move(turn.continuation_);
 		}
-		
 	}
 };
 

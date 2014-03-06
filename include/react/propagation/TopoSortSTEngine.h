@@ -52,14 +52,14 @@ public:
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnAdmissionStart(Turn& turn);
-	void OnTurnAdmissionEnd(Turn& turn);
-
 	void OnTurnInputChange(Node& node, Turn& turn);
 	void OnTurnPropagate(Turn& turn);
 
 	void OnNodePulse(Node& node, Turn& turn);
 	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+
+	template <typename F>
+	bool TryMerge(F&&) { return false; }
 
 private:
 	void processChildren(Node& node, Turn& turn);
