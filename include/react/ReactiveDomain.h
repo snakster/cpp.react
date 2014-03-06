@@ -444,41 +444,6 @@ public:
 		postProcessTurn(turn);
 	}
 
-	static void processContinuations(ContinuationInput cont, TurnFlagsT flags)
-	{
-		// No merging for continuations
-		flags &= ~enable_input_merging;
-
-		while (true)
-		{
-			bool shouldPropagate = false;
-			auto turn = makeTurn(flags);
-
-			transactionState_.active = true;
-			Engine::OnTurnAdmissionStart(turn);
-			cont.Execute();
-			Engine::OnTurnAdmissionEnd(turn);
-			transactionState_.active = false;
-
-			for (auto* p : transactionState_.inputs)
-				if (p->Tick(&turn) == ETickResult::pulsed)
-					shouldPropagate = true;
-			transactionState_.inputs.clear();
-
-			if (shouldPropagate)
-				Engine::OnTurnPropagate(turn);
-
-			for (auto* o : turn.detachedObservers_)
-				Observers().Unregister(o);
-
-			if (turn.continuation_.IsEmpty())
-				break;
-
-			cont = std::move(turn.continuation_);
-		}
-		
-	}
-
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// AddInput
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -582,16 +547,6 @@ private:
 		postProcessTurn(turn);
 	}
 
-	static void postProcessTurn(TurnT& turn)
-	{
-		for (auto* o : turn.detachedObservers_)
-			Observers().Unregister(o);
-
-		// Steal continuation from current turn
-		if (! turn.continuation_.IsEmpty())
-			processContinuations(std::move(turn.continuation_), 0);
-	}
-
 	// This input is part of an active transaction
 	template <typename R, typename V>
 	static void addTransactionInput(R&& r, V&& v)
@@ -608,6 +563,52 @@ private:
 		ContinuationHolder_::Get()->Add(
 			[&r,v] { addTransactionInput(r, std::move(v)); }
 		);
+	}
+
+
+	static void postProcessTurn(TurnT& turn)
+	{
+		for (auto* o : turn.detachedObservers_)
+			Observers().Unregister(o);
+
+		// Steal continuation from current turn
+		if (! turn.continuation_.IsEmpty())
+			processContinuations(std::move(turn.continuation_), 0);
+	}
+
+	static void processContinuations(ContinuationInput cont, TurnFlagsT flags)
+	{
+		// No merging for continuations
+		flags &= ~enable_input_merging;
+
+		while (true)
+		{
+			bool shouldPropagate = false;
+			auto turn = makeTurn(flags);
+
+			transactionState_.active = true;
+			Engine::OnTurnAdmissionStart(turn);
+			cont.Execute();
+			Engine::OnTurnAdmissionEnd(turn);
+			transactionState_.active = false;
+
+			for (auto* p : transactionState_.inputs)
+				if (p->Tick(&turn) == ETickResult::pulsed)
+					shouldPropagate = true;
+			transactionState_.inputs.clear();
+
+			if (shouldPropagate)
+				Engine::OnTurnPropagate(turn);
+
+			for (auto* o : turn.detachedObservers_)
+				Observers().Unregister(o);
+
+			if (turn.continuation_.IsEmpty())
+				break;
+
+			cont = std::move(turn.continuation_);
+		}
+		
 	}
 };
 
