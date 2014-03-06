@@ -129,6 +129,9 @@
     <ClInclude Include="..\..\include\react\Operations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\react\common\Concurrency.h">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\react\common\Util.cpp">
