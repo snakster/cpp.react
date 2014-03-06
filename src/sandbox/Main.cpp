@@ -53,6 +53,8 @@ void SignalExample2()
 	auto height = D::MakeVar(70);
 	auto depth = D::MakeVar(8);
 
+	auto src = D::MakeVar(0);
+
 	auto volume = (width,height,depth) >>= [] (int w, int h, int d) {
 		return w * h * d;
 	};
@@ -61,14 +63,18 @@ void SignalExample2()
 	// This observer handle holds a shared_ptr to the subject, so as long as it exists,
 	// the subject will not be destroyed.
 	// The lifetime of the observer itself is tied to the subject.
-	Observe(volume, [] (int v) {
-		cout << "Volume changed to: " << v << endl;
+	Observe(src, [&] (int v) {
+		cout << "v: " << v << endl;
+		if (v < 10)
+			src <<= v+1;
 	});
 
 	D::DoTransaction([&] {
 		width <<= 90;
 		depth <<= 80;
 	});
+
+	src <<= 1;
 
 	cout << endl;
 }

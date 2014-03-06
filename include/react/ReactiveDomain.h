@@ -91,12 +91,7 @@ class ContinuationInput
 public:
 	typedef std::function<void()>	InputClosureT;
 
-	ContinuationInput() :
-		isEmpty_{ true }
-	{
-	}
-
-	inline bool IsEmpty() const { return isEmpty_; }
+	inline bool IsEmpty() const { return bufferedInputs_.size() == 0; }
 
 	template <typename F>
 	void Add(F&& input)
@@ -106,24 +101,21 @@ public:
 
 	inline void Execute()
 	{
-		isEmpty_ = true;
 		for (auto f : bufferedInputs_)
 			f();
 		bufferedInputs_.clear();
 	}
 
 private:
-	bool	isEmpty_;
 	tbb::concurrent_vector<InputClosureT>	bufferedInputs_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// CommitFlags
 ////////////////////////////////////////////////////////////////////////////////////////
-enum CommitFlags
+enum ETurnFlags
 {
-	default_commit_flags		= 0,
-	allow_transaction_merging	= 1 << 0
+	enable_input_merging	= 1 << 0
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -238,6 +230,8 @@ template <typename D, typename TPolicy>
 class DomainBase
 {
 public:
+	using TurnT = typename TPolicy::Engine::TurnInterface;
+
 	DomainBase() = delete;
 
 	using Policy = TPolicy;
@@ -344,12 +338,6 @@ public:
 		return react::MakeEventSource<D>();
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////
-	/// Aliases for transactions
-	////////////////////////////////////////////////////////////////////////////////////////
-	//typedef TransactionData<typename Engine::TurnInterface>		TransactionData;
-	typedef TransactionInput<typename Engine::TurnInterface>	TransactionInput;
-
 	//////////////////////////////////////////////////////////////////////////////////////////
 	///// Transaction
 	//////////////////////////////////////////////////////////////////////////////////////////
@@ -421,6 +409,12 @@ public:
 	template <typename F>
 	static void DoTransaction(F&& func)
 	{
+		DoTransaction(std::forward<F>(func), turnFlags_);
+	}
+
+	template <typename F>
+	static void DoTransaction(F&& func, TurnFlagsT flags)
+	{
 		// Attempt to add input to another turn.
 		// If successful, blocks until other turn is done and returns.
 		if (Engine::TryMerge(std::forward<F>(func)))
@@ -428,7 +422,7 @@ public:
 
 		bool shouldPropagate = false;
 
-		auto turn = makeTurn();
+		auto turn = makeTurn(flags);
 
 		// Phase 1 - Input admission
 		transactionState_.active = true;
@@ -446,6 +440,43 @@ public:
 		// Phase 3 - Propagate changes
 		if (shouldPropagate)
 			Engine::OnTurnPropagate(turn);
+
+		postProcessTurn(turn);
+	}
+
+	static void processContinuations(ContinuationInput cont, TurnFlagsT flags)
+	{
+		// No merging for continuations
+		flags &= ~enable_input_merging;
+
+		while (true)
+		{
+			bool shouldPropagate = false;
+			auto turn = makeTurn(flags);
+
+			transactionState_.active = true;
+			Engine::OnTurnAdmissionStart(turn);
+			cont.Execute();
+			Engine::OnTurnAdmissionEnd(turn);
+			transactionState_.active = false;
+
+			for (auto* p : transactionState_.inputs)
+				if (p->Tick(&turn) == ETickResult::pulsed)
+					shouldPropagate = true;
+			transactionState_.inputs.clear();
+
+			if (shouldPropagate)
+				Engine::OnTurnPropagate(turn);
+
+			for (auto* o : turn.detachedObservers_)
+				Observers().Unregister(o);
+
+			if (turn.continuation_.IsEmpty())
+				break;
+
+			cont = std::move(turn.continuation_);
+		}
+		
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -455,34 +486,25 @@ public:
 	static void AddInput(R&& r, V&& v)
 	{
 		if (! ContinuationHolder_::IsNull())
+		{
 			addContinuationInput(std::forward<R>(r), std::forward<V>(v));
-
+		}
 		else if (transactionState_.active)
+		{
 			addTransactionInput(std::forward<R>(r), std::forward<V>(v));
-
+		}
 		else
+		{
 			addSimpleInput(std::forward<R>(r), std::forward<V>(v));
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	/// Default commit flags
-	////////////////////////////////////////////////////////////////////////////////////////
-	static void SetDefaultCommitFlags(TurnFlagsT flags)
-	{
-		defaultCommitFlags_ = flags;
-	}
-
-	static TurnFlagsT GetDefaultCommitFlags()
-	{
-		return defaultCommitFlags_;
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Set/Clear continuation
 	////////////////////////////////////////////////////////////////////////////////////////
-	static void SetCurrentContinuation(ContinuationInput& c)
+	static void SetCurrentContinuation(TurnT& turn)
 	{
-		ContinuationHolder_::Set(&c);
+		ContinuationHolder_::Set(&turn.continuation_);
 	}
 
 	static void ClearCurrentContinuation()
@@ -490,15 +512,34 @@ public:
 		ContinuationHolder_::Reset();
 	}
 
+	////////////////////////////////////////////////////////////////////////////////////////
+	/// Options
+	////////////////////////////////////////////////////////////////////////////////////////
+	template <typename Opt>
+	static void Set(int v)		{ static_assert(false, "Set option not implemented."); }
+
+	template <typename Opt>
+	static bool IsSet(int v)	{ static_assert(false, "IsSet option not implemented."); }
+
+	template <typename Opt>
+	static void Unset(int v)	{ static_assert(false, "Unset option not implemented."); }	
+
+	template <typename Opt>
+	static void Reset()			{ static_assert(false, "Reset option not implemented."); }
+
+	template <> static void Set<ETurnFlags>(int v)		{ turnFlags_ |= v; }
+	template <> static bool IsSet<ETurnFlags>(int v)	{ return (turnFlags_ & v) != 0 }
+	template <> static void Unset<ETurnFlags>(int v)	{ turnFlags_ &= ~v;}
+	template <> static void Reset<ETurnFlags>()			{ turnFlags_ = 0;}
+
 private:
-	using TurnT = typename TPolicy::Engine::TurnInterface;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Transaction input continuation
 	////////////////////////////////////////////////////////////////////////////////////////
 	struct ContinuationHolder_ : public ThreadLocalStaticPtr<ContinuationInput> {};
 
-	static __declspec(thread) TurnFlagsT defaultCommitFlags_;
+	static __declspec(thread) TurnFlagsT turnFlags_;
 
 	static std::atomic<TurnIdT> nextTurnId_;
 
@@ -520,16 +561,16 @@ private:
 
 	static TransactionState transactionState_;
 
-	static TurnT makeTurn()
+	static TurnT makeTurn(TurnFlagsT flags)
 	{
-		return TurnT(nextTurnId(), 0);
+		return TurnT(nextTurnId(), flags);
 	}
 
 	// Create a turn with a single input
 	template <typename R, typename V>
 	static void addSimpleInput(R&& r, V&& v)
 	{
-		auto turn = makeTurn();
+		auto turn = makeTurn(0);
 
 		Engine::OnTurnAdmissionStart(turn);
 		r.AddInput(std::forward<V>(v));
@@ -537,6 +578,18 @@ private:
 
 		if (r.Tick(&turn) == ETickResult::pulsed)
 			Engine::OnTurnPropagate(turn);
+
+		postProcessTurn(turn);
+	}
+
+	static void postProcessTurn(TurnT& turn)
+	{
+		for (auto* o : turn.detachedObservers_)
+			Observers().Unregister(o);
+
+		// Steal continuation from current turn
+		if (! turn.continuation_.IsEmpty())
+			processContinuations(std::move(turn.continuation_), 0);
 	}
 
 	// This input is part of an active transaction
@@ -562,7 +615,7 @@ template <typename D, typename TPolicy>
 std::atomic<TurnIdT> DomainBase<D,TPolicy>::nextTurnId_( 0 );
 
 template <typename D, typename TPolicy>
-int DomainBase<D,TPolicy>::defaultCommitFlags_( 0 );
+TurnFlagsT DomainBase<D,TPolicy>::turnFlags_( 0 );
 
 template <typename D, typename TPolicy>
 typename DomainBase<D,TPolicy>::TransactionState DomainBase<D,TPolicy>::transactionState_;

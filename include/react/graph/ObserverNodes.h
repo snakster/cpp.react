@@ -84,7 +84,7 @@ public:
 		current_observer_state_::shouldDetach = false;
 
 		//ContinuationInputHolder_::Set(&turn.Continuation());
-		D::SetCurrentContinuation(turn.Continuation());
+		D::SetCurrentContinuation(turn);
 
 		if (auto p = subject_.lock())
 			func_(p->ValueRef());

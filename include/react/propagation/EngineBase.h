@@ -53,8 +53,6 @@ struct IReactiveEngine
 class TurnBase
 {
 public:
-	typedef std::function<void()>	InputClosureT;
-
 	TurnBase(TurnIdT id, TurnFlagsT flags) :
 		id_{ id }
 	{
@@ -62,15 +60,13 @@ public:
 
 	inline TurnIdT Id() const		{ return id_; }
 
-	inline ContinuationInput& Continuation()
-	{
-		return continuation_;
-	}
-
 	inline void QueueForDetach(IObserverNode& obs)
 	{
 		detachedObservers_.push_back(&obs);
 	}
+
+	template <typename D, typename TPolicy>
+	friend class DomainBase;
 
 private:
 	TurnIdT	id_;
