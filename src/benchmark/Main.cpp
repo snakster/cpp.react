@@ -28,7 +28,7 @@ using namespace react;
 
 REACTIVE_DOMAIN(FloodingDomain, FloodingEngine, EventLog);
 REACTIVE_DOMAIN(TopoSortDomain, TopoSortEngine, EventLog);
-REACTIVE_DOMAIN(TopoSortO1Domain, TopoSortO1Engine, EventLog);
+//REACTIVE_DOMAIN(TopoSortO1Domain, TopoSortO1Engine, EventLog);
 REACTIVE_DOMAIN(PulseCountDomain, PulseCountEngine, EventLog);
 REACTIVE_DOMAIN(SourceSetDomain, SourceSetEngine, EventLog);
 REACTIVE_DOMAIN(TopoSortSTDomain, TopoSortSTEngine, EventLog);
@@ -37,7 +37,7 @@ REACTIVE_DOMAIN(ELMDomain, ELMEngine, EventLog);
 
 REACTIVE_DOMAIN(BFloodingDomain, FloodingEngine);
 REACTIVE_DOMAIN(BTopoSortDomain, TopoSortEngine);
-REACTIVE_DOMAIN(BTopoSortO1Domain, TopoSortO1Engine);
+//REACTIVE_DOMAIN(BTopoSortO1Domain, TopoSortO1Engine);
 REACTIVE_DOMAIN(BPulseCountDomain, PulseCountEngine);
 REACTIVE_DOMAIN(BSourceSetDomain, SourceSetEngine);
 REACTIVE_DOMAIN(BTopoSortSTDomain, TopoSortSTEngine);
@@ -236,21 +236,21 @@ void debugBenchmarks()
 
 void profileBenchmark()
 {
-	//RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
-	//	BSourceSetDomain);
+	RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 1000),
+		BSourceSetDomain);
 
 	//RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
 	//	BSourceSetDomain);
 
-	RUN_BENCHMARK(std::cout, 1, Benchmark_Random, BenchmarkParams_Random(20, 11, 100, 0, 10, 40, 40, false, 41556, 21624),
-		BFloodingDomain);
+	//RUN_BENCHMARK(std::cout, 1, Benchmark_Random, BenchmarkParams_Random(20, 11, 100, 0, 10, 40, 40, false, 41556, 21624),
+	//	BFloodingDomain);
 }
 
 } // ~anonymous namespace 
 
 int main()
 {
-	runBenchmarks();
+	//runBenchmarks();
 	//debugBenchmarks();	
-	//profileBenchmark();
+	profileBenchmark();
 }

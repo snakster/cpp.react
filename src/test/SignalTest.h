@@ -203,11 +203,10 @@ TYPED_TEST_P(SignalTest, Signals3)
 
 	ASSERT_EQ(result(),6);
 
-	{
-		MyDomain::ScopedTransaction _;
+	MyDomain::DoTransaction([&] {
 		a1 <<= 2;
 		a2 <<= 2;
-	}
+	});
 
 	ASSERT_EQ(observeCount,1);
 
@@ -389,11 +388,10 @@ TYPED_TEST_P(SignalTest, Flatten2)
 	ASSERT_EQ(result(), 100 + 300);
 	ASSERT_EQ(observeCount, 2);
 
-	{
-		MyDomain::ScopedTransaction _;
+	MyDomain::DoTransaction([&] {
 		a0 <<= 5000;
 		a1 <<= 6000;
-	}
+	});
 
 	ASSERT_EQ(result(), 5000 + 6000);
 	ASSERT_EQ(observeCount, 3);
@@ -429,31 +427,28 @@ TYPED_TEST_P(SignalTest, Flatten3)
 	ASSERT_EQ(result(), 10 + 30);
 	ASSERT_EQ(observeCount, 0);
 
-	{
-		MyDomain::ScopedTransaction _;
+	MyDomain::DoTransaction([&] {
 		inner1 <<= 1000;
 		a0 <<= 200000;
 		a1 <<= 50000;
 		outer <<= inner2;
-	}
+	});
 
 	ASSERT_EQ(result(), 50000 + 200000);
 	ASSERT_EQ(observeCount, 1);
 
-	{
-		MyDomain::ScopedTransaction _;
+	MyDomain::DoTransaction([&] {
 		a0 <<= 667;
 		a1 <<= 776;
-	}
+	});
 
 	ASSERT_EQ(result(), 776 + 667);
 	ASSERT_EQ(observeCount, 2);
 
-	{
-		MyDomain::ScopedTransaction _;
+	MyDomain::DoTransaction([&] {
 		inner1 <<= 999;
 		a0 <<= 888;
-	}
+	});
 
 	ASSERT_EQ(result(), 776 + 888);
 	ASSERT_EQ(observeCount, 2);
@@ -484,11 +479,10 @@ TYPED_TEST_P(SignalTest, Flatten4)
 		results.push_back(v);
 	});
 
-	{
-		MyDomain::ScopedTransaction _;
+	MyDomain::DoTransaction([&] {
 		a3 <<= 400;
 		outer <<= inner2;
-	}
+	});
 
 	ASSERT_EQ(results.size(), 1);
 

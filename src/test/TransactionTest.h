@@ -248,22 +248,22 @@ TYPED_TEST_P(TransactionTest, Concurrent4)
 	// Todo: improve this as it'll fail occasionally
 	shouldSpin = true;
 	std::thread t1([&] {
-		MyDomain::SetDefaultCommitFlags(allow_transaction_merging);
+		MyDomain::Set<ETurnFlags>(enable_input_merging);
 		n1 <<= 2;
 	});
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 	std::thread t2([&] {
-		MyDomain::SetDefaultCommitFlags(allow_transaction_merging);
+		MyDomain::Set<ETurnFlags>(enable_input_merging);
 		n1 <<= 3;
 	});
 	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	std::thread t3([&] {
-		MyDomain::SetDefaultCommitFlags(allow_transaction_merging);
+		MyDomain::Set<ETurnFlags>(enable_input_merging);
 		n1 <<= 4;
 	});
 	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	std::thread t4([&] {
-		MyDomain::SetDefaultCommitFlags(allow_transaction_merging);
+		MyDomain::Set<ETurnFlags>(enable_input_merging);
 		n1 <<= 5;
 	});
 	std::this_thread::sleep_for(std::chrono::milliseconds(1000));

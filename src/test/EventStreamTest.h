@@ -97,12 +97,11 @@ TYPED_TEST_P(EventStreamTest, EventMerge1)
 		results.push_back(v);
 	});
 	
-	{
-		MyDomain::ScopedTransaction _;
+	MyDomain::DoTransaction([&] {
 		a1 << 10;
 		a2 << 20;
 		a3 << 30;
-	}
+	});
 
 	ASSERT_EQ(results.size(), 3);
 	ASSERT_TRUE(std::find(results.begin(), results.end(), 10) != results.end());
@@ -132,12 +131,11 @@ TYPED_TEST_P(EventStreamTest, EventMerge2)
 	std::string s2("two");
 	std::string s3("three");
 
-	{
-		MyDomain::ScopedTransaction _;
+	MyDomain::DoTransaction([&] {
 		a1 << s1;
 		a2 << s2;
 		a3 << s3;
-	}
+	});
 
 	ASSERT_EQ(results.size(), 3);
 	ASSERT_TRUE(std::find(results.begin(), results.end(), "one") != results.end());

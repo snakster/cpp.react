@@ -51,7 +51,7 @@ public:
 		return events_;
 	}
 
-	void SetCurrentTurn(const TurnInterface& turn, bool forceClear = false)
+	bool SetCurrentTurn(const TurnInterface& turn, bool forceClear = false)
 	{
 		EventMutexT::scoped_lock lock(eventMutex_);
 
@@ -60,6 +60,11 @@ public:
 			curTurnId_ =  turn.Id();
 			//printf("Cleared turn\n");
 			events_.clear();
+			return true;
+		}
+		else
+		{
+			return false;
 		}
 	}
 
@@ -93,10 +98,6 @@ public:
 	explicit EventSourceNode(bool registered) :
 		EventStreamNode(true)
 	{
-		admissionFlag_.clear();
-		propagationFlag_.clear();
-
-
 		if (!registered)
 			registerNode();
 	}
@@ -105,24 +106,27 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		REACT_ASSERT(false, "Don't tick EventSourceNode\n");
-		return ETickResult::none;
+		typedef typename D::Engine::TurnInterface TurnInterface;
+		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+
+		if (events_.size() > 0 && SetCurrentTurn(turn))
+		{
+			Engine::OnTurnInputChange(*this, turn);
+			return ETickResult::pulsed;
+		}
+		else
+		{
+			return ETickResult::none;
+		}
 	}
 
 	virtual bool IsInputNode() const override	{ return true; }
 
-	EventSourceNode& Push(const E& e)
+	template <typename V>
+	void AddInput(V&& v)
 	{
-		events_.push_back(e);
-		return *this;
+		events_.push_back(std::forward<V>(v));
 	}
-
-private:
-	std::atomic_flag	admissionFlag_;
-	std::atomic_flag	propagationFlag_;
-
-	template <typename>
-	friend class TransactionInput;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -172,7 +176,7 @@ public:
 
 		//printf("EventMergeNode: Tick %08X by thread %08X\n", this, std::this_thread::get_id().hash());
 
-		SetCurrentTurn(turn, true);
+		SetCurrentTurn(turn);
 
 		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		func_(std::cref(turn));

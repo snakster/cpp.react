@@ -104,15 +104,16 @@ public:
 		}
 		else
 		{
-			return ETickResult::idle_pulsed;
+			return ETickResult::none;
 		}
 	}
 
 	virtual bool IsInputNode() const override	{ return true; }
 
-	void AddInput(const S& newValue)
+	template <typename V>
+	void AddInput(V&& newValue)
 	{
-		newValue_ = newValue;
+		newValue_ = std::forward<V>(newValue);
 	}
 
 private:

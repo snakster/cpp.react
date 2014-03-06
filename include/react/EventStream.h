@@ -99,25 +99,10 @@ public:
 	{
 	}
 
-	void Emit(const E& e) const
+	template <typename V>
+	void Emit(V&& v) const
 	{
-		if (! Domain::TransactionInputContinuation::IsNull())
-		{
-			auto sourceNode = std::static_pointer_cast<NodeT>(ptr_);
-			Domain::TransactionInputContinuation::Get()->AddEventInput_Safe(*sourceNode, e);
-		}
-		else if (! Domain::ScopedTransactionInput::IsNull())
-		{
-			auto sourceNode = std::static_pointer_cast<NodeT>(ptr_);
-			Domain::ScopedTransactionInput::Get()->AddEventInput(*sourceNode, e);
-		}
-		else
-		{
-			auto sourceNode = std::static_pointer_cast<NodeT>(ptr_);
-			Domain::Transaction t;
-			t.Data().Input().AddEventInput(*sourceNode, e);
-			t.Commit();
-		}
+		D::AddInput(*std::static_pointer_cast<NodeT>(ptr_), std::forward<V>(v));
 	}
 
 	template <typename = std::enable_if<std::is_same<E,EventToken>::value>::type>

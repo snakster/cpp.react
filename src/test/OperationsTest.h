@@ -36,7 +36,9 @@ TYPED_TEST_P(OperationsTest, Fold1)
 	});
 
 	for (auto i=1; i<=100; i++)
+	{
 		numSrc << i;
+	}
 
 	ASSERT_EQ(numFold(), 5050);
 
@@ -67,12 +69,10 @@ TYPED_TEST_P(OperationsTest, Fold2)
 		ASSERT_EQ(v, 5050);
 	});
 
-	{
-		MyDomain::ScopedTransaction _;
-
+	MyDomain::DoTransaction([&] {
 		for (auto i=1; i<=100; i++)
 			src << i;
-	}
+	});
 
 	ASSERT_EQ(f(), 5050);
 	ASSERT_EQ(c, 1);

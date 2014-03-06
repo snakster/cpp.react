@@ -83,15 +83,12 @@ public:
 
 		current_observer_state_::shouldDetach = false;
 
-		//ContinuationInputHolder_::Set(&turn.Continuation());
 		D::SetCurrentContinuation(turn);
 
 		if (auto p = subject_.lock())
 			func_(p->ValueRef());
 
 		D::ClearCurrentContinuation();
-
-		//D::TransactionInputContinuation::Reset();
 
 		if (current_observer_state_::shouldDetach)
 			turn.QueueForDetach(*this);
@@ -154,7 +151,7 @@ public:
 		
 		current_observer_state_::shouldDetach = false;
 
-		D::TransactionInputContinuation::Set(&turn.InputContinuation());
+		D::SetCurrentContinuation(turn);
 
 		if (auto p = subject_.lock())
 		{
@@ -162,7 +159,7 @@ public:
 				func_(e);
 		}
 
-		D::TransactionInputContinuation::Reset();
+		D::ClearCurrentContinuation();
 
 		if (current_observer_state_::shouldDetach)
 			turn.QueueForDetach(*this);

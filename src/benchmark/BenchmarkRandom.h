@@ -297,8 +297,7 @@ struct Benchmark_Random : public BenchmarkBase<D>
 		auto t0 = tbb::tick_count::now();
 		for (int i=0; i<params.K; i++)
 		{
-			{
-				MyDomain::ScopedTransaction _;
+			MyDomain::DoTransaction([&] {
 				for (int j=0; j<counts[i]; j++)
 				{
 					generator.InputSignals[cursor++] <<= 10+i;
@@ -306,7 +305,7 @@ struct Benchmark_Random : public BenchmarkBase<D>
 					if (cursor >= params.W)
 						cursor = 0;
 				}
-			}
+			});
 		}
 		auto t1 = tbb::tick_count::now();
 
