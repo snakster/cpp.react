@@ -40,49 +40,6 @@ template
 inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
 	-> RSignal<D,decltype(func(args() ...))>;
 
-//
-//template <typename TTurnInterface>
-//class TransactionData
-//{
-//public:
-//	TransactionData() :
-//		id_{ INT_MIN },
-//		curInputPtr_{ &input1_},
-//		nextInputPtr_{ &input2_ }
-//	{
-//	}
-//
-//	int		Id() const		{ return id_; }
-//	void	SetId(int id)	{ id_ = id; }
-//
-//	tbb::concurrent_vector<IObserverNode*>	DetachedObservers;
-//
-//	TransactionInput<TTurnInterface>& Input()		{ return *curInputPtr_; }
-//	TransactionInput<TTurnInterface>& NextInput()	{ return *nextInputPtr_; }
-//
-//	bool ContinueTransaction()
-//	{
-//		if (nextInputPtr_->IsEmpty())
-//			return false;
-//
-//		id_ = INT_MIN;
-//		DetachedObservers.clear();
-//
-//		std::swap(curInputPtr_, nextInputPtr_);
-//		nextInputPtr_->Reset();
-//		return true;
-//	}
-//
-//private:
-//	int		id_;
-//
-//	TransactionInput<TTurnInterface>*	curInputPtr_;
-//	TransactionInput<TTurnInterface>*	nextInputPtr_;
-//
-//	TransactionInput<TTurnInterface>	input1_;
-//	TransactionInput<TTurnInterface>	input2_;
-//};
-
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ContinuationInput
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -192,8 +149,8 @@ struct EngineInterface
 
 	static void OnTurnEnd(TurnInterface& turn)
 	{
-		Engine().OnTurnEnd(turn);
 		D::Log().template Append<TransactionEndEvent>(turn.Id());
+		Engine().OnTurnEnd(turn);
 	}
 
 	static void OnTurnInputChange(NodeInterface& node, TurnInterface& turn)
