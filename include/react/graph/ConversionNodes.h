@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "EventStreamNodes.h"
@@ -24,9 +25,9 @@ template
 class FoldBaseNode : public SignalNode<D,S>
 {
 public:
-	FoldBaseNode(const S& initialValue, const EventStreamNodePtr<D,E>& events,
-				 bool registered) :
-		SignalNode<D, S>(initialValue, true),
+	template <typename T>
+	FoldBaseNode(T&& init, const EventStreamNodePtr<D,E>& events, bool registered) :
+		SignalNode<D, S>(std::forward<T>(init), true),
 		events_{ events }
 	{
 	}
@@ -73,10 +74,10 @@ template
 class FoldNode : public FoldBaseNode<D,S,E>
 {
 public:
-	FoldNode(const S& initialValue, const EventStreamNodePtr<D,E>& events,
-			 std::function<S(S,E)> func, bool registered) :
-		FoldBaseNode<D,S,E>(initialValue, events, true),
-		func_{ func }
+	template <typename T, typename F>
+	FoldNode(T&& init, const EventStreamNodePtr<D,E>& events, F&& func, bool registered) :
+		FoldBaseNode<D,S,E>(std::forward<T>(init), events, true),
+		func_{ std::forward<F>(func) }
 	{
 		if (!registered)
 			registerNode();
@@ -116,10 +117,10 @@ template
 class IterateNode : public FoldBaseNode<D,S,E>
 {
 public:
-	IterateNode(const S& initialValue, const EventStreamNodePtr<D,E>& events,
-				std::function<S(S)> func, bool registered) :
-		FoldBaseNode<D,S,E>(initialValue, events, true),
-		 func_{ func }
+	template <typename T, typename F>
+	IterateNode(T&& init, const EventStreamNodePtr<D,E>& events, F&& func, bool registered) :
+		FoldBaseNode<D,S,E>(std::forward<T>(init), events, true),
+		func_{ std::forward<F>(func) }
 	{
 		if (!registered)
 			registerNode();
@@ -157,8 +158,9 @@ template
 class HoldNode : public SignalNode<D,S>
 {
 public:
-	HoldNode(const S initialValue, const EventStreamNodePtr<D,S>& events, bool registered) :
-		SignalNode<D, S>(initialValue, true),
+	template <typename T>
+	HoldNode(T&& init, const EventStreamNodePtr<D,S>& events, bool registered) :
+		SignalNode<D, S>(std::forward<T>(init), true),
 		events_{ events }
 	{
 		if (!registered)

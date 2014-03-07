@@ -4,6 +4,7 @@
 #include <memory>
 #include <thread>
 #include <type_traits>
+#include <utility>
 
 #include "ReactiveBase.h"
 #include "ReactiveDomain.h"
@@ -42,6 +43,8 @@ protected:
 	typedef SignalNode<D,S> NodeT;
 
 public:
+	struct SignalTag {};
+
 	typedef S ValueT;
 
 	RSignal() :
@@ -123,12 +126,41 @@ public:
 		D::AddInput(*std::static_pointer_cast<NodeT>(ptr_), std::forward<V>(newValue));
 	}
 
-	const RVarSignal& operator<<=(const S& newValue) const
+	template <typename V>
+	const RVarSignal& operator<<=(V&& newValue) const
 	{
-		Set(newValue);
+		Set(std::forward<V>(newValue));
 		return *this;
 	}
 };
+
+template <typename D, typename T>
+struct IsSignalT { static const bool value = false; };
+
+template <typename D, typename T>
+struct IsSignalT<D, RSignal<D,T>> { static const bool value = true; };
+
+template <typename D, typename T>
+struct IsSignalT<D, RVarSignal<D,T>> { static const bool value = true; };
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// MakeVar
+////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+	typename D,
+	typename V,
+	typename S = std::decay<V>::type,
+	class = std::enable_if<
+		! IsSignalT<D,S>::value>::type
+>
+inline auto MakeVar(V&& value)
+	-> RVarSignal<D,S>
+{
+	return RVarSignal<D,S>(
+		std::make_shared<VarNode<D,S>>(
+			std::forward<V>(value), false));
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// MakeVar (higher order signal)
@@ -136,35 +168,35 @@ public:
 template
 <
 	typename D,
-	template <typename Domain_, typename Val_> class TOuter,
-	typename TInner
+	typename V,
+	typename S = std::decay<V>::type,
+	typename TInner = S::ValueT,
+	class = std::enable_if<
+		IsSignalT<D,S>::value>::type
 >
-inline auto MakeVar(const TOuter<D,TInner>& value)
+inline auto MakeVar(V&& value)
 	-> RVarSignal<D,RSignal<D,TInner>>
 {
 	return RVarSignal<D,RSignal<D,TInner>>(
 		std::make_shared<VarNode<D,RSignal<D,TInner>>>(
-			value, false));
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-/// MakeVar
-////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename S>
-inline auto MakeVar(const S& value)
-	-> RVarSignal<D,S>
-{
-	return RVarSignal<D,S>(std::make_shared<VarNode<D,S>>(value, false));
+			std::forward<V>(value), false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// MakeVal
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename S>
-inline auto MakeVal(const S& value)
+template
+<
+	typename D,
+	typename V,
+	typename S = std::decay<V>::type
+>
+inline auto MakeVal(V&& value)
 	-> RSignal<D,S>
 {
-	return RSignal<D,S>(std::make_shared<ValNode<D,S>>(value, false));
+	return RSignal<D,S>(
+		std::make_shared<ValNode<D,S>>(
+			std::forward<V>(value), false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

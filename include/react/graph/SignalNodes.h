@@ -24,15 +24,16 @@ public:
 	typedef std::weak_ptr<SignalNode>	NodeWeakPtrT;
 
 	explicit SignalNode(bool registered) :
-		ReactiveNode{ true }
+		ReactiveNode(true)
 	{
 		if (!registered)
 			registerNode();
 	}
 
-	SignalNode(S value, bool registered) :
-		ReactiveNode(true),
-		value_(value)
+	template <typename T>
+	SignalNode(T&& value, bool registered) :
+		ReactiveNode{ true },
+		value_{ std::forward<T>(value) }
 	{
 		if (!registered)
 			registerNode();
@@ -82,8 +83,9 @@ template
 class VarNode : public SignalNode<D,S>
 {
 public:
-	VarNode(S value, bool registered) :
-		SignalNode<D,S>(value, true)
+	template <typename T>
+	VarNode(T&& value, bool registered) :
+		SignalNode<D,S>(std::forward<T>(value), true)
 	{
 		if (!registered)
 			registerNode();
@@ -131,8 +133,9 @@ template
 class ValNode : public SignalNode<D,S>
 {
 public:
-	ValNode(const S value, bool registered) :
-		SignalNode<D,S>(value, true)
+	template <typename T>
+	ValNode(T&& value, bool registered) :
+		SignalNode<D,S>(std::forward<T>(value), true)
 	{
 		if (!registered)
 			registerNode();

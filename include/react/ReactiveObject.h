@@ -28,27 +28,36 @@ public:
 	using Observer = RObserver<D>;
 
 	////////////////////////////////////////////////////////////////////////////////////////
-	/// MakeVar (higher order signal)
+	/// MakeVar
 	////////////////////////////////////////////////////////////////////////////////////////
 	template
 	<
-		template <typename Domain_, typename Val_> class TOuter,
-		typename TInner
+		typename V,
+		typename S = std::decay<V>::type,
+		class = std::enable_if<
+			!IsSignalT<D,S>::value>::type
 	>
-	static inline auto MakeVar(const TOuter<D,TInner>& value)
-		-> VarSignal<Signal<TInner>>
-	{
-		return react::MakeVar<D>(value);
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	/// MakeVar
-	////////////////////////////////////////////////////////////////////////////////////////
-	template <typename S>
-	static inline auto MakeVar(const S& value)
+	static inline auto MakeVar(V&& value)
 		-> VarSignal<S>
 	{
-		return react::MakeVar<D>(value);
+		return react::MakeVar<D>(std::forward<V>(value));
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+	// MakeVar (higher order signal)
+	//////////////////////////////////////////////////////////////////////////////////////
+	template
+	<
+		typename V,
+		typename S = std::decay<V>::type,
+		typename TInner = S::ValueT,
+		class = std::enable_if<
+			IsSignalT<D,S>::value>::type
+	>
+	static inline auto MakeVar(V&& value)
+		-> VarSignal<Signal<TInner>>
+	{
+		return react::MakeVar<D>(std::forward<V>(value));
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
