@@ -1,8 +1,11 @@
 #pragma once
 
-#include <set>
-#include <atomic>
 
+#include <atomic>
+#include <memory>
+#include <set>
+
+#include "tbb/concurrent_vector.h"
 #include "tbb/queuing_mutex.h"
 
 #include "react/ReactiveDomain.h"
@@ -63,16 +66,30 @@ public:
 
 	inline void QueueForDetach(IObserverNode& obs)
 	{
-		detachedObservers_.push_back(&obs);
+		if (detachedObserversPtr_ == nullptr)
+			detachedObserversPtr_ = std::unique_ptr<ObsVectT>(new ObsVectT());
+
+		detachedObserversPtr_->push_back(&obs);
 	}
 
 	template <typename D, typename TPolicy>
 	friend class DomainBase;
 
 private:
+	using ObsVectT = tbb::concurrent_vector<IObserverNode*>;
+
 	TurnIdT	id_;
 
-	tbb::concurrent_vector<IObserverNode*>	detachedObservers_;
+	template <typename TRegistry>
+	void detachObservers(TRegistry& registry)
+	{
+		if (detachedObserversPtr_ != nullptr)
+			for (auto* o : *detachedObserversPtr_)
+				registry.Unregister(o);
+	}
+
+
+	std::unique_ptr<ObsVectT>	detachedObserversPtr_;
 	ContinuationInput continuation_;
 };
 

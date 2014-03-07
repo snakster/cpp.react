@@ -6,6 +6,7 @@
 #include "react/ReactiveObject.h"
 
 #include "react/propagation/SourceSetEngine.h"
+#include "react/propagation/TopoSortSTEngine.h"
 
 using namespace std;
 using namespace react;
@@ -13,7 +14,7 @@ using namespace react;
 // Defines a domain.
 // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
 // Reactives of different domains can not be combined.
-REACTIVE_DOMAIN(D, SourceSetEngine);
+REACTIVE_DOMAIN(D, TopoSortSTEngine);
 
 void SignalExample1()
 {
@@ -168,45 +169,45 @@ void FoldExample1()
 
 #include "tbb/tick_count.h"
 
-//void Debug()
-//{
-//	cout << "A" << endl;
-//	{
-//		int x = 0;
-//
-//		auto t0 = tbb::tick_count::now();
-//
-//		for (int i=0; i<10000000; i++)
-//		{
-//			x += i;
-//		}
-//
-//		auto t1 = tbb::tick_count::now();
-//
-//		auto d = (t1 - t0).seconds();
-//
-//		cout << x << endl;
-//		cout << d << endl;
-//	}
-//
-//	cout << "B" << endl;
-//	{
-//		auto x = D::MakeVar(0);
-//
-//		auto t0 = tbb::tick_count::now();
-//
-//		for (int i=0; i<10000000; i++)
-//		{
-//			x <<= i;
-//		}
-//
-//		auto t1 = tbb::tick_count::now();
-//
-//		auto d = (t1 - t0).seconds();
-//
-//		cout << d << endl;
-//	}
-//}
+void Debug()
+{
+	cout << "A" << endl;
+	{
+		int x = 0;
+
+		auto t0 = tbb::tick_count::now();
+
+		for (int i=0; i<10000000; i++)
+		{
+			x += i;
+		}
+
+		auto t1 = tbb::tick_count::now();
+
+		auto d = (t1 - t0).seconds();
+
+		cout << x << endl;
+		cout << d << endl;
+	}
+
+	cout << "B" << endl;
+	{
+		auto x = D::MakeVar(0);
+
+		auto t0 = tbb::tick_count::now();
+
+		for (int i=0; i<10000000; i++)
+		{
+			x <<= i;
+		}
+
+		auto t1 = tbb::tick_count::now();
+
+		auto d = (t1 - t0).seconds();
+
+		cout << d << endl;
+	}
+}
 
 int main()
 {
