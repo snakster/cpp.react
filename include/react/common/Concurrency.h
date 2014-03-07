@@ -68,7 +68,7 @@ public:
 private:
 	std::mutex				mutex_;
 	std::condition_variable	condition_;
-	bool					blocked_;
+	bool					blocked_ = false;
 };
 
 } // ~namespace react

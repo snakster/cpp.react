@@ -365,17 +365,17 @@ public:
 		auto turn = makeTurn(flags);
 
 		// Phase 1 - Input admission
-		transactionState_.active = true;
+		transactionState_.Active = true;
 		Engine::OnTurnAdmissionStart(turn);
 		func();
 		Engine::OnTurnAdmissionEnd(turn);
-		transactionState_.active = false;
+		transactionState_.Active = false;
 
 		// Phase 2 - Apply input node changes
-		for (auto* p : transactionState_.inputs)
+		for (auto* p : transactionState_.Inputs)
 			if (p->Tick(&turn) == ETickResult::pulsed)
 				shouldPropagate = true;
-		transactionState_.inputs.clear();
+		transactionState_.Inputs.clear();
 
 		// Phase 3 - Propagate changes
 		if (shouldPropagate)
@@ -396,7 +396,7 @@ public:
 		{
 			addContinuationInput(std::forward<R>(r), std::forward<V>(v));
 		}
-		else if (transactionState_.active)
+		else if (transactionState_.Active)
 		{
 			addTransactionInput(std::forward<R>(r), std::forward<V>(v));
 		}
@@ -462,8 +462,8 @@ private:
 
 	struct TransactionState
 	{
-		bool	active = false;
-		std::vector<IReactiveNode*>	inputs;
+		bool	Active = false;
+		std::vector<IReactiveNode*>	Inputs;
 	};
 
 	static TransactionState transactionState_;
@@ -496,7 +496,7 @@ private:
 	static void addTransactionInput(R&& r, V&& v)
 	{
 		r.AddInput(std::forward<V>(v));
-		transactionState_.inputs.push_back(&r);
+		transactionState_.Inputs.push_back(&r);
 	}
 
 	// Input happened during a turn - buffer in continuation
@@ -529,16 +529,16 @@ private:
 			bool shouldPropagate = false;
 			auto turn = makeTurn(flags);
 
-			transactionState_.active = true;
+			transactionState_.Active = true;
 			Engine::OnTurnAdmissionStart(turn);
 			cont.Execute();
 			Engine::OnTurnAdmissionEnd(turn);
-			transactionState_.active = false;
+			transactionState_.Active = false;
 
-			for (auto* p : transactionState_.inputs)
+			for (auto* p : transactionState_.Inputs)
 				if (p->Tick(&turn) == ETickResult::pulsed)
 					shouldPropagate = true;
-			transactionState_.inputs.clear();
+			transactionState_.Inputs.clear();
 
 			if (shouldPropagate)
 				Engine::OnTurnPropagate(turn);
