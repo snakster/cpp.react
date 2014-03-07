@@ -42,11 +42,6 @@ public:
 	Signal<Seasons>	Season = DayOfYear >>= [] (int day) {
 		return day < 180 ? Seasons::winter : Seasons::summer;
 	};
-
-	~Time()
-	{
-		DetachAllObservers(NewDay);
-	}
 };
 
 template <typename D>
@@ -282,11 +277,6 @@ struct Benchmark_LifeSim : public BenchmarkBase<D>
 		}
 		auto t1 = tbb::tick_count::now();
 		double d = (t1 - t0).seconds();
-
-		//for (const auto& e : animals)
-		//{
-		//	DetachAllObservers(e->Migrating);
-		//}
 
 		//s = s / params.K;
 		//printf("s %d\n", s);
