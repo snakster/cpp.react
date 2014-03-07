@@ -24,7 +24,7 @@ public:
 	inline void WaitForUnblock()
 	{
 		std::unique_lock<std::mutex> lock(mutex_);
-		condition_.wait(lock, [this] { return blocked_; });
+		condition_.wait(lock, [this] { return !blocked_; });
 	}
 
 	inline bool IsBlocked()

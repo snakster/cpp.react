@@ -222,9 +222,10 @@ TYPED_TEST_P(TransactionTest, Concurrent3)
 	ASSERT_TRUE(std::find(results.begin(), results.end(), 676972) != results.end());
 }
 
-/// Concurrent transactions test 4
 ////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(TransactionTest, Concurrent4)
+/// Merging1
+////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(TransactionTest, Merging1)
 {
 	std::vector<int> results;
 
@@ -287,7 +288,7 @@ REGISTER_TYPED_TEST_CASE_P
 	Concurrent1,
 	Concurrent2,
 	Concurrent3,
-	Concurrent4
+	Merging1
 );
 
 // ---

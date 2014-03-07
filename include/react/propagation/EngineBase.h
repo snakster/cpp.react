@@ -164,24 +164,22 @@ public:
 
 			if (tail_)
 				tail_->Append(turn);
-			else
-				tail_ = &turn;
+
+			tail_ = &turn;
 		}// ~seqMutex_
 
 		turn.WaitForUnblock();
 	}
 
 	inline void EndTurn(ExclusiveTurn& turn)
-	{
-		{// seqMutex_
-			SeqMutexT::scoped_lock lock(seqMutex_);
-
-			if (tail_ == &turn)
-				tail_ = nullptr;
-		}// ~seqMutex_
+	{// seqMutex_
+		SeqMutexT::scoped_lock lock(seqMutex_);
 
 		turn.UnblockSuccessors();
-	}
+
+		if (tail_ == &turn)
+			tail_ = nullptr;
+	}// ~seqMutex_
 
 private:
 	using SeqMutexT = tbb::queuing_mutex;
