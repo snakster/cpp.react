@@ -102,10 +102,8 @@ public:
 	class ExclusiveTurn
 	{
 	public:
-		typedef std::vector<BlockingCondition*>	TransactionVector;
-
-		explicit ExclusiveTurn(bool isMergeable) :
-			isMergeable_{ isMergeable }
+		explicit ExclusiveTurn(TurnFlagsT flags) :
+			isMergeable_{ (flags & enable_input_merging) != 0 }
 		{
 		}
 
@@ -136,22 +134,18 @@ public:
 		}
 
 		template <typename F>
-		inline bool TryMerge(F&& inputFunc)
+		inline bool TryMerge(F&& inputFunc, BlockingCondition& caller)
 		{
 			if (!isMergeable_)
 				return false;
 
-			BlockingCondition caller;
-
 			// Only merge if target is still blocked
-			blockCondition_.RunIfBlocked([&] {
+			bool merged = blockCondition_.RunIfBlocked([&] {
 				caller.Block();
 				merged_.emplace_back(std::make_pair(std::forward<F>(inputFunc), &caller));
 			});
 
-			caller.WaitForUnblock();
-
-			return true;
+			return merged;
 		}
 
 	private:
@@ -165,14 +159,23 @@ public:
 
 	template <typename F>
 	inline bool TryMerge(F&& inputFunc)
-	{// seqMutex_
-		SeqMutexT::scoped_lock lock(seqMutex_);
+	{
+		bool merged = false;
 
-		if (tail_)
-			return tail_->TryMerge(std::forward<F>(inputFunc));
-		else
-			return false;
-	}// ~seqMutex_
+		BlockingCondition caller;
+
+		{// seqMutex_
+			SeqMutexT::scoped_lock lock(seqMutex_);
+
+			if (tail_)
+				merged = tail_->TryMerge(std::forward<F>(inputFunc), caller);
+		}// ~seqMutex_
+
+		if (merged)
+			caller.WaitForUnblock();
+
+		return merged;
+	}
 
 	inline void StartTurn(ExclusiveTurn& turn)
 	{

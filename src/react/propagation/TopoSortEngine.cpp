@@ -19,7 +19,7 @@ Node::Node() :
 ////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
 	TurnBase(id, flags),
-	ExclusiveTurnManager::ExclusiveTurn(false)
+	ExclusiveTurnManager::ExclusiveTurn(flags)
 {
 }
 

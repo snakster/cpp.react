@@ -98,8 +98,8 @@ template
 >
 struct EngineInterface
 {
-	typedef typename TEngine::NodeInterface		NodeInterface;
-	typedef typename TEngine::TurnInterface		TurnInterface;
+	using NodeInterface = typename TEngine::NodeInterface;
+	using TurnInterface = typename TEngine::TurnInterface;
 
 	static TEngine& Engine()
 	{
@@ -332,11 +332,11 @@ public:
 	template <typename F>
 	static void DoTransaction(F&& func)
 	{
-		DoTransaction(std::forward<F>(func), turnFlags_);
+		DoTransaction(turnFlags_, std::forward<F>(func));
 	}
 
 	template <typename F>
-	static void DoTransaction(F&& func, TurnFlagsT flags)
+	static void DoTransaction(TurnFlagsT flags, F&& func)
 	{
 		// Attempt to add input to another turn.
 		// If successful, blocks until other turn is done and returns.
@@ -406,20 +406,20 @@ public:
 	/// Options
 	////////////////////////////////////////////////////////////////////////////////////////
 	template <typename Opt>
-	static void Set(int v)		{ static_assert(false, "Set option not implemented."); }
+	static void Set(uint v)		{ static_assert(false, "Set option not implemented."); }
 
 	template <typename Opt>
-	static bool IsSet(int v)	{ static_assert(false, "IsSet option not implemented."); }
+	static bool IsSet(uint v)	{ static_assert(false, "IsSet option not implemented."); }
 
 	template <typename Opt>
-	static void Unset(int v)	{ static_assert(false, "Unset option not implemented."); }	
+	static void Unset(uint v)	{ static_assert(false, "Unset option not implemented."); }	
 
 	template <typename Opt>
 	static void Reset()			{ static_assert(false, "Reset option not implemented."); }
 
-	template <> static void Set<ETurnFlags>(int v)		{ turnFlags_ |= v; }
-	template <> static bool IsSet<ETurnFlags>(int v)	{ return (turnFlags_ & v) != 0 }
-	template <> static void Unset<ETurnFlags>(int v)	{ turnFlags_ &= ~v;}
+	template <> static void Set<ETurnFlags>(uint v)		{ turnFlags_ |= v; }
+	template <> static bool IsSet<ETurnFlags>(uint v)	{ return (turnFlags_ & v) != 0 }
+	template <> static void Unset<ETurnFlags>(uint v)	{ turnFlags_ &= ~v;}
 	template <> static void Reset<ETurnFlags>()			{ turnFlags_ = 0;}
 
 private:
