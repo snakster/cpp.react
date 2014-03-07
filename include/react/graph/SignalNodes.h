@@ -162,10 +162,11 @@ template
 class FunctionNode : public SignalNode<D,S>
 {
 public:
-	FunctionNode(const SignalNodePtr<D,TArgs>& ... args, std::function<S(TArgs ...)> func, bool registered) :
+	template <typename F>
+	FunctionNode(const SignalNodePtr<D,TArgs>& ... args, F&& func, bool registered) :
 		SignalNode<D, S>(true),
 		deps_{ make_tuple(args ...) },
-		func_{ func }
+		func_{ std::forward<F>(func) }
 	{
 		if (!registered)
 			registerNode();
@@ -250,8 +251,6 @@ public:
 
 		Engine::OnNodeAttach(*this, *outer_);
 		Engine::OnNodeAttach(*this, *inner_);
-
-		
 	}
 
 	~FlattenNode()

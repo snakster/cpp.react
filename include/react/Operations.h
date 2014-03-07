@@ -3,6 +3,8 @@
 #include <functional>
 #include <memory>
 #include <thread>
+#include <type_traits>
+#include <utility>
 
 #include "Signal.h"
 #include "EventStream.h"
@@ -17,17 +19,17 @@ namespace react {
 template
 <
 	typename D,
+	typename V,
+	typename S = std::decay<V>::type,
 	typename E,
-	typename S,
-	typename TFunc
+	typename F
 >
-inline auto Fold(const S& initialValue, const REvents<D,E>& events,
-				 const TFunc& func)
+inline auto Fold(V&& init, const REvents<D,E>& events, F&& func)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
 		std::make_shared<FoldNode<D,S,E>>(
-			initialValue, events.GetPtr(), func, false));
+			std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -36,17 +38,17 @@ inline auto Fold(const S& initialValue, const REvents<D,E>& events,
 template
 <
 	typename D,
+	typename V,
+	typename S = std::decay<V>::type,
 	typename E,
-	typename S,
-	typename TFunc
+	typename F
 >
-inline auto Iterate(const S& initialValue, const REvents<D,E>& events,
-					const TFunc& func)
+inline auto Iterate(V&& init, const REvents<D,E>& events, F&& func)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
 		std::make_shared<IterateNode<D,S,E>>(
-			initialValue, events.GetPtr(), func, false));
+			std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -55,14 +57,15 @@ inline auto Iterate(const S& initialValue, const REvents<D,E>& events,
 template
 <
 	typename D,
-	typename T
+	typename V,
+	typename T = std::decay<V>::type
 >
-inline auto Hold(const T& initialValue, const REvents<D,T>& events)
+inline auto Hold(V&& init, const REvents<D,T>& events)
 	-> RSignal<D,T>
 {
 	return RSignal<D,T>(
 		std::make_shared<HoldNode<D,T>>(
-			initialValue, events.GetPtr(), false));
+			std::forward<V>(init), events.GetPtr(), false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -131,9 +134,10 @@ inline auto Changed(const RSignal<D,S>& target)
 template
 <
 	typename D,
-	typename S
+	typename V,
+	typename S = std::decay<V>::type
 >
-inline auto ChangedTo(const RSignal<D,S>& target, const S& value)
+inline auto ChangedTo(const RSignal<D,S>& target, V&& value)
 	-> REvents<D,bool>
 {
 	auto transformFunc	= [=] (const S& v)	{ return v == value; };
