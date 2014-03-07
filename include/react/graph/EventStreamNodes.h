@@ -38,7 +38,7 @@ public:
 
 	explicit EventStreamNode(bool registered) :
 		ReactiveNode(true),
-		curTurnId_{ 0 }
+		curTurnId_{ INT_MAX }
 	{
 		if (!registered)
 			registerNode();
@@ -51,22 +51,17 @@ public:
 		return events_;
 	}
 
-	bool SetCurrentTurn(const TurnInterface& turn, bool forceClear = false)
-	{
+	void SetCurrentTurn(const TurnInterface& turn, bool forceUpdate = false, bool noClear = false)
+	{// eventMutex_
 		EventMutexT::scoped_lock lock(eventMutex_);
 
-		if (curTurnId_ != turn.Id() || forceClear)
+		if (curTurnId_ != turn.Id() || forceUpdate)
 		{
 			curTurnId_ =  turn.Id();
-			//printf("Cleared turn\n");
-			events_.clear();
-			return true;
+			if (!noClear)
+				events_.clear();
 		}
-		else
-		{
-			return false;
-		}
-	}
+	}// ~eventMutex_
 
 	void		ClearEvents()	{ events_.clear(); }
 
@@ -106,11 +101,13 @@ public:
 
 	virtual ETickResult Tick(void* turnPtr) override
 	{
-		typedef typename D::Engine::TurnInterface TurnInterface;
-		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
-
-		if (events_.size() > 0 && SetCurrentTurn(turn))
+		if (events_.size() > 0 && !changedFlag_)
 		{
+			typedef typename D::Engine::TurnInterface TurnInterface;
+			TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+
+			SetCurrentTurn(turn, true, true);
+			changedFlag_ = true;
 			Engine::OnTurnInputChange(*this, turn);
 			return ETickResult::pulsed;
 		}
@@ -125,8 +122,18 @@ public:
 	template <typename V>
 	void AddInput(V&& v)
 	{
+		// Clear input from previous turn
+		if (changedFlag_)
+		{
+			changedFlag_ = false;
+			events_.clear();
+		}
+
 		events_.push_back(std::forward<V>(v));
 	}
+
+private:
+	bool changedFlag_ = false;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

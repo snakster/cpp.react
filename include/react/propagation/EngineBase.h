@@ -173,21 +173,21 @@ public:
 
 	inline void EndTurn(ExclusiveTurn& turn)
 	{
-		turn.UnblockSuccessors();
-
 		{// seqMutex_
 			SeqMutexT::scoped_lock lock(seqMutex_);
 
 			if (tail_ == &turn)
 				tail_ = nullptr;
 		}// ~seqMutex_
+
+		turn.UnblockSuccessors();
 	}
 
 private:
 	using SeqMutexT = tbb::queuing_mutex;
 
 	SeqMutexT		seqMutex_;
-	ExclusiveTurn*	tail_;
+	ExclusiveTurn*	tail_ = nullptr;
 };
 
 // ---

@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "react/Signal.h"
-//#include "react/EventStream.h"
+#include "react/EventStream.h"
 //#include "react/Operations.h"
 //#include "react/ReactiveObject.h"
 //
@@ -79,25 +79,25 @@ void SignalExample2()
 	cout << endl;
 }
 
-//
-//void EventExample1()
-//{
-//	cout << "Event Example 1" << endl;
-//
-//	auto numbers1 = D::MakeEventSource<int>();
-//	auto numbers2 = D::MakeEventSource<int>();
-//
-//	auto anyNumber = numbers1 | numbers2;
-//
-//	Observe(anyNumber, [] (int v) {
-//		cout << "Number: " << v << endl;
-//	});
-//
-//	numbers1 << 10 << 20 << 30;
-//	numbers2 << 40 << 50 << 60;
-//
-//	cout << endl;
-//}
+
+void EventExample1()
+{
+	cout << "Event Example 1" << endl;
+
+	auto numbers1 = D::MakeEventSource<int>();
+	auto numbers2 = D::MakeEventSource<int>();
+
+	auto anyNumber = numbers1 | numbers2;
+
+	Observe(anyNumber, [] (int v) {
+		cout << "Number: " << v << endl;
+	});
+
+	numbers1 << 10 << 20 << 30;
+	numbers2 << 40 << 50 << 60;
+
+	cout << endl;
+}
 //
 //class Person : public ReactiveObject<D>
 //{
@@ -173,9 +173,9 @@ void SignalExample2()
 
 int main()
 {
-	SignalExample1();
-	SignalExample2();
-	//EventExample1();
+	//SignalExample1();
+	//SignalExample2();
+	EventExample1();
 
 	//ObjectExample1();
 
