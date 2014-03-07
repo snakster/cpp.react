@@ -134,14 +134,15 @@ private:
 template
 <
 	typename D,
-	typename TFunc,
+	typename F,
 	typename TArg
 >
-inline auto Observe(const RSignal<D,TArg>& subject, const TFunc& func)
+inline auto Observe(const RSignal<D,TArg>& subject, F&& func)
 	-> RObserver<D>
 {
 	std::unique_ptr<ObserverNode<D>> pUnique(
-		new SignalObserverNode<D,TArg>(subject.GetPtr(), func, false));
+		new SignalObserverNode<D,TArg>(
+			subject.GetPtr(), std::forward<F>(func), false));
 
 	auto* raw = pUnique.get();
 
@@ -153,16 +154,17 @@ inline auto Observe(const RSignal<D,TArg>& subject, const TFunc& func)
 template
 <
 	typename D,
-	typename TFunc,
+	typename F,
 	typename TArg,
 	typename = std::enable_if<
 		! std::is_same<TArg,EventToken>::value>::type
 >
-inline auto Observe(const REvents<D,TArg>& subject, const TFunc& func)
+inline auto Observe(const REvents<D,TArg>& subject, F&& func)
 	-> RObserver<D>
 {
 	std::unique_ptr<ObserverNode<D>> pUnique(
-		new EventObserverNode<D,TArg>(subject.GetPtr(), func, false));
+		new EventObserverNode<D,TArg>(
+			subject.GetPtr(), std::forward<F>(func), false));
 
 	auto* raw = pUnique.get();
 
@@ -174,9 +176,9 @@ inline auto Observe(const REvents<D,TArg>& subject, const TFunc& func)
 template
 <
 	typename D,
-	typename TFunc
+	typename F
 >
-inline auto Observe(const REvents<D,EventToken>& subject, const TFunc& func)
+inline auto Observe(const REvents<D,EventToken>& subject, F&& func)
 	-> RObserver<D>
 {
 	std::unique_ptr<ObserverNode<D>> pUnique(

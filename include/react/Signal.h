@@ -73,9 +73,9 @@ public:
 	}
 
 	template <typename F>
-	RObserver<D> Observe(const F& f)
+	RObserver<D> Observe(F&& f)
 	{
-		return react::Observe(*this, f);
+		return react::Observe(*this, std::forward<F>(f));
 	}
 };
 
@@ -134,6 +134,9 @@ public:
 	}
 };
 
+////////////////////////////////////////////////////////////////////////////////////////
+/// IsSignalT
+////////////////////////////////////////////////////////////////////////////////////////
 template <typename D, typename T>
 struct IsSignalT { static const bool value = false; };
 

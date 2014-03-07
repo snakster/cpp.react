@@ -227,16 +227,16 @@ private:
 template
 <
 	typename D,
-	typename E,
-	typename F
+	typename E
 >
 class EventFilterNode : public EventStreamNode<D, E>
 {
 public:
-	EventFilterNode(const EventStreamNodePtr<D, E>& src, F filter, bool registered) :
+	template <typename F>
+	EventFilterNode(const EventStreamNodePtr<D, E>& src, F&& filter, bool registered) :
 		EventStreamNode<D, E>(true),
 		src_{ src },
-		filter_{ filter }
+		filter_{ std::forward<F>(filter) }
 	{
 		if (!registered)
 			registerNode();
@@ -280,7 +280,7 @@ public:
 private:
 	EventStreamNodePtr<D,E>	src_;
 
-	F	filter_;
+	std::function<bool(E)>	filter_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -290,16 +290,16 @@ template
 <
 	typename D,
 	typename TIn,
-	typename TOut,
-	typename F
+	typename TOut
 >
 class EventTransformNode : public EventStreamNode<D,TOut>
 {
 public:
-	EventTransformNode(const EventStreamNodePtr<D,TIn>& src, F func, bool registered) :
+	template <typename F>
+	EventTransformNode(const EventStreamNodePtr<D,TIn>& src, F&& func, bool registered) :
 		EventStreamNode<D,TOut>(true),
 		src_{ src },
-		func_{ func }
+		func_{ std::forward<F>(func) }
 	{
 		if (!registered)
 			registerNode();
@@ -343,7 +343,7 @@ public:
 private:
 	EventStreamNodePtr<D,TIn>	src_;
 
-	F	func_;
+	std::function<TOut(TIn)>	func_;
 };
 
 // ---

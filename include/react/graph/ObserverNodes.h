@@ -59,10 +59,10 @@ class SignalObserverNode : public ObserverNode<D>
 {
 public:
 	template <typename F>
-	SignalObserverNode(const SignalNodePtr<D,TArg>& subject, const F& func, bool registered) :
+	SignalObserverNode(const SignalNodePtr<D,TArg>& subject, F&& func, bool registered) :
 		ObserverNode<D>(true),
 		subject_{ subject },
-		func_{ func }
+		func_{ std::forward<F>(func) }
 	{
 		if (!registered)
 			registerNode();
@@ -127,10 +127,10 @@ class EventObserverNode : public ObserverNode<D>
 {
 public:
 	template <typename F>
-	EventObserverNode(const EventStreamNodePtr<D,TArg>& subject, const F& func, bool registered) :
+	EventObserverNode(const EventStreamNodePtr<D,TArg>& subject, F&& func, bool registered) :
 		ObserverNode<D>(true),
 		subject_{ subject },
-		func_{ func }
+		func_{ std::forward<F>(func) }
 	{
 		if (!registered)
 			registerNode();

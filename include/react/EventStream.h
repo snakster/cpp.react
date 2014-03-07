@@ -30,10 +30,12 @@ template
 >
 class REvents : public Reactive<EventStreamNode<D,E>>
 {
-private:
-	typedef EventStreamNode<D, E> NodeT;
+protected:
+	using NodeT =  EventStreamNode<D, E>;
 
 public:
+	using ValueT = E;
+
 	REvents() :
 		Reactive()
 	{
@@ -45,21 +47,21 @@ public:
 	}
 
 	template <typename F>
-	REvents Filter(const F& f)
+	REvents Filter(F&& f)
 	{
-		return react::Filter(*this, f);
+		return react::Filter(*this, std::forward<F>(f));
 	}
 
 	template <typename F>
-	REvents Transform(const F& f)
+	REvents Transform(F&& f)
 	{
-		return react::Transform(*this, f);
+		return react::Transform(*this, std::forward<F>(f));
 	}
 
 	template <typename F>
-	RObserver<D> Observe(const F& f)
+	RObserver<D> Observe(F&& f)
 	{
-		return react::Observe(*this, f);
+		return react::Observe(*this, std::forward<F>(f));
 	}
 };
 
@@ -117,6 +119,18 @@ public:
 		return *this;
 	}
 };
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// IsEventT
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename T>
+struct IsEventT { static const bool value = false; };
+
+template <typename D, typename T>
+struct IsEventT<D, REvents<D,T>> { static const bool value = true; };
+
+template <typename D, typename T>
+struct IsEventT<D, REventSource<D,T>> { static const bool value = true; };
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// MakeEventSource
@@ -181,11 +195,12 @@ template
 	typename E,
 	typename F
 >
-inline auto Filter(const REvents<D,E>& src, const F& filter)
+inline auto Filter(const REvents<D,E>& src, F&& filter)
 	-> REvents<D,E>
 {
 	return REvents<D,E>(
-		std::make_shared<EventFilterNode<D, E, F>>(src.GetPtr(), filter, false));
+		std::make_shared<EventFilterNode<D, E>>(
+			src.GetPtr(), std::forward<F>(filter), false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -223,14 +238,14 @@ template
 	typename TIn,
 	typename F
 >
-inline auto Transform(const REvents<D,TIn>& src, const F& func)
+inline auto Transform(const REvents<D,TIn>& src, F&& func)
 	-> REvents<D, decltype(func(src.GetPtr()->Front()))>
 {
 	typedef decltype(func(src.GetPtr()->Front())) TOut;
 
 	return REvents<D,TOut>(
-		std::make_shared<EventTransformNode<D, TIn, TOut, F>>(
-			src.GetPtr(), func, false));
+		std::make_shared<EventTransformNode<D, TIn, TOut>>(
+			src.GetPtr(), std::forward<F>(func), false));
 }
 
 } // ~namespace react
