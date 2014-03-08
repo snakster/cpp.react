@@ -18,7 +18,6 @@ namespace pulse_count_o1_impl {
 Node::Node() :
 	Counter{ 0 },
 	ShouldUpdate{ false },
-	Pulsed{ false },
 	State{ EState::init },
 	marker_{ 0 },
 	weight_{ 1 },
@@ -234,6 +233,8 @@ void PulseCountO1Engine::nudgeChildren(Node& node, bool update, Turn& turn)
 			else
 				next = succ;
 		}
+
+		node.ClearMarker();
 	}// ~node.ShiftMutex (read)
 
 	if (next)

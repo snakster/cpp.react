@@ -43,6 +43,7 @@ public:
 	bool	SetMarker(MarkerT marker)			{ return marker_.exchange(marker) != marker; }
 	bool	CheckMarker(MarkerT marker) const	{ return marker_ == marker; }
 	MarkerT	GetMarker() const					{ return marker_; }
+	void	ClearMarker()						{ marker_.store(0); }
 
 	int		Weight() const	{ return weight_; }
 	int		Cost() const	{ return cost_; }
@@ -52,7 +53,6 @@ public:
 
 	atomic<int>		Counter;
 	atomic<bool>	ShouldUpdate;
-	atomic<bool>	Pulsed;
 
 	ShiftMutexT	ShiftMutex;
 
