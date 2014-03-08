@@ -91,8 +91,8 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////
 	#define DYNAMIC_REF(obj, name)	\
 	Flatten(						\
-		MakeSignal([] (				\
-			Identity<decltype(obj)>::Type::ValueT r) { return r->name; }, obj))
+		MakeSignal(					\
+			[] (Identity<decltype(obj)>::Type::ValueT r) { return r->name; }, obj))
 };
 
 } //~namespace react

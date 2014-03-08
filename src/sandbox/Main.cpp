@@ -27,10 +27,6 @@ void SignalExample1()
 	auto area	= width * height;
 	auto volume	= area * depth;
 
-	Observe(volume, [] (int v) {
-		cout << "Volume changed to: " << v << endl;
-	});
-
 	cout << "t0" << endl;
 	cout << "\tArea: " << area() << endl;
 	cout << "\tVolume: " << volume() << endl;
@@ -53,8 +49,6 @@ void SignalExample2()
 	auto height = D::MakeVar(70);
 	auto depth = D::MakeVar(8);
 
-	auto src = D::MakeVar(0);
-
 	auto volume = (width,height,depth) >>= [] (int w, int h, int d) {
 		return w * h * d;
 	};
@@ -63,10 +57,8 @@ void SignalExample2()
 	// This observer handle holds a shared_ptr to the subject, so as long as it exists,
 	// the subject will not be destroyed.
 	// The lifetime of the observer itself is tied to the subject.
-	Observe(src, [&] (int v) {
-		cout << "v: " << v << endl;
-		if (v < 10)
-			src <<= v+1;
+	Observe(volume, [] (int v) {
+		cout << "Volume changed to: " << v << endl;
 	});
 
 	D::DoTransaction([&] {
@@ -74,18 +66,29 @@ void SignalExample2()
 		depth <<= 80;
 	});
 
+	cout << endl;
+}
+
+void SignalExample3()
+{
+	cout << "Signal Example 3" << endl;
+
+	auto src = D::MakeVar(0);
+
+	// Input values can be manipulated imperatively in observers.
+	// Inputs are implicitly thread-safe, buffered and executed in a continuation turn.
+	// This continuation turn is queued just like a regular turn.
+	// If other turns are already queued, they are executed before the continuation.
+	Observe(src, [&] (int v) {
+		cout << "V: " << v << endl;
+		if (v < 10)
+			src <<= v+1;
+	});
+
 	src <<= 1;
 
 	cout << endl;
-
-
-	//auto h = D::MakeVar(width);
-	static_assert(IsSignalT<D,decltype(width)>::value, "Not a signal.");
-	static_assert(! IsSignalT<D,decltype(60)>::value, "A signal.");
-
-	auto h = D::MakeVar(width);
 }
-
 
 void EventExample1()
 {
@@ -106,12 +109,38 @@ void EventExample1()
 	cout << endl;
 }
 
+void EventExample2()
+{
+	cout << "Event Example 2" << endl;
+
+	// The event type can be omitted if not required, in which case the event
+	// stream just indicates that it has fired, i.e. it behaves like a token stream.
+	auto emitter = D::MakeEventSource();
+
+	auto counter = Iterate(0, emitter, Incrementer<int>());
+
+	// In this case, the observer func must not declare a parameter for token streams.
+	Observe(emitter, [] {
+		cout << "Emitter fired!" << endl;
+	});
+
+	// Using .Emit() to fire rather than "<< value"
+	for (int i=0; i<5; i++)
+		emitter.Emit();
+
+	cout << "Counted " << counter() << " events" << endl;
+
+	cout << endl;
+}
+
 class Person : public ReactiveObject<D>
 {
 public:
 	VarSignal<int>	Age		= MakeVar(1);
 	Signal<int>		Health	= 100 - Age;
 	Signal<int>		Wisdom  = Age * Age / 100;
+
+	Signal<int>	Test;
 
 	// Note: Initializing them directly uses the same lambda for both signals...
 	// compiler bug?
@@ -146,6 +175,43 @@ void ObjectExample1()
 
 	cout << "Health: " << somePerson.Health() << endl;
 	cout << "Wisdom: " << somePerson.Wisdom() << endl;
+
+	cout << endl;
+}
+
+class PersonManager : public ReactiveObject<D>
+{
+public:
+	VarSignal<Person*>	CurrentPerson;
+
+	Observer healthObs;
+
+	PersonManager(Person& p) :
+		CurrentPerson{ MakeVar(&p) }
+	{
+		// Todo: Safety, doesn't work for VarSignal etc.
+		healthObs = DYNAMIC_REF(CurrentPerson, Health).Observe([] (int v) {
+			cout << "Manager: Health changed to " << v << endl;
+		});
+	}
+};
+
+void ObjectExample2()
+{
+	cout << "Object Example 2" << endl;
+
+	Person person1;
+	Person person2;
+
+	PersonManager mgmt{ person1 };
+
+	person1.Age <<= 30;
+	person2.Age <<= 15;
+
+	mgmt.CurrentPerson <<= &person2;
+
+	person1.Age <<= 40;
+	person2.Age <<= 25;
 
 	cout << endl;
 }
@@ -220,9 +286,13 @@ int main()
 {
 	SignalExample1();
 	SignalExample2();
+	SignalExample3();
+
 	EventExample1();
+	EventExample2();
 
 	ObjectExample1();
+	ObjectExample2();
 
 	FoldExample1();
 
