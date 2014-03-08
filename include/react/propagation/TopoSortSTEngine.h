@@ -9,7 +9,7 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace toposort_st {
 
 using tbb::queuing_rw_mutex;
@@ -69,10 +69,10 @@ private:
 };
 
 } // ~namespace toposort_st
-REACT_IMPL_END_
+REACT_IMPL_END
 
-REACT_BEGIN_
+REACT_BEGIN
 
-using REACT_IMPL_::toposort_st::TopoSortSTEngine;
+using REACT_IMPL::toposort_st::TopoSortSTEngine;
 
-REACT_END_
+REACT_END

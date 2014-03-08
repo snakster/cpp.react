@@ -12,7 +12,7 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace pulsecount_o1 {
 
 using std::atomic;
@@ -122,10 +122,10 @@ private:
 };
 
 } // ~namespace pulsecount_o1
-REACT_IMPL_END_
+REACT_IMPL_END
 
-REACT_BEGIN_
+REACT_BEGIN
 
-using REACT_IMPL_::pulsecount_o1::PulseCountO1Engine;
+using REACT_IMPL::pulsecount_o1::PulseCountO1Engine;
 
-REACT_END_
+REACT_END

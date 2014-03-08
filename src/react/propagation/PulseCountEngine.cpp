@@ -9,7 +9,7 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace pulsecount {
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -174,4 +174,4 @@ void PulseCountEngine::nudgeChildren(Node& node, bool update, Turn& turn)
 }
 
 } // ~namespace pulsecount
-REACT_IMPL_END_
+REACT_IMPL_END

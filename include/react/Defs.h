@@ -1,18 +1,18 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#define REACT_BEGIN_	namespace react {
-#define REACT_END_		}
-#define REACT_			::react
+#define REACT_BEGIN		namespace react {
+#define REACT_END		}
+#define REACT			::react
 
-#define REACT_IMPL_BEGIN_	REACT_BEGIN_	namespace impl {
-#define REACT_IMPL_END_		REACT_END_		}
-#define REACT_IMPL_			REACT_			::impl
+#define REACT_IMPL_BEGIN	REACT_BEGIN	namespace impl {
+#define REACT_IMPL_END		REACT_END		}
+#define REACT_IMPL			REACT			::impl
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN_
+REACT_BEGIN
 
 typedef unsigned int	uint;
 typedef unsigned char	uchar;
 
-REACT_END_
+REACT_END

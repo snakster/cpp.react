@@ -3,7 +3,7 @@
 #include "tbb/task_group.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace sourceset {
 
 // Todo
@@ -263,4 +263,4 @@ void SourceSetEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, 
 }
 
 } // ~namespace sourceset
-REACT_IMPL_END_
+REACT_IMPL_END

@@ -14,7 +14,7 @@
 #include "react/propagation/EngineBase.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace elm {
 
 using std::atomic;
@@ -90,10 +90,10 @@ private:
 };
 
 } // ~namespace elm
-REACT_IMPL_END_
+REACT_IMPL_END
 
-REACT_BEGIN_
+REACT_BEGIN
 
-using REACT_IMPL_::elm::ELMEngine;
+using REACT_IMPL::elm::ELMEngine;
 
-REACT_END_
+REACT_END

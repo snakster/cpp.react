@@ -12,7 +12,7 @@
 #include "react/common/Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace flooding {
 
 using std::atomic;
@@ -98,10 +98,10 @@ private:
 };
 
 } // ~namespace flooding
-REACT_IMPL_END_
+REACT_IMPL_END
 
-REACT_BEGIN_
+REACT_BEGIN
 
-using REACT_IMPL_::flooding::FloodingEngine;
+using REACT_IMPL::flooding::FloodingEngine;
 
-REACT_END_
+REACT_END

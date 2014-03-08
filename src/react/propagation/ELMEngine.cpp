@@ -9,7 +9,7 @@
 #include "react/common/GraphData.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace elm {
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -161,4 +161,4 @@ void ELMEngine::nudgeChildren(Node& node, bool update, Turn& turn)
 }// ~node.ShiftMutex
 
 } // ~namespace elm
-REACT_IMPL_END_
+REACT_IMPL_END

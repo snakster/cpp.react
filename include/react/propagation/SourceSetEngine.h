@@ -14,7 +14,7 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace sourceset {
 
 class Node;
@@ -130,10 +130,10 @@ private:
 };
 
 } // ~namespace sourceset
-REACT_IMPL_END_
+REACT_IMPL_END
 
-REACT_BEGIN_
+REACT_BEGIN
 
-using REACT_IMPL_::sourceset::SourceSetEngine;
+using REACT_IMPL::sourceset::SourceSetEngine;
 
-REACT_END_
+REACT_END

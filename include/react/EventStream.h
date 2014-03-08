@@ -12,7 +12,7 @@
 #include "react/graph/EventStreamNodes.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN_
+REACT_BEGIN
 
 template <typename T>
 class Reactive;
@@ -30,10 +30,10 @@ template
 	typename D,
 	typename E = EventToken
 >
-class REvents : public Reactive<REACT_IMPL_::EventStreamNode<D,E>>
+class REvents : public Reactive<REACT_IMPL::EventStreamNode<D,E>>
 {
 protected:
-	using NodeT = REACT_IMPL_::EventStreamNode<D, E>;
+	using NodeT = REACT_IMPL::EventStreamNode<D, E>;
 
 public:
 	using ValueT = E;
@@ -67,9 +67,9 @@ public:
 	}
 };
 
-REACT_END_
+REACT_END
 
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 
 template <typename D, typename L, typename R>
 bool Equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
@@ -77,9 +77,9 @@ bool Equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
 	return lhs.Equals(rhs);
 }
 
-REACT_IMPL_END_
+REACT_IMPL_END
 
-REACT_BEGIN_
+REACT_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// REventSource
@@ -92,7 +92,7 @@ template
 class REventSource : public REvents<D,E>
 {
 private:
-	using NodeT = REACT_IMPL_::EventSourceNode<D, E>;
+	using NodeT = REACT_IMPL::EventSourceNode<D, E>;
 
 public:
 	REventSource() :
@@ -144,7 +144,7 @@ inline auto MakeEventSource()
 	-> REventSource<D,E>
 {
 	return REventSource<D,E>(
-		std::make_shared<REACT_IMPL_::EventSourceNode<D,E>>(false));
+		std::make_shared<REACT_IMPL::EventSourceNode<D,E>>(false));
 }
 
 template <typename D>
@@ -152,7 +152,7 @@ inline auto MakeEventSource()
 	-> REventSource<D,EventToken>
 {
 	return REventSource<D,EventToken>(
-		std::make_shared<REACT_IMPL_::EventSourceNode<D,EventToken>>(false));
+		std::make_shared<REACT_IMPL::EventSourceNode<D,EventToken>>(false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -173,7 +173,7 @@ inline auto Merge(const REvents<D,TArg1>& arg1,
 
 	typedef TArg1 E;
 	return REvents<D,E>(
-		std::make_shared<REACT_IMPL_::EventMergeNode<D, E, TArg1, TArgs ...>>(
+		std::make_shared<REACT_IMPL::EventMergeNode<D, E, TArg1, TArgs ...>>(
 			arg1.GetPtr(), args.GetPtr() ..., false));
 }
 
@@ -203,7 +203,7 @@ inline auto Filter(const REvents<D,E>& src, F&& filter)
 	-> REvents<D,E>
 {
 	return REvents<D,E>(
-		std::make_shared<REACT_IMPL_::EventFilterNode<D, E>>(
+		std::make_shared<REACT_IMPL::EventFilterNode<D, E>>(
 			src.GetPtr(), std::forward<F>(filter), false));
 }
 
@@ -248,8 +248,8 @@ inline auto Transform(const REvents<D,TIn>& src, F&& func)
 	typedef decltype(func(src.GetPtr()->Front())) TOut;
 
 	return REvents<D,TOut>(
-		std::make_shared<REACT_IMPL_::EventTransformNode<D, TIn, TOut>>(
+		std::make_shared<REACT_IMPL::EventTransformNode<D, TIn, TOut>>(
 			src.GetPtr(), std::forward<F>(func), false));
 }
 
-REACT_END_
+REACT_END

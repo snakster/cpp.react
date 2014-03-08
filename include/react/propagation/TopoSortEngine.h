@@ -15,7 +15,7 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace toposort {
 
 using std::atomic;
@@ -102,10 +102,10 @@ private:
 };
 
 } // ~namespace toposort
-REACT_IMPL_END_
+REACT_IMPL_END
 
-REACT_BEGIN_
+REACT_BEGIN
 
-using REACT_IMPL_::toposort::TopoSortEngine;
+using REACT_IMPL::toposort::TopoSortEngine;
 
-REACT_END_
+REACT_END

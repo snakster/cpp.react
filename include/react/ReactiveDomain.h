@@ -15,7 +15,7 @@
 #include "react/logging/EventRecords.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN_
+REACT_BEGIN
 
 template <typename D, typename S>
 class RSignal;
@@ -40,9 +40,9 @@ template
 inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
 	-> RSignal<D,decltype(func(args() ...))>;
 
-REACT_END_
+REACT_END
 
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ContinuationInput
@@ -84,9 +84,9 @@ private:
 	std::unique_ptr<InputVectT>	bufferedInputsPtr_ = nullptr;
 };
 
-REACT_IMPL_END_
+REACT_IMPL_END
 
-REACT_BEGIN_
+REACT_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// CommitFlags
@@ -96,9 +96,9 @@ enum ETurnFlags
 	enable_input_merging	= 1 << 0
 };
 
-REACT_END_
+REACT_END
 
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// EngineInterface
@@ -572,8 +572,8 @@ public:
 	}
 };
 
-REACT_IMPL_END_
+REACT_IMPL_END
 
 #define REACTIVE_DOMAIN(name, ...) \
-	struct name : public REACT_IMPL_::DomainBase<name, REACT_IMPL_::DomainPolicy<__VA_ARGS__ >> {}; \
-	REACT_IMPL_::DomainInitializer< name > name ## _initializer_;
+	struct name : public REACT_IMPL::DomainBase<name, REACT_IMPL::DomainPolicy<__VA_ARGS__ >> {}; \
+	REACT_IMPL::DomainInitializer< name > name ## _initializer_;

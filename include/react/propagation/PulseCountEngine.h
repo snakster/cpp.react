@@ -11,7 +11,7 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 namespace pulsecount {
 
 using std::atomic;
@@ -84,10 +84,10 @@ private:
 };
 
 } // ~namespace pulsecount
-REACT_IMPL_END_
+REACT_IMPL_END
 
-REACT_BEGIN_
+REACT_BEGIN
 
-using REACT_IMPL_::pulsecount::PulseCountEngine;
+using REACT_IMPL::pulsecount::PulseCountEngine;
 
-REACT_END_
+REACT_END

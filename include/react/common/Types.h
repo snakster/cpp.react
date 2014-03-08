@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-REACT_BEGIN_
+REACT_BEGIN
 
 typedef uintptr_t	ObjectId;
 
@@ -14,4 +14,4 @@ ObjectId GetObjectId(const O& obj)
 	return (ObjectId)&obj;
 }
 
-REACT_END_
+REACT_END

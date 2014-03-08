@@ -13,7 +13,7 @@
 #include "react/common/Concurrency.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN_
+REACT_BEGIN
 
 enum class ETransactionMode
 {
@@ -21,9 +21,9 @@ enum class ETransactionMode
 	exclusive
 };
 
-REACT_END_
+REACT_END
 
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveEngine
@@ -214,4 +214,4 @@ private:
 	ExclusiveTurn*	tail_ = nullptr;
 };
 
-REACT_IMPL_END_
+REACT_IMPL_END

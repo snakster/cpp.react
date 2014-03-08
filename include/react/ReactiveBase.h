@@ -6,7 +6,7 @@
 #include <memory>
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN_
+REACT_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Reactive
@@ -46,9 +46,9 @@ protected:
 	std::shared_ptr<T> ptr_;
 };
 
-REACT_END_
+REACT_END
 
-REACT_IMPL_BEGIN_
+REACT_IMPL_BEGIN
 
 template <typename L, typename R>
 bool Equals(L lhs, R rhs)
@@ -56,4 +56,4 @@ bool Equals(L lhs, R rhs)
 	return lhs == rhs;
 }
 
-REACT_IMPL_END_
+REACT_IMPL_END

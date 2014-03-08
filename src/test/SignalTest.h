@@ -91,6 +91,20 @@ TYPED_TEST_P(SignalTest, Signals1)
 	ASSERT_EQ(s1(),30);
 	ASSERT_EQ(s2(),70);
 	ASSERT_EQ(s3(),100);
+	
+	bool b = false;
+
+	b = IsSignalT<MyDomain, decltype(v1)>::value;
+	ASSERT_TRUE(b);
+
+	b = IsSignalT<MyDomain, decltype(s1)>::value;
+	ASSERT_TRUE(b);
+
+	b = IsSignalT<MyDomain, decltype(s2)>::value;
+	ASSERT_TRUE(b);
+
+	b = IsSignalT<MyDomain, decltype(10)>::value;
+	ASSERT_FALSE(b);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
