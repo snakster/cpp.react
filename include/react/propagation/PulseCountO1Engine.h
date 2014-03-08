@@ -40,10 +40,9 @@ public:
 		cost_ += costDelta;
 	}
 
-	bool	SetMarker(MarkerT marker)			{ return marker_.exchange(marker) != marker; }
-	bool	CheckMarker(MarkerT marker) const	{ return marker_ == marker; }
-	MarkerT	GetMarker() const					{ return marker_; }
-	void	ClearMarker()						{ marker_.store(0); }
+	bool	SetMarker(MarkerT marker)			{ return marker_.exchange(marker, std::memory_order_relaxed) != marker; }
+	MarkerT	GetMarker() const					{ return marker_.load(std::memory_order_relaxed); }
+	void	ClearMarker()						{ marker_.store(0, std::memory_order_relaxed); }
 
 	int		Weight() const	{ return weight_; }
 	int		Cost() const	{ return cost_; }

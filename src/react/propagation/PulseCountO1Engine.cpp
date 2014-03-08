@@ -135,7 +135,7 @@ void PulseCountO1Engine::OnNodeShift(Node& node, Node& oldParent, Node& newParen
 		newParent.Successors.Add(node);
 		node.Predecessors.Add(newParent);
 
-		if (! newParent.CheckMarker(turn.Marker))
+		if (! newParent.GetMarker() == turn.Marker)
 		{
 			shouldTick = true;
 		}
