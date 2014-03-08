@@ -1,12 +1,10 @@
 #pragma once
 
+#include "react/Defs.h"
+
 #include <cstdint>
 
-////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-
-typedef unsigned int	uint;
-typedef unsigned char	uchar;
+REACT_BEGIN_
 
 typedef uintptr_t	ObjectId;
 
@@ -16,5 +14,4 @@ ObjectId GetObjectId(const O& obj)
 	return (ObjectId)&obj;
 }
 
-// ---
-}
+REACT_END_

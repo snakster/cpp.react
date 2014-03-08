@@ -1,8 +1,8 @@
 #include "react/propagation/TopoSortSTEngine.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace topo_sort_st_impl {
+REACT_IMPL_BEGIN_
+namespace toposort_st {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Node
@@ -106,5 +106,5 @@ void TopoSortSTEngine::invalidateSuccessors(Node& node)
 	}
 }
 
-} // ~namespace react::topo_sort_impl
-} // ~namespace react
+} // ~namespace toposort_st
+REACT_IMPL_END_

@@ -1,12 +1,14 @@
 #pragma once
 
+#include "react/Defs.h"
+
 #include <memory>
 #include <unordered_map>
 
 #include "react/graph/ObserverNodes.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
+REACT_BEGIN_
 
 template <typename T>
 class Reactive;
@@ -26,7 +28,8 @@ template <typename D>
 class RObserver
 {
 public:
-	typedef NodeBase<D>	SubjectT;
+	using SubjectT = REACT_IMPL_::NodeBase<D>;
+	using ObserverNodeT = REACT_IMPL_::ObserverNode<D>;
 
 	RObserver() :
 		ptr_{ nullptr },
@@ -34,13 +37,13 @@ public:
 	{
 	}
 
-	RObserver(ObserverNode<D>* ptr, const std::shared_ptr<SubjectT>& subject) :
+	RObserver(ObserverNodeT* ptr, const std::shared_ptr<SubjectT>& subject) :
 		ptr_{ ptr },
 		subject_{ subject }
 	{
 	}
 
-	const ObserverNode<D>* GetPtr() const
+	const ObserverNodeT* GetPtr() const
 	{
 		return ptr_;
 	}
@@ -56,11 +59,15 @@ public:
 
 private:
 	// Ownership managed by registry
-	ObserverNode<D>*		ptr_;
+	ObserverNodeT*		ptr_;
 
 	// While the observer handle exists, the subject is not destroyed
 	std::shared_ptr<SubjectT>	subject_;
 };
+
+REACT_END_
+
+REACT_IMPL_BEGIN_
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverRegistry
@@ -128,6 +135,10 @@ private:
 	std::unordered_map<IObserverNode*,Entry_>	observerMap_;
 };
 
+REACT_IMPL_END_
+
+REACT_BEGIN_
+
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Observe
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -140,8 +151,8 @@ template
 inline auto Observe(const RSignal<D,TArg>& subject, F&& func)
 	-> RObserver<D>
 {
-	std::unique_ptr<ObserverNode<D>> pUnique(
-		new SignalObserverNode<D,TArg>(
+	std::unique_ptr< REACT_IMPL_::ObserverNode<D>> pUnique(
+		new  REACT_IMPL_::SignalObserverNode<D,TArg>(
 			subject.GetPtr(), std::forward<F>(func), false));
 
 	auto* raw = pUnique.get();
@@ -162,8 +173,8 @@ template
 inline auto Observe(const REvents<D,TArg>& subject, F&& func)
 	-> RObserver<D>
 {
-	std::unique_ptr<ObserverNode<D>> pUnique(
-		new EventObserverNode<D,TArg>(
+	std::unique_ptr< REACT_IMPL_::ObserverNode<D>> pUnique(
+		new  REACT_IMPL_::EventObserverNode<D,TArg>(
 			subject.GetPtr(), std::forward<F>(func), false));
 
 	auto* raw = pUnique.get();
@@ -181,8 +192,8 @@ template
 inline auto Observe(const REvents<D,EventToken>& subject, F&& func)
 	-> RObserver<D>
 {
-	std::unique_ptr<ObserverNode<D>> pUnique(
-		new EventObserverNode<D,EventToken>(
+	std::unique_ptr< REACT_IMPL_::ObserverNode<D>> pUnique(
+		new  REACT_IMPL_::EventObserverNode<D,EventToken>(
 			subject.GetPtr(), [func] (EventToken _) { func(); }, false));
 
 	auto* raw = pUnique.get();
@@ -211,7 +222,7 @@ inline void DetachAllObservers(const Reactive<TNode<D,TArg>>& subject)
 ////////////////////////////////////////////////////////////////////////////////////////
 inline void DetachThisObserver()
 {
-	current_observer_state_::shouldDetach = true;
+	REACT_IMPL_::current_observer_state_::shouldDetach = true;
 }
 
-} // ~namespace react
+REACT_END_

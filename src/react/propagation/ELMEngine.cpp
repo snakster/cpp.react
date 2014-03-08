@@ -9,8 +9,8 @@
 #include "react/common/GraphData.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace elm_impl {
+REACT_IMPL_BEGIN_
+namespace elm {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
@@ -160,5 +160,5 @@ void ELMEngine::nudgeChildren(Node& node, bool update, Turn& turn)
 	node.LastTurnId = turn.Id();	
 }// ~node.ShiftMutex
 
-} // ~namespace react::elm_impl
-} // ~namespace react
+} // ~namespace elm
+REACT_IMPL_END_

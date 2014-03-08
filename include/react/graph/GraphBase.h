@@ -1,15 +1,16 @@
 #pragma once
 
+#include "react/Defs.h"
+
 #include <atomic>
 #include <memory>
 #include <functional>
 
-//#include "react/ReactiveDomain.h"
 #include "react/common/Util.h"
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
+REACT_IMPL_BEGIN_
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// TickResult
@@ -121,5 +122,4 @@ private:
 template <typename D, typename P, typename V>
 using ReactiveNodePtr = typename ReactiveNode<D,P,V>::NodePtrT;
 
-// ---
-}
+REACT_IMPL_END_

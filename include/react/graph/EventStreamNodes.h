@@ -1,5 +1,7 @@
 #pragma once
 
+#include "react/Defs.h"
+
 #include <atomic>
 #include <algorithm>
 #include <functional>
@@ -14,7 +16,7 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
+REACT_IMPL_BEGIN_
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// EventStreamNode
@@ -346,5 +348,4 @@ private:
 	std::function<TOut(TIn)>	func_;
 };
 
-// ---
-}
+REACT_IMPL_END_

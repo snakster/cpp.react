@@ -15,8 +15,8 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace topo_sort_impl {
+REACT_IMPL_BEGIN_
+namespace toposort {
 
 using std::atomic;
 using std::set;
@@ -101,8 +101,11 @@ private:
 	task_group	tasks_;
 };
 
-} // ~namespace react::topo_sort_impl
+} // ~namespace toposort
+REACT_IMPL_END_
 
-using topo_sort_impl::TopoSortEngine;
+REACT_BEGIN_
 
-} // ~namespace react
+using REACT_IMPL_::toposort::TopoSortEngine;
+
+REACT_END_

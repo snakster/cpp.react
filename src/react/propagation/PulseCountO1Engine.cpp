@@ -9,8 +9,8 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace pulse_count_o1_impl {
+REACT_IMPL_BEGIN_
+namespace pulsecount_o1 {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Node
@@ -257,5 +257,5 @@ MarkerT PulseCountO1Engine::nextMarker()
 	return curMarker_++;
 }
 
-} // ~namespace react::pulse_count_o1_impl
-} // ~namespace react
+} // ~namespace pulsecount_o1
+REACT_IMPL_END_

@@ -9,8 +9,8 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace pulse_count_impl {
+REACT_IMPL_BEGIN_
+namespace pulsecount {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
@@ -173,5 +173,5 @@ void PulseCountEngine::nudgeChildren(Node& node, bool update, Turn& turn)
 	// ~node.ShiftMutex (read)
 }
 
-} // ~namespace react::pulse_count_impl
-} // ~namespace react
+} // ~namespace pulsecount
+REACT_IMPL_END_

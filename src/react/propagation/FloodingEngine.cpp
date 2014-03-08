@@ -1,8 +1,8 @@
 #include "react/propagation/FloodingEngine.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace flooding_impl {
+REACT_IMPL_BEGIN_
+namespace flooding {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
@@ -167,5 +167,5 @@ void FloodingEngine::process(Node& node, Turn& turn)
 	}// ~outputMutex_
 }
 
-} // ~namespace react::flooding_impl
-} // ~namespace react
+} // ~namespace flooding
+REACT_IMPL_END_

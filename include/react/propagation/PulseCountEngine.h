@@ -11,8 +11,8 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace pulse_count_impl {
+REACT_IMPL_BEGIN_
+namespace pulsecount {
 
 using std::atomic;
 using std::set;
@@ -83,8 +83,11 @@ private:
 	task_group			tasks_;
 };
 
-} // ~namespace react::pulse_count_impl
+} // ~namespace pulsecount
+REACT_IMPL_END_
 
-using pulse_count_impl::PulseCountEngine;
+REACT_BEGIN_
 
-} // ~namespace react
+using REACT_IMPL_::pulsecount::PulseCountEngine;
+
+REACT_END_

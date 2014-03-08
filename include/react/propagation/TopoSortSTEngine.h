@@ -9,8 +9,8 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace topo_sort_st_impl {
+REACT_IMPL_BEGIN_
+namespace toposort_st {
 
 using tbb::queuing_rw_mutex;
 
@@ -68,8 +68,11 @@ private:
 	TopoQueue		scheduledNodes_;
 };
 
-} // ~namespace react::topo_sort_impl
+} // ~namespace toposort_st
+REACT_IMPL_END_
 
-using topo_sort_st_impl::TopoSortSTEngine;
+REACT_BEGIN_
 
-} // ~namespace react
+using REACT_IMPL_::toposort_st::TopoSortSTEngine;
+
+REACT_END_

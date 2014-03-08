@@ -1,10 +1,12 @@
 #pragma once
 
+#include "react/Defs.h"
+
 #include <functional>
 #include <memory>
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
+REACT_BEGIN_
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Reactive
@@ -44,9 +46,9 @@ protected:
 	std::shared_ptr<T> ptr_;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
-namespace impl
-{
+REACT_END_
+
+REACT_IMPL_BEGIN_
 
 template <typename L, typename R>
 bool Equals(L lhs, R rhs)
@@ -54,6 +56,4 @@ bool Equals(L lhs, R rhs)
 	return lhs == rhs;
 }
 
-} // ~namespace react::impl
-
-} // ~namespace react
+REACT_IMPL_END_

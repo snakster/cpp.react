@@ -12,8 +12,8 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace pulse_count_o1_impl {
+REACT_IMPL_BEGIN_
+namespace pulsecount_o1 {
 
 using std::atomic;
 using std::vector;
@@ -121,8 +121,11 @@ private:
 	NodeVectorT		changedInputs_;
 };
 
-} // ~namespace react::pulse_count_o1_impl
+} // ~namespace pulsecount_o1
+REACT_IMPL_END_
 
-using pulse_count_o1_impl::PulseCountO1Engine;
+REACT_BEGIN_
 
-} // ~namespace react
+using REACT_IMPL_::pulsecount_o1::PulseCountO1Engine;
+
+REACT_END_

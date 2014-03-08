@@ -1,5 +1,7 @@
 #pragma once
 
+#include "react/Defs.h"
+
 #include <atomic>
 #include <set>
 
@@ -12,8 +14,8 @@
 #include "react/propagation/EngineBase.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace elm_impl {
+REACT_IMPL_BEGIN_
+namespace elm {
 
 using std::atomic;
 using std::set;
@@ -87,8 +89,11 @@ private:
 	NodeSetT	inputNodes_;
 };
 
-} // ~namespace react::elm_impl
+} // ~namespace elm
+REACT_IMPL_END_
 
-using elm_impl::ELMEngine;
+REACT_BEGIN_
 
-} // ~namespace react
+using REACT_IMPL_::elm::ELMEngine;
+
+REACT_END_

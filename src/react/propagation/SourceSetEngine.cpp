@@ -3,8 +3,8 @@
 #include "tbb/task_group.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace source_set_impl {
+REACT_IMPL_BEGIN_
+namespace sourceset {
 
 // Todo
 tbb::task_group		tasks;
@@ -262,5 +262,5 @@ void SourceSetEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, 
 	node.Shift(oldParent, newParent, turn);
 }
 
-} // ~namespace react::source_set_impl
-} // ~namespace react
+} // ~namespace sourceset
+REACT_IMPL_END_

@@ -14,8 +14,8 @@
 #include "react/common/Types.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace source_set_impl {
+REACT_IMPL_BEGIN_
+namespace sourceset {
 
 class Node;
 
@@ -129,8 +129,11 @@ private:
 	vector<Node*>	changedInputs_;
 };
 
-} // ~namespace react::source_set_impl
+} // ~namespace sourceset
+REACT_IMPL_END_
 
-using source_set_impl::SourceSetEngine;
+REACT_BEGIN_
 
-} // ~namespace react
+using REACT_IMPL_::sourceset::SourceSetEngine;
+
+REACT_END_

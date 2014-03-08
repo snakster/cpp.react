@@ -5,7 +5,7 @@
 #include "react/Operations.h"
 #include "react/ReactiveObject.h"
 
-#include "react/propagation/SourceSetEngine.h"
+//#include "react/propagation/SourceSetEngine.h"
 #include "react/propagation/TopoSortSTEngine.h"
 
 using namespace std;
@@ -77,6 +77,13 @@ void SignalExample2()
 	src <<= 1;
 
 	cout << endl;
+
+
+	//auto h = D::MakeVar(width);
+	static_assert(IsSignalT<D,decltype(width)>::value, "Not a signal.");
+	static_assert(! IsSignalT<D,decltype(60)>::value, "A signal.");
+
+	auto h = D::MakeVar(width);
 }
 
 

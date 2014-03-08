@@ -1,5 +1,7 @@
 #pragma once
 
+#include "react/Defs.h"
+
 #include <functional>
 #include <memory>
 #include <thread>
@@ -11,7 +13,7 @@
 #include "react/graph/ConversionNodes.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
+REACT_BEGIN_
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Fold
@@ -28,7 +30,7 @@ inline auto Fold(V&& init, const REvents<D,E>& events, F&& func)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
-		std::make_shared<FoldNode<D,S,E>>(
+		std::make_shared<REACT_IMPL_::FoldNode<D,S,E>>(
 			std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
 }
 
@@ -47,7 +49,7 @@ inline auto Iterate(V&& init, const REvents<D,E>& events, F&& func)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
-		std::make_shared<IterateNode<D,S,E>>(
+		std::make_shared<REACT_IMPL_::IterateNode<D,S,E>>(
 			std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
 }
 
@@ -64,7 +66,7 @@ inline auto Hold(V&& init, const REvents<D,T>& events)
 	-> RSignal<D,T>
 {
 	return RSignal<D,T>(
-		std::make_shared<HoldNode<D,T>>(
+		std::make_shared<REACT_IMPL_::HoldNode<D,T>>(
 			std::forward<V>(init), events.GetPtr(), false));
 }
 
@@ -81,7 +83,7 @@ inline auto Snapshot(const RSignal<D,S>& target, const REvents<D,E>& trigger)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
-		std::make_shared<SnapshotNode<D,S,E>>(
+		std::make_shared<REACT_IMPL_::SnapshotNode<D,S,E>>(
 			target.GetPtr(), trigger.GetPtr(), false));
 }
 
@@ -110,7 +112,7 @@ inline auto Monitor(const RSignal<D,S>& target)
 	-> REvents<D,S>
 {
 	return REvents<D,S>(
-		std::make_shared<MonitorNode<D, S>>(
+		std::make_shared<REACT_IMPL_::MonitorNode<D, S>>(
 			target.GetPtr(), false));
 }
 
@@ -159,7 +161,7 @@ inline auto Pulse(const RSignal<D,S>& target, const REvents<D,E>& trigger)
 	-> REvents<D,S>
 {
 	return REvents<D,S>(
-		std::make_shared<PulseNode<D,S,E>>(
+		std::make_shared<REACT_IMPL_::PulseNode<D,S,E>>(
 			target.GetPtr(), trigger.GetPtr(), false));
 }
 
@@ -179,7 +181,7 @@ inline auto Flatten(const RSignal<D,THandle<D,TInnerValue>>& node)
 	-> REvents<D,TInnerValue>
 {
 	return REvents<D,TInnerValue>(
-		std::make_shared<EventFlattenNode<D, REvents<D,TInnerValue>, TInnerValue>>(
+		std::make_shared<REACT_IMPL_::EventFlattenNode<D, REvents<D,TInnerValue>, TInnerValue>>(
 			node.GetPtr(), node().GetPtr(), false));
 }
 
@@ -201,4 +203,4 @@ struct Decrementer : public std::unary_function<T,T>
 	T operator() (T v) { return v-1; }
 };
 
-} //~namespace react
+REACT_END_

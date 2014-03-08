@@ -12,8 +12,8 @@
 #include "react/common/Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-namespace flooding_impl {
+REACT_IMPL_BEGIN_
+namespace flooding {
 
 using std::atomic;
 using std::set;
@@ -97,8 +97,11 @@ private:
 	void process(Node& node, Turn& turn);
 };
 
-} // ~namespace react::flooding_impl
+} // ~namespace flooding
+REACT_IMPL_END_
 
-using flooding_impl::FloodingEngine;
+REACT_BEGIN_
 
-} // ~namespace react
+using REACT_IMPL_::flooding::FloodingEngine;
+
+REACT_END_

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "react/Defs.h"
 
 #include <atomic>
 #include <memory>
@@ -11,13 +12,18 @@
 #include "react/ReactiveDomain.h"
 #include "react/common/Concurrency.h"
 
-namespace react {
+////////////////////////////////////////////////////////////////////////////////////////
+REACT_BEGIN_
 
 enum class ETransactionMode
 {
 	none,
 	exclusive
 };
+
+REACT_END_
+
+REACT_IMPL_BEGIN_
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveEngine
@@ -208,5 +214,4 @@ private:
 	ExclusiveTurn*	tail_ = nullptr;
 };
 
-// ---
-}
+REACT_IMPL_END_

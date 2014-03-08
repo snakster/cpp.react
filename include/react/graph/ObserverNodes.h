@@ -7,7 +7,8 @@
 #include "EventStreamNodes.h"
 #include "SignalNodes.h"
 
-namespace react {
+////////////////////////////////////////////////////////////////////////////////////////
+REACT_IMPL_BEGIN_
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// IObserverNode
@@ -111,8 +112,8 @@ public:
 	}
 
 private:
-	SignalNodeWeakPtr<D,TArg>		subject_;
-	std::function<void(TArg)>			func_;
+	SignalNodeWeakPtr<D,TArg>	subject_;
+	std::function<void(TArg)>	func_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -184,8 +185,7 @@ public:
 
 private:
 	EventStreamNodeWeakPtr<D,TArg>	subject_;
-	std::function<void(TArg)>				func_;
+	std::function<void(TArg)>		func_;
 };
 
-// ---
-}
+REACT_IMPL_END_
