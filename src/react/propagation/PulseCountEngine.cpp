@@ -24,9 +24,9 @@ Turn::Turn(TurnIdT id, TurnFlagsT flags) :
 /// Node
 ////////////////////////////////////////////////////////////////////////////////////////
 Node::Node() :
-	TickThreshold(0),
-	ShouldUpdate(false),
-	Marked(false)
+	Counter{ 0 },
+	ShouldUpdate{ false },
+	Marked{ false }
 {
 }
 
@@ -54,8 +54,8 @@ void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
 template <typename TTurn>
 void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
-	for (auto* node : changedInputs_)
-		tasks_.run(std::bind(&EngineBase<TTurn>::initTurn, this, std::ref(*node), std::ref(turn)));
+	// Note: Copies the vector
+	runInitReachableNodesTask(changedInputs_);
 	tasks_.wait();
 
 	for (auto* node : changedInputs_)
@@ -103,7 +103,7 @@ void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent
 		}
 		else
 		{
-			node.TickThreshold = 1;
+			node.Counter = 1;
 			node.ShouldUpdate = true;
 		}
 	}
@@ -114,15 +114,49 @@ void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent
 }
 
 template <typename TTurn>
-void EngineBase<TTurn>::initTurn(Node& node, TTurn& turn)
+void EngineBase<TTurn>::runInitReachableNodesTask(NodeVectorT leftNodes)
 {
-	for (auto* succ : node.Successors)
-	{
-		succ->TickThreshold.fetch_add(1, std::memory_order_relaxed);
+	NodeVectorT rightNodes;
 
-		if (!succ->Marked.exchange(true))
-			tasks_.run(std::bind(&EngineBase<TTurn>::initTurn, this, std::ref(*succ), std::ref(turn)));
+	// Manage two balanced stacks of nodes.
+	// Left size is always >= right size.
+	// If left size exceeds threshold, move work to another task
+	do
+	{
+		Node* node = nullptr;
+
+		if (leftNodes.size() > rightNodes.size())
+		{
+			node = leftNodes.back();
+			leftNodes.pop_back();
+		}
+		else if (rightNodes.size() > 0)
+		{
+			node = rightNodes.back();
+			rightNodes.pop_back();
+		}
+		else
+		{
+			break;
+		}
+
+		for (auto* succ : node->Successors)
+		{
+			succ->Counter++;
+
+			if (!succ->Marked.exchange(true))
+				continue;
+				
+			(leftNodes.size() > rightNodes.size() ? rightNodes : leftNodes).push_back(succ);
+
+			if (leftNodes.size() > 4)
+			{
+				tasks_.run(std::bind(&EngineBase<TTurn>::runInitReachableNodesTask, this, std::move(leftNodes)));
+				leftNodes.clear();
+			}
+		}
 	}
+	while (true);
 }
 
 template <typename TTurn>
@@ -156,7 +190,7 @@ void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
 				succ->ShouldUpdate = true;
 
 			// Delay tick?
-			if (succ->TickThreshold-- > 1)
+			if (succ->Counter-- > 1)
 				continue;
 
 			tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));

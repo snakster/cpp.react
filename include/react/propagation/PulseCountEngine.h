@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <vector>
 
 #include "tbb/task_group.h"
 #include "tbb/spin_rw_mutex.h"
@@ -15,7 +16,7 @@ REACT_IMPL_BEGIN
 namespace pulsecount {
 
 using std::atomic;
-using std::set;
+using std::vector;
 using tbb::task_group;
 using tbb::spin_rw_mutex;
 
@@ -34,14 +35,14 @@ public:
 class Node : public IReactiveNode
 {
 public:
-	typedef spin_rw_mutex	ShiftMutexT;
+	using ShiftMutexT = spin_rw_mutex;
 
 	Node();
 
 	ShiftMutexT			ShiftMutex;
 	NodeVector<Node>	Successors;
 
-	atomic<int>		TickThreshold;
+	atomic<int>		Counter;
 	atomic<bool>	ShouldUpdate;
 	atomic<bool>	Marked;
 };
@@ -53,7 +54,8 @@ template <typename TTurn>
 class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
-	typedef Node::ShiftMutexT	NodeShiftMutexT;	
+	using NodeShiftMutexT = Node::ShiftMutexT;
+	using NodeVectorT = vector<Node*>;
 
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
@@ -67,7 +69,7 @@ public:
 	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
 
 private:
-	void initTurn(Node& node, TTurn& turn);
+	void runInitReachableNodesTask(NodeVectorT leftNodes);
 
 	void processChild(Node& node, bool update, TTurn& turn);
 	void nudgeChildren(Node& parent, bool update, TTurn& turn);
