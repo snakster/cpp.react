@@ -1,9 +1,11 @@
 #pragma once
 
+#include "react/Defs.h"
+
 #include <mutex>
 #include <condition_variable>
 
-namespace react {
+REACT_BEGIN
 
 class BlockingCondition
 {
@@ -70,4 +72,4 @@ private:
 	bool					blocked_ = false;
 };
 
-} // ~namespace react
+REACT_END

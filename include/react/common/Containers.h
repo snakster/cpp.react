@@ -1,11 +1,13 @@
 #pragma once
 
-#include <vector>
-#include <array>
+#include "react/Defs.h"
+
 #include <algorithm>
+#include <array>
+#include <vector>
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
+REACT_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// NodeVector
@@ -80,4 +82,4 @@ private:
 	DataT	nodes_;
 };
 
-} // ~namespace react
+REACT_END

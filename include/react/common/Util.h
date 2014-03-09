@@ -1,5 +1,7 @@
 #pragma once
 
+#include "react/Defs.h"
+
 #include <assert.h>
 #include <cstddef>
 #include <ctime>
@@ -11,16 +13,7 @@
 #include <utility>
 
 ////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
-
-#ifdef _DEBUG
-#define REACT_MESSAGE(...) printf(__VA_ARGS__ ## "\n")
-#else
-#define MESSAGE
-#endif
-
-// Assert with message
-#define REACT_ASSERT(condition, ...) for (; !(condition); assert(condition)) printf(__VA_ARGS__ ## "\n")
+REACT_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// NonCopyable
@@ -147,5 +140,4 @@ struct Identity
 	typedef T Type;
 };
 
-// ---
-}
+REACT_END
