@@ -4,7 +4,6 @@
 #include "react/propagation/PulseCountEngine.h"
 #include "react/propagation/TopoSortEngine.h"
 #include "react/propagation/SourceSetEngine.h"
-#include "react/propagation/TopoSortSTEngine.h"
 #include "react/propagation/PulseCountO1Engine.h"
 #include "react/propagation/ELMEngine.h"
 
@@ -13,12 +12,12 @@ namespace {
 
 using namespace react;
 
-INSTANTIATE_TYPED_TEST_CASE_P(Flooding, OperationsTest, FloodingEngine<>);
-INSTANTIATE_TYPED_TEST_CASE_P(TopoSort, OperationsTest, TopoSortEngine<>);
-INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, OperationsTest, PulseCountEngine<>);
-INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, OperationsTest, SourceSetEngine<>);
-INSTANTIATE_TYPED_TEST_CASE_P(TopoSortST, OperationsTest, TopoSortEngine<sequential>);
-INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1, OperationsTest, PulseCountO1Engine<>);
-INSTANTIATE_TYPED_TEST_CASE_P(ELM, OperationsTest, ELMEngine<>);
+INSTANTIATE_TYPED_TEST_CASE_P(SeqTopoSort, OperationsTest, TopoSortEngine<sequential>);
+INSTANTIATE_TYPED_TEST_CASE_P(ParTopoSort, OperationsTest, TopoSortEngine<parallel>);
+INSTANTIATE_TYPED_TEST_CASE_P(Flooding, OperationsTest, FloodingEngine<parallel>);
+INSTANTIATE_TYPED_TEST_CASE_P(ELM, OperationsTest, ELMEngine<parallel>);
+INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, OperationsTest, PulseCountEngine<parallel>);
+INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, OperationsTest, SourceSetEngine<parallel>);
+INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1, OperationsTest, PulseCountO1Engine<parallel>);
 
 } // ~namespace
