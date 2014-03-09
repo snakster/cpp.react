@@ -32,47 +32,52 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-class Turn :
-	public TurnBase
+class Turn : public TurnBase
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// TopoSortSTEngine
+/// EngineBase
 ////////////////////////////////////////////////////////////////////////////////////////
-class TopoSortSTEngine : public IReactiveEngine<Node,Turn>
+template <typename TTurn>
+class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
 	typedef TopoQueue<Node>	TopoQueue;
 
-	TopoSortSTEngine();
-
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnInputChange(Node& node, Turn& turn);
+	void OnTurnInputChange(Node& node, TTurn& turn);
 	void OnTurnPropagate(Turn& turn);
 
-	void OnNodePulse(Node& node, Turn& turn);
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
-
-	template <typename F>
-	bool TryMerge(F&&) { return false; }
+	void OnNodePulse(Node& node, TTurn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
 
 private:
-	void processChildren(Node& node, Turn& turn);
+	void processChildren(Node& node, TTurn& turn);
 	void invalidateSuccessors(Node& node);
 
 	TopoQueue		scheduledNodes_;
 };
+
+class BasicEngine :	public EngineBase<Turn> {};
+class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace toposort_st
 REACT_IMPL_END
 
 REACT_BEGIN
 
-using REACT_IMPL::toposort_st::TopoSortSTEngine;
+struct sequential;
+struct sequential_queuing;
+
+template <typename TMode>
+class TopoSortEngine;
+
+template <> class TopoSortEngine<sequential> : public REACT_IMPL::toposort_st::BasicEngine {};
+template <> class TopoSortEngine<sequential_queuing> : public REACT_IMPL::toposort_st::QueuingEngine {};
 
 REACT_END

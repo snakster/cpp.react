@@ -28,9 +28,7 @@ using tbb::spin_mutex;
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-class Turn :
-	public TurnBase,
-	public TurnQueueManager::QueueEntry
+class Turn : public TurnBase
 {
 public:
 	using SourceIdSetT = SourceIdSet<ObjectId>;
@@ -100,40 +98,45 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// SourceSetEngine
+/// EngineBase
 ////////////////////////////////////////////////////////////////////////////////////////
-class SourceSetEngine :
-	public IReactiveEngine<Node,Turn>,
-	public TurnQueueManager
+template <typename TTurn>
+class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
-	void SourceSetEngine::OnNodeCreate(Node& node);
+	void OnNodeCreate(Node& node);
 
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
 	void OnNodeDestroy(Node& node);
 
-	void OnTurnAdmissionStart(Turn& turn);
-	void OnTurnAdmissionEnd(Turn& turn);
-	void OnTurnEnd(Turn& turn);
+	void OnTurnInputChange(Node& node, TTurn& turn);
+	void OnTurnPropagate(TTurn& turn);
 
-	void OnTurnInputChange(Node& node, Turn& turn);
-	void OnTurnPropagate(Turn& turn);
-
-	void OnNodePulse(Node& node, Turn& turn);
-	void OnNodeIdlePulse(Node& node, Turn& turn);
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void OnNodePulse(Node& node, TTurn& turn);
+	void OnNodeIdlePulse(Node& node, TTurn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
 
 private:
 	vector<Node*>	changedInputs_;
 };
+
+class BasicEngine :	public EngineBase<Turn> {};
+class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace sourceset
 REACT_IMPL_END
 
 REACT_BEGIN
 
-using REACT_IMPL::sourceset::SourceSetEngine;
+struct parallel;
+struct parallel_queuing;
+
+template <typename TMode = parallel_queuing>
+class SourceSetEngine;
+
+template <> class SourceSetEngine<parallel> : public REACT_IMPL::sourceset::BasicEngine {};
+template <> class SourceSetEngine<parallel_queuing> : public REACT_IMPL::sourceset::QueuingEngine {};
 
 REACT_END

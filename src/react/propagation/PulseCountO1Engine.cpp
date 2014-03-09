@@ -30,7 +30,6 @@ Node::Node() :
 ////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
 	TurnBase(id, flags),
-	TurnQueueManager::QueueEntry(flags),
 	Marker{ 0 }
 {
 }
@@ -38,12 +37,8 @@ Turn::Turn(TurnIdT id, TurnFlagsT flags) :
 ////////////////////////////////////////////////////////////////////////////////////////
 /// PulseCountO1Engine
 ////////////////////////////////////////////////////////////////////////////////////////
-PulseCountO1Engine::PulseCountO1Engine() :
-	curMarker_{ 1 }
-{
-}
-
-void PulseCountO1Engine::OnNodeAttach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
 {
 	parent.Successors.Add(node);
 	node.Predecessors.Add(parent);
@@ -58,7 +53,8 @@ void PulseCountO1Engine::OnNodeAttach(Node& node, Node& parent)
 	//tasks_.wait();
 }
 
-void PulseCountO1Engine::OnNodeDetach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
 {
 	parent.Successors.Remove(node);
 	node.Predecessors.Remove(parent);
@@ -72,22 +68,14 @@ void PulseCountO1Engine::OnNodeDetach(Node& node, Node& parent)
 	updateNodeWeight(parent, node.GetMarker(), -node.Weight(), -node.Cost());
 }
 
-void PulseCountO1Engine::OnTurnAdmissionStart(Turn& turn)
-{
-	StartTurn(turn);
-}
-
-void PulseCountO1Engine::OnTurnAdmissionEnd(Turn& turn)
-{
-	turn.RunMergedInputs();
-}
-
-void PulseCountO1Engine::OnTurnInputChange(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
 {
 	changedInputs_.push_back(&node);
 }
 
-void PulseCountO1Engine::OnTurnPropagate(Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
 	turn.Marker = nextMarker();
 
@@ -102,22 +90,20 @@ void PulseCountO1Engine::OnTurnPropagate(Turn& turn)
 	changedInputs_.clear();
 }
 
-void PulseCountO1Engine::OnTurnEnd(Turn& turn)
-{
-	EndTurn(turn);
-}
-
-void PulseCountO1Engine::OnNodePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
 {
 	nudgeChildren(node, true, turn);
 }
 
-void PulseCountO1Engine::OnNodeIdlePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 {
 	nudgeChildren(node, false, turn);
 }
 
-void PulseCountO1Engine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
 {
 	bool shouldTick = false;
 
@@ -150,7 +136,8 @@ void PulseCountO1Engine::OnNodeShift(Node& node, Node& oldParent, Node& newParen
 		node.Tick(&turn);
 }
 
-void PulseCountO1Engine::runInitReachableNodesTask(NodeVectorT leftNodes, MarkerT mark)
+template <typename TTurn>
+void EngineBase<TTurn>::runInitReachableNodesTask(NodeVectorT leftNodes, MarkerT mark)
 {
 	NodeVectorT rightNodes;
 
@@ -187,7 +174,7 @@ void PulseCountO1Engine::runInitReachableNodesTask(NodeVectorT leftNodes, Marker
 
 			if (leftNodes.size() > 4)
 			{
-				tasks_.run(std::bind(&PulseCountO1Engine::runInitReachableNodesTask, this, std::move(leftNodes), mark));
+				tasks_.run(std::bind(&EngineBase<TTurn>::runInitReachableNodesTask, this, std::move(leftNodes), mark));
 				leftNodes.clear();
 			}
 		}
@@ -195,7 +182,8 @@ void PulseCountO1Engine::runInitReachableNodesTask(NodeVectorT leftNodes, Marker
 	while (true);
 }
 
-void PulseCountO1Engine::processChild(Node& node, bool update, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::processChild(Node& node, bool update, TTurn& turn)
 {
 	// Invalidated, this node has to be ticked
 	if (node.ShouldUpdate)
@@ -211,7 +199,8 @@ void PulseCountO1Engine::processChild(Node& node, bool update, Turn& turn)
 	}
 }
 
-void PulseCountO1Engine::nudgeChildren(Node& node, bool update, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
 {
 	Node* next = nullptr;
 
@@ -229,7 +218,7 @@ void PulseCountO1Engine::nudgeChildren(Node& node, bool update, Turn& turn)
 				continue;
 
 			if (next != nullptr)
-				tasks_.run(std::bind(&PulseCountO1Engine::processChild, this, std::ref(*succ), update, std::ref(turn)));
+				tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));
 			else
 				next = succ;
 		}
@@ -241,7 +230,8 @@ void PulseCountO1Engine::nudgeChildren(Node& node, bool update, Turn& turn)
 		processChild(*next, update, turn);
 }
 
-void PulseCountO1Engine::updateNodeWeight(Node& node, MarkerT mark, int weightDelta, int costDelta)
+template <typename TTurn>
+void EngineBase<TTurn>::updateNodeWeight(Node& node, MarkerT mark, int weightDelta, int costDelta)
 {
 	node.AdjustWeight(weightDelta, costDelta);
 
@@ -252,10 +242,15 @@ void PulseCountO1Engine::updateNodeWeight(Node& node, MarkerT mark, int weightDe
 	}
 }
 
-MarkerT PulseCountO1Engine::nextMarker()
+template <typename TTurn>
+MarkerT EngineBase<TTurn>::nextMarker()
 {
 	return curMarker_++;
 }
+
+// Explicit instantiation
+template class EngineBase<Turn>;
+template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace pulsecount_o1
 REACT_IMPL_END

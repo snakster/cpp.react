@@ -14,11 +14,11 @@ namespace {
 using namespace react;
 
 INSTANTIATE_TYPED_TEST_CASE_P(Flooding, EventStreamTest, FloodingEngine<>);
-INSTANTIATE_TYPED_TEST_CASE_P(TopoSort, EventStreamTest, TopoSortEngine);
+INSTANTIATE_TYPED_TEST_CASE_P(TopoSort, EventStreamTest, TopoSortEngine<>);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, EventStreamTest, PulseCountEngine<>);
-INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, EventStreamTest, SourceSetEngine);
-INSTANTIATE_TYPED_TEST_CASE_P(TopoSortST, EventStreamTest, TopoSortSTEngine);
-INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1, EventStreamTest, PulseCountO1Engine);
+INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, EventStreamTest, SourceSetEngine<>);
+INSTANTIATE_TYPED_TEST_CASE_P(TopoSortST, EventStreamTest, TopoSortEngine<sequential>);
+INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1, EventStreamTest, PulseCountO1Engine<>);
 INSTANTIATE_TYPED_TEST_CASE_P(ELM, EventStreamTest, ELMEngine<>);
 
 // ---

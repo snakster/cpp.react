@@ -67,9 +67,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-class Turn :
-	public TurnBase,
-	public TurnQueueManager::QueueEntry
+class Turn : public TurnBase
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
@@ -78,29 +76,22 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// PulseCountO1Engine
+/// EngineBase
 ////////////////////////////////////////////////////////////////////////////////////////
-class PulseCountO1Engine :
-	public IReactiveEngine<Node,Turn>,
-	public TurnQueueManager
+template <typename TTurn>
+class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
-	PulseCountO1Engine();
-
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnAdmissionStart(Turn& turn);
-	void OnTurnAdmissionEnd(Turn& turn);
-	void OnTurnEnd(Turn& turn);
+	void OnTurnInputChange(Node& node, TTurn& turn);
+	void OnTurnPropagate(TTurn& turn);
 
-	void OnTurnInputChange(Node& node, Turn& turn);
-	void OnTurnPropagate(Turn& turn);
+	void OnNodePulse(Node& node, TTurn& turn);
+	void OnNodeIdlePulse(Node& node, TTurn& turn);
 
-	void OnNodePulse(Node& node, Turn& turn);
-	void OnNodeIdlePulse(Node& node, Turn& turn);
-
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
 
 private:
 	typedef Node::ShiftMutexT	NodeShiftMutexT;
@@ -110,22 +101,32 @@ private:
 
 	void	updateNodeWeight(Node& node, MarkerT marker, int weightDelta, int costDelta);
 
-	void	processChild(Node& node, bool update, Turn& turn);
-	void	nudgeChildren(Node& parent, bool update, Turn& turn);
+	void	processChild(Node& node, bool update, TTurn& turn);
+	void	nudgeChildren(Node& parent, bool update, TTurn& turn);
 
 	MarkerT	nextMarker();
 
 	task_group		tasks_;
-	MarkerT			curMarker_;
+	MarkerT			curMarker_ = 1;
 	
 	NodeVectorT		changedInputs_;
 };
+
+class BasicEngine :	public EngineBase<Turn> {};
+class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace pulsecount_o1
 REACT_IMPL_END
 
 REACT_BEGIN
 
-using REACT_IMPL::pulsecount_o1::PulseCountO1Engine;
+struct parallel;
+struct parallel_queuing;
+
+template <typename TMode = parallel_queuing>
+class PulseCountO1Engine;
+
+template <> class PulseCountO1Engine<parallel> : public REACT_IMPL::pulsecount_o1::BasicEngine {};
+template <> class PulseCountO1Engine<parallel_queuing> : public REACT_IMPL::pulsecount_o1::QueuingEngine {};
 
 REACT_END

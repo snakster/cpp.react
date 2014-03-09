@@ -23,13 +23,10 @@ Turn::Turn(TurnIdT id, TurnFlagsT flags) :
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// TopoSortSTEngine
+/// Engine
 ////////////////////////////////////////////////////////////////////////////////////////
-TopoSortSTEngine::TopoSortSTEngine()
-{
-}
-
-void TopoSortSTEngine::OnNodeAttach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
 {
 	parent.Successors.Add(node);
 
@@ -37,17 +34,20 @@ void TopoSortSTEngine::OnNodeAttach(Node& node, Node& parent)
 		node.Level = parent.Level + 1;
 }
 
-void TopoSortSTEngine::OnNodeDetach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
 {
 	parent.Successors.Remove(node);
 }
 
-void TopoSortSTEngine::OnTurnInputChange(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
 {
 	processChildren(node, turn);
 }
 
-void TopoSortSTEngine::OnTurnPropagate(Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnPropagate(Turn& turn)
 {
 	while (!scheduledNodes_.Empty())
 	{
@@ -67,12 +67,14 @@ void TopoSortSTEngine::OnTurnPropagate(Turn& turn)
 	}
 }
 
-void TopoSortSTEngine::OnNodePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
 {
 	processChildren(node, turn);
 }
 
-void TopoSortSTEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
 {
 	OnNodeDetach(node, oldParent);
 	OnNodeAttach(node, newParent);
@@ -84,7 +86,8 @@ void TopoSortSTEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent,
 	scheduledNodes_.Push(&node);
 }
 
-void TopoSortSTEngine::processChildren(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::processChildren(Node& node, TTurn& turn)
 {
 	// Add children to queue
 	for (auto* succ : node.Successors)
@@ -97,7 +100,8 @@ void TopoSortSTEngine::processChildren(Node& node, Turn& turn)
 	}
 }
 
-void TopoSortSTEngine::invalidateSuccessors(Node& node)
+template <typename TTurn>
+void EngineBase<TTurn>::invalidateSuccessors(Node& node)
 {
 	for (auto* succ : node.Successors)
 	{
@@ -105,6 +109,10 @@ void TopoSortSTEngine::invalidateSuccessors(Node& node)
 			succ->NewLevel = node.Level + 1;
 	}
 }
+
+// Explicit instantiation
+template class EngineBase<Turn>;
+template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace toposort_st
 REACT_IMPL_END

@@ -13,8 +13,7 @@ tbb::task_group		tasks;
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
-	TurnBase(id, flags),
-	TurnQueueManager::QueueEntry(flags)
+	TurnBase(id, flags)
 {
 }
 
@@ -196,44 +195,40 @@ void Node::invalidateSources()
 ////////////////////////////////////////////////////////////////////////////////////////
 /// SourceSetEngine
 ////////////////////////////////////////////////////////////////////////////////////////
-void SourceSetEngine::OnNodeCreate(Node& node)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeCreate(Node& node)
 {
 	if (node.IsInputNode())
 		node.AddSourceId(GetObjectId(node));
 }
 
-void SourceSetEngine::OnNodeAttach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
 {
 	parent.AttachSuccessor(node);
 }
 
-void SourceSetEngine::OnNodeDetach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
 {
 	parent.DetachSuccessor(node);
 }
 
-void SourceSetEngine::OnNodeDestroy(Node& node)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeDestroy(Node& node)
 {
 	node.Destroy();
 }
 
-void SourceSetEngine::OnTurnAdmissionStart(Turn& turn)
-{
-	StartTurn(turn);
-}
-
-void SourceSetEngine::OnTurnAdmissionEnd(Turn& turn)
-{
-	turn.RunMergedInputs();
-}
-
-void SourceSetEngine::OnTurnInputChange(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
 {
 	turn.AddSourceId(GetObjectId(node));
 	changedInputs_.push_back(&node);
 }
 
-void SourceSetEngine::OnTurnPropagate(Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
 	for (auto* node : changedInputs_)
 		node->Pulse(turn, true);
@@ -242,25 +237,27 @@ void SourceSetEngine::OnTurnPropagate(Turn& turn)
 	changedInputs_.clear();
 }
 
-void SourceSetEngine::OnTurnEnd(Turn& turn)
-{
-	EndTurn(turn);
-}
-
-void SourceSetEngine::OnNodePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
 {
 	node.Pulse(turn, true);
 }
 
-void SourceSetEngine::OnNodeIdlePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 {
 	node.Pulse(turn, false);
 }
 
-void SourceSetEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
 {
 	node.Shift(oldParent, newParent, turn);
 }
+
+// Explicit instantiation
+template class EngineBase<Turn>;
+template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace sourceset
 REACT_IMPL_END

@@ -52,9 +52,7 @@ struct ShiftRequestData
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-class Turn :
-	public TurnBase,
-	public TurnQueueManager::QueueEntry
+class Turn : public TurnBase
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
@@ -63,9 +61,8 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 /// TopoSortEngine
 ////////////////////////////////////////////////////////////////////////////////////////
-class TopoSortEngine :
-	public IReactiveEngine<Node,Turn>,
-	public TurnQueueManager
+template <typename TTurn>
+class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
 	using NodeSetT = set<Node*>;
@@ -73,25 +70,19 @@ public:
 	using ShiftRequestVectorT = concurrent_vector<ShiftRequestData>;
 	using TopoQueueT = TopoQueue<Node>;
 
-	TopoSortEngine();
-
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnAdmissionStart(Turn& turn);
-	void OnTurnAdmissionEnd(Turn& turn);
-	void OnTurnEnd(Turn& turn);
+	void OnTurnInputChange(Node& node, TTurn& turn);
+	void OnTurnPropagate(TTurn& turn);
 
-	void OnTurnInputChange(Node& node, Turn& turn);
-	void OnTurnPropagate(Turn& turn);
-
-	void OnNodePulse(Node& node, Turn& turn);
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void OnNodePulse(Node& node, TTurn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
 
 private:
-	void applyShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void applyShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
 
-	void processChildren(Node& node, Turn& turn);
+	void processChildren(Node& node, TTurn& turn);
 	void invalidateSuccessors(Node& node);
 
 	TopoQueueT			scheduledNodes_;
@@ -101,11 +92,22 @@ private:
 	task_group	tasks_;
 };
 
+class BasicEngine :	public EngineBase<Turn> {};
+class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
+
 } // ~namespace toposort
 REACT_IMPL_END
 
+////////////////////////////////////////////////////////////////////////////////////////
 REACT_BEGIN
 
-using REACT_IMPL::toposort::TopoSortEngine;
+struct parallel;
+struct parallel_queuing;
+
+template <typename TMode = parallel_queuing>
+class TopoSortEngine;
+
+template <> class TopoSortEngine<parallel> : public REACT_IMPL::toposort::BasicEngine {};
+template <> class TopoSortEngine<parallel_queuing> : public REACT_IMPL::toposort::QueuingEngine {};
 
 REACT_END

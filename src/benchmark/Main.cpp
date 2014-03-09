@@ -27,21 +27,21 @@ namespace {
 using namespace react;
 
 REACTIVE_DOMAIN(FloodingDomain, FloodingEngine<>, EventLog);
-REACTIVE_DOMAIN(TopoSortDomain, TopoSortEngine, EventLog);
+REACTIVE_DOMAIN(TopoSortDomain, TopoSortEngine<>, EventLog);
 //REACTIVE_DOMAIN(TopoSortO1Domain, TopoSortO1Engine, EventLog);
 REACTIVE_DOMAIN(PulseCountDomain, PulseCountEngine<>, EventLog);
-REACTIVE_DOMAIN(SourceSetDomain, SourceSetEngine, EventLog);
-REACTIVE_DOMAIN(TopoSortSTDomain, TopoSortSTEngine, EventLog);
-REACTIVE_DOMAIN(PulseCountO1Domain, PulseCountO1Engine, EventLog);
+REACTIVE_DOMAIN(SourceSetDomain, SourceSetEngine<>, EventLog);
+REACTIVE_DOMAIN(TopoSortSTDomain, TopoSortEngine<sequential>, EventLog);
+REACTIVE_DOMAIN(PulseCountO1Domain, PulseCountO1Engine<>, EventLog);
 REACTIVE_DOMAIN(ELMDomain, ELMEngine<>, EventLog);
 
 REACTIVE_DOMAIN(BFloodingDomain, FloodingEngine<>);
-REACTIVE_DOMAIN(BTopoSortDomain, TopoSortEngine);
+REACTIVE_DOMAIN(BTopoSortDomain, TopoSortEngine<>);
 //REACTIVE_DOMAIN(BTopoSortO1Domain, TopoSortO1Engine);
 REACTIVE_DOMAIN(BPulseCountDomain, PulseCountEngine<>);
-REACTIVE_DOMAIN(BSourceSetDomain, SourceSetEngine);
-REACTIVE_DOMAIN(BTopoSortSTDomain, TopoSortSTEngine);
-REACTIVE_DOMAIN(BPulseCountO1Domain, PulseCountO1Engine);
+REACTIVE_DOMAIN(BSourceSetDomain, SourceSetEngine<>);
+REACTIVE_DOMAIN(BTopoSortSTDomain, TopoSortEngine<sequential>);
+REACTIVE_DOMAIN(BPulseCountO1Domain, PulseCountO1Engine<>);
 REACTIVE_DOMAIN(BELMDomain, ELMEngine<>);
 
 void runBenchmarkGrid(std::ostream& out)
