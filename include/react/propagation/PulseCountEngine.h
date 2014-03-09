@@ -24,7 +24,7 @@ using tbb::spin_rw_mutex;
 ////////////////////////////////////////////////////////////////////////////////////////
 struct Turn :
 	public TurnBase,
-	public ExclusiveTurnManager::ExclusiveTurn
+	public TurnQueueManager::QueueEntry
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
@@ -53,7 +53,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 class PulseCountEngine :
 	public IReactiveEngine<Node,Turn>,
-	public ExclusiveTurnManager
+	public TurnQueueManager
 {
 public:
 	typedef Node::ShiftMutexT	NodeShiftMutexT;	

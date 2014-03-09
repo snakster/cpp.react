@@ -27,7 +27,7 @@ using tbb::spin_mutex;
 ////////////////////////////////////////////////////////////////////////////////////////
 class Turn :
 	public TurnBase,
-	public ExclusiveTurnManager::ExclusiveTurn
+	public TurnQueueManager::QueueEntry
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
@@ -67,7 +67,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 class FloodingEngine :
 	public IReactiveEngine<Node,Turn>,
-	public ExclusiveTurnManager
+	public TurnQueueManager
 {
 public:
 	void OnNodeAttach(Node& node, Node& parent);

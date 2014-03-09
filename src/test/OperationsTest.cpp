@@ -19,6 +19,6 @@ INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, OperationsTest, PulseCountEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, OperationsTest, SourceSetEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(TopoSortST, OperationsTest, TopoSortSTEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1, OperationsTest, PulseCountO1Engine);
-INSTANTIATE_TYPED_TEST_CASE_P(ELM, OperationsTest, ELMEngine);
+INSTANTIATE_TYPED_TEST_CASE_P(ELM, OperationsTest, ELMEngine<>);
 
 } // ~namespace

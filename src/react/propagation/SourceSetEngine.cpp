@@ -14,7 +14,7 @@ tbb::task_group		tasks;
 ////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
 	TurnBase(id, flags),
-	ExclusiveTurnManager::ExclusiveTurn(flags)
+	TurnQueueManager::QueueEntry(flags)
 {
 }
 

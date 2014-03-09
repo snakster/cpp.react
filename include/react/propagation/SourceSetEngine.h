@@ -30,7 +30,7 @@ using tbb::spin_mutex;
 ////////////////////////////////////////////////////////////////////////////////////////
 class Turn :
 	public TurnBase,
-	public ExclusiveTurnManager::ExclusiveTurn
+	public TurnQueueManager::QueueEntry
 {
 public:
 	using SourceIdSetT = SourceIdSet<ObjectId>;
@@ -104,7 +104,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 class SourceSetEngine :
 	public IReactiveEngine<Node,Turn>,
-	public ExclusiveTurnManager
+	public TurnQueueManager
 {
 public:
 	void SourceSetEngine::OnNodeCreate(Node& node);

@@ -69,7 +69,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////
 class Turn :
 	public TurnBase,
-	public ExclusiveTurnManager::ExclusiveTurn
+	public TurnQueueManager::QueueEntry
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
@@ -82,7 +82,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 class PulseCountO1Engine :
 	public IReactiveEngine<Node,Turn>,
-	public ExclusiveTurnManager
+	public TurnQueueManager
 {
 public:
 	PulseCountO1Engine();

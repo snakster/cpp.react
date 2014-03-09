@@ -18,7 +18,7 @@ INSTANTIATE_TYPED_TEST_CASE_P(TopoSort, TransactionTest, TopoSortEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, TransactionTest, PulseCountEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, TransactionTest, SourceSetEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1, TransactionTest, PulseCountO1Engine);
-INSTANTIATE_TYPED_TEST_CASE_P(ELM, TransactionTest, ELMEngine);
+INSTANTIATE_TYPED_TEST_CASE_P(ELM, TransactionTest, ELMEngine<>);
 // Merging not supported by TopoSortSTEngine
 //INSTANTIATE_TYPED_TEST_CASE_P(TopoSortST, TransactionTest, TopoSortSTEngine);
 

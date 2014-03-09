@@ -19,7 +19,7 @@ INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, EventStreamTest, PulseCountEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, EventStreamTest, SourceSetEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(TopoSortST, EventStreamTest, TopoSortSTEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1, EventStreamTest, PulseCountO1Engine);
-INSTANTIATE_TYPED_TEST_CASE_P(ELM, EventStreamTest, ELMEngine);
+INSTANTIATE_TYPED_TEST_CASE_P(ELM, EventStreamTest, ELMEngine<>);
 
 // ---
 }

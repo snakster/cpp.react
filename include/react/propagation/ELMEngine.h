@@ -25,9 +25,7 @@ using tbb::spin_mutex;
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-class Turn :
-	public TurnBase,
-	public ExclusiveTurnManager::ExclusiveTurn
+class Turn : public TurnBase
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
@@ -53,40 +51,45 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// ELMEngine
+/// Engine
 ////////////////////////////////////////////////////////////////////////////////////////
-class ELMEngine :
-	public IReactiveEngine<Node,Turn>,
-	public ExclusiveTurnManager
+template <typename TTurn>
+class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
 	using NodeShiftMutexT = Node::ShiftMutexT;
 	using NodeSetT = set<Node*>;
 
-	void OnNodeCreate(NodeInterface& node);
-	void OnNodeDestroy(NodeInterface& node);
+	void OnNodeCreate(Node& node);
+	void OnNodeDestroy(Node& node);
 
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnAdmissionStart(Turn& turn);
-	void OnTurnAdmissionEnd(Turn& turn);
-	void OnTurnEnd(Turn& turn);
+	void OnTurnInputChange(Node& node, TTurn& turn);
+	void OnTurnPropagate(TTurn& turn);
 
-	void OnTurnInputChange(Node& node, Turn& turn);
-	void OnTurnPropagate(Turn& turn);
+	void OnNodePulse(Node& node, TTurn& turn);
+	void OnNodeIdlePulse(Node& node, TTurn& turn);
 
-	void OnNodePulse(Node& node, Turn& turn);
-	void OnNodeIdlePulse(Node& node, Turn& turn);
-
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
 
 private:
-	void processChild(Node& node, bool update, Turn& turn);
-	void nudgeChildren(Node& parent, bool update, Turn& turn);
+	void processChild(Node& node, bool update, TTurn& turn);
+	void nudgeChildren(Node& parent, bool update, TTurn& turn);
 
 	task_group	tasks_;
 	NodeSetT	inputNodes_;
+};
+
+class BasicEngine :
+	public EngineBase<Turn>
+{
+};
+
+class QueuingEngine :
+	public DefaultQueuingEngine<EngineBase,Turn>
+{
 };
 
 } // ~namespace elm
@@ -94,6 +97,13 @@ REACT_IMPL_END
 
 REACT_BEGIN
 
-using REACT_IMPL::elm::ELMEngine;
+struct parallel;
+struct parallel_queuing;
+
+template <typename TMode = parallel_queuing>
+class ELMEngine;
+
+template <> class ELMEngine<parallel> : public REACT_IMPL::elm::BasicEngine {};
+template <> class ELMEngine<parallel_queuing> : public REACT_IMPL::elm::QueuingEngine {};
 
 REACT_END

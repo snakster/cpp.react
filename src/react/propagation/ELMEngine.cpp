@@ -16,8 +16,7 @@ namespace elm {
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
-	TurnBase(id, flags),
-	ExclusiveTurnManager::ExclusiveTurn(flags)
+	TurnBase(id, flags)
 {
 }
 
@@ -31,47 +30,43 @@ Node::Node() :
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// ELMEngine
+/// EngineBase
 ////////////////////////////////////////////////////////////////////////////////////////
-void ELMEngine::OnNodeCreate(Node& node)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeCreate(Node& node)
 {
 	if (node.IsInputNode())
 		inputNodes_.insert(&node);
 }
 
-void ELMEngine::OnNodeDestroy(Node& node)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeDestroy(Node& node)
 {
 	// NOTE: Called from dtor, vtables have already been changed and IsInputNode will never return true
 	// maybe change this
 	inputNodes_.erase(&node);
 }
 
-void ELMEngine::OnNodeAttach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
 {
 	parent.Successors.Add(node);
 }
 
-void ELMEngine::OnNodeDetach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
 {
 	parent.Successors.Remove(node);
 }
 
-void ELMEngine::OnTurnAdmissionStart(Turn& turn)
-{
-	StartTurn(turn);
-}
-
-void ELMEngine::OnTurnAdmissionEnd(Turn& turn)
-{
-	turn.RunMergedInputs();
-}
-
-void ELMEngine::OnTurnInputChange(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
 {
 	node.LastTurnId = turn.Id();
 }
 
-void ELMEngine::OnTurnPropagate(Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
 	for (auto* node : inputNodes_)
 		nudgeChildren(*node, node->LastTurnId == turn.Id(), turn);
@@ -79,22 +74,20 @@ void ELMEngine::OnTurnPropagate(Turn& turn)
 	tasks_.wait();
 }
 
-void ELMEngine::OnTurnEnd(Turn& turn)
-{
-	EndTurn(turn);
-}
-
-void ELMEngine::OnNodePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
 {
 	nudgeChildren(node, true, turn);
 }
 
-void ELMEngine::OnNodeIdlePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 {
 	nudgeChildren(node, false, turn);
 }
 
-void ELMEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
 {
 	bool shouldTick = false;
 
@@ -124,7 +117,8 @@ void ELMEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& 
 		node.Tick(&turn);
 }
 
-void ELMEngine::processChild(Node& node, bool update, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::processChild(Node& node, bool update, TTurn& turn)
 {
 	// Invalidated, this node has to be ticked
 	if (node.ShouldUpdate)
@@ -140,7 +134,8 @@ void ELMEngine::processChild(Node& node, bool update, Turn& turn)
 	}
 }
 
-void ELMEngine::nudgeChildren(Node& node, bool update, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
 {// node.ShiftMutex
 	NodeShiftMutexT::scoped_lock	lock(node.ShiftMutex);
 
@@ -154,11 +149,15 @@ void ELMEngine::nudgeChildren(Node& node, bool update, Turn& turn)
 			continue;
 
 		succ->Counter = 0;
-		tasks_.run(std::bind(&ELMEngine::processChild, this, std::ref(*succ), update, std::ref(turn)));
+		tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));
 	}
 
 	node.LastTurnId = turn.Id();	
 }// ~node.ShiftMutex
+
+// Explicit instantiation
+template class EngineBase<Turn>;
+template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace elm
 REACT_IMPL_END

@@ -54,7 +54,7 @@ struct ShiftRequestData
 ////////////////////////////////////////////////////////////////////////////////////////
 class Turn :
 	public TurnBase,
-	public ExclusiveTurnManager::ExclusiveTurn
+	public TurnQueueManager::QueueEntry
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
@@ -65,7 +65,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 class TopoSortEngine :
 	public IReactiveEngine<Node,Turn>,
-	public ExclusiveTurnManager
+	public TurnQueueManager
 {
 public:
 	using NodeSetT = set<Node*>;

@@ -13,16 +13,6 @@
 #include "react/common/Concurrency.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
-
-enum class ETransactionMode
-{
-	none,
-	exclusive
-};
-
-REACT_END
-
 REACT_IMPL_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -55,6 +45,9 @@ struct IReactiveEngine
 	void OnNodeIdlePulse(NodeInterface& node, TurnInterface& turn)		{}
 
 	void OnNodeShift(NodeInterface& node, NodeInterface& oldParent, NodeInterface& newParent, TurnInterface& turn)	{}
+
+	template <typename F>
+	bool TryMerge(F&& f) { return false; }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -100,20 +93,20 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// ExclusiveTurnManager
+/// TurnQueueManager
 ////////////////////////////////////////////////////////////////////////////////////////
-class ExclusiveTurnManager
+class TurnQueueManager
 {
 public:
-	class ExclusiveTurn
+	class QueueEntry
 	{
 	public:
-		explicit ExclusiveTurn(TurnFlagsT flags) :
+		explicit QueueEntry(TurnFlagsT flags) :
 			isMergeable_{ (flags & enable_input_merging) != 0 }
 		{
 		}
 
-		inline void Append(ExclusiveTurn& tr)
+		inline void Append(QueueEntry& tr)
 		{
 			successor_ = &tr;
 			tr.blockCondition_.Block();
@@ -158,7 +151,7 @@ public:
 		using MergedDataVectT = std::vector<std::pair<std::function<void()>,BlockingCondition*>>;
 
 		bool				isMergeable_;
-		ExclusiveTurn*		successor_ = nullptr;
+		QueueEntry*			successor_ = nullptr;
 		MergedDataVectT		merged_;
 		BlockingCondition	blockCondition_;
 	};
@@ -183,7 +176,7 @@ public:
 		return merged;
 	}
 
-	inline void StartTurn(ExclusiveTurn& turn)
+	inline void StartTurn(QueueEntry& turn)
 	{
 		{// seqMutex_
 			SeqMutexT::scoped_lock lock(seqMutex_);
@@ -197,7 +190,7 @@ public:
 		turn.WaitForUnblock();
 	}
 
-	inline void EndTurn(ExclusiveTurn& turn)
+	inline void EndTurn(QueueEntry& turn)
 	{// seqMutex_
 		SeqMutexT::scoped_lock lock(seqMutex_);
 
@@ -211,7 +204,64 @@ private:
 	using SeqMutexT = tbb::queuing_mutex;
 
 	SeqMutexT		seqMutex_;
-	ExclusiveTurn*	tail_ = nullptr;
+	QueueEntry*		tail_ = nullptr;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// DefaultQueueableTurn
+////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+	typename TTurnBase
+>
+class DefaultQueueableTurn :
+	public TTurnBase,
+	public TurnQueueManager::QueueEntry
+{
+public:
+	DefaultQueueableTurn(TurnIdT id, TurnFlagsT flags) :
+		TTurnBase(id, flags),
+		TurnQueueManager::QueueEntry(flags)
+	{
+	}
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// DefaultQueuingEngine
+////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+	template <typename Turn_> class TTEngineBase,
+	typename TTurnBase
+>
+class DefaultQueuingEngine : public TTEngineBase<DefaultQueueableTurn<TTurnBase>>
+{
+public:
+	using TurnT = DefaultQueueableTurn<TTurnBase>;
+
+	void OnTurnAdmissionStart(TurnT& turn)
+	{
+		queueManager_.StartTurn(turn);
+	}
+
+	void OnTurnAdmissionEnd(TurnT& turn)
+	{
+		turn.RunMergedInputs();
+	}
+
+	void OnTurnEnd(TurnT& turn)
+	{
+		queueManager_.EndTurn(turn);
+	}
+
+	template <typename F>
+	bool TryMerge(F&& f)
+	{
+		return queueManager_.TryMerge(std::forward<F>(f));
+	}
+
+private:
+	TurnQueueManager	queueManager_;
 };
 
 REACT_IMPL_END
