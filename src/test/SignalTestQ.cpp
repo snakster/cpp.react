@@ -4,7 +4,7 @@
 #include "react/propagation/PulseCountEngine.h"
 #include "react/propagation/TopoSortEngine.h"
 #include "react/propagation/SourceSetEngine.h"
-#include "react/propagation/PulseCountO1Engine.h"
+//#include "react/propagation/PulseCountO1Engine.h"
 #include "react/propagation/ELMEngine.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -18,7 +18,7 @@ INSTANTIATE_TYPED_TEST_CASE_P(FloodingQ, SignalTest, FloodingEngine<parallel_que
 INSTANTIATE_TYPED_TEST_CASE_P(ELMQ, SignalTest, ELMEngine<parallel_queuing>);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCountQ, SignalTest, PulseCountEngine<parallel_queuing>);
 INSTANTIATE_TYPED_TEST_CASE_P(SourceSetQ, SignalTest, SourceSetEngine<parallel_queuing>);
-INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1Q, SignalTest, PulseCountO1Engine<parallel_queuing>);
+//INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1Q, SignalTest, PulseCountO1Engine<parallel_queuing>);
 
 // ---
 }

@@ -17,7 +17,7 @@
 #include "react/propagation/TopoSortO1Engine.h"
 #include "react/propagation/PulseCountEngine.h"
 #include "react/propagation/SourceSetEngine.h"
-#include "react/propagation/PulseCountO1Engine.h"
+//#include "react/propagation/PulseCountO1Engine.h"
 #include "react/propagation/ELMEngine.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -31,7 +31,7 @@ REACTIVE_DOMAIN(TopoSortDomain, TopoSortEngine<parallel_queuing>, EventLog);
 REACTIVE_DOMAIN(PulseCountDomain, PulseCountEngine<>, EventLog);
 REACTIVE_DOMAIN(SourceSetDomain, SourceSetEngine<>, EventLog);
 REACTIVE_DOMAIN(TopoSortSTDomain, TopoSortEngine<sequential>, EventLog);
-REACTIVE_DOMAIN(PulseCountO1Domain, PulseCountO1Engine<>, EventLog);
+//REACTIVE_DOMAIN(PulseCountO1Domain, PulseCountO1Engine<>, EventLog);
 REACTIVE_DOMAIN(ELMDomain, ELMEngine<>, EventLog);
 
 REACTIVE_DOMAIN(BFloodingDomain, FloodingEngine<>);
@@ -41,7 +41,7 @@ REACTIVE_DOMAIN(BTopoSortDomainNoQ, TopoSortEngine<parallel>);
 REACTIVE_DOMAIN(BPulseCountDomain, PulseCountEngine<>);
 REACTIVE_DOMAIN(BSourceSetDomain, SourceSetEngine<>);
 REACTIVE_DOMAIN(BTopoSortSTDomain, TopoSortEngine<sequential>);
-REACTIVE_DOMAIN(BPulseCountO1Domain, PulseCountO1Engine<>);
+//REACTIVE_DOMAIN(BPulseCountO1Domain, PulseCountO1Engine<>);
 REACTIVE_DOMAIN(BELMDomain, ELMEngine<>);
 
 void runBenchmarkGrid(std::ostream& out)
@@ -158,7 +158,7 @@ void runBenchmarkLifeSim(std::ostream& out)
 	//	BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BPulseCountO1Domain, BSourceSetDomain, BFloodingDomain);
 
 	RUN_BENCHMARK(out, 3, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
-		BPulseCountDomain, BPulseCountO1Domain);
+		BPulseCountDomain, BPulseCountDomain);
 }
 
 void runBenchmarks()
@@ -190,7 +190,7 @@ void runBenchmarks()
 
 void debugBenchmarks()
 {
-	using TestDomain = BPulseCountO1Domain;
+	using TestDomain = BPulseCountDomain;
 
 	RUN_BENCHMARK(std::cout, 3, Benchmark_Grid, BenchmarkParams_Grid(30, 1000),
 		TestDomain, BPulseCountDomain);
