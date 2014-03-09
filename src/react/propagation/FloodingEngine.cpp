@@ -8,8 +8,7 @@ namespace flooding {
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
-	TurnBase(id, flags),
-	TurnQueueManager::QueueEntry(flags)
+	TurnBase(id, flags)
 {
 }
 
@@ -68,34 +67,28 @@ bool Node::Evaluate(Turn& turn)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// FloodingEngine
+/// EngineBase
 ////////////////////////////////////////////////////////////////////////////////////////
-void FloodingEngine::OnNodeAttach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
 {
 	parent.Successors.Add(node);
 }
 
-void FloodingEngine::OnNodeDetach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
 {
 	parent.Successors.Remove(node);
 }
 
-void FloodingEngine::OnTurnAdmissionStart(Turn& turn)
-{
-	StartTurn(turn);
-}
-
-void FloodingEngine::OnTurnAdmissionEnd(Turn& turn)
-{
-	turn.RunMergedInputs();
-}
-
-void FloodingEngine::OnTurnInputChange(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
 {
 	changedInputs_.push_back(&node);
 }
 
-void FloodingEngine::OnTurnPropagate(Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
 	// Non-input nodes
 	for (auto* node : changedInputs_)
@@ -112,17 +105,14 @@ void FloodingEngine::OnTurnPropagate(Turn& turn)
 	changedInputs_.clear();
 }
 
-void FloodingEngine::OnTurnEnd(Turn& turn)
-{
-	EndTurn(turn);
-}
-
-void FloodingEngine::OnNodePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
 {
 	pulse(node, turn);
 }
 
-void FloodingEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
 {
 	{// oldParent.ShiftMutex
 		NodeShiftMutexT::scoped_lock	lock(oldParent.ShiftMutex);
@@ -141,16 +131,18 @@ void FloodingEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, T
 	node.Tick(&turn);
 }
 
-void FloodingEngine::pulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::pulse(Node& node, TTurn& turn)
 {// node.ShiftMutex
 	NodeShiftMutexT::scoped_lock	lock(node.ShiftMutex);
 
 	for (auto* succ : node.Successors)
 		if (succ->MarkForSchedule())
-			tasks_.run(std::bind(&FloodingEngine::process, this, std::ref(*succ), std::ref(turn)));
+			tasks_.run(std::bind(&EngineBase<TTurn>::process, this, std::ref(*succ), std::ref(turn)));
 }// ~node.ShiftMutex
 
-void FloodingEngine::process(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::process(Node& node, TTurn& turn)
 {
 	if (! node.IsOutputNode())
 	{
@@ -166,6 +158,10 @@ void FloodingEngine::process(Node& node, Turn& turn)
 		outputNodes_.insert(&node);		
 	}// ~outputMutex_
 }
+
+// Explicit instantiation
+template class EngineBase<Turn>;
+template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace flooding
 REACT_IMPL_END

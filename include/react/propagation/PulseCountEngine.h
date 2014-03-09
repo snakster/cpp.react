@@ -22,9 +22,7 @@ using tbb::spin_rw_mutex;
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-struct Turn :
-	public TurnBase,
-	public TurnQueueManager::QueueEntry
+struct Turn : public TurnBase
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
@@ -49,11 +47,10 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// PulseCountEngine
+/// EngineBase
 ////////////////////////////////////////////////////////////////////////////////////////
-class PulseCountEngine :
-	public IReactiveEngine<Node,Turn>,
-	public TurnQueueManager
+template <typename TTurn>
+class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
 	typedef Node::ShiftMutexT	NodeShiftMutexT;	
@@ -61,33 +58,39 @@ public:
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnAdmissionStart(Turn& turn);
-	void OnTurnAdmissionEnd(Turn& turn);
-	void OnTurnEnd(Turn& turn);
+	void OnTurnInputChange(Node& node, TTurn& turn);
+	void OnTurnPropagate(TTurn& turn);
 
-	void OnTurnInputChange(Node& node, Turn& turn);
-	void OnTurnPropagate(Turn& turn);
+	void OnNodePulse(Node& node, TTurn& turn);
+	void OnNodeIdlePulse(Node& node, TTurn& turn);
 
-	void OnNodePulse(Node& node, Turn& turn);
-	void OnNodeIdlePulse(Node& node, Turn& turn);
-
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
 
 private:
-	void initTurn(Node& node, Turn& turn);
+	void initTurn(Node& node, TTurn& turn);
 
-	void processChild(Node& node, bool update, Turn& turn);
-	void nudgeChildren(Node& parent, bool update, Turn& turn);
+	void processChild(Node& node, bool update, TTurn& turn);
+	void nudgeChildren(Node& parent, bool update, TTurn& turn);
 
 	std::vector<Node*>	changedInputs_;
 	task_group			tasks_;
 };
+
+class BasicEngine :	public EngineBase<Turn> {};
+class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace pulsecount
 REACT_IMPL_END
 
 REACT_BEGIN
 
-using REACT_IMPL::pulsecount::PulseCountEngine;
+struct parallel;
+struct parallel_queuing;
+
+template <typename TMode = parallel_queuing>
+class PulseCountEngine;
+
+template <> class PulseCountEngine<parallel> : public REACT_IMPL::pulsecount::BasicEngine {};
+template <> class PulseCountEngine<parallel_queuing> : public REACT_IMPL::pulsecount::QueuingEngine {};
 
 REACT_END

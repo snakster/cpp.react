@@ -82,19 +82,13 @@ private:
 	NodeSetT	inputNodes_;
 };
 
-class BasicEngine :
-	public EngineBase<Turn>
-{
-};
-
-class QueuingEngine :
-	public DefaultQueuingEngine<EngineBase,Turn>
-{
-};
+class BasicEngine :	public EngineBase<Turn> {};
+class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace elm
 REACT_IMPL_END
 
+////////////////////////////////////////////////////////////////////////////////////////
 REACT_BEGIN
 
 struct parallel;

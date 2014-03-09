@@ -16,8 +16,7 @@ namespace pulsecount {
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
-	TurnBase(id, flags),
-	TurnQueueManager::QueueEntry(flags)
+	TurnBase(id, flags)
 {
 }
 
@@ -34,35 +33,29 @@ Node::Node() :
 ////////////////////////////////////////////////////////////////////////////////////////
 /// PulseCountEngine
 ////////////////////////////////////////////////////////////////////////////////////////
-void PulseCountEngine::OnNodeAttach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
 {
 	parent.Successors.Add(node);
 }
 
-void PulseCountEngine::OnNodeDetach(Node& node, Node& parent)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
 {
 	parent.Successors.Remove(node);
 }
 
-void PulseCountEngine::OnTurnAdmissionStart(Turn& turn)
-{
-	StartTurn(turn);
-}
-
-void PulseCountEngine::OnTurnAdmissionEnd(Turn& turn)
-{
-	turn.RunMergedInputs();
-}
-
-void PulseCountEngine::OnTurnInputChange(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
 {
 	changedInputs_.push_back(&node);
 }
 
-void PulseCountEngine::OnTurnPropagate(Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
 	for (auto* node : changedInputs_)
-		tasks_.run(std::bind(&PulseCountEngine::initTurn, this, std::ref(*node), std::ref(turn)));
+		tasks_.run(std::bind(&EngineBase<TTurn>::initTurn, this, std::ref(*node), std::ref(turn)));
 	tasks_.wait();
 
 	for (auto* node : changedInputs_)
@@ -72,22 +65,20 @@ void PulseCountEngine::OnTurnPropagate(Turn& turn)
 	changedInputs_.clear();
 }
 
-void PulseCountEngine::OnTurnEnd(Turn& turn)
-{
-	EndTurn(turn);
-}
-
-void PulseCountEngine::OnNodePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
 {
 	nudgeChildren(node, true, turn);
 }
 
-void PulseCountEngine::OnNodeIdlePulse(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 {
 	nudgeChildren(node, false, turn);
 }
 
-void PulseCountEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
 {
 	bool shouldTick = false;
 
@@ -122,18 +113,20 @@ void PulseCountEngine::OnNodeShift(Node& node, Node& oldParent, Node& newParent,
 		node.Tick(&turn);
 }
 
-void PulseCountEngine::initTurn(Node& node, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::initTurn(Node& node, TTurn& turn)
 {
 	for (auto* succ : node.Successors)
 	{
 		succ->TickThreshold.fetch_add(1, std::memory_order_relaxed);
 
 		if (!succ->Marked.exchange(true))
-			tasks_.run(std::bind(&PulseCountEngine::initTurn, this, std::ref(*succ), std::ref(turn)));
+			tasks_.run(std::bind(&EngineBase<TTurn>::initTurn, this, std::ref(*succ), std::ref(turn)));
 	}
 }
 
-void PulseCountEngine::processChild(Node& node, bool update, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::processChild(Node& node, bool update, TTurn& turn)
 {
 	// Invalidated, this node has to be ticked
 	if (node.ShouldUpdate)
@@ -149,7 +142,8 @@ void PulseCountEngine::processChild(Node& node, bool update, Turn& turn)
 	}
 }
 
-void PulseCountEngine::nudgeChildren(Node& node, bool update, Turn& turn)
+template <typename TTurn>
+void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
 {
 	// node.ShiftMutex (read)
 	{
@@ -165,13 +159,17 @@ void PulseCountEngine::nudgeChildren(Node& node, bool update, Turn& turn)
 			if (succ->TickThreshold-- > 1)
 				continue;
 
-			tasks_.run(std::bind(&PulseCountEngine::processChild, this, std::ref(*succ), update, std::ref(turn)));
+			tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));
 		}
 
 		node.Marked = false;
 	}
 	// ~node.ShiftMutex (read)
 }
+
+// Explicit instantiation
+template class EngineBase<Turn>;
+template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace pulsecount
 REACT_IMPL_END

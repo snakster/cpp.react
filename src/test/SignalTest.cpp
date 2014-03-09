@@ -13,9 +13,9 @@ namespace {
 
 using namespace react;
 
-INSTANTIATE_TYPED_TEST_CASE_P(Flooding, SignalTest, FloodingEngine);
+INSTANTIATE_TYPED_TEST_CASE_P(Flooding, SignalTest, FloodingEngine<>);
 INSTANTIATE_TYPED_TEST_CASE_P(TopoSort, SignalTest, TopoSortEngine);
-INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, SignalTest, PulseCountEngine);
+INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, SignalTest, PulseCountEngine<>);
 INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, SignalTest, SourceSetEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(TopoSortST, SignalTest, TopoSortSTEngine);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1, SignalTest, PulseCountO1Engine);

@@ -12,6 +12,8 @@
 #include "react/common/Util.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
+/// FloodingEngine - A simple recursive parallel engine.
+////////////////////////////////////////////////////////////////////////////////////////
 REACT_IMPL_BEGIN
 namespace flooding {
 
@@ -25,14 +27,11 @@ using tbb::spin_mutex;
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ////////////////////////////////////////////////////////////////////////////////////////
-class Turn :
-	public TurnBase,
-	public TurnQueueManager::QueueEntry
+class Turn : public TurnBase
 {
 public:
 	Turn(TurnIdT id, TurnFlagsT flags);
 };
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Node
@@ -48,14 +47,12 @@ public:
 	bool	Evaluate(Turn& turn);
 
 	NodeVector<Node>	Successors;
-	
-	ShiftMutexT		ShiftMutex;
+	ShiftMutexT			ShiftMutex;
 
 private:
 	using EvalMutexT = spin_mutex;
 
 	atomic<bool>	isScheduled_;
-
 	EvalMutexT		mutex_;
 
 	bool	shouldReprocess_;
@@ -63,25 +60,20 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// FloodingEngine - A simple recursive engine.
+/// EngineBase
 ////////////////////////////////////////////////////////////////////////////////////////
-class FloodingEngine :
-	public IReactiveEngine<Node,Turn>,
-	public TurnQueueManager
+template <typename TTurn>
+class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
 	void OnNodeAttach(Node& node, Node& parent);
 	void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnAdmissionStart(Turn& turn);
-	void OnTurnAdmissionEnd(Turn& turn);
-	void OnTurnEnd(Turn& turn);
+	void OnTurnInputChange(Node& node, TTurn& turn);
+	void OnTurnPropagate(TTurn& turn);
 
-	void OnTurnInputChange(Node& node, Turn& turn);
-	void OnTurnPropagate(Turn& turn);
-
-	void OnNodePulse(Node& node, Turn& turn);
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+	void OnNodePulse(Node& node, TTurn& turn);
+	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
 
 private:
 	using OutputMutexT = queuing_mutex;
@@ -93,15 +85,26 @@ private:
 
 	task_group		tasks_;
 
-	void pulse(Node& node, Turn& turn);
-	void process(Node& node, Turn& turn);
+	void pulse(Node& node, TTurn& turn);
+	void process(Node& node, TTurn& turn);
 };
+
+class BasicEngine :	public EngineBase<Turn> {};
+class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace flooding
 REACT_IMPL_END
 
+////////////////////////////////////////////////////////////////////////////////////////
 REACT_BEGIN
 
-using REACT_IMPL::flooding::FloodingEngine;
+struct parallel;
+struct parallel_queuing;
+
+template <typename TMode = parallel_queuing>
+class FloodingEngine;
+
+template <> class FloodingEngine<parallel> : public REACT_IMPL::flooding::BasicEngine {};
+template <> class FloodingEngine<parallel_queuing> : public REACT_IMPL::flooding::QueuingEngine {};
 
 REACT_END
