@@ -17,7 +17,6 @@
 #include "react/propagation/TopoSortO1Engine.h"
 #include "react/propagation/PulseCountEngine.h"
 #include "react/propagation/SourceSetEngine.h"
-#include "react/propagation/TopoSortSTEngine.h"
 #include "react/propagation/PulseCountO1Engine.h"
 #include "react/propagation/ELMEngine.h"
 
@@ -27,7 +26,7 @@ namespace {
 using namespace react;
 
 REACTIVE_DOMAIN(FloodingDomain, FloodingEngine<>, EventLog);
-REACTIVE_DOMAIN(TopoSortDomain, TopoSortEngine<>, EventLog);
+REACTIVE_DOMAIN(TopoSortDomain, TopoSortEngine<parallel_queuing>, EventLog);
 //REACTIVE_DOMAIN(TopoSortO1Domain, TopoSortO1Engine, EventLog);
 REACTIVE_DOMAIN(PulseCountDomain, PulseCountEngine<>, EventLog);
 REACTIVE_DOMAIN(SourceSetDomain, SourceSetEngine<>, EventLog);
@@ -36,7 +35,8 @@ REACTIVE_DOMAIN(PulseCountO1Domain, PulseCountO1Engine<>, EventLog);
 REACTIVE_DOMAIN(ELMDomain, ELMEngine<>, EventLog);
 
 REACTIVE_DOMAIN(BFloodingDomain, FloodingEngine<>);
-REACTIVE_DOMAIN(BTopoSortDomain, TopoSortEngine<>);
+REACTIVE_DOMAIN(BTopoSortDomain, TopoSortEngine<parallel_queuing>);
+REACTIVE_DOMAIN(BTopoSortDomainNoQ, TopoSortEngine<parallel>);
 //REACTIVE_DOMAIN(BTopoSortO1Domain, TopoSortO1Engine);
 REACTIVE_DOMAIN(BPulseCountDomain, PulseCountEngine<>);
 REACTIVE_DOMAIN(BSourceSetDomain, SourceSetEngine<>);
@@ -236,8 +236,8 @@ void debugBenchmarks()
 
 void profileBenchmark()
 {
-	RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 1000),
-		BSourceSetDomain);
+	RUN_BENCHMARK(std::cout, 3, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
+		BTopoSortDomain);
 
 	//RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
 	//	BSourceSetDomain);

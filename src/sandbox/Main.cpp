@@ -6,7 +6,7 @@
 #include "react/ReactiveObject.h"
 
 //#include "react/propagation/SourceSetEngine.h"
-#include "react/propagation/TopoSortSTEngine.h"
+#include "react/propagation/TopoSortEngine.h"
 #include "react/propagation/ELMEngine.h"
 
 using namespace std;
@@ -15,7 +15,7 @@ using namespace react;
 // Defines a domain.
 // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
 // Reactives of different domains can not be combined.
-REACTIVE_DOMAIN(D, ELMEngine<>);
+REACTIVE_DOMAIN(D, TopoSortEngine<sequential>);
 
 void SignalExample1()
 {
