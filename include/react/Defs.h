@@ -17,6 +17,7 @@
 
 // Assert with message
 #define REACT_ASSERT(condition, ...) for (; !(condition); assert(condition)) printf(__VA_ARGS__ ## "\n")
+#define REACT_ERROR(...)	REACT_ASSERT(false, __VA_ARGS__)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Type aliases

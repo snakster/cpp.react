@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "tbb/concurrent_vector.h"
+#include "tbb/concurrent_priority_queue.h"
 #include "tbb/task_group.h"
 #include "tbb/queuing_rw_mutex.h"
 
@@ -25,18 +26,29 @@ using tbb::concurrent_vector;
 using tbb::task_group;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Node
+/// SeqNode
 ////////////////////////////////////////////////////////////////////////////////////////
-class Node : public IReactiveNode
+class SeqNode : public IReactiveNode
 {
 public:
-	int				Level;
-	int				NewLevel;
-	atomic<bool>	Collected;
+	int		Level = 0;
+	int		NewLevel = 0;
+	bool	Queued = false;
 
-	Node();
+	NodeVector<SeqNode>	Successors;
+};
 
-	NodeVector<Node>	Successors;
+////////////////////////////////////////////////////////////////////////////////////////
+/// ParNode
+////////////////////////////////////////////////////////////////////////////////////////
+class ParNode : public IReactiveNode
+{
+public:
+	int				Level = 0;
+	int				NewLevel = 0;
+	atomic<bool>	Collected = false;	
+
+	NodeVector<ParNode>	Successors;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -44,9 +56,9 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 struct ShiftRequestData
 {
-	Node*	ShiftingNode;
-	Node*	OldParent;
-	Node*	NewParent;
+	ParNode*	ShiftingNode;
+	ParNode*	OldParent;
+	ParNode*	NewParent;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -59,41 +71,75 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// TopoSortEngine
+/// EngineBase
 ////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurn>
-class EngineBase : public IReactiveEngine<Node,TTurn>
+template <typename TNode, typename TTurn>
+class EngineBase : public IReactiveEngine<TNode,TTurn>
 {
 public:
-	using NodeSetT = set<Node*>;
-	using ConcNodeVectorT = concurrent_vector<Node*>;
-	using ShiftRequestVectorT = concurrent_vector<ShiftRequestData>;
-	using TopoQueueT = TopoQueue<Node>;
+	using TopoQueueT = TopoQueue<TNode>;
 
-	void OnNodeAttach(Node& node, Node& parent);
-	void OnNodeDetach(Node& node, Node& parent);
+	void OnNodeAttach(TNode& node, TNode& parent);
+	void OnNodeDetach(TNode& node, TNode& parent);
 
-	void OnTurnInputChange(Node& node, TTurn& turn);
-	void OnTurnPropagate(TTurn& turn);
+	void OnTurnInputChange(TNode& node, TTurn& turn);
+	void OnNodePulse(TNode& node, TTurn& turn);
 
-	void OnNodePulse(Node& node, TTurn& turn);
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
+protected:
+	void invalidateSuccessors(TNode& node);
 
-private:
-	void applyShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
+	virtual void processChildren(TNode& node, TTurn& turn) = 0;
 
-	void processChildren(Node& node, TTurn& turn);
-	void invalidateSuccessors(Node& node);
-
-	TopoQueueT			scheduledNodes_;
-	ConcNodeVectorT		collectBuffer_;
-	ShiftRequestVectorT	shiftRequests_;
-
+	TopoQueueT	scheduledNodes_;
 	task_group	tasks_;
 };
 
-class BasicEngine :	public EngineBase<Turn> {};
-class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
+////////////////////////////////////////////////////////////////////////////////////////
+/// SeqEngineBase
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename TTurn>
+class SeqEngineBase : public EngineBase<SeqNode,TTurn>
+{
+public:
+	void OnTurnPropagate(TTurn& turn);
+	void OnNodeShift(SeqNode& node, SeqNode& oldParent, SeqNode& newParent, TTurn& turn);
+
+private:
+	virtual void processChildren(SeqNode& node, TTurn& turn) override;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// ParEngineBase
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename TTurn>
+class ParEngineBase : public EngineBase<ParNode,TTurn>
+{
+public:
+	using ConcNodeVectorT = concurrent_vector<ParNode*>;
+	using ShiftRequestVectorT = concurrent_vector<ShiftRequestData>;
+
+	void OnTurnPropagate(TTurn& turn);
+	void OnNodeShift(ParNode& node, ParNode& oldParent, ParNode& newParent, TTurn& turn);
+
+private:
+	void applyShift(ParNode& node, ParNode& oldParent, ParNode& newParent, TTurn& turn);
+
+	virtual void processChildren(ParNode& node, TTurn& turn) override;
+
+	ConcNodeVectorT		collectBuffer_;
+	ShiftRequestVectorT	shiftRequests_;
+};
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// Concrete engines
+////////////////////////////////////////////////////////////////////////////////////////
+class BasicSeqEngine : public SeqEngineBase<Turn> {};
+class QueuingSeqEngine : public DefaultQueuingEngine<SeqEngineBase,Turn> {};
+
+class BasicParEngine :	public ParEngineBase<Turn> {};
+class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,Turn> {};
 
 } // ~namespace toposort
 REACT_IMPL_END
@@ -101,13 +147,17 @@ REACT_IMPL_END
 ////////////////////////////////////////////////////////////////////////////////////////
 REACT_BEGIN
 
+struct sequential;
+struct sequential_queuing;
 struct parallel;
 struct parallel_queuing;
 
-template <typename TMode = parallel_queuing>
+template <typename TMode>
 class TopoSortEngine;
 
-template <> class TopoSortEngine<parallel> : public REACT_IMPL::toposort::BasicEngine {};
-template <> class TopoSortEngine<parallel_queuing> : public REACT_IMPL::toposort::QueuingEngine {};
+template <> class TopoSortEngine<sequential> : public REACT_IMPL::toposort::BasicSeqEngine {};
+template <> class TopoSortEngine<sequential_queuing> : public REACT_IMPL::toposort::QueuingSeqEngine {};
+template <> class TopoSortEngine<parallel> : public REACT_IMPL::toposort::BasicParEngine {};
+template <> class TopoSortEngine<parallel_queuing> : public REACT_IMPL::toposort::QueuingParEngine {};
 
 REACT_END

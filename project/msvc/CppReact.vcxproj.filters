@@ -102,9 +102,6 @@
     <ClInclude Include="..\..\include\react\propagation\TopoSortO1Engine.h">
       <Filter>Header Files\propagation</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\TopoSortSTEngine.h">
-      <Filter>Header Files\propagation</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\logging\Logging.h">
       <Filter>Header Files\logging</Filter>
     </ClInclude>
@@ -162,9 +159,6 @@
       <Filter>Source Files\propagation</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\react\propagation\TopoSortO1Engine.cpp">
-      <Filter>Source Files\propagation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\react\propagation\TopoSortSTEngine.cpp">
       <Filter>Source Files\propagation</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\react\propagation\FloodingEngine.cpp">
