@@ -144,7 +144,7 @@ void EngineBase<TTurn>::runInitReachableNodesTask(NodeVectorT leftNodes)
 		{
 			succ->Counter++;
 
-			if (!succ->Marked.exchange(true))
+			if (succ->Marked.exchange(true))
 				continue;
 				
 			(leftNodes.size() > rightNodes.size() ? rightNodes : leftNodes).push_back(succ);
