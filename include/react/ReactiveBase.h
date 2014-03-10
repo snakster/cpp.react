@@ -51,7 +51,7 @@ REACT_END
 REACT_IMPL_BEGIN
 
 template <typename L, typename R>
-bool Equals(L lhs, R rhs)
+bool Equals(const L& lhs, const R& rhs)
 {
 	return lhs == rhs;
 }

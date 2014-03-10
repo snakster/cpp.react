@@ -3,6 +3,7 @@
 #include <memory>
 #include <functional>
 #include <tuple>
+#include <utility>
 
 #include "GraphBase.h"
 
@@ -23,6 +24,9 @@ public:
 	typedef std::shared_ptr<SignalNode> NodePtrT;
 	typedef std::weak_ptr<SignalNode>	NodeWeakPtrT;
 
+	using MergedOpT = std::pair<std::function<S(const S&,const S&)>, NodePtrT>;
+	using MergedOpVectT = std::vector<MergedOpT>;
+
 	explicit SignalNode(bool registered) :
 		ReactiveNode(true)
 	{
@@ -39,6 +43,13 @@ public:
 			registerNode();
 	}
 
+	~SignalNode()
+	{
+		if (mergedOps_ != nullptr)
+			for (const auto& mo : *mergedOps_)
+				Engine::OnNodeDetach(*this, *mo.second);
+	}
+
 	virtual const char* GetNodeType() const override { return "SignalNode"; }
 
 	virtual ETickResult Tick(void* turnPtr) override
@@ -47,23 +58,35 @@ public:
 		return ETickResult::none;
 	}
 
-	S Value() const
-	{
-		return value_;
-	}
-
-	S operator()(void) const
-	{
-		return Value();
-	}
-
 	const S& ValueRef() const
 	{
 		return value_;
 	}
 
+	template <typename F>
+	void MergeOp(const NodePtrT& dep, F&& func)
+	{
+		if (mergedOps_ == nullptr)
+			mergedOps_ = std::unique_ptr<MergedOpVectT>(new MergedOpVectT());
+
+		mergedOps_->emplace_back(std::forward<F>(func),  dep);
+
+		Engine::OnNodeAttach(*this, *dep);
+
+		value_ = func(value_, dep->ValueRef());
+	}
+
 protected:
+	S applyMergedOps(S newValue) const
+	{
+		for (const auto& mo : *mergedOps_)
+			newValue = mo.first(newValue, mo.second->ValueRef());
+		return std::move(newValue);
+	}
+
 	S value_;
+
+	std::unique_ptr<MergedOpVectT>	mergedOps_ = nullptr;
 };
 
 template <typename D, typename S>
@@ -100,7 +123,7 @@ public:
 			typedef typename D::Engine::TurnInterface TurnInterface;
 			TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
-			value_ = newValue_;
+			value_ = std::move(newValue_);
 			Engine::OnTurnInputChange(*this, turn);
 			return ETickResult::pulsed;
 		}
@@ -171,7 +194,7 @@ public:
 		if (!registered)
 			registerNode();
 
-		value_ = func_(args->Value() ...);
+		value_ = func_(args->ValueRef() ...);
 
 		REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
 	}
@@ -197,11 +220,13 @@ public:
 
 		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		S newValue = evaluate();
+		if (mergedOps_ != nullptr)
+			newValue = applyMergedOps(std::move(newValue));
 		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (! impl::Equals(value_, newValue))
 		{
-			value_ = newValue;
+			value_ = std::move(newValue);
 			Engine::OnNodePulse(*this, turn);
 			return ETickResult::pulsed;
 		}
@@ -215,17 +240,19 @@ public:
 	virtual int DependencyCount() const override	{ return sizeof ... (TArgs); }
 
 private:
+
 	std::tuple<SignalNodePtr<D,TArgs> ...>	deps_;
-	std::function<S(TArgs ...)>				func_;
+	std::function<S(const TArgs& ...)>		func_;
 
 	S evaluate() const
 	{
 		return apply(func_, apply(unpackValues, deps_));
 	}
 
-	static inline auto unpackValues(const SignalNodePtr<D,TArgs>& ... args) -> std::tuple<TArgs ...>
+	static inline auto unpackValues(const SignalNodePtr<D,TArgs>& ... args)
+		-> std::tuple<std::reference_wrapper<const TArgs> ...>
 	{
-		return std::make_tuple(args->ValueRef() ...);
+		return std::make_tuple(std::cref(args->ValueRef()) ...);
 	}
 };
 
@@ -242,7 +269,7 @@ class FlattenNode : public SignalNode<D,TInner>
 {
 public:
 	FlattenNode(const SignalNodePtr<D,TOuter>& outer, const SignalNodePtr<D,TInner>& inner, bool registered) :
-		SignalNode<D, TInner>(inner->Value(), true),
+		SignalNode<D, TInner>(inner->ValueRef(), true),
 		outer_{ outer },
 		inner_{ inner }
 	{
@@ -268,7 +295,7 @@ public:
 		typedef typename D::Engine::TurnInterface TurnInterface;
 		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
-		auto newInner = outer_->Value().GetPtr();
+		auto newInner = outer_->ValueRef().GetPtr();
 
 		if (newInner != inner_)
 		{
@@ -280,7 +307,7 @@ public:
 		}
 
 		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
-		TInner newValue = inner_->Value();
+		TInner newValue = inner_->ValueRef();
 		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (newValue != value_)

@@ -83,6 +83,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\test\MoveTest.h" />
     <ClInclude Include="..\..\src\test\OperationsTest.h" />
     <ClInclude Include="..\..\src\test\EventStreamTest.h" />
     <ClInclude Include="..\..\src\test\ObserverTest.h" />
@@ -91,6 +92,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\test\EventStreamTestQ.cpp" />
+    <ClCompile Include="..\..\src\test\MoveTest.cpp" />
     <ClCompile Include="..\..\src\test\ObserverTestQ.cpp" />
     <ClCompile Include="..\..\src\test\OperationsTest.cpp" />
     <ClCompile Include="..\..\src\test\EventStreamTest.cpp" />

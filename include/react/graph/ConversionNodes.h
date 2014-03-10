@@ -219,7 +219,7 @@ class SnapshotNode : public SignalNode<D,S>
 {
 public:
 	SnapshotNode(const SignalNodePtr<D,S>& target, const EventStreamNodePtr<D,E>& trigger, bool registered) :
-		SignalNode<D, S>(target->Value(), true),
+		SignalNode<D, S>(target->ValueRef(), true),
 		target_{ target },
 		trigger_{ trigger }
 	{
@@ -246,9 +246,9 @@ public:
 		trigger_->SetCurrentTurn(turn);
 
 		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
-		S newValue = value_;
+		S newValue = std::move(value_);
 		if (! trigger_->Events().empty())
-			newValue = target_->Value();
+			newValue = target_->ValueRef();
 		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
 		if (newValue != value_)
@@ -434,7 +434,7 @@ public:
 		SetCurrentTurn(turn, true);
 		inner_->SetCurrentTurn(turn);
 
-		auto newInner = outer_->Value().GetPtr();
+		auto newInner = outer_->ValueRef().GetPtr();
 
 		if (newInner != inner_)
 		{
