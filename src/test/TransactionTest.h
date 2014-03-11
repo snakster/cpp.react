@@ -170,22 +170,22 @@ TYPED_TEST_P(TransactionTest, Concurrent3)
 	};
 
 	auto n1 = MyDomain::MakeVar(1);
-	auto n2 = n1 >>= f_0;
-	auto n3 = ((n2, n1) >>= f_n) >>= f_0;
-	auto n4 = n3 >>= f_0;
-	auto n5 = ((((n4, n3) >>= f_n), n1) >>= f_n) >>= f_0;
-	auto n6 = n5 >>= f_0;
-	auto n7 = ((n6, n5) >>= f_n) >>= f_0;
-	auto n8 = n7 >>= f_0;
-	auto n9 = ((((((n8, n7) >>= f_n), n5) >>= f_n), n1) >>= f_n) >>= f_0;
-	auto n10 = n9 >>= f_0;
-	auto n11 = ((n10, n9) >>= f_n) >>= f_0;
-	auto n12 = n11 >>= f_0;
-	auto n13 = ((((n12, n11) >>= f_n), n9) >>= f_n) >>= f_0;
-	auto n14 = n13 >>= f_0;
-	auto n15 = ((n14, n13) >>= f_n) >>= f_0;
-	auto n16 = n15 >>= f_0;
-	auto n17 = ((((((n16, n15) >>= f_n), n13) >>= f_n), n9) >>= f_n)  >>= f_0;
+	auto n2 = n1 ->* f_0;
+	auto n3 = ((n2, n1) ->* f_n) ->* f_0;
+	auto n4 = n3 ->* f_0;
+	auto n5 = ((((n4, n3) ->* f_n), n1) ->* f_n) ->* f_0;
+	auto n6 = n5 ->* f_0;
+	auto n7 = ((n6, n5) ->* f_n) ->* f_0;
+	auto n8 = n7 ->* f_0;
+	auto n9 = ((((((n8, n7) ->* f_n), n5) ->* f_n), n1) ->* f_n) ->* f_0;
+	auto n10 = n9 ->* f_0;
+	auto n11 = ((n10, n9) ->* f_n) ->* f_0;
+	auto n12 = n11 ->* f_0;
+	auto n13 = ((((n12, n11) ->* f_n), n9) ->* f_n) ->* f_0;
+	auto n14 = n13 ->* f_0;
+	auto n15 = ((n14, n13) ->* f_n) ->* f_0;
+	auto n16 = n15 ->* f_0;
+	auto n17 = ((((((n16, n15) ->* f_n), n13) ->* f_n), n9) ->* f_n)  ->* f_0;
 
 	Observe(n17, [&] (int v)
 	{
@@ -239,7 +239,7 @@ TYPED_TEST_P(TransactionTest, Merging1)
 	};
 
 	auto n1 = MyDomain::MakeVar(1);
-	auto n2 = n1 >>= f;
+	auto n2 = n1 ->* f;
 
 	Observe(n2, [&] (int v)
 	{

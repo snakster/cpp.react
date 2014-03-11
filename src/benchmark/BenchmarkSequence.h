@@ -56,7 +56,7 @@ struct Benchmark_Sequence : public BenchmarkBase<D>
 
 		MyHandle cur = in;
 		for (int i=0; i<params.N; i++)
-			cur = cur >>= f;
+			cur = cur ->* f;
 
 		initializing = false;
 

@@ -56,7 +56,7 @@ struct Benchmark_Fanout : public BenchmarkBase<D>
 
 		for (int i=0; i<params.N; i++)
 		{
-			auto t = in >>= f;
+			auto t = in ->* f;
 			nodes.push_back(t);
 		}
 

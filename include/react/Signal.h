@@ -481,17 +481,17 @@ template
 >
 struct InputPack
 {
-	std::tuple<RSignal<D, TValues> ...> Data;
+	std::tuple<const RSignal<D, TValues>& ...> Data;
 
 	template <typename TFirstValue, typename TSecondValue>
 	InputPack(const RSignal<D,TFirstValue>& first, const RSignal<D,TSecondValue>& second) :
-		Data(std::make_tuple(first, second))
+		Data(std::tie(first, second))
 	{
 	}
 
 	template <typename ... TCurValues, typename TAppendValue>
 	InputPack(const InputPack<D, TCurValues ...>& curArgs, const RSignal<D,TAppendValue>& newArg) :
-		Data(std::tuple_cat(curArgs.Data, std::make_tuple(newArg)))
+		Data(std::tuple_cat(curArgs.Data, std::tie(newArg)))
 	{
 	}
 };
@@ -533,15 +533,15 @@ REACT_IMPL_BEGIN
 template
 <
 	typename D,
-	typename TFunc,
+	typename F,
 	typename ... TValues
 >
 struct ApplyHelper
 {
-	static inline auto MakeSignal(const TFunc& func, const RSignal<D,TValues>& ... args)
-		-> decltype(D::MakeSignal(func, args ...))
+	static inline auto MakeSignal(F&& func, const RSignal<D,TValues>& ... args)
+		-> decltype(D::MakeSignal(std::forward<F>(func), args ...))
 	{
-		return D::MakeSignal(func, args ...);
+		return D::MakeSignal(std::forward<F>(func), args ...);
 	}
 };
 
@@ -550,34 +550,34 @@ REACT_IMPL_END
 REACT_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// operator>>= overload to connect inputs to a function and return the resulting node.
+/// operator->* overload to connect inputs to a function and return the resulting node.
 ////////////////////////////////////////////////////////////////////////////////////////
 // Single input
 template
 <
 	typename D,
-	typename TFunc,
+	typename F,
 	typename TValue
 >
-inline auto operator>>=(const RSignal<D,TValue>& inputNode, TFunc func)
-	-> decltype(D::MakeSignal(func, inputNode))
+inline auto operator->*(const RSignal<D,TValue>& inputNode, F&& func)
+	-> decltype(D::MakeSignal(std::forward<F>(func), inputNode))
 {
-	return D::MakeSignal(func, inputNode);
+	return D::MakeSignal(std::forward<F>(func), inputNode);
 }
 
 // Multiple inputs
 template
 <
 	typename D,
-	typename TFunc,
+	typename F,
 	typename ... TValues
 >
-inline auto operator>>=(InputPack<D,TValues ...>& inputPack, TFunc func)
-	-> decltype(apply(REACT_IMPL::ApplyHelper<D, TFunc, TValues ...>
-		::MakeSignal, std::tuple_cat(std::make_tuple(func), inputPack.Data)))
+inline auto operator->*(const InputPack<D,TValues ...>& inputPack, F&& func)
+	-> decltype(apply(REACT_IMPL::ApplyHelper<D, F&&, TValues ...>
+		::MakeSignal, std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.Data)))
 {
-	return apply(REACT_IMPL::ApplyHelper<D, TFunc, TValues ...>
-		::MakeSignal, std::tuple_cat(std::make_tuple(func), inputPack.Data));
+	return apply(REACT_IMPL::ApplyHelper<D, F&&, TValues ...>
+		::MakeSignal, std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.Data));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

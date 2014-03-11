@@ -64,13 +64,13 @@ public:
 
 				if (shouldGrow)
 				{
-					auto s = (*l) >>= Function1;
+					auto s = (*l) ->* Function1;
 					nextBuf->push_back(s);
 				}
 
 				while (r != curBuf->end())
 				{
-					auto s = (*l,*r) >>= Function2;
+					auto s = (*l,*r) ->* Function2;
 					nextBuf->push_back(s);
 					nodeCount++;
 					++l; ++r;
@@ -78,7 +78,7 @@ public:
 
 				if (shouldGrow)
 				{
-					auto s = (*l) >>= Function1;
+					auto s = (*l) ->* Function1;
 					nextBuf->push_back(s);
 					nodeCount++;
 				}

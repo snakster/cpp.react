@@ -272,7 +272,7 @@ TYPED_TEST_P(SignalTest, FunctionBind1)
 	auto v2 = MyDomain::MakeVar(30);
 	auto v3 = MyDomain::MakeVar(10);
 
-	auto signal = (v1, v2, v3) >>= [=] (int a, int b, int c) -> int
+	auto signal = (v1, v2, v3) ->* [=] (int a, int b, int c) -> int
 	{
 		return a * b * c;
 	};
@@ -294,9 +294,9 @@ TYPED_TEST_P(SignalTest, FunctionBind2)
 	auto a = MyDomain::MakeVar(1);
 	auto b = MyDomain::MakeVar(1);
 	
-	auto c = ((a+b), (a+100)) >>= myfunc;
-	auto d = c >>= myfunc2;
-	auto e = (d,d) >>= myfunc3;
+	auto c = ((a+b), (a+100)) ->* myfunc;
+	auto d = c ->* myfunc2;
+	auto e = (d,d) ->* myfunc3;
 	auto f = -e + 100;
 
 	ASSERT_EQ(c(),103);

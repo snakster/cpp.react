@@ -133,20 +133,20 @@ public:
 
 					if (edgeCount == 2)
 					{
-						nodes[cur] = (nodes[kNode0], nodes[rNode1]) >>= f2;
+						nodes[cur] = (nodes[kNode0], nodes[rNode1]) ->* f2;
 					}
 					else if (edgeCount == 3)
 					{
-						nodes[cur] = (nodes[kNode0], nodes[rNode1], nodes[rNode2]) >>= f3;
+						nodes[cur] = (nodes[kNode0], nodes[rNode1], nodes[rNode2]) ->* f3;
 					}
 					else
 					{
-						nodes[cur] = (nodes[kNode0], nodes[rNode1], nodes[rNode2], nodes[rNode3]) >>= f4;
+						nodes[cur] = (nodes[kNode0], nodes[rNode1], nodes[rNode2], nodes[rNode3]) ->* f4;
 					}
 				}
 				else
 				{
-					nodes[cur] = nodes[cur-Width] >>= f1;
+					nodes[cur] = nodes[cur-Width] ->* f1;
 				}
 
 				cur++;

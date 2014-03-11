@@ -51,7 +51,7 @@ void SignalExample2()
 	auto height = D::MakeVar(70);
 	auto depth = D::MakeVar(8);
 
-	auto volume = (width,height,depth) >>= [] (int w, int h, int d) {
+	auto volume = (width,height,depth) ->* [] (int w, int h, int d) {
 		return w * h * d;
 	};
 
@@ -141,8 +141,6 @@ public:
 	VarSignal<int>	Age		= MakeVar(1);
 	Signal<int>		Health	= 100 - Age;
 	Signal<int>		Wisdom  = Age * Age / 100;
-
-	Signal<int>	Test;
 
 	// Note: Initializing them directly uses the same lambda for both signals...
 	// compiler bug?

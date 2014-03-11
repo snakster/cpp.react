@@ -39,7 +39,7 @@ public:
 	Signal<int>		TotalDays	= Iterate(0, NewDay, Incrementer<int>());
 	Signal<int>		DayOfYear	= TotalDays % 365;
 
-	Signal<Seasons>	Season = DayOfYear >>= [] (int day) {
+	Signal<Seasons>	Season = DayOfYear ->* [] (int day) {
 		return day < 180 ? Seasons::winter : Seasons::summer;
 	};
 };
@@ -60,12 +60,12 @@ public:
 		return m == Migration::enter ? count + 1 : count - 1;
 	});
 
-	Signal<int>	FoodPerDay = theTime.Season >>= [] (Seasons season) {
+	Signal<int>	FoodPerDay = theTime.Season ->* [] (Seasons season) {
 		return season == Seasons::summer ? 20 : 10;
 	};
 
 	Signal<int>	FoodOutputPerDay =
-		(FoodPerDay, AnimalCount) >>= [] (int food, int count) {
+		(FoodPerDay, AnimalCount) ->* [] (int food, int count) {
 			return count > 0 ? food/count : 0;
 	};
 
@@ -169,7 +169,7 @@ public:
 				return CurrentRegion.Value()->Clamp(position);
 		});
 
-		NewRegion = (Position) >>= [this] (PositionT pos)
+		NewRegion = (Position) ->* [this] (PositionT pos)
 		{
 			return theWorld.GetRegion(pos);
 		};
