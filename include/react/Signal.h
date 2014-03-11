@@ -539,7 +539,7 @@ template
 struct ApplyHelper
 {
 	static inline auto MakeSignal(F&& func, const RSignal<D,TValues>& ... args)
-		-> decltype(D::MakeSignal(std::forward<F>(func), args ...))
+		-> RSignal<D,decltype(func(std::declval<TValues>() ...))>
 	{
 		return D::MakeSignal(std::forward<F>(func), args ...);
 	}
@@ -560,7 +560,7 @@ template
 	typename TValue
 >
 inline auto operator->*(const RSignal<D,TValue>& inputNode, F&& func)
-	-> decltype(D::MakeSignal(std::forward<F>(func), inputNode))
+	-> RSignal<D,decltype(func(std::declval<TValue>()))>
 {
 	return D::MakeSignal(std::forward<F>(func), inputNode);
 }
@@ -573,11 +573,11 @@ template
 	typename ... TValues
 >
 inline auto operator->*(const InputPack<D,TValues ...>& inputPack, F&& func)
-	-> decltype(apply(REACT_IMPL::ApplyHelper<D, F&&, TValues ...>
-		::MakeSignal, std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.Data)))
+	-> RSignal<D,decltype(func(std::declval<TValues>() ...))>
 {
-	return apply(REACT_IMPL::ApplyHelper<D, F&&, TValues ...>
-		::MakeSignal, std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.Data));
+	return apply(
+		REACT_IMPL::ApplyHelper<D, F&&, TValues ...>::MakeSignal,
+		std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.Data));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
