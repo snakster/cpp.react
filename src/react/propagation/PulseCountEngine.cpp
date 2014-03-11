@@ -125,6 +125,7 @@ void EngineBase<TTurn>::runInitReachableNodesTask(NodeVectorT leftNodes)
 	{
 		Node* node = nullptr;
 
+		// Take a node from the larger stack, or exit if no more nodes
 		if (leftNodes.size() > rightNodes.size())
 		{
 			node = leftNodes.back();
@@ -140,10 +141,12 @@ void EngineBase<TTurn>::runInitReachableNodesTask(NodeVectorT leftNodes)
 			break;
 		}
 
+		// Increment counter of each successor and add it to smaller stack
 		for (auto* succ : node->Successors)
 		{
 			succ->Counter++;
 
+			// Skip if already marked
 			if (succ->Marked.exchange(true))
 				continue;
 				
@@ -151,6 +154,7 @@ void EngineBase<TTurn>::runInitReachableNodesTask(NodeVectorT leftNodes)
 
 			if (leftNodes.size() > 4)
 			{
+				//Delegate stack to new task
 				tasks_.run(std::bind(&EngineBase<TTurn>::runInitReachableNodesTask, this, std::move(leftNodes)));
 				leftNodes.clear();
 			}
