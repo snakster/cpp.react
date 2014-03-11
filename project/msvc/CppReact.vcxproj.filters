@@ -90,9 +90,6 @@
     <ClInclude Include="..\..\include\react\propagation\PulseCountEngine.h">
       <Filter>Header Files\propagation</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\PulseCountO1Engine.h">
-      <Filter>Header Files\propagation</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\propagation\SourceSetEngine.h">
       <Filter>Header Files\propagation</Filter>
     </ClInclude>
@@ -147,9 +144,6 @@
       <Filter>Source Files\propagation</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\react\propagation\PulseCountEngine.cpp">
-      <Filter>Source Files\propagation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\react\propagation\PulseCountO1Engine.cpp">
       <Filter>Source Files\propagation</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\react\propagation\SourceSetEngine.cpp">
