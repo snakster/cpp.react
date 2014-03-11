@@ -36,10 +36,10 @@ public:
 	}// ~mutex_
 
 	template <typename F>
-	inline void Run(F func)
+	auto Run(F func) -> decltype(func(false))
 	{// mutex_
 		std::lock_guard<std::mutex> scopedLock(mutex_);
-		func(blocked_);
+		return func(blocked_);
 	}// ~mutex_
 
 	template <typename F>
