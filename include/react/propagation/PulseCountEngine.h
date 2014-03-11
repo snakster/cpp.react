@@ -74,8 +74,8 @@ private:
 	void processChild(Node& node, bool update, TTurn& turn);
 	void nudgeChildren(Node& parent, bool update, TTurn& turn);
 
-	std::vector<Node*>	changedInputs_;
-	task_group			tasks_;
+	vector<Node*>	changedInputs_;
+	task_group		tasks_;
 };
 
 class BasicEngine :	public EngineBase<Turn> {};
@@ -89,7 +89,7 @@ REACT_BEGIN
 struct parallel;
 struct parallel_queuing;
 
-template <typename TMode = parallel_queuing>
+template <typename TMode>
 class PulseCountEngine;
 
 template <> class PulseCountEngine<parallel> : public REACT_IMPL::pulsecount::BasicEngine {};

@@ -81,17 +81,14 @@ template <typename TTurn>
 void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
 {
 	bool shouldTick = false;
-
-	// oldParent.ShiftMutex (write)
-	{
+	
+	{// oldParent.ShiftMutex (write)
 		NodeShiftMutexT::scoped_lock	lock(oldParent.ShiftMutex, true);
 
 		oldParent.Successors.Remove(node);
-	}
-	// ~oldParent.ShiftMutex (write)
+	}// ~oldParent.ShiftMutex (write)
 
-	// newParent.ShiftMutex (write)
-	{
+	{// newParent.ShiftMutex (write)
 		NodeShiftMutexT::scoped_lock	lock(newParent.ShiftMutex, true);
 		
 		newParent.Successors.Add(node);
@@ -106,8 +103,7 @@ void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent
 			node.Counter = 1;
 			node.ShouldUpdate = true;
 		}
-	}
-	// ~newParent.ShiftMutex (write)
+	}// ~newParent.ShiftMutex (write)
 
 	if (shouldTick)
 		node.Tick(&turn);
@@ -182,28 +178,24 @@ void EngineBase<TTurn>::processChild(Node& node, bool update, TTurn& turn)
 
 template <typename TTurn>
 void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
-{
-	// node.ShiftMutex (read)
+{// node.ShiftMutex (read)
+	NodeShiftMutexT::scoped_lock	lock(node.ShiftMutex);
+
+	// Select first child as next node, dispatch tasks for rest
+	for (auto* succ : node.Successors)
 	{
-		NodeShiftMutexT::scoped_lock	lock(node.ShiftMutex);
+		if (update)
+			succ->ShouldUpdate = true;
 
-		// Select first child as next node, dispatch tasks for rest
-		for (auto* succ : node.Successors)
-		{
-			if (update)
-				succ->ShouldUpdate = true;
+		// Delay tick?
+		if (succ->Counter-- > 1)
+			continue;
 
-			// Delay tick?
-			if (succ->Counter-- > 1)
-				continue;
-
-			tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));
-		}
-
-		node.Marked = false;
+		tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));
 	}
-	// ~node.ShiftMutex (read)
-}
+
+	node.Marked = false;
+}// ~node.ShiftMutex (read)
 
 // Explicit instantiation
 template class EngineBase<Turn>;

@@ -101,7 +101,7 @@ REACT_BEGIN
 struct parallel;
 struct parallel_queuing;
 
-template <typename TMode = parallel_queuing>
+template <typename TMode>
 class FloodingEngine;
 
 template <> class FloodingEngine<parallel> : public REACT_IMPL::flooding::BasicEngine {};

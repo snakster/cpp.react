@@ -133,7 +133,7 @@ REACT_BEGIN
 struct parallel;
 struct parallel_queuing;
 
-template <typename TMode = parallel_queuing>
+template <typename TMode>
 class SourceSetEngine;
 
 template <> class SourceSetEngine<parallel> : public REACT_IMPL::sourceset::BasicEngine {};

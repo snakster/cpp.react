@@ -94,7 +94,7 @@ REACT_BEGIN
 struct parallel;
 struct parallel_queuing;
 
-template <typename TMode = parallel_queuing>
+template <typename TMode>
 class ELMEngine;
 
 template <> class ELMEngine<parallel> : public REACT_IMPL::elm::BasicEngine {};
