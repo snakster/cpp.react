@@ -117,7 +117,7 @@ public:
 			blockCondition_.WaitForUnblock();
 		}
 
-		inline void RunMergedInputs()
+		inline void RunMergedInputs() const
 		{
 			for (const auto& e : merged_)
 				e.first();

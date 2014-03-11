@@ -1,7 +1,11 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
+#include <functional>
+#include <mutex>
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "tbb/concurrent_vector.h"
@@ -20,9 +24,14 @@ REACT_IMPL_BEGIN
 namespace toposort {
 
 using std::atomic;
+using std::condition_variable;
+using std::function;
+using std::mutex;
+using std::pair;
 using std::set;
 using std::vector;
 using tbb::concurrent_vector;
+using tbb::queuing_rw_mutex;
 using tbb::task_group;
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -62,12 +71,12 @@ struct ShiftRequestData
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Turn
+/// ExclusiveTurn
 ////////////////////////////////////////////////////////////////////////////////////////
-class Turn : public TurnBase
+class ExclusiveTurn : public TurnBase
 {
 public:
-	Turn(TurnIdT id, TurnFlagsT flags);
+	ExclusiveTurn(TurnIdT id, TurnFlagsT flags);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -130,16 +139,150 @@ private:
 	ShiftRequestVectorT	shiftRequests_;
 };
 
-
-
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Concrete engines
 ////////////////////////////////////////////////////////////////////////////////////////
-class BasicSeqEngine : public SeqEngineBase<Turn> {};
-class QueuingSeqEngine : public DefaultQueuingEngine<SeqEngineBase,Turn> {};
+class BasicSeqEngine : public SeqEngineBase<ExclusiveTurn> {};
+class QueuingSeqEngine : public DefaultQueuingEngine<SeqEngineBase,ExclusiveTurn> {};
 
-class BasicParEngine :	public ParEngineBase<Turn> {};
-class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,Turn> {};
+class BasicParEngine :	public ParEngineBase<ExclusiveTurn> {};
+class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveTurn> {};
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// PipeliningTurn
+////////////////////////////////////////////////////////////////////////////////////////
+class PipeliningTurn : public TurnBase
+{
+public:
+	using ConcNodeVectorT = concurrent_vector<ParNode*>;
+	using NodeVectT = vector<ParNode*>;
+	using IntervalSetT = set<pair<int,int>>;
+	using ShiftRequestVectorT = concurrent_vector<ShiftRequestData>;
+	using TopoQueueT = TopoQueue<ParNode>;
+
+	PipeliningTurn(TurnIdT id, TurnFlagsT flags);
+
+	int		CurrentLevel() const	{ return currentLevel_; }
+
+	bool	AdvanceLevel();
+	void	SetMaxLevel(int level);
+	void	WaitForMaxLevel(int targetLevel);
+
+	void	UpdateSuccessor();
+
+	void	Append(PipeliningTurn* turn);
+
+	void	Remove();
+
+	void	AdjustUpperBound(int level);
+
+	template <typename F>
+	bool TryMerge(F&& inputFunc, BlockingCondition& caller)
+	{
+		if (!isMergeable_)
+			return false;
+
+		bool merged = false;
+		
+		{// advMutex_
+			std::lock_guard<std::mutex> scopedLock(advMutex_);
+
+			// Only merge if target is still blocked
+			if (currentLevel_ == -1)
+			{
+				merged = true;
+				caller.Block();
+				merged_.emplace_back(std::make_pair(std::forward<F>(inputFunc), &caller));
+			}
+		}// ~advMutex_
+
+		return merged;
+	}
+
+	void RunMergedInputs() const;
+
+	TopoQueueT			ScheduledNodes;
+	ConcNodeVectorT		CollectBuffer;
+	ShiftRequestVectorT	ShiftRequests;
+	task_group			Tasks;
+
+private:
+	using MergedDataVectT = vector<pair<function<void()>,BlockingCondition*>>;
+
+	const bool			isMergeable_;
+	MergedDataVectT		merged_;
+
+	IntervalSetT		levelIntervals_;
+
+	PipeliningTurn*	predecessor_ = nullptr;
+	PipeliningTurn*	successor_ = nullptr;
+
+	int		currentLevel_ = -1;
+	int		maxLevel_ = INT_MAX;			/// This turn may only advance up to maxLevel
+	int		minLevel_ = -1;			/// successor.maxLevel = this.minLevel - 1
+
+	int		curUpperBound_ = -1;
+
+	mutex				advMutex_;
+	condition_variable	advCondition_;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// PipeliningEngine
+////////////////////////////////////////////////////////////////////////////////////////
+class PipeliningEngine : public IReactiveEngine<ParNode,PipeliningTurn>
+{
+public:
+	using SeqMutexT = queuing_rw_mutex;
+	using NodeSetT = set<ParNode*>;
+
+	void OnNodeAttach(ParNode& node, ParNode& parent);
+	void OnNodeDetach(ParNode& node, ParNode& parent);
+
+	void OnTurnAdmissionStart(PipeliningTurn& turn);
+	void OnTurnAdmissionEnd(PipeliningTurn& turn);
+	void OnTurnEnd(PipeliningTurn& turn);
+
+	void OnTurnInputChange(ParNode& node, PipeliningTurn& turn);
+	void OnNodePulse(ParNode& node, PipeliningTurn& turn);
+
+	void OnTurnPropagate(PipeliningTurn& turn);
+
+	void OnNodeShift(ParNode& node, ParNode& oldParent, ParNode& newParent, PipeliningTurn& turn);
+
+	template <typename F>
+	inline bool TryMerge(F&& inputFunc)
+	{
+		bool merged = false;
+
+		BlockingCondition caller;
+
+		{// seqMutex_
+			SeqMutexT::scoped_lock lock(seqMutex_);
+
+			if (tail_)
+				merged = tail_->TryMerge(std::forward<F>(inputFunc), caller);
+		}// ~seqMutex_
+
+		if (merged)
+			caller.WaitForUnblock();
+
+		return merged;
+	}
+
+private:
+	void applyShift(ParNode& node, ParNode& oldParent, ParNode& newParent, PipeliningTurn& turn);
+	void processChildren(ParNode& node, PipeliningTurn& turn);
+	void invalidateSuccessors(ParNode& node);
+
+	void advanceTurn(PipeliningTurn& turn);
+
+	SeqMutexT			seqMutex_;
+	PipeliningTurn*		tail_ = nullptr;
+
+	NodeSetT	dynamicNodes_;
+	int			maxDynamicLevel_;
+};
 
 } // ~namespace toposort
 REACT_IMPL_END
@@ -151,6 +294,7 @@ struct sequential;
 struct sequential_queuing;
 struct parallel;
 struct parallel_queuing;
+struct parallel_pipelining;
 
 template <typename TMode>
 class TopoSortEngine;
@@ -159,5 +303,6 @@ template <> class TopoSortEngine<sequential> : public REACT_IMPL::toposort::Basi
 template <> class TopoSortEngine<sequential_queuing> : public REACT_IMPL::toposort::QueuingSeqEngine {};
 template <> class TopoSortEngine<parallel> : public REACT_IMPL::toposort::BasicParEngine {};
 template <> class TopoSortEngine<parallel_queuing> : public REACT_IMPL::toposort::QueuingParEngine {};
+template <> class TopoSortEngine<parallel_pipelining> : public REACT_IMPL::toposort::PipeliningEngine {};
 
 REACT_END
