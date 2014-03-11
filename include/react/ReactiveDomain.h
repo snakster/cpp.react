@@ -23,6 +23,12 @@ class RSignal;
 template <typename D, typename S>
 class RVarSignal;
 
+template <typename D, typename S>
+using RRefSignal = RSignal<D,std::reference_wrapper<S>>;
+
+template <typename D, typename S>
+using RVarRefSignal = RVarSignal<D,std::reference_wrapper<S>>;
+
 template <typename D, typename E>
 class REvents;
 
@@ -232,6 +238,12 @@ public:
 
 	template <typename S>
 	using VarSignal = RVarSignal<D,S>;
+
+	template <typename S>
+	using RefSignal = RRefSignal<D,S>;
+
+	template <typename S>
+	using VarRefSignal = RVarRefSignal<D,S>;
 
 	template <typename E = EventToken>
 	using Events = REvents<D,E>;

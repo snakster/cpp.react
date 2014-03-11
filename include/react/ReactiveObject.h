@@ -19,6 +19,12 @@ public:
 	template <typename S>
 	using VarSignal = RVarSignal<D,S>;
 
+	template <typename S>
+	using RefSignal = RRefSignal<D,S>;
+
+	template <typename S>
+	using VarRefSignal = RVarRefSignal<D,S>;
+
 	template <typename E = EventToken>
 	using Events = REvents<D,E>;
 
@@ -87,12 +93,27 @@ public:
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
-	/// DYNAMIC_REF
+	/// Flatten macros
 	////////////////////////////////////////////////////////////////////////////////////////
-	#define DYNAMIC_REF(obj, name)	\
-	Flatten(						\
-		MakeSignal(					\
-			[] (Identity<decltype(obj)>::Type::ValueT r) { return r->name; }, obj))
+	// Todo: Add safety wrapper + static assert to check for this for ReactiveObject
+	#define REACTIVE_REF(obj, name)											\
+		Flatten(															\
+			MakeSignal(														\
+				[] (Identity<decltype(obj)>::Type::ValueT::type& r)			\
+				{															\
+					return r.name;											\
+				},															\
+				obj))
+
+	#define REACTIVE_PTR(obj, name)											\
+		Flatten(															\
+			MakeSignal(														\
+				[] (Identity<decltype(obj)>::Type::ValueT r)				\
+				{															\
+					REACT_ASSERT(r != nullptr);								\
+					return r->name;											\
+				},															\
+				obj))
 };
 
 } //~namespace react

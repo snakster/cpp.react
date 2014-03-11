@@ -108,7 +108,8 @@ class VarNode : public SignalNode<D,S>
 public:
 	template <typename T>
 	VarNode(T&& value, bool registered) :
-		SignalNode<D,S>(std::forward<T>(value), true)
+		SignalNode<D,S>(std::forward<T>(value), true),
+		newValue_{ value_ }
 	{
 		if (!registered)
 			registerNode();
@@ -250,9 +251,9 @@ private:
 	}
 
 	static inline auto unpackValues(const SignalNodePtr<D,TArgs>& ... args)
-		-> std::tuple<std::reference_wrapper<const TArgs> ...>
+		-> decltype(std::tie(args->ValueRef() ...))
 	{
-		return std::make_tuple(std::cref(args->ValueRef()) ...);
+		return std::tie(args->ValueRef() ...);
 	}
 };
 

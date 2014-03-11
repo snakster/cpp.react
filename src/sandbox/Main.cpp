@@ -1,4 +1,5 @@
 #include <iostream>
+#include <functional>
 
 #include "react/Signal.h"
 #include "react/EventStream.h"
@@ -162,6 +163,11 @@ public:
 			else		cout << ":D" << endl;
 		});
 	}
+
+	bool operator==(const Person& other) const
+	{
+		return this == &other;
+	}
 };
 
 void ObjectExample1()
@@ -183,15 +189,14 @@ void ObjectExample1()
 class PersonManager : public ReactiveObject<D>
 {
 public:
-	VarSignal<Person*>	CurrentPerson;
+	VarRefSignal<Person>	CurrentPerson;
 
 	Observer healthObs;
 
 	PersonManager(Person& p) :
-		CurrentPerson{ MakeVar(&p) }
+		CurrentPerson{ MakeVar(std::ref(p)) }
 	{
-		// Todo: Safety, doesn't work for VarSignal etc.
-		healthObs = DYNAMIC_REF(CurrentPerson, Health).Observe([] (int v) {
+		healthObs = REACTIVE_REF(CurrentPerson, Health).Observe([] (int v) {
 			cout << "Manager: Health changed to " << v << endl;
 		});
 	}
@@ -209,7 +214,7 @@ void ObjectExample2()
 	person1.Age <<= 30;
 	person2.Age <<= 15;
 
-	mgmt.CurrentPerson <<= &person2;
+	mgmt.CurrentPerson <<= std::ref(person2);
 
 	person1.Age <<= 40;
 	person2.Age <<= 25;

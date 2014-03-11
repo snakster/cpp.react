@@ -85,20 +85,6 @@ public:
 	}
 };
 
-REACT_END
-
-REACT_IMPL_BEGIN
-
-template <typename D, typename L, typename R>
-bool Equals(const RSignal<D,L>& lhs, const RSignal<D,R>& rhs)
-{
-	return lhs.Equals(rhs);
-}
-
-REACT_IMPL_END
-
-REACT_BEGIN
-
 ////////////////////////////////////////////////////////////////////////////////////////
 /// RVarSignal
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -141,6 +127,26 @@ public:
 		return *this;
 	}
 };
+
+REACT_END
+
+REACT_IMPL_BEGIN
+
+template <typename D, typename L, typename R>
+bool Equals(const RSignal<D,L>& lhs, const RSignal<D,R>& rhs)
+{
+	return lhs.Equals(rhs);
+}
+
+template <typename D, typename L, typename R>
+bool Equals(const RVarSignal<D,L>& lhs, const RVarSignal<D,R>& rhs)
+{
+	return lhs.Equals(rhs);
+}
+
+REACT_IMPL_END
+
+REACT_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// IsSignalT

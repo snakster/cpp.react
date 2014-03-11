@@ -186,7 +186,7 @@ public:
 		});
 	}
 		
-	Events<int> FoodReceived = DYNAMIC_REF(CurrentRegion, FoodOutput);
+	Events<int> FoodReceived = REACTIVE_PTR(CurrentRegion, FoodOutput);
 
 	Signal<int>	Age = Iterate(0, theTime.NewDay, Incrementer<int>());
 

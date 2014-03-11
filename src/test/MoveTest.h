@@ -93,18 +93,20 @@ TYPED_TEST_P(MoveTest, Copy1)
 	auto c = MyDomain::MakeVar(CopyCounter{100,&stats1});
 	auto d = MyDomain::MakeVar(CopyCounter{1000,&stats1});
 
-	ASSERT_EQ(stats1.copyCount, 0);
+	// 4x move to value_
+	// 4x copy to newValue_ (can't be unitialized for references)
+	ASSERT_EQ(stats1.copyCount, 4);
 	ASSERT_EQ(stats1.moveCount, 4);
 
 	auto x = a + b + c + d;
 
-	ASSERT_EQ(stats1.copyCount, 0);
+	ASSERT_EQ(stats1.copyCount, 4);
 	ASSERT_EQ(stats1.moveCount, 7);
 	ASSERT_EQ(x().v, 1111);
 
 	a <<= CopyCounter{2,&stats1};
 
-	ASSERT_EQ(stats1.copyCount, 0);
+	ASSERT_EQ(stats1.copyCount, 4);
 	ASSERT_EQ(stats1.moveCount, 12);
 	ASSERT_EQ(x().v, 1112);
 }

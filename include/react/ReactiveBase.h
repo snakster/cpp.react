@@ -56,4 +56,10 @@ bool Equals(const L& lhs, const R& rhs)
 	return lhs == rhs;
 }
 
+template <typename L, typename R>
+bool Equals(const std::reference_wrapper<L>& lhs, const std::reference_wrapper<R>& rhs)
+{
+	return lhs.get() == rhs.get();
+}
+
 REACT_IMPL_END
