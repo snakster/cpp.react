@@ -4,7 +4,6 @@
 #include "react/propagation/PulseCountEngine.h"
 #include "react/propagation/TopoSortEngine.h"
 #include "react/propagation/SourceSetEngine.h"
-//#include "react/propagation/PulseCountO1Engine.h"
 #include "react/propagation/ELMEngine.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -17,8 +16,8 @@ INSTANTIATE_TYPED_TEST_CASE_P(ParTopoSort, TransactionTest, TopoSortEngine<paral
 INSTANTIATE_TYPED_TEST_CASE_P(Flooding, TransactionTest, FloodingEngine<parallel_queuing>);
 INSTANTIATE_TYPED_TEST_CASE_P(ELM, TransactionTest, ELMEngine<parallel_queuing>);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, TransactionTest, PulseCountEngine<parallel_queuing>);
-//INSTANTIATE_TYPED_TEST_CASE_P(PulseCountO1, TransactionTest, PulseCountO1Engine<parallel_queuing>);
 INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, TransactionTest, SourceSetEngine<parallel_queuing>);
+INSTANTIATE_TYPED_TEST_CASE_P(ParTopoSortP, TransactionTest, TopoSortEngine<parallel_pipelining>);
 
 // ---
 }
