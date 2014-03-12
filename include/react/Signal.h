@@ -218,13 +218,13 @@ template
 	typename TFunc,
 	typename ... TArgs
 >
-inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
-	-> RSignal<D,decltype(func(args() ...))>
+auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
+	-> RSignal<D, typename std::result_of<TFunc(TArgs...)>::type>
 {
 	static_assert(sizeof...(TArgs) > 0,
 		"react::MakeSignal requires at least 1 signal dependency.");
 
-	typedef decltype(func(args() ...)) S;
+	using S = typename std::result_of<TFunc(TArgs...)>::type;
 
 	return RSignal<D,S>(
 		std::make_shared<REACT_IMPL::FunctionNode<D, S, TArgs ...>>(
@@ -243,10 +243,10 @@ template															\
 	class = std::enable_if<											\
 		IsSignalT<D,TSignal<D,TVal>>::value>::type					\
 >																	\
-inline auto operator ## op(const TSignal<D,TVal>& arg)				\
-	-> RSignal<D,TVal>												\
+auto operator ## op(const TSignal<D,TVal>& arg)						\
+	-> RSignal<D,decltype(op std::declval<TVal>())>					\
 {																	\
-	return RSignal<D,TVal>(											\
+	return RSignal<D,decltype(op std::declval<TVal>())>(			\
 		std::make_shared<REACT_IMPL::FunctionNode<D,TVal,TVal>>(	\
 			[] (TVal a) { return op a; }, arg.GetPtr(), false));	\
 }
@@ -257,7 +257,7 @@ DECLARE_OP(-);
 #undef DECLARE_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Binary arithmetic operators
+/// Binary arithmetic and comparison operators
 ////////////////////////////////////////////////////////////////////////////////////////
 #define DECLARE_OP(op)												\
 template															\
@@ -272,12 +272,16 @@ template															\
 	class = std::enable_if<											\
 		IsSignalT<D,TRightSignal<D,TRightVal>>::value>::type		\
 >																	\
-inline auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,		\
-						   const TRightSignal<D,TRightVal>& rhs)	\
-	-> RSignal<D,TLeftVal>											\
+auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,				\
+					const TRightSignal<D,TRightVal>& rhs)			\
+	-> RSignal<D,													\
+		typename std::remove_const<									\
+			decltype(std::declval<TLeftVal>() op std::declval<TRightVal>())>::type> \
 {																	\
-	return RSignal<D,TLeftVal>(										\
-		std::make_shared<REACT_IMPL::FunctionNode<D,TLeftVal,TLeftVal,TRightVal>>( \
+	using TRet = typename std::remove_const<						\
+		decltype(std::declval<TLeftVal>() op std::declval<TRightVal>())>::type; \
+	return RSignal<D,TRet>(											\
+		std::make_shared<REACT_IMPL::FunctionNode<D,TRet,TLeftVal,TRightVal>>( \
 			[] (const TLeftVal& a, const TRightVal& b) { return a op b; }, \
 				lhs.GetPtr(), rhs.GetPtr(), false));				\
 }																	\
@@ -293,12 +297,16 @@ template															\
 	class = std::enable_if<											\
 		std::is_integral<TRightVal>::value>::type					\
 >																	\
-inline auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,		\
-						   const TRightVal& rhs)					\
-	-> RSignal<D,TLeftVal>											\
+auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,				\
+					const TRightVal& rhs)							\
+	-> RSignal<D,													\
+		typename std::remove_const<									\
+			decltype(std::declval<TLeftVal>() op rhs)>::type>		\
 {																	\
-	return RSignal<D,TLeftVal>(										\
-		std::make_shared<REACT_IMPL::FunctionNode<D,TLeftVal,TLeftVal>>( \
+	using TRet = typename std::remove_const<						\
+		decltype(std::declval<TLeftVal>() op rhs)>::type;			\
+	return RSignal<D,TRet>(											\
+		std::make_shared<REACT_IMPL::FunctionNode<D,TRet,TLeftVal>>( \
 			[=] (const TLeftVal& a) { return a op rhs; }, lhs.GetPtr(), false)); \
 }																	\
 																	\
@@ -313,12 +321,16 @@ template															\
 	class = std::enable_if<											\
 		IsSignalT<D,TRightSignal<D,TRightVal>>::value>::type		\
 >																	\
-inline auto operator ## op(const TLeftVal& lhs,						\
-						   const TRightSignal<D,TRightVal>& rhs)	\
-	-> RSignal<D,TRightVal>											\
+auto operator ## op(const TLeftVal& lhs,							\
+					const TRightSignal<D,TRightVal>& rhs)			\
+	-> RSignal<D,													\
+		typename std::remove_const<									\
+			decltype(lhs op std::declval<TRightVal>())>::type>		\
 {																	\
-	return RSignal<D,TRightVal>(									\
-		std::make_shared<REACT_IMPL::FunctionNode<D,TRightVal,TRightVal>>( \
+	using TRet = typename std::remove_const<						\
+		decltype(lhs op std::declval<TRightVal>())>::type;			\
+	return RSignal<D,TRet>(											\
+		std::make_shared<REACT_IMPL::FunctionNode<D,TRet,TRightVal>>( \
 			[=] (const TRightVal& a) { return lhs op a; }, rhs.GetPtr(), false)); \
 }
 
@@ -327,6 +339,13 @@ DECLARE_OP(-);
 DECLARE_OP(*);
 DECLARE_OP(/);
 DECLARE_OP(%);
+
+DECLARE_OP(==);
+DECLARE_OP(!=);
+DECLARE_OP(<);
+DECLARE_OP(<=);
+DECLARE_OP(>);
+DECLARE_OP(>=);
 
 #undef DECLARE_OP
 
@@ -350,61 +369,6 @@ DECLARE_OP(%);
 //		rhs.GetPtr(), [] (const TLeftVal& a, const TRightVal& b) { return a + b; });
 //	return std::move(lhs);
 //}
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-/// Comparison operators
-////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_OP(op)												\
-template															\
-<																	\
-	typename D,														\
-	template <typename D_, typename V_> class TLeftSignal,			\
-	template <typename D_, typename V_> class TRightSignal,			\
-	typename TLeftVal,												\
-	typename TRightVal,												\
-	class = std::enable_if<											\
-		IsSignalT<D,TLeftSignal<D,TLeftVal>>::value>::type,			\
-	class = std::enable_if<											\
-		IsSignalT<D,TRightSignal<D,TRightVal>>::value>::type		\
->																	\
-inline auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,		\
-						   const TRightSignal<D,TRightVal>& rhs)	\
-	-> RSignal<D,bool>												\
-{																	\
-	return RSignal<D,bool>(											\
-		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TLeftVal,TRightVal>>( \
-			[] (const TLeftVal& a, const TRightVal& b) { return a op b; }, \
-				lhs.GetPtr(), rhs.GetPtr(), false));				\
-}																	\
-																	\
-template															\
-<																	\
-	typename D,														\
-	template <typename D_, typename V_> class TLeftSignal,			\
-	typename TLeftVal,												\
-	typename TRightVal,												\
-	class = std::enable_if<											\
-		IsSignalT<D,TLeftSignal<D,TLeftVal>>::value>::type,			\
-	class = std::enable_if<											\
-		std::is_integral<TRightVal>::value>::type					\
->																	\
-inline auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs, const TRightVal& rhs) \
-	-> RSignal<D,bool>												\
-{																	\
-	return RSignal<D,bool>(											\
-		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TLeftVal>>( \
-			[=] (const TLeftVal& a) { return a op rhs; }, lhs.GetPtr(), false)); \
-}
-
-DECLARE_OP(==);
-DECLARE_OP(!=);
-DECLARE_OP(<);
-DECLARE_OP(<=);
-DECLARE_OP(>);
-DECLARE_OP(>=);
-
-#undef DECLARE_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Unary logical operators

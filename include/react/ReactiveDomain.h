@@ -50,8 +50,8 @@ template
 	typename TFunc,
 	typename ... TArgs
 >
-inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
-	-> RSignal<D,decltype(func(args() ...))>;
+auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
+	-> RSignal<D, typename std::result_of<TFunc(TArgs...)>::type>;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// IsSignalT
