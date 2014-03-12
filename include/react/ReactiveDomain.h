@@ -53,6 +53,30 @@ template
 inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
 	-> RSignal<D,decltype(func(args() ...))>;
 
+////////////////////////////////////////////////////////////////////////////////////////
+/// IsSignalT
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename T>
+struct IsSignalT { static const bool value = false; };
+
+template <typename D, typename T>
+struct IsSignalT<D, RSignal<D,T>> { static const bool value = true; };
+
+template <typename D, typename T>
+struct IsSignalT<D, RVarSignal<D,T>> { static const bool value = true; };
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// IsEventT
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename T>
+struct IsEventT { static const bool value = false; };
+
+template <typename D, typename T>
+struct IsEventT<D, REvents<D,T>> { static const bool value = true; };
+
+template <typename D, typename T>
+struct IsEventT<D, REventSource<D,T>> { static const bool value = true; };
+
 /************************************/ REACT_END /*************************************/
 
 /*********************************/ REACT_IMPL_BEGIN /*********************************/
@@ -449,9 +473,9 @@ public:
 	static void Reset()			{ static_assert(false, "Reset option not implemented."); }
 
 	template <> static void Set<ETurnFlags>(uint v)		{ turnFlags_ |= v; }
-	template <> static bool IsSet<ETurnFlags>(uint v)	{ return (turnFlags_ & v) != 0 }
-	template <> static void Unset<ETurnFlags>(uint v)	{ turnFlags_ &= ~v;}
-	template <> static void Reset<ETurnFlags>()			{ turnFlags_ = 0;}
+	template <> static bool IsSet<ETurnFlags>(uint v)	{ return (turnFlags_ & v) != 0; }
+	template <> static void Unset<ETurnFlags>(uint v)	{ turnFlags_ &= ~v; }
+	template <> static void Reset<ETurnFlags>()			{ turnFlags_ = 0; }
 
 private:
 

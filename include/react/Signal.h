@@ -154,18 +154,6 @@ bool Equals(const RVarSignal<D,L>& lhs, const RVarSignal<D,R>& rhs)
 /***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// IsSignalT
-////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename T>
-struct IsSignalT { static const bool value = false; };
-
-template <typename D, typename T>
-struct IsSignalT<D, RSignal<D,T>> { static const bool value = true; };
-
-template <typename D, typename T>
-struct IsSignalT<D, RVarSignal<D,T>> { static const bool value = true; };
-
-////////////////////////////////////////////////////////////////////////////////////////
 /// MakeVar
 ////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -240,7 +228,7 @@ inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
 
 	return RSignal<D,S>(
 		std::make_shared<REACT_IMPL::FunctionNode<D, S, TArgs ...>>(
-			args.GetPtr() ..., func, false));
+			func, args.GetPtr() ..., false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -260,7 +248,7 @@ inline auto operator ## op(const TSignal<D,TVal>& arg)				\
 {																	\
 	return RSignal<D,TVal>(											\
 		std::make_shared<REACT_IMPL::FunctionNode<D,TVal,TVal>>(	\
-			arg.GetPtr(), [] (TVal a) { return op a; }, false));	\
+			[] (TVal a) { return op a; }, arg.GetPtr(), false));	\
 }
 
 DECLARE_OP(+);
@@ -290,8 +278,8 @@ inline auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,		\
 {																	\
 	return RSignal<D,TLeftVal>(										\
 		std::make_shared<REACT_IMPL::FunctionNode<D,TLeftVal,TLeftVal,TRightVal>>( \
-			lhs.GetPtr(), rhs.GetPtr(), [] (const TLeftVal& a, const TRightVal& b) { \
-				return a op b; }, false));							\
+			[] (const TLeftVal& a, const TRightVal& b) { return a op b; }, \
+				lhs.GetPtr(), rhs.GetPtr(), false));				\
 }																	\
 																	\
 template															\
@@ -311,7 +299,7 @@ inline auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,		\
 {																	\
 	return RSignal<D,TLeftVal>(										\
 		std::make_shared<REACT_IMPL::FunctionNode<D,TLeftVal,TLeftVal>>( \
-			lhs.GetPtr(), [=] (const TLeftVal& a) { return a op rhs; }, false)); \
+			[=] (const TLeftVal& a) { return a op rhs; }, lhs.GetPtr(), false)); \
 }																	\
 																	\
 template															\
@@ -331,7 +319,7 @@ inline auto operator ## op(const TLeftVal& lhs,						\
 {																	\
 	return RSignal<D,TRightVal>(									\
 		std::make_shared<REACT_IMPL::FunctionNode<D,TRightVal,TRightVal>>( \
-			rhs.GetPtr(), [=] (const TRightVal& a) { return lhs op a; }, false)); \
+			[=] (const TRightVal& a) { return lhs op a; }, rhs.GetPtr(), false)); \
 }
 
 DECLARE_OP(+);
@@ -386,7 +374,8 @@ inline auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,		\
 {																	\
 	return RSignal<D,bool>(											\
 		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TLeftVal,TRightVal>>( \
-			lhs.GetPtr(), rhs.GetPtr(), [] (TLeftVal a, TRightVal b) { return a op b; }, false)); \
+			[] (const TLeftVal& a, const TRightVal& b) { return a op b; }, \
+				lhs.GetPtr(), rhs.GetPtr(), false));				\
 }																	\
 																	\
 template															\
@@ -405,7 +394,7 @@ inline auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs, const TRightVal& 
 {																	\
 	return RSignal<D,bool>(											\
 		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TLeftVal>>( \
-			lhs.GetPtr(), [=] (TLeftVal a) { return a op rhs; }, false)); \
+			[=] (const TLeftVal& a) { return a op rhs; }, lhs.GetPtr(), false)); \
 }
 
 DECLARE_OP(==);
@@ -431,7 +420,7 @@ inline auto operator ## op(const RSignal<D,TVal>& arg)				\
 {																	\
 	return RSignal<D,TVal>(											\
 		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TVal>>(	\
-			arg.GetPtr(), [] (TVal a) { return op a; }, false));	\
+			[] (const TVal& a) { return op a; }, arg.GetPtr(), false));	\
 }
 
 DECLARE_OP(!);
@@ -454,7 +443,8 @@ inline auto operator ## op(const RSignal<D,TLeftVal>& lhs,			\
 {																	\
 	return RSignal<D,bool>(											\
 		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TLeftVal,TRightVal>>(	\
-			lhs.GetPtr(), rhs.GetPtr(), [] (TLeftVal a, TRightVal b) { return a op b; }, false)); \
+			[] (const TLeftVal& a, const TRightVal& b) { return a op b; },		\
+				lhs.GetPtr(), rhs.GetPtr(), false));				\
 }																	\
 																	\
 template															\
@@ -468,7 +458,7 @@ inline auto operator ## op(const RSignal<D,TLeftVal>& lhs, const TRightVal& rhs)
 {																	\
 	return RSignal<D,bool>(											\
 		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TLeftVal>>( \
-			lhs.GetPtr(), [=] (TLeftVal a) { return a op rhs; }, false)); \
+			[=] (TLeftVal a) { return a op rhs; }, lhs.GetPtr(), false)); \
 }
 
 DECLARE_OP(&&);

@@ -17,6 +17,9 @@
 
 /*********************************/ REACT_IMPL_BEGIN /*********************************/
 
+template <typename D, typename L, typename R>
+bool Equals(const L& lhs, const R& rhs);
+
 ////////////////////////////////////////////////////////////////////////////////////////
 /// SignalNode
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -194,7 +197,7 @@ class FunctionNode : public SignalNode<D,S>
 {
 public:
 	template <typename F>
-	FunctionNode(const SignalNodePtr<D,TArgs>& ... args, F&& func, bool registered) :
+	FunctionNode(F&& func, const SignalNodePtr<D,TArgs>& ... args, bool registered) :
 		SignalNode<D, S>(true),
 		deps_{ make_tuple(args ...) },
 		func_{ std::forward<F>(func) }
