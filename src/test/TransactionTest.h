@@ -307,5 +307,3 @@ REGISTER_TYPED_TEST_CASE_P
 );
 
 } // ~namespace
-
-#endif // CPP_REACT_TRANSACTIONTEST_H

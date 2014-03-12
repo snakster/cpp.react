@@ -6,9 +6,6 @@
 
 #pragma once
 
-#ifndef CPP_REACT_OPERATIONSTEST_H
-#define CPP_REACT_OPERATIONSTEST_H
-
 #include "gtest/gtest.h"
 
 #include <queue>
@@ -227,5 +224,3 @@ REGISTER_TYPED_TEST_CASE_P
 );
 
 } // ~namespace
-
-#endif // CPP_REACT_OPERATIONSTEST_H

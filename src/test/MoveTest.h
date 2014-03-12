@@ -6,9 +6,6 @@
 
 #pragma once
 
-#ifndef CPP_REACT_MOVETEST_H
-#define CPP_REACT_MOVETEST_H
-
 #include "gtest/gtest.h"
 
 #include "react/Signal.h"
@@ -128,5 +125,3 @@ REGISTER_TYPED_TEST_CASE_P
 );
 
 } // ~namespace
-
-#endif // CPP_REACT_MOVETEST_H
