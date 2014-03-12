@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "react/Defs.h"
+
 #include <atomic>
 #include <vector>
 
@@ -17,8 +19,7 @@
 #include "react/common/Containers.h"
 #include "react/common/Types.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace pulsecount {
 
 using std::atomic;
@@ -88,9 +89,9 @@ class BasicEngine :	public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace pulsecount
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 struct parallel;
 struct parallel_queuing;
@@ -101,4 +102,4 @@ class PulseCountEngine;
 template <> class PulseCountEngine<parallel> : public REACT_IMPL::pulsecount::BasicEngine {};
 template <> class PulseCountEngine<parallel_queuing> : public REACT_IMPL::pulsecount::QueuingEngine {};
 
-REACT_END
+/************************************/ REACT_END /*************************************/

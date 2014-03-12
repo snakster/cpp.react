@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "react/Defs.h"
+
 #include <memory>
 #include <functional>
 
@@ -13,8 +15,7 @@
 #include "EventStreamNodes.h"
 #include "SignalNodes.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// IObserverNode
@@ -194,4 +195,4 @@ private:
 	std::function<void(TArg)>		func_;
 };
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/

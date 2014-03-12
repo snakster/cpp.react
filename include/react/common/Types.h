@@ -7,12 +7,11 @@
 #pragma once
 
 #include "react/Defs.h"
-
 #include <cstdint>
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
-typedef uintptr_t	ObjectId;
+using ObjectId = uintptr_t;
 
 template <typename O>
 ObjectId GetObjectId(const O& obj)
@@ -20,4 +19,4 @@ ObjectId GetObjectId(const O& obj)
 	return (ObjectId)&obj;
 }
 
-REACT_END
+/************************************/ REACT_END /*************************************/

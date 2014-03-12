@@ -6,6 +6,9 @@
 
 #pragma once
 
+#ifndef CPP_REACT_SIGNALTEST_H
+#define CPP_REACT_SIGNALTEST_H
+
 #include "gtest/gtest.h"
 
 #include <queue>
@@ -519,5 +522,6 @@ REGISTER_TYPED_TEST_CASE_P
 	Flatten1, Flatten2, Flatten3, Flatten4
 );
 
-// ---
-}
+} // ~namespace
+
+#endif // CPP_REACT_SIGNALTEST_H

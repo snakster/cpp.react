@@ -6,6 +6,9 @@
 
 #pragma once
 
+#ifndef CPP_REACT_EVENTSTREAMTEST_H
+#define CPP_REACT_EVENTSTREAMTEST_H
+
 #include <queue>
 #include <string>
 
@@ -262,5 +265,6 @@ REGISTER_TYPED_TEST_CASE_P
 	EventTransform
 );
 
-// ---
-}
+} // ~namespace
+
+#endif // CPP_REACT_EVENTSTREAMTEST_H

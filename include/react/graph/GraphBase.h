@@ -15,8 +15,7 @@
 #include "react/common/Util.h"
 #include "react/common/Types.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// TickResult
@@ -128,4 +127,4 @@ private:
 template <typename D, typename P, typename V>
 using ReactiveNodePtr = typename ReactiveNode<D,P,V>::NodePtrT;
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/

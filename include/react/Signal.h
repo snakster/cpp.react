@@ -20,8 +20,7 @@
 #include "react/common/Util.h"
 #include "react/graph/SignalNodes.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 template <typename D, typename S>
 class SignalNode;
@@ -37,9 +36,9 @@ template
 >
 class FunctionNode;
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// RSignal
@@ -134,9 +133,9 @@ public:
 	}
 };
 
-REACT_END
+/************************************/ REACT_END /*************************************/
 
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 template <typename D, typename L, typename R>
 bool Equals(const RSignal<D,L>& lhs, const RSignal<D,R>& rhs)
@@ -150,9 +149,9 @@ bool Equals(const RVarSignal<D,L>& lhs, const RVarSignal<D,R>& rhs)
 	return lhs.Equals(rhs);
 }
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// IsSignalT
@@ -532,9 +531,9 @@ inline auto operator,(const InputPack<D, TCurValues ...>& cur, const RSignal<D,T
 	return InputPack<D, TCurValues ... , TAppendValue>(cur, append);
 }
 
-REACT_END
+/************************************/ REACT_END /*************************************/
 
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 template
 <
@@ -551,9 +550,9 @@ struct ApplyHelper
 	}
 };
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// operator->* overload to connect inputs to a function and return the resulting node.
@@ -602,4 +601,4 @@ inline auto Flatten(const RSignal<D,RSignal<D,TInnerValue>>& node)
 			node.GetPtr(), node().GetPtr(), false));
 }
 
-REACT_END
+/************************************/ REACT_END /*************************************/

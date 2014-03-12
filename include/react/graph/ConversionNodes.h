@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "react/Defs.h"
+
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -16,8 +18,7 @@
 #include "SignalNodes.h"
 #include "react/logging/EventRecords.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// FoldBaseNode
@@ -394,7 +395,7 @@ public:
 	virtual int DependencyCount() const	{ return 2; }
 
 private:
-	const SignalNodePtr<D, S>			target_;
+	const SignalNodePtr<D, S>		target_;
 	const EventStreamNodePtr<D, E>	trigger_;
 };
 
@@ -472,8 +473,8 @@ public:
 	virtual int DependencyCount() const override	{ return 2; }
 
 private:
-	SignalNodePtr<D,TOuter>		outer_;
+	SignalNodePtr<D,TOuter>			outer_;
 	EventStreamNodePtr<D,TInner>	inner_;
 };
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/

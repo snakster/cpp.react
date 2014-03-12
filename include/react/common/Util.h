@@ -18,22 +18,7 @@
 #include <type_traits>
 #include <utility>
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-/// NonCopyable
-////////////////////////////////////////////////////////////////////////////////////////
-class NonCopyable
-{
-protected:
-	NonCopyable() {}
-	~NonCopyable() {}
-
-private:
-	NonCopyable(const NonCopyable&);
-	NonCopyable& operator=(const NonCopyable&);
-};
+/***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ThreadLocalPtr
@@ -143,7 +128,7 @@ const std::vector<T> GetUniqueRandomNumbers(TGen gen, T from, T to, int count)
 template <typename T>
 struct Identity
 {
-	typedef T Type;
+	using Type = T;
 };
 
-REACT_END
+/************************************/ REACT_END /*************************************/

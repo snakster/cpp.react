@@ -6,6 +6,9 @@
 
 #pragma once
 
+#ifndef CPP_REACT_BENCHMARK_BASE_H
+#define CPP_REACT_BENCHMARK_BASE_H
+
 #include <cfloat>
 #include <stdio.h>
 #include <iostream>
@@ -94,3 +97,5 @@ void RunBenchmarkClass(const char* name, std::ostream& out, const TParams& param
 
 #define RUN_BENCHMARK(out, runCount, benchmarkClass, params, ...) \
 	RunBenchmarkClass<runCount, benchmarkClass, decltype(params), __VA_ARGS__>(#benchmarkClass, out, params)
+
+#endif // CPP_REACT_BENCHMARK_BASE_H

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "react/Defs.h"
+
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -25,8 +27,7 @@
 #include "react/common/TopoQueue.h"
 #include "react/common/Types.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace toposort {
 
 using std::atomic;
@@ -291,10 +292,9 @@ private:
 };
 
 } // ~namespace toposort
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 struct sequential;
 struct sequential_queuing;
@@ -311,4 +311,4 @@ template <> class TopoSortEngine<parallel> : public REACT_IMPL::toposort::BasicP
 template <> class TopoSortEngine<parallel_queuing> : public REACT_IMPL::toposort::QueuingParEngine {};
 template <> class TopoSortEngine<parallel_pipelining> : public REACT_IMPL::toposort::PipeliningEngine {};
 
-REACT_END
+/************************************/ REACT_END /*************************************/

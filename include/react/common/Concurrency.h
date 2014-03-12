@@ -11,7 +11,7 @@
 #include <mutex>
 #include <condition_variable>
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 class BlockingCondition
 {
@@ -78,4 +78,4 @@ private:
 	bool					blocked_ = false;
 };
 
-REACT_END
+/************************************/ REACT_END /*************************************/

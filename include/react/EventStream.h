@@ -17,8 +17,7 @@
 #include "Observer.h"
 #include "react/graph/EventStreamNodes.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 template <typename T>
 class Reactive;
@@ -73,9 +72,9 @@ public:
 	}
 };
 
-REACT_END
+/************************************/ REACT_END /*************************************/
 
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 template <typename D, typename L, typename R>
 bool Equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
@@ -83,9 +82,9 @@ bool Equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
 	return lhs.Equals(rhs);
 }
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// REventSource
@@ -258,4 +257,4 @@ inline auto Transform(const REvents<D,TIn>& src, F&& func)
 			src.GetPtr(), std::forward<F>(func), false));
 }
 
-REACT_END
+/************************************/ REACT_END /*************************************/

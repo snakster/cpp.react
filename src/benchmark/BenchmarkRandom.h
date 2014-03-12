@@ -6,6 +6,9 @@
 
 #pragma once
 
+#ifndef CPP_REACT_BENCHMARK_RANDOM_H
+#define CPP_REACT_BENCHMARK_RANDOM_H
+
 #include <functional>
 #include <iostream>
 #include <random>
@@ -320,3 +323,5 @@ struct Benchmark_Random : public BenchmarkBase<D>
 		return d;
 	}
 };
+
+#endif // CPP_REACT_BENCHMARK_RANDOM_H

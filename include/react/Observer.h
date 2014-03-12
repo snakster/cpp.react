@@ -13,8 +13,7 @@
 
 #include "react/graph/ObserverNodes.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 template <typename T>
 class Reactive;
@@ -71,9 +70,9 @@ private:
 	std::shared_ptr<SubjectT>	subject_;
 };
 
-REACT_END
+/************************************/ REACT_END /*************************************/
 
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverRegistry
@@ -141,9 +140,9 @@ private:
 	std::unordered_map<IObserverNode*,Entry_>	observerMap_;
 };
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Observe
@@ -231,4 +230,4 @@ inline void DetachThisObserver()
 	REACT_IMPL::current_observer_state_::shouldDetach = true;
 }
 
-REACT_END
+/************************************/ REACT_END /*************************************/

@@ -25,11 +25,10 @@
 #define REACT_ASSERT(condition, ...) for (; !(condition); assert(condition)) printf(__VA_ARGS__ ## "\n")
 #define REACT_ERROR(...)	REACT_ASSERT(false, __VA_ARGS__)
 
-////////////////////////////////////////////////////////////////////////////////////////
-// Type aliases
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
+// Type aliases
 using uint = unsigned int;
 using uchar = unsigned char;
 
-REACT_END
+/************************************/ REACT_END /*************************************/

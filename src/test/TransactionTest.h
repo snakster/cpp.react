@@ -306,5 +306,6 @@ REGISTER_TYPED_TEST_CASE_P
 	Merging1
 );
 
-// ---
-}
+} // ~namespace
+
+#endif // CPP_REACT_TRANSACTIONTEST_H

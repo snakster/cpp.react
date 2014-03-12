@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "react/Defs.h"
+
 #include <vector>
 
 #include "tbb/queuing_mutex.h"
@@ -17,10 +19,7 @@
 #include "react/common/Containers.h"
 #include "react/common/Util.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-/// FloodingEngine - A simple recursive parallel engine.
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace flooding {
 
 using std::atomic;
@@ -99,10 +98,9 @@ class BasicEngine :	public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace flooding
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 struct parallel;
 struct parallel_queuing;
@@ -113,4 +111,4 @@ class FloodingEngine;
 template <> class FloodingEngine<parallel> : public REACT_IMPL::flooding::BasicEngine {};
 template <> class FloodingEngine<parallel_queuing> : public REACT_IMPL::flooding::QueuingEngine {};
 
-REACT_END
+/************************************/ REACT_END /*************************************/

@@ -13,8 +13,7 @@
 
 #include "tbb/queuing_mutex.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// SourceIdSet
@@ -23,8 +22,8 @@ template <typename T>
 class SourceIdSet
 {
 private:
-	typedef tbb::queuing_mutex	MutexT;
-	typedef std::vector<T>		DataT;
+	using MutexT = tbb::queuing_mutex;
+	using DataT = std::vector<T>;
 
 public:
 	void Insert(const T& e)
@@ -128,4 +127,4 @@ private:
 	}
 };
 
-REACT_END
+/************************************/ REACT_END /*************************************/

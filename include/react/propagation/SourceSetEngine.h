@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "react/Defs.h"
+
 #include <atomic>
 #include <vector>
 
@@ -19,8 +21,7 @@
 #include "react/common/SourceIdSet.h"
 #include "react/common/Types.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace sourceset {
 
 class Node;
@@ -132,9 +133,9 @@ class BasicEngine :	public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace sourceset
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 struct parallel;
 struct parallel_queuing;
@@ -145,4 +146,4 @@ class SourceSetEngine;
 template <> class SourceSetEngine<parallel> : public REACT_IMPL::sourceset::BasicEngine {};
 template <> class SourceSetEngine<parallel_queuing> : public REACT_IMPL::sourceset::QueuingEngine {};
 
-REACT_END
+/************************************/ REACT_END /*************************************/

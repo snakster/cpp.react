@@ -6,6 +6,9 @@
 
 #pragma once
 
+#ifndef CPP_REACT_BENCHMARK_FANOUT_H
+#define CPP_REACT_BENCHMARK_FANOUT_H
+
 #include <functional>
 #include <iostream>
 #include <random>
@@ -78,3 +81,5 @@ struct Benchmark_Fanout : public BenchmarkBase<D>
 		return d;
 	}
 };
+
+#endif // CPP_REACT_BENCHMARK_FANOUT_H

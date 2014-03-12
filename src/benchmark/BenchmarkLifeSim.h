@@ -6,6 +6,9 @@
 
 #pragma once
 
+#ifndef CPP_REACT_BENCHMARK_LIFESIM_H
+#define CPP_REACT_BENCHMARK_LIFESIM_H
+
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -299,3 +302,5 @@ struct Benchmark_LifeSim : public BenchmarkBase<D>
 		return d;
 	}
 };
+
+#endif // CPP_REACT_BENCHMARK_LIFESIM_H

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "react/Defs.h"
+
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -20,8 +22,7 @@
 #include "react/logging/EventLog.h"
 #include "react/logging/EventRecords.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 template <typename D, typename S>
 class RSignal;
@@ -52,9 +53,9 @@ template
 inline auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
 	-> RSignal<D,decltype(func(args() ...))>;
 
-REACT_END
+/************************************/ REACT_END /*************************************/
 
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ContinuationInput
@@ -96,9 +97,9 @@ private:
 	std::unique_ptr<InputVectT>	bufferedInputsPtr_ = nullptr;
 };
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// CommitFlags
@@ -108,9 +109,9 @@ enum ETurnFlags
 	enable_input_merging	= 1 << 0
 };
 
-REACT_END
+/************************************/ REACT_END /*************************************/
 
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// EngineInterface
@@ -590,7 +591,7 @@ public:
 	}
 };
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
 #define REACTIVE_DOMAIN(name, ...) \
 	struct name : public REACT_IMPL::DomainBase<name, REACT_IMPL::DomainPolicy<__VA_ARGS__ >> {}; \

@@ -11,8 +11,7 @@
 #include <functional>
 #include <memory>
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Reactive
@@ -52,9 +51,9 @@ protected:
 	std::shared_ptr<T> ptr_;
 };
 
-REACT_END
+/************************************/ REACT_END /*************************************/
 
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 template <typename L, typename R>
 bool Equals(const L& lhs, const R& rhs)
@@ -68,4 +67,4 @@ bool Equals(const std::reference_wrapper<L>& lhs, const std::reference_wrapper<R
 	return lhs.get() == rhs.get();
 }
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/

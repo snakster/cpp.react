@@ -19,8 +19,7 @@
 #include "react/common/Types.h"
 #include "react/propagation/EngineBase.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace elm {
 
 using std::atomic;
@@ -92,10 +91,9 @@ class BasicEngine :	public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace elm
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_BEGIN
+/***********************************/ REACT_BEGIN /************************************/
 
 struct parallel;
 struct parallel_queuing;
@@ -106,4 +104,4 @@ class ELMEngine;
 template <> class ELMEngine<parallel> : public REACT_IMPL::elm::BasicEngine {};
 template <> class ELMEngine<parallel_queuing> : public REACT_IMPL::elm::QueuingEngine {};
 
-REACT_END
+/************************************/ REACT_END /*************************************/

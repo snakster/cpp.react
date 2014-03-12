@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "react/Defs.h"
+
 #include <memory>
 #include <functional>
 #include <tuple>
@@ -13,8 +15,7 @@
 
 #include "GraphBase.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// SignalNode
@@ -337,4 +338,4 @@ private:
 	SignalNodePtr<D,TInner>	inner_;
 };
 
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
