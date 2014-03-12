@@ -232,7 +232,7 @@ auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Unary arithmetic operators
+/// Unary operators
 ////////////////////////////////////////////////////////////////////////////////////////
 #define DECLARE_OP(op)												\
 template															\
@@ -254,10 +254,12 @@ auto operator ## op(const TSignal<D,TVal>& arg)						\
 DECLARE_OP(+);
 DECLARE_OP(-);
 
+DECLARE_OP(!);
+
 #undef DECLARE_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Binary arithmetic and comparison operators
+/// Binary operators
 ////////////////////////////////////////////////////////////////////////////////////////
 #define DECLARE_OP(op)												\
 template															\
@@ -295,7 +297,7 @@ template															\
 	class = std::enable_if<											\
 		IsSignalT<D,TLeftSignal<D,TLeftVal>>::value>::type,			\
 	class = std::enable_if<											\
-		std::is_integral<TRightVal>::value>::type					\
+		! IsSignalT<D,TRightVal>::value>::type						\
 >																	\
 auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,				\
 					const TRightVal& rhs)							\
@@ -317,7 +319,7 @@ template															\
 	template <typename D_, typename V_> class TRightSignal,			\
 	typename TRightVal,												\
 	class = std::enable_if<											\
-		std::is_integral<TLeftVal>::value>::type,					\
+		! IsSignalT<D,TRightVal>::value>::type,						\
 	class = std::enable_if<											\
 		IsSignalT<D,TRightSignal<D,TRightVal>>::value>::type		\
 >																	\
@@ -347,6 +349,9 @@ DECLARE_OP(<=);
 DECLARE_OP(>);
 DECLARE_OP(>=);
 
+DECLARE_OP(&&);
+DECLARE_OP(||);
+
 #undef DECLARE_OP
 
 //template
@@ -369,66 +374,6 @@ DECLARE_OP(>=);
 //		rhs.GetPtr(), [] (const TLeftVal& a, const TRightVal& b) { return a + b; });
 //	return std::move(lhs);
 //}
-
-////////////////////////////////////////////////////////////////////////////////////////
-/// Unary logical operators
-////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_OP(op)												\
-template															\
-<																	\
-	typename D,														\
-	typename TVal													\
->																	\
-inline auto operator ## op(const RSignal<D,TVal>& arg)				\
-	-> RSignal<D,bool>												\
-{																	\
-	return RSignal<D,TVal>(											\
-		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TVal>>(	\
-			[] (const TVal& a) { return op a; }, arg.GetPtr(), false));	\
-}
-
-DECLARE_OP(!);
-
-#undef DECLARE_OP
-
-////////////////////////////////////////////////////////////////////////////////////////
-/// Binary logical operators
-////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_OP(op)												\
-template															\
-<																	\
-	typename D,														\
-	typename TLeftVal,												\
-	typename TRightVal												\
->																	\
-inline auto operator ## op(const RSignal<D,TLeftVal>& lhs,			\
-						   const RSignal<D,TRightVal>& rhs)			\
-	-> RSignal<D,bool>												\
-{																	\
-	return RSignal<D,bool>(											\
-		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TLeftVal,TRightVal>>(	\
-			[] (const TLeftVal& a, const TRightVal& b) { return a op b; },		\
-				lhs.GetPtr(), rhs.GetPtr(), false));				\
-}																	\
-																	\
-template															\
-<																	\
-	typename D,														\
-	typename TLeftVal,												\
-	typename TRightVal												\
->																	\
-inline auto operator ## op(const RSignal<D,TLeftVal>& lhs, const TRightVal& rhs) \
-	-> RSignal<D,bool>												\
-{																	\
-	return RSignal<D,bool>(											\
-		std::make_shared<REACT_IMPL::FunctionNode<D,bool,TLeftVal>>( \
-			[=] (TLeftVal a) { return a op rhs; }, lhs.GetPtr(), false)); \
-}
-
-DECLARE_OP(&&);
-DECLARE_OP(||);
-
-#undef DECLARE_OP
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// InputPack - Wraps several nodes in a tuple. Create with comma operator.
