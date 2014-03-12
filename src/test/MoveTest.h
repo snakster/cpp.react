@@ -35,7 +35,9 @@ public:
 		int v = 0;
 		Stats* stats = nullptr;
 
-		CopyCounter() = default;
+		CopyCounter()
+		{	
+		}
 
 		CopyCounter(int x, Stats* s) :
 			v{ x },
