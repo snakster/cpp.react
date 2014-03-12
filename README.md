@@ -7,7 +7,7 @@ Tested build environments:
 [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) is a required dependency.
 To compile and run the unit tests, the [Google test framework](https://code.google.com/p/googletest/) is required.
 
-License/documentation will be added in the future.
+Documentation will be added in the future.
 
 Usage examples:
 
