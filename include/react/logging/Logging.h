@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "react/Defs.h"
+
 #include <iostream>
 
 /***********************************/ REACT_BEGIN /************************************/
