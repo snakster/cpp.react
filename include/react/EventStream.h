@@ -133,7 +133,7 @@ public:
 /// MakeEventSource
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename D, typename E>
-inline auto MakeEventSource()
+auto MakeEventSource()
 	-> REventSource<D,E>
 {
 	return REventSource<D,E>(
@@ -141,7 +141,7 @@ inline auto MakeEventSource()
 }
 
 template <typename D>
-inline auto MakeEventSource()
+auto MakeEventSource()
 	-> REventSource<D,EventToken>
 {
 	return REventSource<D,EventToken>(
@@ -201,32 +201,6 @@ inline auto Filter(const REvents<D,E>& src, F&& filter)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// Comparison operators
-/// TODO: Bad idea...
-////////////////////////////////////////////////////////////////////////////////////////
-//#define DECLARE_COMP_OP(op)												\
-//																		\
-//template																\
-//<																		\
-//	typename D,															\
-//	typename E															\
-//>																		\
-//inline auto operator ## op(const REvents<D,E>& lhs, const E& rhs)		\
-//	-> REvents<D,E>														\
-//{																		\
-//	return Filter(lhs, [=] (const E& e) { return e op rhs; });			\
-//}
-//
-//DECLARE_COMP_OP(==);
-//DECLARE_COMP_OP(!=);
-//DECLARE_COMP_OP(<);
-//DECLARE_COMP_OP(<=);
-//DECLARE_COMP_OP(>);
-//DECLARE_COMP_OP(>=);
-//
-//#undef DECLARE_COMP_OP
-
-////////////////////////////////////////////////////////////////////////////////////////
 /// Transform
 ////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -236,9 +210,9 @@ template
 	typename F
 >
 inline auto Transform(const REvents<D,TIn>& src, F&& func)
-	-> REvents<D, decltype(func(src.GetPtr()->Front()))>
+	-> REvents<D, typename std::result_of<F(TIn)>::type>
 {
-	typedef decltype(func(src.GetPtr()->Front())) TOut;
+	using TOut = typename std::result_of<F(TIn)>::type;
 
 	return REvents<D,TOut>(
 		std::make_shared<REACT_IMPL::EventTransformNode<D, TIn, TOut>>(

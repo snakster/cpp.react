@@ -287,7 +287,7 @@ public:
 private:
 	EventStreamNodePtr<D,E>	src_;
 
-	std::function<bool(E)>	filter_;
+	std::function<bool(const E&)>	filter_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -348,9 +348,9 @@ public:
 	virtual int DependencyCount() const override	{ return 1; }
 
 private:
-	EventStreamNodePtr<D,TIn>	src_;
+	EventStreamNodePtr<D,TIn>		src_;
 
-	std::function<TOut(TIn)>	func_;
+	std::function<TOut(const TIn&)>	func_;
 };
 
 /**********************************/ REACT_IMPL_END /**********************************/

@@ -61,7 +61,7 @@ public:
 	}// ~mutex_
 
 	template <typename F>
-	inline bool RunIfUnblocked(F func)
+	bool RunIfUnblocked(F func)
 	{// mutex_
 		std::lock_guard<std::mutex> scopedLock(mutex_);
 

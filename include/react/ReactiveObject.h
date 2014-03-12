@@ -52,7 +52,7 @@ public:
 		class = std::enable_if<
 			!IsSignalT<D,S>::value>::type
 	>
-	static inline auto MakeVar(V&& value)
+	static auto MakeVar(V&& value)
 		-> VarSignal<S>
 	{
 		return react::MakeVar<D>(std::forward<V>(value));
@@ -69,7 +69,7 @@ public:
 		class = std::enable_if<
 			IsSignalT<D,S>::value>::type
 	>
-	static inline auto MakeVar(V&& value)
+	static auto MakeVar(V&& value)
 		-> VarSignal<Signal<TInner>>
 	{
 		return react::MakeVar<D>(std::forward<V>(value));
@@ -80,22 +80,22 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////
 	template
 	<
-		typename TFunc,
+		typename F,
 		typename ... TArgs
 	>
-	static inline auto MakeSignal(TFunc func, const Signal<TArgs>& ... args)
-		-> Signal<decltype(func(args() ...))>
+	static auto MakeSignal(F&& func, const Signal<TArgs>& ... args)
+		-> Signal<typename std::result_of<F(TArgs...)>::type>
 	{
-		typedef decltype(func(args() ...)) S;
+		using S = typename std::result_of<F(TArgs...)>::type;
 
-		return react::MakeSignal<D>(func, args ...);
+		return react::MakeSignal<D>(std::forward<F>(func), args ...);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// MakeEventSource
 	////////////////////////////////////////////////////////////////////////////////////////
 	template <typename E>
-	static inline auto MakeEventSource()
+	static auto MakeEventSource()
 		-> EventSource<E>
 	{
 		return react::MakeEventSource<D,E>();

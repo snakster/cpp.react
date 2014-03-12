@@ -164,7 +164,7 @@ template
 	class = std::enable_if<
 		! IsSignalT<D,S>::value>::type
 >
-inline auto MakeVar(V&& value)
+auto MakeVar(V&& value)
 	-> RVarSignal<D,S>
 {
 	return RVarSignal<D,S>(
@@ -184,7 +184,7 @@ template
 	class = std::enable_if<
 		IsSignalT<D,S>::value>::type
 >
-inline auto MakeVar(V&& value)
+auto MakeVar(V&& value)
 	-> RVarSignal<D,RSignal<D,TInner>>
 {
 	return RVarSignal<D,RSignal<D,TInner>>(
@@ -201,7 +201,7 @@ template
 	typename V,
 	typename S = std::decay<V>::type
 >
-inline auto MakeVal(V&& value)
+auto MakeVal(V&& value)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
@@ -215,20 +215,20 @@ inline auto MakeVal(V&& value)
 template
 <
 	typename D,
-	typename TFunc,
+	typename F,
 	typename ... TArgs
 >
-auto MakeSignal(TFunc func, const RSignal<D,TArgs>& ... args)
-	-> RSignal<D, typename std::result_of<TFunc(TArgs...)>::type>
+auto MakeSignal(F&& func, const RSignal<D,TArgs>& ... args)
+	-> RSignal<D, typename std::result_of<F(TArgs...)>::type>
 {
 	static_assert(sizeof...(TArgs) > 0,
 		"react::MakeSignal requires at least 1 signal dependency.");
 
-	using S = typename std::result_of<TFunc(TArgs...)>::type;
+	using S = typename std::result_of<F(TArgs...)>::type;
 
 	return RSignal<D,S>(
 		std::make_shared<REACT_IMPL::FunctionNode<D, S, TArgs ...>>(
-			func, args.GetPtr() ..., false));
+			std::forward<F>(func), args.GetPtr() ..., false));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -409,7 +409,7 @@ template
 	typename TLeftVal,
 	typename TRightVal
 >
-inline auto operator,(const RSignal<D,TLeftVal>& a, const RSignal<D,TRightVal>& b)
+auto operator,(const RSignal<D,TLeftVal>& a, const RSignal<D,TRightVal>& b)
 	-> InputPack<D,TLeftVal, TRightVal>
 {
 	return InputPack<D, TLeftVal, TRightVal>(a, b);
@@ -424,7 +424,7 @@ template
 	typename ... TCurValues,
 	typename TAppendValue
 >
-inline auto operator,(const InputPack<D, TCurValues ...>& cur, const RSignal<D,TAppendValue>& append)
+auto operator,(const InputPack<D, TCurValues ...>& cur, const RSignal<D,TAppendValue>& append)
 	-> InputPack<D,TCurValues ... , TAppendValue>
 {
 	return InputPack<D, TCurValues ... , TAppendValue>(cur, append);
@@ -461,10 +461,13 @@ template
 <
 	typename D,
 	typename F,
-	typename TValue
+	template <typename D_, typename V_> class TSignal,
+	typename TValue,
+	class = std::enable_if<
+		IsSignalT<D,TSignal<D,TValue>>::value>::type
 >
-inline auto operator->*(const RSignal<D,TValue>& inputNode, F&& func)
-	-> RSignal<D,decltype(func(std::declval<TValue>()))>
+auto operator->*(const TSignal<D,TValue>& inputNode, F&& func)
+	-> RSignal<D, typename std::result_of<F(TValue)>::type>
 {
 	return D::MakeSignal(std::forward<F>(func), inputNode);
 }
@@ -474,13 +477,13 @@ template
 <
 	typename D,
 	typename F,
-	typename ... TValues
+	typename ... TSignals
 >
-inline auto operator->*(const InputPack<D,TValues ...>& inputPack, F&& func)
-	-> RSignal<D,decltype(func(std::declval<TValues>() ...))>
+auto operator->*(const InputPack<D,TSignals ...>& inputPack, F&& func)
+	-> RSignal<D, typename std::result_of<F(TSignals ...)>::type>
 {
 	return apply(
-		REACT_IMPL::ApplyHelper<D, F&&, TValues ...>::MakeSignal,
+		REACT_IMPL::ApplyHelper<D, F&&, TSignals ...>::MakeSignal,
 		std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.Data));
 }
 
@@ -492,7 +495,7 @@ template
 	typename D,
 	typename TInnerValue
 >
-inline auto Flatten(const RSignal<D,RSignal<D,TInnerValue>>& node)
+auto Flatten(const RSignal<D,RSignal<D,TInnerValue>>& node)
 	-> RSignal<D,TInnerValue>
 {
 	return RSignal<D,TInnerValue>(

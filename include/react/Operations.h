@@ -31,7 +31,7 @@ template
 	typename E,
 	typename F
 >
-inline auto Fold(V&& init, const REvents<D,E>& events, F&& func)
+auto Fold(V&& init, const REvents<D,E>& events, F&& func)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
@@ -50,7 +50,7 @@ template
 	typename E,
 	typename F
 >
-inline auto Iterate(V&& init, const REvents<D,E>& events, F&& func)
+auto Iterate(V&& init, const REvents<D,E>& events, F&& func)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
@@ -67,7 +67,7 @@ template
 	typename V,
 	typename T = std::decay<V>::type
 >
-inline auto Hold(V&& init, const REvents<D,T>& events)
+auto Hold(V&& init, const REvents<D,T>& events)
 	-> RSignal<D,T>
 {
 	return RSignal<D,T>(
@@ -84,25 +84,12 @@ template
 	typename S,
 	typename E
 >
-inline auto Snapshot(const RSignal<D,S>& target, const REvents<D,E>& trigger)
+auto Snapshot(const RSignal<D,S>& target, const REvents<D,E>& trigger)
 	-> RSignal<D,S>
 {
 	return RSignal<D,S>(
 		std::make_shared<REACT_IMPL::SnapshotNode<D,S,E>>(
 			target.GetPtr(), trigger.GetPtr(), false));
-}
-
-template
-<
-	typename D,
-	typename S,
-	typename E
->
-inline auto operator&(const REvents<D,E>& trigger,
-					  const RSignal<D,S>& target)
-	-> RSignal<D,S>
-{
-	return Snapshot(target,trigger);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -113,7 +100,7 @@ template
 	typename D,
 	typename S
 >
-inline auto Monitor(const RSignal<D,S>& target)
+auto Monitor(const RSignal<D,S>& target)
 	-> REvents<D,S>
 {
 	return REvents<D,S>(
@@ -129,7 +116,7 @@ template
 	typename D,
 	typename S
 >
-inline auto Changed(const RSignal<D,S>& target)
+auto Changed(const RSignal<D,S>& target)
 	-> REvents<D,bool>
 {
 	return Transform(Monitor(target), [] (const S& v) { return true; });
@@ -144,7 +131,7 @@ template
 	typename V,
 	typename S = std::decay<V>::type
 >
-inline auto ChangedTo(const RSignal<D,S>& target, V&& value)
+auto ChangedTo(const RSignal<D,S>& target, V&& value)
 	-> REvents<D,bool>
 {
 	auto transformFunc	= [=] (const S& v)	{ return v == value; };
@@ -162,7 +149,7 @@ template
 	typename S,
 	typename E
 >
-inline auto Pulse(const RSignal<D,S>& target, const REvents<D,E>& trigger)
+auto Pulse(const RSignal<D,S>& target, const REvents<D,E>& trigger)
 	-> REvents<D,S>
 {
 	return REvents<D,S>(
@@ -182,7 +169,7 @@ template
 		REvents<D,TInnerValue>,
 		THandle<D,TInnerValue>>::value>::type
 >
-inline auto Flatten(const RSignal<D,THandle<D,TInnerValue>>& node)
+auto Flatten(const RSignal<D,THandle<D,TInnerValue>>& node)
 	-> REvents<D,TInnerValue>
 {
 	return REvents<D,TInnerValue>(
