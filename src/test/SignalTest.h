@@ -300,9 +300,9 @@ TYPED_TEST_P(SignalTest, FunctionBind2)
 	auto a = MyDomain::MakeVar(1);
 	auto b = MyDomain::MakeVar(1);
 	
-	auto c = ((a+b), (a+100)) ->* myfunc;
-	auto d = c ->* myfunc2;
-	auto e = (d,d) ->* myfunc3;
+	auto c = ((a+b), (a+100)) ->* &myfunc;
+	auto d = c ->* &myfunc2;
+	auto e = (d,d) ->* &myfunc3;
 	auto f = -e + 100;
 
 	ASSERT_EQ(c(),103);
