@@ -42,14 +42,14 @@ public:
 	}// ~mutex_
 
 	template <typename F>
-	auto Run(F func) -> decltype(func(false))
+	auto Run(F&& func) -> decltype(func(false))
 	{// mutex_
 		std::lock_guard<std::mutex> scopedLock(mutex_);
 		return func(blocked_);
 	}// ~mutex_
 
 	template <typename F>
-	inline bool RunIfBlocked(F func)
+	inline bool RunIfBlocked(F&& func)
 	{// mutex_
 		std::lock_guard<std::mutex> scopedLock(mutex_);
 
@@ -61,7 +61,7 @@ public:
 	}// ~mutex_
 
 	template <typename F>
-	bool RunIfUnblocked(F func)
+	bool RunIfUnblocked(F&& func)
 	{// mutex_
 		std::lock_guard<std::mutex> scopedLock(mutex_);
 
