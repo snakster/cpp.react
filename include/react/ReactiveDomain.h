@@ -22,6 +22,8 @@
 #include "react/logging/EventLog.h"
 #include "react/logging/EventRecords.h"
 
+#include "react/propagation/TopoSortEngine.h"
+
 /***********************************/ REACT_BEGIN /************************************/
 
 template <typename D, typename S>
@@ -238,7 +240,7 @@ struct EngineInterface
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename TEngine,
+	typename TEngine = TopoSortEngine<sequential>,
 	typename TLog = NullLog
 >
 struct DomainPolicy
