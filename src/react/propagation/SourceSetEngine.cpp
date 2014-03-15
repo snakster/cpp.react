@@ -8,8 +8,7 @@
 
 #include "tbb/task_group.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace sourceset {
 
 // Todo
@@ -266,4 +265,4 @@ template class EngineBase<Turn>;
 template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace sourceset
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/

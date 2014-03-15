@@ -6,8 +6,7 @@
 
 #include "react/propagation/FloodingEngine.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace flooding {
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -170,4 +169,4 @@ template class EngineBase<Turn>;
 template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace flooding
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/

@@ -6,8 +6,7 @@
 
 #include "react/propagation/TopoSortEngine.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace toposort {
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -533,4 +532,4 @@ void PipeliningEngine::advanceTurn(PipeliningTurn& turn)
 }
 
 } // ~namespace toposort
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/

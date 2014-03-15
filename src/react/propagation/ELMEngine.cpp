@@ -14,8 +14,7 @@
 #include "react/common/Types.h"
 #include "react/common/GraphData.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace elm {
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -166,4 +165,4 @@ template class EngineBase<Turn>;
 template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace elm
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/

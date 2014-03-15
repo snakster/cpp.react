@@ -14,8 +14,7 @@
 
 #include "react/common/Types.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-REACT_IMPL_BEGIN
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 namespace pulsecount {
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -208,4 +207,4 @@ template class EngineBase<Turn>;
 template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace pulsecount
-REACT_IMPL_END
+/**********************************/ REACT_IMPL_END /**********************************/
