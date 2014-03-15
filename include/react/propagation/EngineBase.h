@@ -8,56 +8,24 @@
 
 #include "react/Defs.h"
 
-#include <atomic>
 #include <memory>
-#include <set>
 
 #include "tbb/concurrent_vector.h"
 #include "tbb/queuing_mutex.h"
 
-#include "react/ReactiveDomain.h"
+#include "react/Options.h"
+#include "react/interface/IReactiveNode.h"
+#include "react/interface/IReactiveEngine.h"
 #include "react/common/Concurrency.h"
+#include "react/common/ContinuationInput.h"
+#include "react/common/Types.h"
 
 /*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// IReactiveEngine
-////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-	typename TNodeInterface,
-	typename TTurnInterface
->
-struct IReactiveEngine
-{
-	using NodeInterface = TNodeInterface;
-	using TurnInterface = TTurnInterface;
-
-	void OnNodeCreate(NodeInterface& node)								{}
-	void OnNodeDestroy(NodeInterface& node)								{}
-
-	void OnNodeAttach(NodeInterface& node, NodeInterface& parent)		{}
-	void OnNodeDetach(NodeInterface& node, NodeInterface& parent)		{}
-
-	void OnTurnAdmissionStart(TurnInterface& turn)						{}
-	void OnTurnAdmissionEnd(TurnInterface& turn)						{}
-	void OnTurnEnd(TurnInterface& turn)									{}
-
-	void OnTurnInputChange(NodeInterface& node, TurnInterface& turn)	{}
-	void OnTurnPropagate(TurnInterface& turn)							{}
-
-	void OnNodePulse(NodeInterface& node, TurnInterface& turn)			{}
-	void OnNodeIdlePulse(NodeInterface& node, TurnInterface& turn)		{}
-
-	void OnNodeShift(NodeInterface& node, NodeInterface& oldParent, NodeInterface& newParent, TurnInterface& turn)	{}
-
-	template <typename F>
-	bool TryMerge(F&& f) { return false; }
-};
-
-////////////////////////////////////////////////////////////////////////////////////////
 /// TurnBase
 ////////////////////////////////////////////////////////////////////////////////////////
+
 class TurnBase
 {
 public:

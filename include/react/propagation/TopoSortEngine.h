@@ -22,12 +22,15 @@
 #include "tbb/queuing_rw_mutex.h"
 
 #include "EngineBase.h"
-#include "react/ReactiveDomain.h"
+#include "react/common/Concurrency.h"
 #include "react/common/Containers.h"
 #include "react/common/TopoQueue.h"
 #include "react/common/Types.h"
 
 /*********************************/ REACT_IMPL_BEGIN /*********************************/
+
+class TurnBase;
+
 namespace toposort {
 
 using std::atomic;
@@ -80,7 +83,8 @@ struct ShiftRequestData
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ExclusiveTurn
 ////////////////////////////////////////////////////////////////////////////////////////
-class ExclusiveTurn : public TurnBase
+
+class ExclusiveTurn : public REACT_IMPL::TurnBase
 {
 public:
 	ExclusiveTurn(TurnIdT id, TurnFlagsT flags);

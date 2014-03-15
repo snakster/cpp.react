@@ -48,7 +48,7 @@ template
 	typename D,
 	typename S
 >
-class RSignal : public Reactive< REACT_IMPL::SignalNode<D,S>>
+class RSignal : public Reactive<REACT_IMPL::SignalNode<D,S>>
 {
 protected:
 	using NodeT = REACT_IMPL::SignalNode<D,S>;

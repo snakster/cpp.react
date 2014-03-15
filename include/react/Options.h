@@ -7,19 +7,15 @@
 #pragma once
 
 #include "react/Defs.h"
-#include <cstdint>
 
 /***********************************/ REACT_BEGIN /************************************/
 
-using ObjectId = uintptr_t;
-
-template <typename O>
-ObjectId GetObjectId(const O& obj)
+////////////////////////////////////////////////////////////////////////////////////////
+/// CommitFlags
+////////////////////////////////////////////////////////////////////////////////////////
+enum ETurnFlags
 {
-	return (ObjectId)&obj;
-}
-
-using TurnIdT = uint;
-using TurnFlagsT = uint;
+	enable_input_merging	= 1 << 0
+};
 
 /************************************/ REACT_END /*************************************/

@@ -17,16 +17,6 @@
 
 /*********************************/ REACT_IMPL_BEGIN /*********************************/
 
-////////////////////////////////////////////////////////////////////////////////////////
-/// IObserverNode
-////////////////////////////////////////////////////////////////////////////////////////
-struct IObserverNode
-{
-	virtual ~IObserverNode() {}
-
-	virtual void Detach() = 0;
-};
-
 namespace current_observer_state_
 {
 	static __declspec(thread) bool	shouldDetach = false;

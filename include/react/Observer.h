@@ -11,6 +11,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include "react/interface/IReactiveNode.h"
+
 #include "react/graph/ObserverNodes.h"
 
 /***********************************/ REACT_BEGIN /************************************/

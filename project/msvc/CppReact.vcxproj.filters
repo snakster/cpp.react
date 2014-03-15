@@ -34,6 +34,9 @@
     <Filter Include="Source Files\propagation">
       <UniqueIdentifier>{e32c6e31-a761-4beb-828e-73afcec53147}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\interface">
+      <UniqueIdentifier>{382c4195-f9d3-4afe-b9da-60c61e75d79a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\react\common\Containers.h">
@@ -127,6 +130,21 @@
       <Filter>Header Files\common</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\Defs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\common\ContinuationInput.h">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\interface\IReactiveNode.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\interface\IReactiveEngine.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Options.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Traits.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

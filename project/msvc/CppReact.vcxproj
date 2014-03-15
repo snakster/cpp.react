@@ -77,15 +77,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\react\Options.h" />
     <ClInclude Include="..\..\include\react\common\Concurrency.h" />
     <ClInclude Include="..\..\include\react\common\Containers.h" />
     <ClInclude Include="..\..\include\react\common\GraphData.h" />
+    <ClInclude Include="..\..\include\react\common\ContinuationInput.h" />
     <ClInclude Include="..\..\include\react\common\Singleton.h" />
     <ClInclude Include="..\..\include\react\common\SourceIdSet.h" />
     <ClInclude Include="..\..\include\react\common\TopoQueue.h" />
     <ClInclude Include="..\..\include\react\common\Types.h" />
     <ClInclude Include="..\..\include\react\common\Util.h" />
     <ClInclude Include="..\..\include\react\Defs.h" />
+    <ClInclude Include="..\..\include\react\interface\IReactiveEngine.h" />
+    <ClInclude Include="..\..\include\react\interface\IReactiveNode.h" />
     <ClInclude Include="..\..\include\react\Operations.h" />
     <ClInclude Include="..\..\include\react\EventStream.h" />
     <ClInclude Include="..\..\include\react\graph\ConversionNodes.h" />
@@ -108,6 +112,7 @@
     <ClInclude Include="..\..\include\react\ReactiveBase.h" />
     <ClInclude Include="..\..\include\react\ReactiveObject.h" />
     <ClInclude Include="..\..\include\react\Signal.h" />
+    <ClInclude Include="..\..\include\react\Traits.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\react\common\Util.cpp" />
