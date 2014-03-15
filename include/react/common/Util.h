@@ -18,28 +18,7 @@
 #include <type_traits>
 #include <utility>
 
-/***********************************/ REACT_BEGIN /************************************/
-
-////////////////////////////////////////////////////////////////////////////////////////
-/// ThreadLocalPtr
-////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class ThreadLocalStaticPtr
-{
-public:
-	static T*	Get()			{ return ptr_; }
-	static void	Set(T* ptr)		{ ptr_ = ptr; }
-	static void	Reset()			{ ptr_ = nullptr; }
-	static bool	IsNull()		{ return ptr_ == nullptr; }
-
-private:
-	ThreadLocalStaticPtr() {}
-
-	static __declspec(thread) T*	ptr_;
-};
-
-template <typename T>
-T*	ThreadLocalStaticPtr<T>::ptr_(nullptr);
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Unpack tuple - see
@@ -83,44 +62,10 @@ inline auto apply(F && f, T && t)
 template <typename... TArgs>
 inline void pass(TArgs&& ...) {}
 
-// Expand args by wrapping them in a dummy function
-// Use comma operator to replace potential void return value with 0
-#define REACT_EXPAND_PACK(...) pass((__VA_ARGS__ , 0) ...)
-
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Format print bits
 ////////////////////////////////////////////////////////////////////////////////////////
 void PrintBits(size_t const size, void const* const p);
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Get current date/time
-////////////////////////////////////////////////////////////////////////////////////////
-const std::string CurrentDateTime();
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Get unique random numbers from range.
-////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename TGen>
-const std::vector<T> GetUniqueRandomNumbers(TGen gen, T from, T to, int count)
-{
-	std::vector<T>	data(1 + to - from);
-	int c = from;
-	for (auto& p : data)
-		p = c++;
-
-	for (int i=0; i<count; i++)
-	{
-		std::uniform_int_distribution<T> dist(i,(to - from));
-		auto r = dist(gen);
-		
-		if (r != i)
-			std::swap(data[i], data[r]);
-	}
-	data.resize(count);
-	std::sort(data.begin(), data.end());
-
-	return std::move(data);
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Identity (workaround to enable enable decltype()::X)
@@ -131,4 +76,8 @@ struct Identity
 	using Type = T;
 };
 
-/************************************/ REACT_END /*************************************/
+/**********************************/ REACT_IMPL_END /**********************************/
+
+// Expand args by wrapping them in a dummy function
+// Use comma operator to replace potential void return value with 0
+#define REACT_EXPAND_PACK(...) REACT_IMPL::pass((__VA_ARGS__ , 0) ...)

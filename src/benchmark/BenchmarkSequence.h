@@ -6,9 +6,6 @@
 
 #pragma once
 
-#ifndef CPP_REACT_BENCHMARK_SEQUENCE_H
-#define CPP_REACT_BENCHMARK_SEQUENCE_H
-
 #include <functional>
 #include <iostream>
 #include <random>
@@ -79,5 +76,3 @@ struct Benchmark_Sequence : public BenchmarkBase<D>
 		return d;
 	}
 };
-
-#endif // CPP_REACT_BENCHMARK_SEQUENCE_H

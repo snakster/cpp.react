@@ -6,9 +6,6 @@
 
 #pragma once
 
-#ifndef CPP_REACT_BENCHMARK_GRID_H
-#define CPP_REACT_BENCHMARK_GRID_H
-
 #include <functional>
 #include <iostream>
 #include <random>
@@ -166,5 +163,3 @@ struct Benchmark_Grid : public BenchmarkBase<D>
 		return d;
 	}
 };
-
-#endif // CPP_REACT_BENCHMARK_GRID_H

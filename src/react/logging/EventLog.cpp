@@ -6,8 +6,7 @@
 
 #include "react/logging/EventLog.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-namespace react {
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
@@ -82,5 +81,4 @@ void EventLog::Clear()
 	entries_.clear();
 }
 
-// ---
-}
+/**********************************/ REACT_IMPL_END /**********************************/

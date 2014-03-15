@@ -108,7 +108,7 @@ public:
 	#define REACTIVE_REF(obj, name)											\
 		Flatten(															\
 			MakeSignal(														\
-				[] (Identity<decltype(obj)>::Type::ValueT::type& r)			\
+				[] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT::type& r) \
 				{															\
 					return r.name;											\
 				},															\
@@ -117,7 +117,7 @@ public:
 	#define REACTIVE_PTR(obj, name)											\
 		Flatten(															\
 			MakeSignal(														\
-				[] (Identity<decltype(obj)>::Type::ValueT r)				\
+				[] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)	\
 				{															\
 					REACT_ASSERT(r != nullptr);								\
 					return r->name;											\

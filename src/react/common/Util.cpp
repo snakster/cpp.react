@@ -27,15 +27,4 @@ void PrintBits(size_t const size, void const* const p)
     }
 }
 
-const std::string CurrentDateTime()
-{
-	char       buf[80];
-	time_t     now = time(0);
-	struct tm  tstruct = *localtime(&now);
- 
-	strftime(buf, sizeof(buf), "%Y-%m-%d___%H.%M.%S", &tstruct);
- 
-	return buf;
-}
-
 }

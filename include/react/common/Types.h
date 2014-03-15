@@ -9,7 +9,7 @@
 #include "react/Defs.h"
 #include <cstdint>
 
-/***********************************/ REACT_BEGIN /************************************/
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 using ObjectId = uintptr_t;
 
@@ -22,4 +22,4 @@ ObjectId GetObjectId(const O& obj)
 using TurnIdT = uint;
 using TurnFlagsT = uint;
 
-/************************************/ REACT_END /*************************************/
+/**********************************/ REACT_IMPL_END /**********************************/

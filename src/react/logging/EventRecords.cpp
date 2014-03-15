@@ -6,7 +6,7 @@
 
 #include "react/logging/EventRecords.h"
 
-namespace react {
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// NodeCreateEvent
@@ -203,5 +203,4 @@ void UserBreakpointEvent::Serialize(std::ostream& out) const
 	out << "> Name = " << name_ << std::endl;
 }
 
-// ---
-}
+/**********************************/ REACT_IMPL_END /**********************************/

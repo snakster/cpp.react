@@ -6,15 +6,51 @@
 
 #pragma once
 
-#ifndef CPP_REACT_BENCHMARK_BASE_H
-#define CPP_REACT_BENCHMARK_BASE_H
-
 #include <cfloat>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
 
 #include "react/common/Util.h"
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Get unique random numbers from range.
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename T, typename TGen>
+const std::vector<T> GetUniqueRandomNumbers(TGen gen, T from, T to, int count)
+{
+	std::vector<T>	data(1 + to - from);
+	int c = from;
+	for (auto& p : data)
+		p = c++;
+
+	for (int i=0; i<count; i++)
+	{
+		std::uniform_int_distribution<T> dist(i,(to - from));
+		auto r = dist(gen);
+		
+		if (r != i)
+			std::swap(data[i], data[r]);
+	}
+	data.resize(count);
+	std::sort(data.begin(), data.end());
+
+	return std::move(data);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Get current date/time
+////////////////////////////////////////////////////////////////////////////////////////
+inline const std::string CurrentDateTime()
+{
+	char       buf[80];
+	time_t     now = time(0);
+	struct tm  tstruct = *localtime(&now);
+ 
+	strftime(buf, sizeof(buf), "%Y-%m-%d___%H.%M.%S", &tstruct);
+ 
+	return buf;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// BenchmarkBase
@@ -97,5 +133,3 @@ void RunBenchmarkClass(const char* name, std::ostream& out, const TParams& param
 
 #define RUN_BENCHMARK(out, runCount, benchmarkClass, params, ...) \
 	RunBenchmarkClass<runCount, benchmarkClass, decltype(params), __VA_ARGS__>(#benchmarkClass, out, params)
-
-#endif // CPP_REACT_BENCHMARK_BASE_H

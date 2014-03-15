@@ -11,7 +11,7 @@
 #include <mutex>
 #include <condition_variable>
 
-/***********************************/ REACT_BEGIN /************************************/
+/*********************************/ REACT_IMPL_BEGIN /*********************************/
 
 class BlockingCondition
 {
@@ -78,4 +78,25 @@ private:
 	bool					blocked_ = false;
 };
 
-/************************************/ REACT_END /*************************************/
+////////////////////////////////////////////////////////////////////////////////////////
+/// ThreadLocalPtr
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+class ThreadLocalStaticPtr
+{
+public:
+	static T*	Get()			{ return ptr_; }
+	static void	Set(T* ptr)		{ ptr_ = ptr; }
+	static void	Reset()			{ ptr_ = nullptr; }
+	static bool	IsNull()		{ return ptr_ == nullptr; }
+
+private:
+	ThreadLocalStaticPtr() {}
+
+	static __declspec(thread) T*	ptr_;
+};
+
+template <typename T>
+T*	ThreadLocalStaticPtr<T>::ptr_(nullptr);
+
+/**********************************/ REACT_IMPL_END /**********************************/
