@@ -1,15 +1,73 @@
-Experimental reactive programming framework for C++11.
+### Introduction
 
-Tested build environments:
-* Intel C++ Compiler 14.0 in Visual Studio 2012/13
+Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) framework for C++11.
+It provides abstractions that simplify the implementation of reactive behaviour,
+by enabling the expression of dataflows in a declarative manner and handling propagation of changes automatically.
+Implicit parallelism for this process is supported as well.
+
+#### Build environment and dependencies
+
+So far, I've only tested compiling Cpp.React on Microsoft Windows, with:
 * Visual Studio 2013
+* Intel C++ Compiler 14.0 in Visual Studio 2012/13
 
 [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) is a required dependency.
-To compile and run the unit tests, the [Google test framework](https://code.google.com/p/googletest/) is required.
+To compile and run the unit tests, the [Google test framework](https://code.google.com/p/googletest/) is required, too.
 
-Documentation will be added in the future.
+### Feature overview
 
-Usage examples:
+#### Signals
+
+Signals are time-varying reactive values, that can be combined to create reactive expressions.
+These expressions are automatically recalculated whenever one of their dependent values changes.
+This enables the programmer to express dataflows in a declarative manner, while the actual change propagation is handled automatically.
+
+```C++
+#include "react/Signal.h"
+
+using namespace react;
+
+REACTIVE_DOMAIN(MyDomain);
+
+auto width  = MyDomain::MakeVar(1);
+auto height = MyDomain::MakeVar(2);
+
+auto area   = width * height;
+
+cout << "area: "   << area()   << endl; // => area: 2
+width <<= 10;
+cout << "area: "   << area()   << endl; // => area: 20
+```
+
+#### Event streams
+
+Event streams represent flows of discrete values as first-class objects.
+Their implementation is based on ideas found in [Deprecating the Observer pattern](infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf).
+
+```C++
+#include "react/EventStream.h"
+
+using namespace react;
+
+REACTIVE_DOMAIN(MyDomain);
+
+auto leftClicked = MyDomain::MakeEventSource();
+auto rightClicked = MyDomain::MakeEventSource();
+
+auto clicked = leftClicked | rightClicked;
+
+Observe(clicked, [] { cout << "button clicked! << endl; });
+```
+
+#### Implicit parallelism
+
+The change propagation is handled implicitly by a so called propagation engine.
+Depending on the selected engine, independent propagation paths are automatically parallelized.
+Pipelining of updates is supported as well.
+For more details, see Propagation Engines.
+
+
+### Code examples
 
 * [Examples](https://github.com/schlangster/cpp.react/blob/master/src/sandbox/Main.cpp)
 * [Benchmark](https://github.com/schlangster/cpp.react/blob/master/src/benchmark/BenchmarkLifeSim.h)
