@@ -23,7 +23,7 @@ Cpp.React uses standard C++11 and the dependencies are portable, so other compil
 
 Signals are time-varying reactive values, that can be combined to create reactive expressions.
 These expressions are automatically recalculated whenever one of their dependent values changes.
-This enables the programmer to express dataflows in a declarative manner, while the actual change propagation is handled automatically.
+Example:
 
 ```C++
 #include "react/Signal.h"
@@ -44,7 +44,7 @@ cout << "area: "   << area()   << endl; // => area: 20
 
 #### Event streams
 
-Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer pattern](infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf).
+Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer pattern](infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf). Example:
 
 ```C++
 #include "react/EventStream.h"
@@ -69,7 +69,7 @@ Pipelining of updates is supported as well.
 For more details, see Propagation Engines.
 
 
-### Examples
+### More examples
 
 * [Examples](https://github.com/schlangster/cpp.react/blob/master/src/sandbox/Main.cpp)
 * [Benchmark](https://github.com/schlangster/cpp.react/blob/master/src/benchmark/BenchmarkLifeSim.h)
