@@ -1,4 +1,4 @@
-### Introduction
+## Introduction
 
 Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) framework for C++11.
 It provides abstractions to simplify the implementation of reactive behaviour.
@@ -17,7 +17,7 @@ To compile and run the unit tests, the [Google test framework](https://code.goog
 Cpp.React uses standard C++11 and the dependencies are portable, so other compilers/platforms should work, too.
 
 
-### Feature overview
+## Feature overview
 
 #### Signals
 
