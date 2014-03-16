@@ -58,7 +58,7 @@ auto rightClicked = MyDomain::MakeEventSource();
 
 auto clicked = leftClicked | rightClicked;
 
-Observe(clicked, [] { cout << "button clicked! << endl; });
+Observe(clicked, [] { cout << "button clicked!" << endl; });
 ```
 
 #### Implicit parallelism
