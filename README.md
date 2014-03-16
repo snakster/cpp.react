@@ -44,7 +44,7 @@ cout << "area: "   << area()   << endl; // => area: 20
 
 #### Event streams
 
-Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer pattern](infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf). Example:
+Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer Pattern](http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf). Example:
 
 ```C++
 #include "react/EventStream.h"
