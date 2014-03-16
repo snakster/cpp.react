@@ -1,8 +1,8 @@
 ### Introduction
 
 Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) framework for C++11.
-It provides abstractions that simplify the implementation of reactive behaviour,
-by enabling the expression of dataflows in a declarative manner and handling propagation of changes automatically.
+It provides abstractions to simplify the implementation of reactive behaviour by enabling the expression of dataflows in a declarative manner,
+so that propagation of changes can be handled automatically.
 Implicit parallelism for this process is supported as well.
 
 #### Build environment and dependencies
@@ -13,6 +13,9 @@ So far, I've only tested compiling Cpp.React on Microsoft Windows, with:
 
 [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) is a required dependency.
 To compile and run the unit tests, the [Google test framework](https://code.google.com/p/googletest/) is required, too.
+
+Cpp.React only uses standard C++11 and the dependencies are portable, so other compilers/platforms should work as well.
+
 
 ### Feature overview
 
@@ -41,8 +44,7 @@ cout << "area: "   << area()   << endl; // => area: 20
 
 #### Event streams
 
-Event streams represent flows of discrete values as first-class objects.
-Their implementation is based on ideas found in [Deprecating the Observer pattern](infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf).
+Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer pattern](infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf).
 
 ```C++
 #include "react/EventStream.h"
@@ -67,7 +69,7 @@ Pipelining of updates is supported as well.
 For more details, see Propagation Engines.
 
 
-### Code examples
+### Examples
 
 * [Examples](https://github.com/schlangster/cpp.react/blob/master/src/sandbox/Main.cpp)
 * [Benchmark](https://github.com/schlangster/cpp.react/blob/master/src/benchmark/BenchmarkLifeSim.h)
