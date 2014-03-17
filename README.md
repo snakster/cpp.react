@@ -65,7 +65,6 @@ Observe(clicked, [] { cout << "button clicked!" << endl; });
 
 The change propagation is handled implicitly by a so called propagation engine.
 Depending on the selected engine, independent propagation paths are automatically parallelized.
-Pipelining of updates is supported as well.
 For more details, see Propagation Engines.
 
 
