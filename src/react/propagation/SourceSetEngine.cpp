@@ -150,28 +150,20 @@ void Node::Nudge(Turn& turn, bool update, bool invalidate)
 		Pulse(turn, false);
 }
 
-void Node::Shift(Node& oldParent, Node& newParent, Turn& turn)
+void Node::DynamicAttachTo(Node& parent, Turn& turn)
 {
 	bool shouldTick = false;
 
-	// oldParent.shiftMutex_
+	// parent.shiftMutex_
 	{
-		ShiftMutexT::scoped_lock	lock(oldParent.shiftMutex_);
+		ShiftMutexT::scoped_lock	lock(parent.shiftMutex_);
 
-		oldParent.DetachSuccessor(*this);
-	}
-	// ~oldParent.topoMutex_
-
-	// newParent.shiftMutex_
-	{
-		ShiftMutexT::scoped_lock	lock(newParent.shiftMutex_);
-
-		newParent.AttachSuccessor(*this);
+		parent.AttachSuccessor(*this);
 
 		flags_ |= kFlag_Invaliated;
 
 		// Has new parent been processed yet?
-		if (newParent.IsDependency(turn) && !newParent.CheckCurrentTurn(turn))
+		if (parent.IsDependency(turn) && !parent.CheckCurrentTurn(turn))
 		{
 			tickThreshold_ = 1;
 			flags_ |= kFlag_Visited | kFlag_Updated;
@@ -181,12 +173,21 @@ void Node::Shift(Node& oldParent, Node& newParent, Turn& turn)
 			shouldTick = true;
 		}
 	}
-	// ~newParent.topoMutex_
+	// ~parent.shiftMutex_
 
 	// Re-tick?
 	if (shouldTick)
 		Tick(&turn);
 }
+
+void Node::DynamicDetachFrom(Node& parent, Turn& turn)
+// parent.shiftMutex_
+{
+	ShiftMutexT::scoped_lock	lock(parent.shiftMutex_);
+
+	parent.DetachSuccessor(*this);
+}
+// ~parent.shiftMutex_
 
 void Node::invalidateSources()
 {
@@ -255,9 +256,15 @@ void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 }
 
 template <typename TTurn>
-void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
+void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn)
 {
-	node.Shift(oldParent, newParent, turn);
+	node.DynamicAttachTo(parent, turn);
+}
+
+template <typename TTurn>
+void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn)
+{
+	node.DynamicDetachFrom(parent, turn);
 }
 
 // Explicit instantiation

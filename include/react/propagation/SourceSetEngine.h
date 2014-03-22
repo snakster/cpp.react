@@ -68,10 +68,12 @@ public:
 	void AttachSuccessor(Node& node);
 	void DetachSuccessor(Node& node);
 
+	void DynamicAttachTo(Node& parent, Turn& turn);
+	void DynamicDetachFrom(Node& parent, Turn& turn);
+
 	void Destroy();
 
 	void Pulse(Turn& turn, bool updated);
-	void Shift(Node& oldParent, Node& newParent, Turn& turn);
 
 	bool IsDependency(Turn& turn);
 	bool CheckCurrentTurn(Turn& turn);
@@ -123,7 +125,9 @@ public:
 
 	void OnNodePulse(Node& node, TTurn& turn);
 	void OnNodeIdlePulse(Node& node, TTurn& turn);
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
+
+	void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
+	void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
 private:
 	vector<Node*>	changedInputs_;

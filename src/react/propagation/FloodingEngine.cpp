@@ -117,24 +117,26 @@ void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
 }
 
 template <typename TTurn>
-void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
+void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn)
 {
-	{// oldParent.ShiftMutex
-		NodeShiftMutexT::scoped_lock	lock(oldParent.ShiftMutex);
-
-		oldParent.Successors.Remove(node);
-	}// ~oldParent.ShiftMutex
+	{// parent.ShiftMutex
+		NodeShiftMutexT::scoped_lock	lock(parent.ShiftMutex);
 	
-	{// newParent.ShiftMutex
-		NodeShiftMutexT::scoped_lock	lock(newParent.ShiftMutex);
-	
-		newParent.Successors.Add(node);
-	}// ~newParent.ShiftMutex
+		parent.Successors.Add(node);
+	}// ~parent.ShiftMutex
 
 	// Called from Tick, so we already have exclusive access to the node.
 	// Just tick again to recalc the value.
 	node.Tick(&turn);
 }
+
+template <typename TTurn>
+void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn)
+{// parent.ShiftMutex
+	NodeShiftMutexT::scoped_lock	lock(parent.ShiftMutex);
+
+	parent.Successors.Remove(node);
+}// ~parent.ShiftMutex
 
 template <typename TTurn>
 void EngineBase<TTurn>::pulse(Node& node, TTurn& turn)

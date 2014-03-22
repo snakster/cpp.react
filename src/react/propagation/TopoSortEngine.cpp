@@ -88,16 +88,21 @@ void SeqEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 }
 
 template <typename TTurn>
-void SeqEngineBase<TTurn>::OnNodeShift(SeqNode& node, SeqNode& oldParent, SeqNode& newParent, TTurn& turn)
+void SeqEngineBase<TTurn>::OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, TTurn& turn)
 {
-	OnNodeDetach(node, oldParent);
-	OnNodeAttach(node, newParent);
+	OnNodeAttach(node, parent);
 	
 	invalidateSuccessors(node);
 
 	// Re-schedule this node
 	node.Queued = true;
 	scheduledNodes_.Push(&node);
+}
+
+template <typename TTurn>
+void SeqEngineBase<TTurn>::OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, TTurn& turn)
+{
+	OnNodeDetach(node, parent);
 }
 
 template <typename TTurn>
@@ -119,7 +124,7 @@ template class SeqEngineBase<ExclusiveTurn>;
 template class SeqEngineBase<DefaultQueueableTurn<ExclusiveTurn>>;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// SeqEngineBase
+/// ParEngineBase
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename TTurn>
 void ParEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
@@ -162,23 +167,32 @@ void ParEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 		// Wait for tasks of current level
 		tasks_.wait();
 
-		if (shiftRequests_.size() > 0)
+		if (dynRequests_.size() > 0)
 		{
-			for (auto req : shiftRequests_)
-				applyShift(*req.ShiftingNode, *req.OldParent, *req.NewParent, turn);
-			shiftRequests_.clear();
+			for (auto req : dynRequests_)
+			{
+				if (req.ShouldAttach)
+					applyDynamicAttach(*req.Node, *req.Parent, turn);
+				else
+					applyDynamicDetach(*req.Node, *req.Parent, turn);
+			}
+			dynRequests_.clear();
 		}
 	}
 }
 
 template <typename TTurn>
-void ParEngineBase<TTurn>::OnNodeShift(ParNode& node, ParNode& oldParent, ParNode& newParent, TTurn& turn)
+void ParEngineBase<TTurn>::OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn)
 {
-	// Invalidate may have to wait for other transactions to leave the target interval.
-	// Waiting in this task would block the worker thread, so we defer the request to the main
-	// transaction loop (see applyInvalidate).
-	ShiftRequestData data{ &node, &oldParent, &newParent };
-	shiftRequests_.push_back(data);
+	DynRequestData data{ true, &node, &parent };
+	dynRequests_.push_back(data);
+}
+
+template <typename TTurn>
+void ParEngineBase<TTurn>::OnDynamicNodeDetach(ParNode& node, ParNode& parent, TTurn& turn)
+{
+	DynRequestData data{ false, &node, &parent };
+	dynRequests_.push_back(data);
 }
 
 //tbb::parallel_for(tbb::blocked_range<NodeVectorT::iterator>(curNodes.begin(), curNodes.end(), 1),
@@ -195,16 +209,21 @@ void ParEngineBase<TTurn>::OnNodeShift(ParNode& node, ParNode& oldParent, ParNod
 //);
 
 template <typename TTurn>
-void ParEngineBase<TTurn>::applyShift(ParNode& node, ParNode& oldParent, ParNode& newParent, TTurn& turn)
+void ParEngineBase<TTurn>::applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn)
 {
-	OnNodeDetach(node, oldParent);
-	OnNodeAttach(node, newParent);
+	OnNodeAttach(node, parent);
 
 	invalidateSuccessors(node);
 
 	// Re-schedule this node
 	node.Collected = true;
 	collectBuffer_.push_back(&node);
+}
+
+template <typename TTurn>
+void ParEngineBase<TTurn>::applyDynamicDetach(ParNode& node, ParNode& parent, TTurn& turn)
+{
+	OnNodeDetach(node, parent);
 }
 
 template <typename TTurn>
@@ -461,36 +480,50 @@ void PipeliningEngine::OnTurnPropagate(PipeliningTurn& turn)
 		// Wait for tasks of current level
 		turn.Tasks.wait();
 
-		if (turn.ShiftRequests.size() > 0)
+		if (turn.DynRequests.size() > 0)
 		{
-			for (auto req : turn.ShiftRequests)
-				applyShift(*req.ShiftingNode, *req.OldParent, *req.NewParent, turn);
-			turn.ShiftRequests.clear();
+			for (auto req : turn.DynRequests)
+			{
+				if (req.ShouldAttach)
+					applyDynamicAttach(*req.Node, *req.Parent, turn);
+				else
+					applyDynamicDetach(*req.Node, *req.Parent, turn);
+			}
+			turn.DynRequests.clear();
 		}
 	}
 }
 
-void PipeliningEngine::OnNodeShift(ParNode& node, ParNode& oldParent, ParNode& newParent, PipeliningTurn& turn)
+void PipeliningEngine::OnDynamicNodeAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn)
 {
-	ShiftRequestData data{ &node, &oldParent, &newParent };
-	turn.ShiftRequests.push_back(data);
+	DynRequestData data{ true, &node, &parent };
+	turn.DynRequests.push_back(data);
 }
 
-void PipeliningEngine::applyShift(ParNode& node, ParNode& oldParent, ParNode& newParent, PipeliningTurn& turn)
+void PipeliningEngine::OnDynamicNodeDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn)
+{
+	DynRequestData data{ false, &node, &parent };
+	turn.DynRequests.push_back(data);
+}
+
+void PipeliningEngine::applyDynamicAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn)
 {
 	turn.WaitForMaxLevel(INT_MAX);
 
-	OnNodeDetach(node, oldParent);
-	OnNodeAttach(node, newParent);
+	OnNodeAttach(node, parent);
 	
 	invalidateSuccessors(node);
 
 	turn.ScheduledNodes.Invalidate();
 
-
 	// Re-schedule this node
 	node.Collected = true;
 	turn.CollectBuffer.push_back(&node);
+}
+
+void PipeliningEngine::applyDynamicDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn)
+{
+	OnNodeDetach(node, parent);
 }
 
 void PipeliningEngine::processChildren(ParNode& node, PipeliningTurn& turn)

@@ -92,22 +92,16 @@ void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 }
 
 template <typename TTurn>
-void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
+void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn)
 {
 	bool shouldTick = false;
 
-	{// oldParent.ShiftMutex
-		NodeShiftMutexT::scoped_lock	lock(oldParent.ShiftMutex);
-
-		oldParent.Successors.Remove(node);
-	}// ~oldParent.ShiftMutex
-
-	{// newParent.ShiftMutex
-		NodeShiftMutexT::scoped_lock	lock(newParent.ShiftMutex);
+	{// parent.ShiftMutex
+		NodeShiftMutexT::scoped_lock lock(parent.ShiftMutex);
 		
-		newParent.Successors.Add(node);
+		parent.Successors.Add(node);
 
-		if (newParent.LastTurnId == turn.Id())
+		if (parent.LastTurnId == turn.Id())
 		{
 			shouldTick = true;
 		}
@@ -116,11 +110,19 @@ void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent
 			node.ShouldUpdate = true;
 			node.Counter = node.DependencyCount() - 1;
 		}
-	}// ~newParent.ShiftMutex
+	}// ~parent.ShiftMutex
 
 	if (shouldTick)
 		node.Tick(&turn);
 }
+
+template <typename TTurn>
+void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn)
+{// parent.ShiftMutex
+	NodeShiftMutexT::scoped_lock lock(parent.ShiftMutex);
+
+	parent.Successors.Remove(node);
+}// ~parent.ShiftMutex
 
 template <typename TTurn>
 void EngineBase<TTurn>::processChild(Node& node, bool update, TTurn& turn)

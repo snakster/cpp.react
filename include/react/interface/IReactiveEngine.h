@@ -39,7 +39,10 @@ struct IReactiveEngine
 	void OnNodePulse(NodeInterface& node, TurnInterface& turn)			{}
 	void OnNodeIdlePulse(NodeInterface& node, TurnInterface& turn)		{}
 
-	void OnNodeShift(NodeInterface& node, NodeInterface& oldParent, NodeInterface& newParent, TurnInterface& turn)	{}
+	//void OnNodeShift(NodeInterface& node, NodeInterface& oldParent, NodeInterface& newParent, TurnInterface& turn)	{}
+
+	void OnDynamicNodeAttach(NodeInterface& node, NodeInterface& parent, TurnInterface& turn)	{}
+	void OnDynamicNodeDetach(NodeInterface& node, NodeInterface& parent, TurnInterface& turn)	{}
 
 	template <typename F>
 	bool TryMerge(F&& f) { return false; }
@@ -100,10 +103,14 @@ struct EngineInterface
 		Engine().OnNodeIdlePulse(node, turn);
 	}
 
-	static void OnNodeShift(NodeInterface& node, NodeInterface& oldParent, NodeInterface& newParent, TurnInterface& turn)
+	static void OnDynamicNodeAttach(NodeInterface& node, NodeInterface& parent, TurnInterface& turn)
 	{
-		D::Log().template Append<NodeInvalidateEvent>(GetObjectId(node), GetObjectId(oldParent), GetObjectId(newParent), turn.Id());
-		Engine().OnNodeShift(node, oldParent, newParent, turn);
+		Engine().OnDynamicNodeAttach(node, parent, turn);
+	}
+
+	static void OnDynamicNodeDetach(NodeInterface& node, NodeInterface& parent, TurnInterface& turn)
+	{
+		Engine().OnDynamicNodeDetach(node, parent, turn);
 	}
 
 	static void OnTurnAdmissionStart(TurnInterface& turn)

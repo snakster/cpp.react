@@ -73,7 +73,8 @@ public:
 	void OnNodePulse(Node& node, TTurn& turn);
 	void OnNodeIdlePulse(Node& node, TTurn& turn);
 
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
+	void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
+	void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
 private:
 	void runInitReachableNodesTask(NodeVectorT leftNodes);

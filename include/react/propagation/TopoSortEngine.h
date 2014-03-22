@@ -73,11 +73,11 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////
 /// ShiftRequestData
 ////////////////////////////////////////////////////////////////////////////////////////
-struct ShiftRequestData
+struct DynRequestData
 {
-	ParNode*	ShiftingNode;
-	ParNode*	OldParent;
-	ParNode*	NewParent;
+	bool		ShouldAttach;
+	ParNode*	Node;
+	ParNode*	Parent;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -122,7 +122,9 @@ class SeqEngineBase : public EngineBase<SeqNode,TTurn>
 {
 public:
 	void OnTurnPropagate(TTurn& turn);
-	void OnNodeShift(SeqNode& node, SeqNode& oldParent, SeqNode& newParent, TTurn& turn);
+
+	void OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, TTurn& turn);
+	void OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, TTurn& turn);
 
 private:
 	virtual void processChildren(SeqNode& node, TTurn& turn) override;
@@ -135,19 +137,22 @@ template <typename TTurn>
 class ParEngineBase : public EngineBase<ParNode,TTurn>
 {
 public:
-	using ConcNodeVectorT = concurrent_vector<ParNode*>;
-	using ShiftRequestVectorT = concurrent_vector<ShiftRequestData>;
+	using ConcNodeVectT = concurrent_vector<ParNode*>;
+	using DynRequestVectT = concurrent_vector<DynRequestData>;
 
 	void OnTurnPropagate(TTurn& turn);
-	void OnNodeShift(ParNode& node, ParNode& oldParent, ParNode& newParent, TTurn& turn);
+
+	void OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn);
+	void OnDynamicNodeDetach(ParNode& node, ParNode& parent, TTurn& turn);
 
 private:
-	void applyShift(ParNode& node, ParNode& oldParent, ParNode& newParent, TTurn& turn);
+	void applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn);
+	void applyDynamicDetach(ParNode& node, ParNode& parent, TTurn& turn);
 
 	virtual void processChildren(ParNode& node, TTurn& turn) override;
 
-	ConcNodeVectorT		collectBuffer_;
-	ShiftRequestVectorT	shiftRequests_;
+	ConcNodeVectT	collectBuffer_;
+	DynRequestVectT	dynRequests_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -165,10 +170,10 @@ class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveTurn
 class PipeliningTurn : public TurnBase
 {
 public:
-	using ConcNodeVectorT = concurrent_vector<ParNode*>;
+	using ConcNodeVectT = concurrent_vector<ParNode*>;
 	using NodeVectT = vector<ParNode*>;
 	using IntervalSetT = set<pair<int,int>>;
-	using ShiftRequestVectorT = concurrent_vector<ShiftRequestData>;
+	using DynRequestVectT = concurrent_vector<DynRequestData>;
 	using TopoQueueT = TopoQueue<ParNode>;
 
 	PipeliningTurn(TurnIdT id, TurnFlagsT flags);
@@ -213,8 +218,8 @@ public:
 	void RunMergedInputs() const;
 
 	TopoQueueT			ScheduledNodes;
-	ConcNodeVectorT		CollectBuffer;
-	ShiftRequestVectorT	ShiftRequests;
+	ConcNodeVectT		CollectBuffer;
+	DynRequestVectT		DynRequests;
 	task_group			Tasks;
 
 private:
@@ -259,7 +264,8 @@ public:
 
 	void OnTurnPropagate(PipeliningTurn& turn);
 
-	void OnNodeShift(ParNode& node, ParNode& oldParent, ParNode& newParent, PipeliningTurn& turn);
+	void OnDynamicNodeAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
+	void OnDynamicNodeDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
 
 	template <typename F>
 	inline bool TryMerge(F&& inputFunc)
@@ -282,7 +288,9 @@ public:
 	}
 
 private:
-	void applyShift(ParNode& node, ParNode& oldParent, ParNode& newParent, PipeliningTurn& turn);
+	void applyDynamicAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
+	void applyDynamicDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
+
 	void processChildren(ParNode& node, PipeliningTurn& turn);
 	void invalidateSuccessors(ParNode& node);
 

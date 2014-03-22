@@ -450,7 +450,10 @@ public:
 			// Topology has been changed
 			auto oldInner = inner_;
 			inner_ = newInner;
-			Engine::OnNodeShift(*this, *oldInner, *newInner, turn);
+
+			Engine::OnDynamicNodeDetach(*this, *oldInner, turn);
+			Engine::OnDynamicNodeAttach(*this, *newInner, turn);
+
 			return ETickResult::invalidated;
 		}
 

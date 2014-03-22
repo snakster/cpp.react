@@ -78,7 +78,9 @@ public:
 	void OnTurnPropagate(TTurn& turn);
 
 	void OnNodePulse(Node& node, TTurn& turn);
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn);
+
+	void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
+	void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
 private:
 	using OutputMutexT = queuing_mutex;

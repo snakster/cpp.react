@@ -83,23 +83,17 @@ void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 }
 
 template <typename TTurn>
-void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent, TTurn& turn)
+void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn)
 {
 	bool shouldTick = false;
-	
-	{// oldParent.ShiftMutex (write)
-		NodeShiftMutexT::scoped_lock	lock(oldParent.ShiftMutex, true);
 
-		oldParent.Successors.Remove(node);
-	}// ~oldParent.ShiftMutex (write)
-
-	{// newParent.ShiftMutex (write)
-		NodeShiftMutexT::scoped_lock	lock(newParent.ShiftMutex, true);
+	{// parent.ShiftMutex (write)
+		NodeShiftMutexT::scoped_lock	lock(parent.ShiftMutex, true);
 		
-		newParent.Successors.Add(node);
+		parent.Successors.Add(node);
 
 		// Has already been ticked & nudged its neighbors? (Note: Input nodes are always ready)
-		if (! newParent.Marked)
+		if (! parent.Marked)
 		{
 			shouldTick = true;
 		}
@@ -108,11 +102,19 @@ void EngineBase<TTurn>::OnNodeShift(Node& node, Node& oldParent, Node& newParent
 			node.Counter = 1;
 			node.ShouldUpdate = true;
 		}
-	}// ~newParent.ShiftMutex (write)
+	}// ~parent.ShiftMutex (write)
 
 	if (shouldTick)
 		node.Tick(&turn);
 }
+
+template <typename TTurn>
+void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn)
+{// parent.ShiftMutex (write)
+	NodeShiftMutexT::scoped_lock	lock(parent.ShiftMutex, true);
+
+	parent.Successors.Remove(node);
+}// ~oldParent.ShiftMutex (write)
 
 template <typename TTurn>
 void EngineBase<TTurn>::runInitReachableNodesTask(NodeVectorT leftNodes)
