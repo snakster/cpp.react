@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <cstddef>
 #include <ctime>
+#include <functional>
 #include <iostream>
 #include <random>
 #include <string>
@@ -76,8 +77,58 @@ struct Identity
 	using Type = T;
 };
 
+////////////////////////////////////////////////////////////////////////////////////////
+// Generic RAII scope guard
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename F>
+class ScopeGuard
+{
+public:
+	explicit ScopeGuard(F func) :
+		func_{ std::move(func) }
+	{
+	}
+
+	~ScopeGuard() { func_(); }
+
+	ScopeGuard() = delete;
+	ScopeGuard(const ScopeGuard&) = delete;
+	ScopeGuard& operator=(const ScopeGuard&) = delete;
+
+private:
+	F	func_;
+};
+
+enum class ScopeGuardDummy_ {};
+
+template <typename F>
+ScopeGuard<F> operator+(ScopeGuardDummy_, F&& func)
+{
+	return ScopeGuard<F>(std::forward<F>(func));
+}
+
 /**********************************/ REACT_IMPL_END /**********************************/
 
 // Expand args by wrapping them in a dummy function
 // Use comma operator to replace potential void return value with 0
 #define REACT_EXPAND_PACK(...) REACT_IMPL::pass((__VA_ARGS__ , 0) ...)
+
+// Concat
+#define REACT_CONCAT_(l, r) l##r
+#define REACT_CONCAT(l, r) REACT_CONCAT_(l, r)
+
+// Anon var
+#ifdef __COUNTER__
+#define REACT_ANON_VAR(prefix) \
+	REACT_CONCAT(prefix, __COUNTER__)
+#else
+#define REACT_ANON_VAR(s) \
+	REACT_CONCAT(prefix, __LINE__)
+#endif
+
+// Scope guard helper
+#define REACT_SCOPE_EXIT_PREFIX scopeExitGuard_
+
+#define REACT_SCOPE_EXIT \
+	auto REACT_ANON_VAR(REACT_SCOPE_EXIT_PREFIX) \
+		= REACT_IMPL::ScopeGuardDummy_() + [&]()
