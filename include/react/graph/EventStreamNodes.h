@@ -190,7 +190,7 @@ public:
 
 		//printf("EventMergeNode: Tick %08X by thread %08X\n", this, std::this_thread::get_id().hash());
 
-		SetCurrentTurn(turn);
+		SetCurrentTurn(turn, true);
 
 		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 		func_(std::cref(turn));
