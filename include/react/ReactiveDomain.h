@@ -42,6 +42,9 @@ template
 auto MakeSignal(F&& func, const RSignal<D,TArgs>& ... args)
 	-> RSignal<D, typename std::result_of<F(TArgs...)>::type>;
 
+template <typename D>
+class RReactiveLoop;
+
 /************************************/ REACT_END /*************************************/
 
 /*********************************/ REACT_IMPL_BEGIN /*********************************/
@@ -93,6 +96,8 @@ public:
 	using EventSource = REventSource<D,E>;
 
 	using Observer = RObserver<D>;
+
+	using ReactiveLoop = RReactiveLoop<D>;
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// ObserverRegistry

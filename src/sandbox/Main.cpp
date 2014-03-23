@@ -4,17 +4,19 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include <iostream>
 #include <functional>
+#include <iostream>
+#include <vector>
 
 #include "react/Signal.h"
 #include "react/EventStream.h"
 #include "react/Operations.h"
 #include "react/ReactiveObject.h"
 
+//#include "react/propagation/FloodingEngine.h"
 //#include "react/propagation/SourceSetEngine.h"
-#include "react/propagation/TopoSortEngine.h"
-#include "react/propagation/ELMEngine.h"
+//#include "react/propagation/TopoSortEngine.h"
+//#include "react/propagation/ELMEngine.h"
 
 using namespace std;
 using namespace react;
@@ -22,7 +24,7 @@ using namespace react;
 // Defines a domain.
 // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
 // Reactives of different domains can not be combined.
-REACTIVE_DOMAIN(D, TopoSortEngine<sequential>);
+REACTIVE_DOMAIN(D);
 
 void SignalExample1()
 {
@@ -292,6 +294,60 @@ void Debug()
 	}
 }
 
+#ifndef REACT_DISABLE_REACTORS
+#include "react/Reactor.h"
+
+void LoopTest()
+{
+	cout << "ReactiveLoop Example 1" << endl;
+
+	using LineT = vector<int>;
+	using LineVectT = vector<LineT>;
+
+	LineVectT lines;
+
+	auto mouseDown = D::MakeEventSource<int>();
+	auto mouseUp = D::MakeEventSource<int>();
+	auto mouseMove = D::MakeEventSource<int>();
+
+	D::ReactiveLoop loop
+	{
+		[&] (D::ReactiveLoop::Context& ctx)
+		{
+			LineT points;
+
+			points.push_back(ctx.Take(mouseDown));
+
+			ctx.RepeatUntil(mouseUp, [&] {
+				points.push_back(ctx.Take(mouseMove));
+			});
+
+			points.push_back(ctx.Take(mouseUp));
+
+			lines.push_back(points);
+		}
+	};
+
+	mouseDown << 1;
+	mouseMove << 2 << 3 << 4;
+	mouseUp   << 5;
+
+	mouseMove << 999;
+
+	mouseDown << 100;
+	mouseMove << 200;
+	mouseUp   << 300;
+
+	for (auto line : lines)
+	{
+		cout << "Line: ";
+		for (auto point : line)
+			cout << point << " ";
+		cout << endl;
+	}
+}
+#endif //REACT_DISABLE_REACTORS
+
 int main()
 {
 	SignalExample1();
@@ -305,6 +361,8 @@ int main()
 	ObjectExample2();
 
 	FoldExample1();
+
+	LoopTest();
 
 	//Debug();
 
