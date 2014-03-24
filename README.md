@@ -11,13 +11,12 @@ So far, I've only tested building the framework on Windows, with:
 * Visual Studio 2013
 * Intel C++ Compiler 14.0 in Visual Studio 2012/13
 
+Cpp.React uses standard C++11 and the dependencies are portable, so other compilers/platforms should work, too.
+
 ###### Dependencies
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
 * [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the tests)
 * [Boost C++ Libraries](http://www.boost.org/) (optional, to use ReactiveLoop, which requires boost::coroutine)
-
-Cpp.React uses standard C++11 and the dependencies are portable, so other compilers/platforms should work, too.
-
 
 ## Feature overview
 
