@@ -54,9 +54,7 @@ protected:
     using NodeT = REACT_IMPL::SignalNode<D,S>;
 
 public:
-    struct SignalTag {};
-
-    typedef S ValueT;
+    using ValueT = S;
 
     RSignal() :
         Reactive()

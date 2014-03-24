@@ -34,18 +34,17 @@ template
 class EventStreamNode : public ReactiveNode<D,E,void>
 {
 public:
-    typedef std::vector<E>    EventListT;
-    typedef tbb::spin_mutex    EventMutexT;
+    using EventListT    = std::vector<E>;
+    using EventMutexT   = tbb::spin_mutex;
 
-    typedef std::shared_ptr<EventStreamNode> NodePtrT;
-    typedef std::weak_ptr<EventStreamNode> NodeWeakPtrT;
+    using PtrT      = std::shared_ptr<EventStreamNode>;
+    using WeakPtrT  = std::weak_ptr<EventStreamNode>;
 
-    typedef typename D::Engine EngineT;
-    typedef typename EngineT::TurnInterface TurnInterface;
+    using EngineT   = typename D::Engine;
+    using TurnT     = typename EngineT::TurnInterface;
 
     explicit EventStreamNode(bool registered) :
-        ReactiveNode(true),
-        curTurnId_{ INT_MAX }
+        ReactiveNode(true)
     {
         if (!registered)
             registerNode();
@@ -53,12 +52,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "EventStreamNode"; }
 
-    EventListT& Events()
-    {
-        return events_;
-    }
-
-    void SetCurrentTurn(const TurnInterface& turn, bool forceUpdate = false, bool noClear = false)
+    void SetCurrentTurn(const TurnT& turn, bool forceUpdate = false, bool noClear = false)
     {// eventMutex_
         EventMutexT::scoped_lock lock(eventMutex_);
 
@@ -70,21 +64,21 @@ public:
         }
     }// ~eventMutex_
 
-    void        ClearEvents()    { events_.clear(); }
-
-    const E&    Front()            { events_.front(); }
+    EventListT&     Events()        { return events_; }
+    void            ClearEvents()   { events_.clear(); }
 
 protected:
-    EventListT        events_;
-    EventMutexT        eventMutex_;
-    uint            curTurnId_;
+    EventListT    events_;
+    EventMutexT   eventMutex_;
+
+    uint    curTurnId_ = INT_MAX;
 };
 
 template <typename D, typename E>
-using EventStreamNodePtr = typename EventStreamNode<D,E>::NodePtrT;
+using EventStreamNodePtr = typename EventStreamNode<D,E>::PtrT;
 
 template <typename D, typename E>
-using EventStreamNodeWeakPtr = typename EventStreamNode<D,E>::NodeWeakPtrT;
+using EventStreamNodeWeakPtr = typename EventStreamNode<D,E>::WeakPtrT;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventSourceNode
@@ -110,8 +104,8 @@ public:
     {
         if (events_.size() > 0 && !changedFlag_)
         {
-            typedef typename D::Engine::TurnInterface TurnInterface;
-            TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+            using TurnT = typename D::Engine::TurnInterface;
+            TurnT& turn = *static_cast<TurnInterface*>(turnPtr);
 
             SetCurrentTurn(turn, true, true);
             changedFlag_ = true;
@@ -155,9 +149,6 @@ template
 class EventMergeNode : public EventStreamNode<D, E>
 {
 public:
-    typedef typename D::Engine EngineT;
-    typedef typename EngineT::TurnInterface TurnInterface;
-
     EventMergeNode(const EventStreamNodePtr<D, TArgs>& ... args, bool registered) :
         EventStreamNode<D, E>(true),
         deps_{ make_tuple(args ...) },
@@ -185,8 +176,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         //printf("EventMergeNode: Tick %08X by thread %08X\n", this, std::this_thread::get_id().hash());
 
@@ -211,8 +202,8 @@ public:
     virtual int DependencyCount() const override    { return sizeof... (TArgs); }
 
 private:
-    std::tuple<EventStreamNodePtr<D, TArgs> ...>    deps_;
-    std::function<void(const TurnInterface&)>        func_;
+    const std::tuple<EventStreamNodePtr<D, TArgs> ...>  deps_;
+    const std::function<void(const TurnInterface&)>     func_;
 
     inline void expand(const TurnInterface& turn, const EventStreamNodePtr<D, TArgs>& ... args)
     {
@@ -260,9 +251,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine EngineT;
-        typedef typename EngineT::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
 
@@ -285,9 +275,8 @@ public:
     virtual int DependencyCount() const override    { return 1; }
 
 private:
-    EventStreamNodePtr<D,E>    src_;
-
-    std::function<bool(const E&)>    filter_;
+    const EventStreamNodePtr<D,E>         src_;
+    const std::function<bool(const E&)>   filter_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -323,9 +312,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine EngineT;
-        typedef typename EngineT::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
 
@@ -348,9 +336,8 @@ public:
     virtual int DependencyCount() const override    { return 1; }
 
 private:
-    EventStreamNodePtr<D,TIn>        src_;
-
-    std::function<TOut(const TIn&)>    func_;
+    const EventStreamNodePtr<D,TIn>         src_;
+    const std::function<TOut(const TIn&)>   func_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -187,9 +187,7 @@ private:
     bool checkEvent(const EventStreamNodePtr<D,E>& events)
     {
         if (turnPtr_ == nullptr)
-        {
             return false;
-        }
 
         events->SetCurrentTurn(*turnPtr_);
         return offsets_[reinterpret_cast<uintptr_t>(&events)] < events->Events().size();
@@ -197,10 +195,10 @@ private:
 
     std::function<void(TContext&)>    func_;
 
-    LoopT    mainLoop_;
-    TurnT*    turnPtr_;
+    LoopT   mainLoop_;
+    TurnT*  turnPtr_;
 
-    OutT* curOutPtr_ = nullptr;
+    OutT*   curOutPtr_ = nullptr;
 
     int depCount_ = 0;
 

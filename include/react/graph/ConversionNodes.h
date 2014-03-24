@@ -41,8 +41,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
         S newValue = calcNewValue();
@@ -64,7 +64,7 @@ public:
     virtual int DependencyCount() const    override    { return 1; }
 
 protected:
-    const EventStreamNodePtr<D,E> events_;
+    EventStreamNodePtr<D,E> events_;
 
     virtual S calcNewValue() const = 0;
 };
@@ -185,8 +185,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
         S newValue = value_;
@@ -247,8 +247,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         trigger_->SetCurrentTurn(turn);
 
@@ -275,7 +275,7 @@ public:
 
 private:
     const SignalNodePtr<D,S>        target_;
-    const EventStreamNodePtr<D,E>    trigger_;
+    const EventStreamNodePtr<D,E>   trigger_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -308,8 +308,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
 
@@ -395,8 +395,8 @@ public:
     virtual int DependencyCount() const    { return 2; }
 
 private:
-    const SignalNodePtr<D, S>        target_;
-    const EventStreamNodePtr<D, E>    trigger_;
+    const SignalNodePtr<D, S>       target_;
+    const EventStreamNodePtr<D, E>  trigger_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -476,7 +476,7 @@ public:
     virtual int DependencyCount() const override    { return 2; }
 
 private:
-    SignalNodePtr<D,TOuter>            outer_;
+    SignalNodePtr<D,TOuter>         outer_;
     EventStreamNodePtr<D,TInner>    inner_;
 };
 

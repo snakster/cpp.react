@@ -31,10 +31,10 @@ template
 class SignalNode : public ReactiveNode<D,S,S>
 {
 public:
-    typedef std::shared_ptr<SignalNode> NodePtrT;
-    typedef std::weak_ptr<SignalNode>    NodeWeakPtrT;
+    using PtrT      = std::shared_ptr<SignalNode>;
+    using WeakPtrT  = std::weak_ptr<SignalNode>;
 
-    using MergedOpT = std::pair<std::function<S(const S&,const S&)>, NodePtrT>;
+    using MergedOpT = std::pair<std::function<S(const S&,const S&)>, PtrT>;
     using MergedOpVectT = std::vector<MergedOpT>;
 
     explicit SignalNode(bool registered) :
@@ -74,7 +74,7 @@ public:
     }
 
     template <typename F>
-    void MergeOp(const NodePtrT& dep, F&& func)
+    void MergeOp(const PtrT& dep, F&& func)
     {
         if (mergedOps_ == nullptr)
             mergedOps_ = std::unique_ptr<MergedOpVectT>(new MergedOpVectT());
@@ -100,10 +100,10 @@ protected:
 };
 
 template <typename D, typename S>
-using SignalNodePtr = typename SignalNode<D,S>::NodePtrT;
+using SignalNodePtr = typename SignalNode<D,S>::PtrT;
 
 template <typename D, typename S>
-using SignalNodeWeakPtr = typename SignalNode<D,S>::NodeWeakPtrT;
+using SignalNodeWeakPtr = typename SignalNode<D,S>::WeakPtrT;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// VarNode
@@ -131,8 +131,8 @@ public:
     {
         if (! impl::Equals(value_, newValue_))
         {
-            typedef typename D::Engine::TurnInterface TurnInterface;
-            TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+            using TurnT = typename D::Engine::TurnInterface;
+            TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
             value_ = std::move(newValue_);
             Engine::OnTurnInputChange(*this, turn);
@@ -153,7 +153,7 @@ public:
     }
 
 private:
-    S        newValue_;
+    S   newValue_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -226,8 +226,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
         S newValue = evaluate();
@@ -251,9 +251,8 @@ public:
     virtual int DependencyCount() const override    { return sizeof ... (TArgs); }
 
 private:
-
-    std::tuple<SignalNodePtr<D,TArgs> ...>    deps_;
-    std::function<S(const TArgs& ...)>        func_;
+    const std::tuple<SignalNodePtr<D,TArgs> ...>    deps_;
+    const std::function<S(const TArgs& ...)>        func_;
 
     S evaluate() const
     {
@@ -303,8 +302,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         auto newInner = outer_->ValueRef().GetPtr();
 

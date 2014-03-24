@@ -37,10 +37,10 @@ public:
     virtual const char* GetNodeType() const override { return "NodeBase"; }
     
     virtual bool    IsInputNode() const override    { return false; }
-    virtual bool    IsOutputNode() const override    { return false; }
-    virtual bool    IsDynamicNode() const override    { return false; }
+    virtual bool    IsOutputNode() const override   { return false; }
+    virtual bool    IsDynamicNode() const override  { return false; }
 
-    virtual int        DependencyCount() const        { return 0; }
+    virtual int        DependencyCount() const      { return 0; }
 
     PtrT GetSharedPtr() const
     {

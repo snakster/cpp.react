@@ -31,19 +31,19 @@ class ObserverNode :
     public IObserverNode
 {
 public:
-    typedef std::shared_ptr<ObserverNode> NodePtr;
+    using PtrT = std::shared_ptr<ObserverNode>;
 
     explicit ObserverNode(bool registered) :
         ReactiveNode<D,void,void>(true)
     {
     }
 
-    virtual const char*    GetNodeType() const        { return "ObserverNode"; }
-    virtual bool        IsOutputNode() const    { return true; }
+    virtual const char*     GetNodeType() const     { return "ObserverNode"; }
+    virtual bool            IsOutputNode() const    { return true; }
 };
 
 template <typename D>
-using ObserverNodePtr = typename ObserverNode<D>::NodePtr;
+using ObserverNodePtr = typename ObserverNode<D>::PtrT;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalObserverNode
@@ -74,8 +74,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
@@ -109,8 +109,8 @@ public:
     }
 
 private:
-    SignalNodeWeakPtr<D,TArg>    subject_;
-    std::function<void(TArg)>    func_;
+    SignalNodeWeakPtr<D,TArg>           subject_;
+    const std::function<void(TArg)>     func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -142,8 +142,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        using TurnT = typename D::Engine::TurnInterface;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
         
@@ -181,8 +181,8 @@ public:
     }
 
 private:
-    EventStreamNodeWeakPtr<D,TArg>    subject_;
-    std::function<void(TArg)>        func_;
+    EventStreamNodeWeakPtr<D,TArg>      subject_;
+    const std::function<void(TArg)>     func_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
