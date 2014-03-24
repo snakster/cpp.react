@@ -100,16 +100,16 @@ TYPED_TEST_P(SignalTest, Signals1)
 	
 	bool b = false;
 
-	b = IsSignalT<MyDomain, decltype(v1)>::value;
+	b = IsSignal<MyDomain, decltype(v1)>::value;
 	ASSERT_TRUE(b);
 
-	b = IsSignalT<MyDomain, decltype(s1)>::value;
+	b = IsSignal<MyDomain, decltype(s1)>::value;
 	ASSERT_TRUE(b);
 
-	b = IsSignalT<MyDomain, decltype(s2)>::value;
+	b = IsSignal<MyDomain, decltype(s2)>::value;
 	ASSERT_TRUE(b);
 
-	b = IsSignalT<MyDomain, decltype(10)>::value;
+	b = IsSignal<MyDomain, decltype(10)>::value;
 	ASSERT_FALSE(b);
 }
 

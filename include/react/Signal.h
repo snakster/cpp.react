@@ -162,7 +162,7 @@ template
 	typename V,
 	typename S = std::decay<V>::type,
 	class = std::enable_if<
-		! IsSignalT<D,S>::value>::type
+		! IsReactive<D,S>::value>::type
 >
 auto MakeVar(V&& value)
 	-> RVarSignal<D,S>
@@ -173,7 +173,7 @@ auto MakeVar(V&& value)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// MakeVar (higher order signal)
+/// MakeVar (higher order reactives)
 ////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -182,13 +182,30 @@ template
 	typename S = std::decay<V>::type,
 	typename TInner = S::ValueT,
 	class = std::enable_if<
-		IsSignalT<D,S>::value>::type
+		IsSignal<D,S>::value>::type
 >
 auto MakeVar(V&& value)
 	-> RVarSignal<D,RSignal<D,TInner>>
 {
 	return RVarSignal<D,RSignal<D,TInner>>(
 		std::make_shared<REACT_IMPL::VarNode<D,RSignal<D,TInner>>>(
+			std::forward<V>(value), false));
+}
+
+template
+<
+	typename D,
+	typename V,
+	typename S = std::decay<V>::type,
+	typename TInner = S::ValueT,
+	class = std::enable_if<
+		IsEvent<D,S>::value>::type
+>
+auto MakeVar(V&& value)
+	-> RVarSignal<D,REvents<D,TInner>>
+{
+	return RVarSignal<D,REvents<D,TInner>>(
+		std::make_shared<REACT_IMPL::VarNode<D,REvents<D,TInner>>>(
 			std::forward<V>(value), false));
 }
 
@@ -241,7 +258,7 @@ template															\
 	template <typename D_, typename V_> class TSignal,				\
 	typename TVal,													\
 	class = std::enable_if<											\
-		IsSignalT<D,TSignal<D,TVal>>::value>::type					\
+		IsSignal<D,TSignal<D,TVal>>::value>::type					\
 >																	\
 auto operator ## op(const TSignal<D,TVal>& arg)						\
 	-> RSignal<D,decltype(op std::declval<TVal>())>					\
@@ -270,9 +287,9 @@ template															\
 	typename TLeftVal,												\
 	typename TRightVal,												\
 	class = std::enable_if<											\
-		IsSignalT<D,TLeftSignal<D,TLeftVal>>::value>::type,			\
+		IsSignal<D,TLeftSignal<D,TLeftVal>>::value>::type,			\
 	class = std::enable_if<											\
-		IsSignalT<D,TRightSignal<D,TRightVal>>::value>::type		\
+		IsSignal<D,TRightSignal<D,TRightVal>>::value>::type			\
 >																	\
 auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,				\
 					const TRightSignal<D,TRightVal>& rhs)			\
@@ -295,9 +312,9 @@ template															\
 	typename TLeftVal,												\
 	typename TRightVal,												\
 	class = std::enable_if<											\
-		IsSignalT<D,TLeftSignal<D,TLeftVal>>::value>::type,			\
+		IsSignal<D,TLeftSignal<D,TLeftVal>>::value>::type,			\
 	class = std::enable_if<											\
-		! IsSignalT<D,TRightVal>::value>::type						\
+		! IsSignal<D,TRightVal>::value>::type						\
 >																	\
 auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,				\
 					const TRightVal& rhs)							\
@@ -319,9 +336,9 @@ template															\
 	template <typename D_, typename V_> class TRightSignal,			\
 	typename TRightVal,												\
 	class = std::enable_if<											\
-		! IsSignalT<D,TRightVal>::value>::type,						\
+		! IsSignal<D,TRightVal>::value>::type,						\
 	class = std::enable_if<											\
-		IsSignalT<D,TRightSignal<D,TRightVal>>::value>::type		\
+		IsSignal<D,TRightSignal<D,TRightVal>>::value>::type			\
 >																	\
 auto operator ## op(const TLeftVal& lhs,							\
 					const TRightSignal<D,TRightVal>& rhs)			\
@@ -362,9 +379,9 @@ DECLARE_OP(||);
 //	typename TLeftVal,												
 //	typename TRightVal,												
 //	class = std::enable_if<											
-//		IsSignalT<D,TLeftSignal<D,TLeftVal>>::value>::type,			
+//		IsSignal<D,TLeftSignal<D,TLeftVal>>::value>::type,			
 //	class = std::enable_if<											
-//		IsSignalT<D,TRightSignal<D,TRightVal>>::value>::type		
+//		IsSignal<D,TRightSignal<D,TRightVal>>::value>::type		
 //>																	
 //auto operator+(TLeftSignal<D,TLeftVal>&& lhs,
 //			   const TRightSignal<D,TRightVal>& rhs)
@@ -464,7 +481,7 @@ template
 	template <typename D_, typename V_> class TSignal,
 	typename TValue,
 	class = std::enable_if<
-		IsSignalT<D,TSignal<D,TValue>>::value>::type
+		IsSignal<D,TSignal<D,TValue>>::value>::type
 >
 auto operator->*(const TSignal<D,TValue>& inputNode, F&& func)
 	-> RSignal<D, typename std::result_of<F(TValue)>::type>
@@ -500,7 +517,7 @@ auto Flatten(const RSignal<D,RSignal<D,TInnerValue>>& node)
 {
 	return RSignal<D,TInnerValue>(
 		std::make_shared<REACT_IMPL::FlattenNode<D, RSignal<D,TInnerValue>, TInnerValue>>(
-			node.GetPtr(), node().GetPtr(), false));
+			node.GetPtr(), node.Value().GetPtr(), false));
 }
 
 /************************************/ REACT_END /*************************************/

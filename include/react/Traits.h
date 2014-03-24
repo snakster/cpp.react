@@ -40,27 +40,57 @@ auto MakeSignal(F&& func, const RSignal<D,TArgs>& ... args)
 	-> RSignal<D, typename std::result_of<F(TArgs...)>::type>;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// IsSignalT
+/// IsSignal
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename D, typename T>
-struct IsSignalT { static const bool value = false; };
+struct IsSignal { static const bool value = false; };
 
 template <typename D, typename T>
-struct IsSignalT<D, RSignal<D,T>> { static const bool value = true; };
+struct IsSignal<D, RSignal<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsSignalT<D, RVarSignal<D,T>> { static const bool value = true; };
+struct IsSignal<D, RVarSignal<D,T>> { static const bool value = true; };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-/// IsEventT
+/// IsEvent
 ////////////////////////////////////////////////////////////////////////////////////////
 template <typename D, typename T>
-struct IsEventT { static const bool value = false; };
+struct IsEvent { static const bool value = false; };
 
 template <typename D, typename T>
-struct IsEventT<D, REvents<D,T>> { static const bool value = true; };
+struct IsEvent<D, REvents<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsEventT<D, REventSource<D,T>> { static const bool value = true; };
+struct IsEvent<D, REventSource<D,T>> { static const bool value = true; };
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// IsReactive
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename T>
+struct IsReactive { static const bool value = false; };
+
+template <typename D, typename T>
+struct IsReactive<D, RSignal<D,T>> { static const bool value = true; };
+
+template <typename D, typename T>
+struct IsReactive<D, RVarSignal<D,T>> { static const bool value = true; };
+
+template <typename D, typename T>
+struct IsReactive<D, REvents<D,T>> { static const bool value = true; };
+
+template <typename D, typename T>
+struct IsReactive<D, REventSource<D,T>> { static const bool value = true; };
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// RemoveInput
+////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename T>
+struct RemoveInput { using Type = T; };
+
+template <typename D, typename T>
+struct RemoveInput<D, RVarSignal<D,T>> { using Type = RSignal<D,T>; };
+
+template <typename D, typename T>
+struct RemoveInput<D, REventSource<D,T>> { using Type = REvents<D,T>; };
 
 /************************************/ REACT_END /*************************************/

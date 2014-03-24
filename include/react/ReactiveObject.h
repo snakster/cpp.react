@@ -22,6 +22,8 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////
 	/// Aliases
 	////////////////////////////////////////////////////////////////////////////////////////
+	using DomainT = D;
+
 	template <typename S>
 	using Signal = RSignal<D,S>;
 
@@ -52,7 +54,7 @@ public:
 		typename V,
 		typename S = std::decay<V>::type,
 		class = std::enable_if<
-			!IsSignalT<D,S>::value>::type
+			!IsSignal<D,S>::value>::type
 	>
 	static auto MakeVar(V&& value)
 		-> VarSignal<S>
@@ -69,7 +71,7 @@ public:
 		typename S = std::decay<V>::type,
 		typename TInner = S::ValueT,
 		class = std::enable_if<
-			IsSignalT<D,S>::value>::type
+			IsSignal<D,S>::value>::type
 	>
 	static auto MakeVar(V&& value)
 		-> VarSignal<Signal<TInner>>
@@ -110,10 +112,10 @@ public:
 	#define REACTIVE_REF(obj, name)											\
 		Flatten(															\
 			MakeSignal(														\
-				[] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT::type& r) \
+				[] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT::type r) \
 				{															\
-					return r.name;											\
-				},															\
+					return static_cast<RemoveInput<DomainT, decltype(r.name)>::Type>(r.name); \
+                },															\
 				obj))
 
 	#define REACTIVE_PTR(obj, name)											\
@@ -122,7 +124,7 @@ public:
 				[] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)	\
 				{															\
 					REACT_ASSERT(r != nullptr);								\
-					return r->name;											\
+					return static_cast<RemoveInput<DomainT, decltype(r->name)>::Type>(r->name); \
 				},															\
 				obj))
 };

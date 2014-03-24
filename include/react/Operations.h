@@ -163,13 +163,9 @@ auto Pulse(const RSignal<D,S>& target, const REvents<D,E>& trigger)
 template
 <
 	typename D,
-	template <typename Domain_, typename Val_> class THandle,
-	typename TInnerValue,
-	class = std::enable_if<std::is_base_of<
-		REvents<D,TInnerValue>,
-		THandle<D,TInnerValue>>::value>::type
+	typename TInnerValue
 >
-auto Flatten(const RSignal<D,THandle<D,TInnerValue>>& node)
+auto Flatten(const RSignal<D,REvents<D,TInnerValue>>& node)
 	-> REvents<D,TInnerValue>
 {
 	return REvents<D,TInnerValue>(
