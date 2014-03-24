@@ -8,25 +8,25 @@
 
 #include "react/Defs.h"
 
-/*********************************/ REACT_IMPL_BEGIN /*********************************/
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// BasicSingleton
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
 class BasicSingleton
 {
 public:
-	static T& Instance()
-	{
-		static T instance;
-		return instance;
-	}
+    static T& Instance()
+    {
+        static T instance;
+        return instance;
+    }
 
 protected:
-	BasicSingleton() {}
-	BasicSingleton(const BasicSingleton& other) {}
-	BasicSingleton(BasicSingleton&& other) {}
+    BasicSingleton() {}
+    BasicSingleton(const BasicSingleton& other) {}
+    BasicSingleton(BasicSingleton&& other) {}
 };
 
-/**********************************/ REACT_IMPL_END /**********************************/
+/****************************************/ REACT_IMPL_END /***************************************/

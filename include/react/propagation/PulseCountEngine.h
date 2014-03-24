@@ -19,7 +19,7 @@
 #include "react/common/Containers.h"
 #include "react/common/Types.h"
 
-/*********************************/ REACT_IMPL_BEGIN /*********************************/
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 namespace pulsecount {
 
 using std::atomic;
@@ -27,72 +27,72 @@ using std::vector;
 using tbb::task_group;
 using tbb::spin_rw_mutex;
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 struct Turn : public TurnBase
 {
 public:
-	Turn(TurnIdT id, TurnFlagsT flags);
+    Turn(TurnIdT id, TurnFlagsT flags);
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Node
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class Node : public IReactiveNode
 {
 public:
-	using ShiftMutexT = spin_rw_mutex;
+    using ShiftMutexT = spin_rw_mutex;
 
-	Node();
+    Node();
 
-	ShiftMutexT			ShiftMutex;
-	NodeVector<Node>	Successors;
+    ShiftMutexT            ShiftMutex;
+    NodeVector<Node>    Successors;
 
-	atomic<int>		Counter;
-	atomic<bool>	ShouldUpdate;
-	atomic<bool>	Marked;
+    atomic<int>        Counter;
+    atomic<bool>    ShouldUpdate;
+    atomic<bool>    Marked;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EngineBase
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TTurn>
 class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
-	using NodeShiftMutexT = Node::ShiftMutexT;
-	using NodeVectorT = vector<Node*>;
+    using NodeShiftMutexT = Node::ShiftMutexT;
+    using NodeVectorT = vector<Node*>;
 
-	void OnNodeAttach(Node& node, Node& parent);
-	void OnNodeDetach(Node& node, Node& parent);
+    void OnNodeAttach(Node& node, Node& parent);
+    void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnInputChange(Node& node, TTurn& turn);
-	void OnTurnPropagate(TTurn& turn);
+    void OnTurnInputChange(Node& node, TTurn& turn);
+    void OnTurnPropagate(TTurn& turn);
 
-	void OnNodePulse(Node& node, TTurn& turn);
-	void OnNodeIdlePulse(Node& node, TTurn& turn);
+    void OnNodePulse(Node& node, TTurn& turn);
+    void OnNodeIdlePulse(Node& node, TTurn& turn);
 
-	void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
-	void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
+    void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
+    void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
 private:
-	void runInitReachableNodesTask(NodeVectorT leftNodes);
+    void runInitReachableNodesTask(NodeVectorT leftNodes);
 
-	void processChild(Node& node, bool update, TTurn& turn);
-	void nudgeChildren(Node& parent, bool update, TTurn& turn);
+    void processChild(Node& node, bool update, TTurn& turn);
+    void nudgeChildren(Node& parent, bool update, TTurn& turn);
 
-	vector<Node*>	changedInputs_;
-	task_group		tasks_;
+    vector<Node*>    changedInputs_;
+    task_group        tasks_;
 };
 
-class BasicEngine :	public EngineBase<Turn> {};
+class BasicEngine :    public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace pulsecount
-/**********************************/ REACT_IMPL_END /**********************************/
+/****************************************/ REACT_IMPL_END /***************************************/
 
-/***********************************/ REACT_BEGIN /************************************/
+/*****************************************/ REACT_BEGIN /*****************************************/
 
 struct parallel;
 struct parallel_queuing;
@@ -103,4 +103,4 @@ class PulseCountEngine;
 template <> class PulseCountEngine<parallel> : public REACT_IMPL::pulsecount::BasicEngine {};
 template <> class PulseCountEngine<parallel_queuing> : public REACT_IMPL::pulsecount::QueuingEngine {};
 
-/************************************/ REACT_END /*************************************/
+/******************************************/ REACT_END /******************************************/

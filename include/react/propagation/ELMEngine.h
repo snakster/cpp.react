@@ -19,7 +19,7 @@
 #include "react/common/Types.h"
 #include "react/propagation/EngineBase.h"
 
-/*********************************/ REACT_IMPL_BEGIN /*********************************/
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 namespace elm {
 
 using std::atomic;
@@ -27,74 +27,74 @@ using std::set;
 using tbb::task_group;
 using tbb::spin_mutex;
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class Turn : public TurnBase
 {
 public:
-	Turn(TurnIdT id, TurnFlagsT flags);
+    Turn(TurnIdT id, TurnFlagsT flags);
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Node
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class Node : public IReactiveNode
 {
 public:
-	using ShiftMutexT = spin_mutex;
+    using ShiftMutexT = spin_mutex;
 
-	Node();
+    Node();
 
-	ShiftMutexT			ShiftMutex;
-	NodeVector<Node>	Successors;
+    ShiftMutexT            ShiftMutex;
+    NodeVector<Node>    Successors;
 
-	atomic<int16_t>		Counter;
-	atomic<bool>		ShouldUpdate;
+    atomic<int16_t>        Counter;
+    atomic<bool>        ShouldUpdate;
 
-	TurnIdT				LastTurnId;
+    TurnIdT                LastTurnId;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Engine
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TTurn>
 class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
-	using NodeShiftMutexT = Node::ShiftMutexT;
-	using NodeSetT = set<Node*>;
+    using NodeShiftMutexT = Node::ShiftMutexT;
+    using NodeSetT = set<Node*>;
 
-	void OnNodeCreate(Node& node);
-	void OnNodeDestroy(Node& node);
+    void OnNodeCreate(Node& node);
+    void OnNodeDestroy(Node& node);
 
-	void OnNodeAttach(Node& node, Node& parent);
-	void OnNodeDetach(Node& node, Node& parent);
+    void OnNodeAttach(Node& node, Node& parent);
+    void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnInputChange(Node& node, TTurn& turn);
-	void OnTurnPropagate(TTurn& turn);
+    void OnTurnInputChange(Node& node, TTurn& turn);
+    void OnTurnPropagate(TTurn& turn);
 
-	void OnNodePulse(Node& node, TTurn& turn);
-	void OnNodeIdlePulse(Node& node, TTurn& turn);
+    void OnNodePulse(Node& node, TTurn& turn);
+    void OnNodeIdlePulse(Node& node, TTurn& turn);
 
-	void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
-	void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
+    void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
+    void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
 private:
-	void processChild(Node& node, bool update, TTurn& turn);
-	void nudgeChildren(Node& parent, bool update, TTurn& turn);
+    void processChild(Node& node, bool update, TTurn& turn);
+    void nudgeChildren(Node& parent, bool update, TTurn& turn);
 
-	task_group	tasks_;
-	NodeSetT	inputNodes_;
+    task_group    tasks_;
+    NodeSetT    inputNodes_;
 };
 
-class BasicEngine :	public EngineBase<Turn> {};
+class BasicEngine :    public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace elm
-/**********************************/ REACT_IMPL_END /**********************************/
+/****************************************/ REACT_IMPL_END /***************************************/
 
-/***********************************/ REACT_BEGIN /************************************/
+/*****************************************/ REACT_BEGIN /*****************************************/
 
 struct parallel;
 struct parallel_queuing;
@@ -105,4 +105,4 @@ class ELMEngine;
 template <> class ELMEngine<parallel> : public REACT_IMPL::elm::BasicEngine {};
 template <> class ELMEngine<parallel_queuing> : public REACT_IMPL::elm::QueuingEngine {};
 
-/************************************/ REACT_END /*************************************/
+/******************************************/ REACT_END /******************************************/

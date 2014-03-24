@@ -25,7 +25,7 @@
 #include "react/common/TopoQueue.h"
 #include "react/common/Types.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace react {
 namespace topo_sort_o1_impl {
 
@@ -39,122 +39,122 @@ using tbb::concurrent_vector;
 using tbb::queuing_rw_mutex;
 using tbb::task_group;
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Node
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class Node : public IReactiveNode
 {
 public:
-	int				Level;
-	atomic<bool>	Collected;
-	atomic<bool>	Invalidated;
+    int                Level;
+    atomic<bool>    Collected;
+    atomic<bool>    Invalidated;
 
-	Node();
+    Node();
 
-	NodeVector<Node>	Successors;
+    NodeVector<Node>    Successors;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// InvalidateData
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 struct InvalidateData
 {
-	Node*	ShiftingNode;
-	Node*	OldParent;
-	Node*	NewParent;
+    Node*    ShiftingNode;
+    Node*    OldParent;
+    Node*    NewParent;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class Turn : public TurnBase<Turn>
 {
 public:
-	typedef concurrent_vector<Node*>			ConcNodeVector;
-	typedef vector<Node*>						NodeVector;
-	typedef set<pair<int,int>>					IntervalSet;
-	typedef concurrent_vector<InvalidateData>	InvalidateDataVector;
-	typedef vector<Turn*>						TurnVector;
-	typedef TopoQueue<Node>						TopoQueue;
+    typedef concurrent_vector<Node*>            ConcNodeVector;
+    typedef vector<Node*>                        NodeVector;
+    typedef set<pair<int,int>>                    IntervalSet;
+    typedef concurrent_vector<InvalidateData>    InvalidateDataVector;
+    typedef vector<Turn*>                        TurnVector;
+    typedef TopoQueue<Node>                        TopoQueue;
 
-	explicit Turn(TransactionData<Turn>& transactionData);
+    explicit Turn(TransactionData<Turn>& transactionData);
 
-	TopoQueue				ScheduledNodes;
-	ConcNodeVector			CollectBuffer;
-	InvalidateDataVector	InvalidateRequests;
-	task_group				Tasks;
+    TopoQueue                ScheduledNodes;
+    ConcNodeVector            CollectBuffer;
+    InvalidateDataVector    InvalidateRequests;
+    task_group                Tasks;
 
-	int		CurrentLevel() const	{ return currentLevel_; }
+    int        CurrentLevel() const    { return currentLevel_; }
 
-	bool	AdvanceLevel();
-	void	SetMaxLevel(int level);
-	void	WaitForMaxLevel(int targetLevel);
+    bool    AdvanceLevel();
+    void    SetMaxLevel(int level);
+    void    WaitForMaxLevel(int targetLevel);
 
-	void	UpdateSuccessor();
+    void    UpdateSuccessor();
 
-	void	Append(Turn* turn);
+    void    Append(Turn* turn);
 
-	void	Remove();
+    void    Remove();
 
-	void	AdjustUpperBound(int level);
+    void    AdjustUpperBound(int level);
 
-	bool	TryMerge(Turn& other);
+    bool    TryMerge(Turn& other);
 
 private:
-	TransactionInput<Turn>& input_;
+    TransactionInput<Turn>& input_;
 
-	IntervalSet		levelIntervals_;
+    IntervalSet        levelIntervals_;
 
-	Turn*	predecessor_;
-	Turn*	successor_;
+    Turn*    predecessor_;
+    Turn*    successor_;
 
-	int		currentLevel_;
-	int		maxLevel_;			/// This turn may only advance up to maxLevel
-	int		minLevel_;			/// successor.maxLevel = this.minLevel - 1
+    int        currentLevel_;
+    int        maxLevel_;            /// This turn may only advance up to maxLevel
+    int        minLevel_;            /// successor.maxLevel = this.minLevel - 1
 
-	int		curUpperBound_;
+    int        curUpperBound_;
 
-	mutex					advanceMutex_;
-	condition_variable		advanceCondition_;
+    mutex                    advanceMutex_;
+    condition_variable        advanceCondition_;
 
-	TurnVector	mergedTurns_;
+    TurnVector    mergedTurns_;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TopoSortO1Engine
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class TopoSortO1Engine : public IReactiveEngine<Node,Turn>
 {
 public:
-	typedef queuing_rw_mutex		SeqMutex;
-	typedef set<Node*>	NodeSet;
+    typedef queuing_rw_mutex        SeqMutex;
+    typedef set<Node*>    NodeSet;
 
-	TopoSortO1Engine();
+    TopoSortO1Engine();
 
-	void OnNodeAttach(Node& node, Node& parent);
-	void OnNodeDetach(Node& node, Node& parent);
+    void OnNodeAttach(Node& node, Node& parent);
+    void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTransactionCommit(TransactionData<Turn>& transaction);
+    void OnTransactionCommit(TransactionData<Turn>& transaction);
 
-	void OnNodePulse(Node& node, Turn& turn);
-	void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+    void OnNodePulse(Node& node, Turn& turn);
+    void OnNodeShift(Node& node, Node& oldParent, Node& newParent, Turn& turn);
 
 private:
-	SeqMutex	sequenceMutex_;
-	Turn*		lastTurn_;
+    SeqMutex    sequenceMutex_;
+    Turn*        lastTurn_;
 
-	NodeSet		dynamicNodes_;
-	int			maxDynamicLevel_;
+    NodeSet        dynamicNodes_;
+    int            maxDynamicLevel_;
 
-	void applyInvalidate(Node& node, Node& oldParent, Node& newParent, Turn& turn);
+    void applyInvalidate(Node& node, Node& oldParent, Node& newParent, Turn& turn);
 
-	void processChildren(Node& node, Turn& turn);
-	void recalculateLevels(Node& node);
+    void processChildren(Node& node, Turn& turn);
+    void recalculateLevels(Node& node);
 
-	bool addTurn(Turn& turn, bool allowMerging);
-	void removeTurn(Turn& turn);
+    bool addTurn(Turn& turn, bool allowMerging);
+    void removeTurn(Turn& turn);
 
-	void advanceTurn(Turn& turn);
+    void advanceTurn(Turn& turn);
 };
 
 } // ~namespace react::topo_sort_o1_impl

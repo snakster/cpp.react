@@ -11,60 +11,60 @@
 #include <functional>
 #include <memory>
 
-/***********************************/ REACT_BEGIN /************************************/
+/*****************************************/ REACT_BEGIN /*****************************************/
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Reactive
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
 class Reactive
 {
 public:
-	using Domain = typename T::Domain;
+    using Domain = typename T::Domain;
 
-	Reactive() :
-		ptr_{ nullptr }
-	{
-	}
+    Reactive() :
+        ptr_{ nullptr }
+    {
+    }
 
-	explicit Reactive(const std::shared_ptr<T>& ptr) :
-		ptr_{ ptr }
-	{
-	}
+    explicit Reactive(const std::shared_ptr<T>& ptr) :
+        ptr_{ ptr }
+    {
+    }
 
-	explicit Reactive(std::shared_ptr<T>&& ptr) :
-		ptr_{ std::move(ptr) }
-	{
-	}
+    explicit Reactive(std::shared_ptr<T>&& ptr) :
+        ptr_{ std::move(ptr) }
+    {
+    }
 
-	const std::shared_ptr<T>& GetPtr() const
-	{
-		return ptr_;
-	}
+    const std::shared_ptr<T>& GetPtr() const
+    {
+        return ptr_;
+    }
 
-	bool Equals(const Reactive& other) const
-	{
-		return ptr_ == other.ptr_;
-	}
+    bool Equals(const Reactive& other) const
+    {
+        return ptr_ == other.ptr_;
+    }
 
 protected:
-	std::shared_ptr<T> ptr_;
+    std::shared_ptr<T> ptr_;
 };
 
-/************************************/ REACT_END /*************************************/
+/******************************************/ REACT_END /******************************************/
 
-/*********************************/ REACT_IMPL_BEGIN /*********************************/
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 template <typename L, typename R>
 bool Equals(const L& lhs, const R& rhs)
 {
-	return lhs == rhs;
+    return lhs == rhs;
 }
 
 template <typename L, typename R>
 bool Equals(const std::reference_wrapper<L>& lhs, const std::reference_wrapper<R>& rhs)
 {
-	return lhs.get() == rhs.get();
+    return lhs.get() == rhs.get();
 }
 
-/**********************************/ REACT_IMPL_END /**********************************/
+/****************************************/ REACT_IMPL_END /***************************************/

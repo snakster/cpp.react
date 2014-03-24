@@ -15,174 +15,174 @@
 #include "EventStreamNodes.h"
 #include "SignalNodes.h"
 
-/*********************************/ REACT_IMPL_BEGIN /*********************************/
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 namespace current_observer_state_
 {
-	static __declspec(thread) bool	shouldDetach = false;
+    static __declspec(thread) bool    shouldDetach = false;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverNode
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
 class ObserverNode :
-	public ReactiveNode<D,void,void>,
-	public IObserverNode
+    public ReactiveNode<D,void,void>,
+    public IObserverNode
 {
 public:
-	typedef std::shared_ptr<ObserverNode> NodePtr;
+    typedef std::shared_ptr<ObserverNode> NodePtr;
 
-	explicit ObserverNode(bool registered) :
-		ReactiveNode<D,void,void>(true)
-	{
-	}
+    explicit ObserverNode(bool registered) :
+        ReactiveNode<D,void,void>(true)
+    {
+    }
 
-	virtual const char*	GetNodeType() const		{ return "ObserverNode"; }
-	virtual bool		IsOutputNode() const	{ return true; }
+    virtual const char*    GetNodeType() const        { return "ObserverNode"; }
+    virtual bool        IsOutputNode() const    { return true; }
 };
 
 template <typename D>
 using ObserverNodePtr = typename ObserverNode<D>::NodePtr;
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalObserverNode
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename D,
-	typename TArg
+    typename D,
+    typename TArg
 >
 class SignalObserverNode : public ObserverNode<D>
 {
 public:
-	template <typename F>
-	SignalObserverNode(const SignalNodePtr<D,TArg>& subject, F&& func, bool registered) :
-		ObserverNode<D>(true),
-		subject_{ subject },
-		func_{ std::forward<F>(func) }
-	{
-		if (!registered)
-			registerNode();
+    template <typename F>
+    SignalObserverNode(const SignalNodePtr<D,TArg>& subject, F&& func, bool registered) :
+        ObserverNode<D>(true),
+        subject_{ subject },
+        func_{ std::forward<F>(func) }
+    {
+        if (!registered)
+            registerNode();
 
-		subject->IncObsCount();
+        subject->IncObsCount();
 
-		Engine::OnNodeAttach(*this, *subject);
-	}
+        Engine::OnNodeAttach(*this, *subject);
+    }
 
-	virtual const char* GetNodeType() const override { return "SignalObserverNode"; }
+    virtual const char* GetNodeType() const override { return "SignalObserverNode"; }
 
-	virtual ETickResult Tick(void* turnPtr) override
-	{
-		typedef typename D::Engine::TurnInterface TurnInterface;
-		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+    virtual ETickResult Tick(void* turnPtr) override
+    {
+        typedef typename D::Engine::TurnInterface TurnInterface;
+        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
-		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
-		current_observer_state_::shouldDetach = false;
+        current_observer_state_::shouldDetach = false;
 
-		D::SetCurrentContinuation(turn);
+        D::SetCurrentContinuation(turn);
 
-		if (auto p = subject_.lock())
-			func_(p->ValueRef());
+        if (auto p = subject_.lock())
+            func_(p->ValueRef());
 
-		D::ClearCurrentContinuation();
+        D::ClearCurrentContinuation();
 
-		if (current_observer_state_::shouldDetach)
-			turn.QueueForDetach(*this);
+        if (current_observer_state_::shouldDetach)
+            turn.QueueForDetach(*this);
 
-		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
-		return ETickResult::none;
-	}
+        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        return ETickResult::none;
+    }
 
-	virtual int DependencyCount() const	{ return 1; }
+    virtual int DependencyCount() const    { return 1; }
 
-	virtual void Detach()
-	{
-		if (auto p = subject_.lock())
-		{
-			p->DecObsCount();
+    virtual void Detach()
+    {
+        if (auto p = subject_.lock())
+        {
+            p->DecObsCount();
 
-			Engine::OnNodeDetach(*this, *p);
-			subject_.reset();
-		}
-	}
+            Engine::OnNodeDetach(*this, *p);
+            subject_.reset();
+        }
+    }
 
 private:
-	SignalNodeWeakPtr<D,TArg>	subject_;
-	std::function<void(TArg)>	func_;
+    SignalNodeWeakPtr<D,TArg>    subject_;
+    std::function<void(TArg)>    func_;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventObserverNode
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-	typename D,
-	typename TArg
+    typename D,
+    typename TArg
 >
 class EventObserverNode : public ObserverNode<D>
 {
 public:
-	template <typename F>
-	EventObserverNode(const EventStreamNodePtr<D,TArg>& subject, F&& func, bool registered) :
-		ObserverNode<D>(true),
-		subject_{ subject },
-		func_{ std::forward<F>(func) }
-	{
-		if (!registered)
-			registerNode();
+    template <typename F>
+    EventObserverNode(const EventStreamNodePtr<D,TArg>& subject, F&& func, bool registered) :
+        ObserverNode<D>(true),
+        subject_{ subject },
+        func_{ std::forward<F>(func) }
+    {
+        if (!registered)
+            registerNode();
 
-		subject->IncObsCount();
+        subject->IncObsCount();
 
-		Engine::OnNodeAttach(*this, *subject);
-	}
+        Engine::OnNodeAttach(*this, *subject);
+    }
 
-	virtual const char* GetNodeType() const override { return "EventObserverNode"; }
+    virtual const char* GetNodeType() const override { return "EventObserverNode"; }
 
-	virtual ETickResult Tick(void* turnPtr) override
-	{
-		typedef typename D::Engine::TurnInterface TurnInterface;
-		TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+    virtual ETickResult Tick(void* turnPtr) override
+    {
+        typedef typename D::Engine::TurnInterface TurnInterface;
+        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
 
-		D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
-		
-		current_observer_state_::shouldDetach = false;
+        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        
+        current_observer_state_::shouldDetach = false;
 
-		D::SetCurrentContinuation(turn);
+        D::SetCurrentContinuation(turn);
 
-		if (auto p = subject_.lock())
-		{
-			for (const auto& e : p->Events())
-				func_(e);
-		}
+        if (auto p = subject_.lock())
+        {
+            for (const auto& e : p->Events())
+                func_(e);
+        }
 
-		D::ClearCurrentContinuation();
+        D::ClearCurrentContinuation();
 
-		if (current_observer_state_::shouldDetach)
-			turn.QueueForDetach(*this);
+        if (current_observer_state_::shouldDetach)
+            turn.QueueForDetach(*this);
 
-		D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
 
-		return ETickResult::none;
-	}
+        return ETickResult::none;
+    }
 
-	virtual int DependencyCount() const	{ return 1; }
+    virtual int DependencyCount() const    { return 1; }
 
-	virtual void Detach()
-	{
-		if (auto p = subject_.lock())
-		{
-			p->DecObsCount();
+    virtual void Detach()
+    {
+        if (auto p = subject_.lock())
+        {
+            p->DecObsCount();
 
-			Engine::OnNodeDetach(*this, *p);
-			subject_.reset();
-		}
-	}
+            Engine::OnNodeDetach(*this, *p);
+            subject_.reset();
+        }
+    }
 
 private:
-	EventStreamNodeWeakPtr<D,TArg>	subject_;
-	std::function<void(TArg)>		func_;
+    EventStreamNodeWeakPtr<D,TArg>    subject_;
+    std::function<void(TArg)>        func_;
 };
 
-/**********************************/ REACT_IMPL_END /**********************************/
+/****************************************/ REACT_IMPL_END /***************************************/

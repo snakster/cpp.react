@@ -21,51 +21,51 @@
 #include "react/EventStream.h"
 #include "react/graph/ReactorNodes.h"
 
-/***********************************/ REACT_BEGIN /************************************/
+/*****************************************/ REACT_BEGIN /*****************************************/
 
 template <typename D>
 class RReactiveLoop
 {
 public:
-	class Context;
+    class Context;
 
-	using NodeT = REACT_IMPL::ReactorNode<D,Context>;
-	
-	class Context
-	{
-	public:
-		Context(NodeT& node) :
-			node_{ node }
-		{
-		}
+    using NodeT = REACT_IMPL::ReactorNode<D,Context>;
+    
+    class Context
+    {
+    public:
+        Context(NodeT& node) :
+            node_{ node }
+        {
+        }
 
-		template <typename E>
-		E& Take(const REvents<D,E>& evn)
-		{
-			return node_.Take<E>(evn.GetPtr());
-		}
+        template <typename E>
+        E& Take(const REvents<D,E>& evn)
+        {
+            return node_.Take<E>(evn.GetPtr());
+        }
 
-		template <typename E, typename F>
-		void RepeatUntil(const REvents<D,E>& evn, F func)
-		{
-			node_.RepeatUntil<E>(evn.GetPtr(), func);
-		}
+        template <typename E, typename F>
+        void RepeatUntil(const REvents<D,E>& evn, F func)
+        {
+            node_.RepeatUntil<E>(evn.GetPtr(), func);
+        }
 
-	private:
-		NodeT&	node_;
-	};
+    private:
+        NodeT&    node_;
+    };
 
-	template <typename F>
-	RReactiveLoop(F&& func) :
-		nodePtr_{ new REACT_IMPL::ReactorNode<D, Context>(std::forward<F>(func), false) }
-	{
-		nodePtr_->StartLoop();
-	}
+    template <typename F>
+    RReactiveLoop(F&& func) :
+        nodePtr_{ new REACT_IMPL::ReactorNode<D, Context>(std::forward<F>(func), false) }
+    {
+        nodePtr_->StartLoop();
+    }
 
 private:
-	std::unique_ptr<NodeT>	nodePtr_;
+    std::unique_ptr<NodeT>    nodePtr_;
 };
 
-/************************************/ REACT_END /*************************************/
+/******************************************/ REACT_END /******************************************/
 
 #endif //REACT_DISABLE_REACTORS

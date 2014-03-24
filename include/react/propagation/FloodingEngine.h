@@ -19,7 +19,7 @@
 #include "react/common/Containers.h"
 #include "react/common/Util.h"
 
-/*********************************/ REACT_IMPL_BEGIN /*********************************/
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 namespace flooding {
 
 using std::atomic;
@@ -29,80 +29,80 @@ using tbb::queuing_mutex;
 using tbb::task_group;
 using tbb::spin_mutex;
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class Turn : public TurnBase
 {
 public:
-	Turn(TurnIdT id, TurnFlagsT flags);
+    Turn(TurnIdT id, TurnFlagsT flags);
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Node
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class Node : public IReactiveNode
 {
 public:
-	using ShiftMutexT = spin_mutex;
+    using ShiftMutexT = spin_mutex;
 
-	Node();
+    Node();
 
-	bool	MarkForSchedule();
-	bool	Evaluate(Turn& turn);
+    bool    MarkForSchedule();
+    bool    Evaluate(Turn& turn);
 
-	NodeVector<Node>	Successors;
-	ShiftMutexT			ShiftMutex;
+    NodeVector<Node>    Successors;
+    ShiftMutexT            ShiftMutex;
 
 private:
-	using EvalMutexT = spin_mutex;
+    using EvalMutexT = spin_mutex;
 
-	atomic<bool>	isScheduled_;
-	EvalMutexT		mutex_;
+    atomic<bool>    isScheduled_;
+    EvalMutexT        mutex_;
 
-	bool	shouldReprocess_;
-	bool	isProcessing_;
+    bool    shouldReprocess_;
+    bool    isProcessing_;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EngineBase
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TTurn>
 class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
-	void OnNodeAttach(Node& node, Node& parent);
-	void OnNodeDetach(Node& node, Node& parent);
+    void OnNodeAttach(Node& node, Node& parent);
+    void OnNodeDetach(Node& node, Node& parent);
 
-	void OnTurnInputChange(Node& node, TTurn& turn);
-	void OnTurnPropagate(TTurn& turn);
+    void OnTurnInputChange(Node& node, TTurn& turn);
+    void OnTurnPropagate(TTurn& turn);
 
-	void OnNodePulse(Node& node, TTurn& turn);
+    void OnNodePulse(Node& node, TTurn& turn);
 
-	void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
-	void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
+    void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
+    void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
 private:
-	using OutputMutexT = queuing_mutex;
-	using NodeShiftMutexT = Node::ShiftMutexT;
+    using OutputMutexT = queuing_mutex;
+    using NodeShiftMutexT = Node::ShiftMutexT;
 
-	set<Node*>		outputNodes_;
-	OutputMutexT	outputMutex_;
-	vector<Node*>	changedInputs_;
+    set<Node*>        outputNodes_;
+    OutputMutexT    outputMutex_;
+    vector<Node*>    changedInputs_;
 
-	task_group		tasks_;
+    task_group        tasks_;
 
-	void pulse(Node& node, TTurn& turn);
-	void process(Node& node, TTurn& turn);
+    void pulse(Node& node, TTurn& turn);
+    void process(Node& node, TTurn& turn);
 };
 
-class BasicEngine :	public EngineBase<Turn> {};
+class BasicEngine :    public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace flooding
-/**********************************/ REACT_IMPL_END /**********************************/
+/****************************************/ REACT_IMPL_END /***************************************/
 
-/***********************************/ REACT_BEGIN /************************************/
+/*****************************************/ REACT_BEGIN /*****************************************/
 
 struct parallel;
 struct parallel_queuing;
@@ -113,4 +113,4 @@ class FloodingEngine;
 template <> class FloodingEngine<parallel> : public REACT_IMPL::flooding::BasicEngine {};
 template <> class FloodingEngine<parallel_queuing> : public REACT_IMPL::flooding::QueuingEngine {};
 
-/************************************/ REACT_END /*************************************/
+/******************************************/ REACT_END /******************************************/

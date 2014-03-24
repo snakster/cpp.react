@@ -21,8 +21,8 @@ void PrintBits(size_t const size, void const* const p)
             byte = b[i] & (1<<j);
             byte >>= j;
             printf("%u", byte);
-			if (!(j & 0x1))
-				printf(" ");
+            if (!(j & 0x1))
+                printf(" ");
         }
     }
 }

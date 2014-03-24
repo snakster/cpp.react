@@ -27,7 +27,7 @@
 #include "react/common/TopoQueue.h"
 #include "react/common/Types.h"
 
-/*********************************/ REACT_IMPL_BEGIN /*********************************/
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 class TurnBase;
 
@@ -44,269 +44,269 @@ using tbb::concurrent_vector;
 using tbb::queuing_rw_mutex;
 using tbb::task_group;
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SeqNode
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class SeqNode : public IReactiveNode
 {
 public:
-	int		Level = 0;
-	int		NewLevel = 0;
-	bool	Queued = false;
+    int        Level = 0;
+    int        NewLevel = 0;
+    bool    Queued = false;
 
-	NodeVector<SeqNode>	Successors;
+    NodeVector<SeqNode>    Successors;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ParNode
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class ParNode : public IReactiveNode
 {
 public:
-	int				Level = 0;
-	int				NewLevel = 0;
-	atomic<bool>	Collected = false;	
+    int                Level = 0;
+    int                NewLevel = 0;
+    atomic<bool>    Collected = false;    
 
-	NodeVector<ParNode>	Successors;
+    NodeVector<ParNode>    Successors;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ShiftRequestData
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 struct DynRequestData
 {
-	bool		ShouldAttach;
-	ParNode*	Node;
-	ParNode*	Parent;
+    bool        ShouldAttach;
+    ParNode*    Node;
+    ParNode*    Parent;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ExclusiveTurn
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 class ExclusiveTurn : public REACT_IMPL::TurnBase
 {
 public:
-	ExclusiveTurn(TurnIdT id, TurnFlagsT flags);
+    ExclusiveTurn(TurnIdT id, TurnFlagsT flags);
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EngineBase
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TNode, typename TTurn>
 class EngineBase : public IReactiveEngine<TNode,TTurn>
 {
 public:
-	using TopoQueueT = TopoQueue<TNode>;
+    using TopoQueueT = TopoQueue<TNode>;
 
-	void OnNodeAttach(TNode& node, TNode& parent);
-	void OnNodeDetach(TNode& node, TNode& parent);
+    void OnNodeAttach(TNode& node, TNode& parent);
+    void OnNodeDetach(TNode& node, TNode& parent);
 
-	void OnTurnInputChange(TNode& node, TTurn& turn);
-	void OnNodePulse(TNode& node, TTurn& turn);
+    void OnTurnInputChange(TNode& node, TTurn& turn);
+    void OnNodePulse(TNode& node, TTurn& turn);
 
 protected:
-	void invalidateSuccessors(TNode& node);
+    void invalidateSuccessors(TNode& node);
 
-	virtual void processChildren(TNode& node, TTurn& turn) = 0;
+    virtual void processChildren(TNode& node, TTurn& turn) = 0;
 
-	TopoQueueT	scheduledNodes_;
-	task_group	tasks_;
+    TopoQueueT    scheduledNodes_;
+    task_group    tasks_;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SeqEngineBase
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TTurn>
 class SeqEngineBase : public EngineBase<SeqNode,TTurn>
 {
 public:
-	void OnTurnPropagate(TTurn& turn);
+    void OnTurnPropagate(TTurn& turn);
 
-	void OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, TTurn& turn);
-	void OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, TTurn& turn);
+    void OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, TTurn& turn);
+    void OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, TTurn& turn);
 
 private:
-	virtual void processChildren(SeqNode& node, TTurn& turn) override;
+    virtual void processChildren(SeqNode& node, TTurn& turn) override;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ParEngineBase
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TTurn>
 class ParEngineBase : public EngineBase<ParNode,TTurn>
 {
 public:
-	using ConcNodeVectT = concurrent_vector<ParNode*>;
-	using DynRequestVectT = concurrent_vector<DynRequestData>;
+    using ConcNodeVectT = concurrent_vector<ParNode*>;
+    using DynRequestVectT = concurrent_vector<DynRequestData>;
 
-	void OnTurnPropagate(TTurn& turn);
+    void OnTurnPropagate(TTurn& turn);
 
-	void OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn);
-	void OnDynamicNodeDetach(ParNode& node, ParNode& parent, TTurn& turn);
+    void OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn);
+    void OnDynamicNodeDetach(ParNode& node, ParNode& parent, TTurn& turn);
 
 private:
-	void applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn);
-	void applyDynamicDetach(ParNode& node, ParNode& parent, TTurn& turn);
+    void applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn);
+    void applyDynamicDetach(ParNode& node, ParNode& parent, TTurn& turn);
 
-	virtual void processChildren(ParNode& node, TTurn& turn) override;
+    virtual void processChildren(ParNode& node, TTurn& turn) override;
 
-	ConcNodeVectT	collectBuffer_;
-	DynRequestVectT	dynRequests_;
+    ConcNodeVectT    collectBuffer_;
+    DynRequestVectT    dynRequests_;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Concrete engines
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class BasicSeqEngine : public SeqEngineBase<ExclusiveTurn> {};
 class QueuingSeqEngine : public DefaultQueuingEngine<SeqEngineBase,ExclusiveTurn> {};
 
-class BasicParEngine :	public ParEngineBase<ExclusiveTurn> {};
+class BasicParEngine :    public ParEngineBase<ExclusiveTurn> {};
 class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveTurn> {};
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PipeliningTurn
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class PipeliningTurn : public TurnBase
 {
 public:
-	using ConcNodeVectT = concurrent_vector<ParNode*>;
-	using NodeVectT = vector<ParNode*>;
-	using IntervalSetT = set<pair<int,int>>;
-	using DynRequestVectT = concurrent_vector<DynRequestData>;
-	using TopoQueueT = TopoQueue<ParNode>;
+    using ConcNodeVectT = concurrent_vector<ParNode*>;
+    using NodeVectT = vector<ParNode*>;
+    using IntervalSetT = set<pair<int,int>>;
+    using DynRequestVectT = concurrent_vector<DynRequestData>;
+    using TopoQueueT = TopoQueue<ParNode>;
 
-	PipeliningTurn(TurnIdT id, TurnFlagsT flags);
+    PipeliningTurn(TurnIdT id, TurnFlagsT flags);
 
-	int		CurrentLevel() const	{ return currentLevel_; }
+    int        CurrentLevel() const    { return currentLevel_; }
 
-	bool	AdvanceLevel();
-	void	SetMaxLevel(int level);
-	void	WaitForMaxLevel(int targetLevel);
+    bool    AdvanceLevel();
+    void    SetMaxLevel(int level);
+    void    WaitForMaxLevel(int targetLevel);
 
-	void	UpdateSuccessor();
+    void    UpdateSuccessor();
 
-	void	Append(PipeliningTurn* turn);
+    void    Append(PipeliningTurn* turn);
 
-	void	Remove();
+    void    Remove();
 
-	void	AdjustUpperBound(int level);
+    void    AdjustUpperBound(int level);
 
-	template <typename F>
-	bool TryMerge(F&& inputFunc, BlockingCondition& caller)
-	{
-		if (!isMergeable_)
-			return false;
+    template <typename F>
+    bool TryMerge(F&& inputFunc, BlockingCondition& caller)
+    {
+        if (!isMergeable_)
+            return false;
 
-		bool merged = false;
-		
-		{// advMutex_
-			std::lock_guard<std::mutex> scopedLock(advMutex_);
+        bool merged = false;
+        
+        {// advMutex_
+            std::lock_guard<std::mutex> scopedLock(advMutex_);
 
-			// Only merge if target is still blocked
-			if (currentLevel_ == -1)
-			{
-				merged = true;
-				caller.Block();
-				merged_.emplace_back(std::make_pair(std::forward<F>(inputFunc), &caller));
-			}
-		}// ~advMutex_
+            // Only merge if target is still blocked
+            if (currentLevel_ == -1)
+            {
+                merged = true;
+                caller.Block();
+                merged_.emplace_back(std::make_pair(std::forward<F>(inputFunc), &caller));
+            }
+        }// ~advMutex_
 
-		return merged;
-	}
+        return merged;
+    }
 
-	void RunMergedInputs() const;
+    void RunMergedInputs() const;
 
-	TopoQueueT			ScheduledNodes;
-	ConcNodeVectT		CollectBuffer;
-	DynRequestVectT		DynRequests;
-	task_group			Tasks;
+    TopoQueueT            ScheduledNodes;
+    ConcNodeVectT        CollectBuffer;
+    DynRequestVectT        DynRequests;
+    task_group            Tasks;
 
 private:
-	using MergedDataVectT = vector<pair<function<void()>,BlockingCondition*>>;
+    using MergedDataVectT = vector<pair<function<void()>,BlockingCondition*>>;
 
-	const bool			isMergeable_;
-	MergedDataVectT		merged_;
+    const bool            isMergeable_;
+    MergedDataVectT        merged_;
 
-	IntervalSetT		levelIntervals_;
+    IntervalSetT        levelIntervals_;
 
-	PipeliningTurn*	predecessor_ = nullptr;
-	PipeliningTurn*	successor_ = nullptr;
+    PipeliningTurn*    predecessor_ = nullptr;
+    PipeliningTurn*    successor_ = nullptr;
 
-	int		currentLevel_ = -1;
-	int		maxLevel_ = INT_MAX;			/// This turn may only advance up to maxLevel
-	int		minLevel_ = -1;			/// successor.maxLevel = this.minLevel - 1
+    int        currentLevel_ = -1;
+    int        maxLevel_ = INT_MAX;            /// This turn may only advance up to maxLevel
+    int        minLevel_ = -1;            /// successor.maxLevel = this.minLevel - 1
 
-	int		curUpperBound_ = -1;
+    int        curUpperBound_ = -1;
 
-	mutex				advMutex_;
-	condition_variable	advCondition_;
+    mutex                advMutex_;
+    condition_variable    advCondition_;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PipeliningEngine
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class PipeliningEngine : public IReactiveEngine<ParNode,PipeliningTurn>
 {
 public:
-	using SeqMutexT = queuing_rw_mutex;
-	using NodeSetT = set<ParNode*>;
+    using SeqMutexT = queuing_rw_mutex;
+    using NodeSetT = set<ParNode*>;
 
-	void OnNodeAttach(ParNode& node, ParNode& parent);
-	void OnNodeDetach(ParNode& node, ParNode& parent);
+    void OnNodeAttach(ParNode& node, ParNode& parent);
+    void OnNodeDetach(ParNode& node, ParNode& parent);
 
-	void OnTurnAdmissionStart(PipeliningTurn& turn);
-	void OnTurnAdmissionEnd(PipeliningTurn& turn);
-	void OnTurnEnd(PipeliningTurn& turn);
+    void OnTurnAdmissionStart(PipeliningTurn& turn);
+    void OnTurnAdmissionEnd(PipeliningTurn& turn);
+    void OnTurnEnd(PipeliningTurn& turn);
 
-	void OnTurnInputChange(ParNode& node, PipeliningTurn& turn);
-	void OnNodePulse(ParNode& node, PipeliningTurn& turn);
+    void OnTurnInputChange(ParNode& node, PipeliningTurn& turn);
+    void OnNodePulse(ParNode& node, PipeliningTurn& turn);
 
-	void OnTurnPropagate(PipeliningTurn& turn);
+    void OnTurnPropagate(PipeliningTurn& turn);
 
-	void OnDynamicNodeAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
-	void OnDynamicNodeDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
+    void OnDynamicNodeAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
+    void OnDynamicNodeDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
 
-	template <typename F>
-	inline bool TryMerge(F&& inputFunc)
-	{
-		bool merged = false;
+    template <typename F>
+    inline bool TryMerge(F&& inputFunc)
+    {
+        bool merged = false;
 
-		BlockingCondition caller;
+        BlockingCondition caller;
 
-		{// seqMutex_
-			SeqMutexT::scoped_lock lock(seqMutex_);
+        {// seqMutex_
+            SeqMutexT::scoped_lock lock(seqMutex_);
 
-			if (tail_)
-				merged = tail_->TryMerge(std::forward<F>(inputFunc), caller);
-		}// ~seqMutex_
+            if (tail_)
+                merged = tail_->TryMerge(std::forward<F>(inputFunc), caller);
+        }// ~seqMutex_
 
-		if (merged)
-			caller.WaitForUnblock();
+        if (merged)
+            caller.WaitForUnblock();
 
-		return merged;
-	}
+        return merged;
+    }
 
 private:
-	void applyDynamicAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
-	void applyDynamicDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
+    void applyDynamicAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
+    void applyDynamicDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
 
-	void processChildren(ParNode& node, PipeliningTurn& turn);
-	void invalidateSuccessors(ParNode& node);
+    void processChildren(ParNode& node, PipeliningTurn& turn);
+    void invalidateSuccessors(ParNode& node);
 
-	void advanceTurn(PipeliningTurn& turn);
+    void advanceTurn(PipeliningTurn& turn);
 
-	SeqMutexT			seqMutex_;
-	PipeliningTurn*		tail_ = nullptr;
+    SeqMutexT            seqMutex_;
+    PipeliningTurn*        tail_ = nullptr;
 
-	NodeSetT	dynamicNodes_;
-	int			maxDynamicLevel_;
+    NodeSetT    dynamicNodes_;
+    int            maxDynamicLevel_;
 };
 
 } // ~namespace toposort
-/**********************************/ REACT_IMPL_END /**********************************/
+/****************************************/ REACT_IMPL_END /***************************************/
 
-/***********************************/ REACT_BEGIN /************************************/
+/*****************************************/ REACT_BEGIN /*****************************************/
 
 struct sequential;
 struct sequential_queuing;
@@ -323,4 +323,4 @@ template <> class TopoSortEngine<parallel> : public REACT_IMPL::toposort::BasicP
 template <> class TopoSortEngine<parallel_queuing> : public REACT_IMPL::toposort::QueuingParEngine {};
 template <> class TopoSortEngine<parallel_pipelining> : public REACT_IMPL::toposort::PipeliningEngine {};
 
-/************************************/ REACT_END /*************************************/
+/******************************************/ REACT_END /******************************************/

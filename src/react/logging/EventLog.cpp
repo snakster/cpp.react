@@ -6,79 +6,79 @@
 
 #include "react/logging/EventLog.h"
 
-/*********************************/ REACT_IMPL_BEGIN /*********************************/
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
 
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventLog
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 EventLog::Entry::Entry() :
-	time_{ std::chrono::system_clock::now() },
-	data_{ nullptr }
+    time_{ std::chrono::system_clock::now() },
+    data_{ nullptr }
 {
 }
 
 EventLog::Entry::Entry(const Entry& other) :
-	time_{ other.time_ },
-	data_{ other.data_}
+    time_{ other.time_ },
+    data_{ other.data_}
 {
 }
 
 EventLog::Entry::Entry(IEventRecord* ptr) :
-	time_{ std::chrono::system_clock::now() },
-	data_{ ptr }
+    time_{ std::chrono::system_clock::now() },
+    data_{ ptr }
 {
 }
 
 void EventLog::Entry::Serialize(std::ostream& out, const Timestamp& startTime) const
 {
-	out << EventId() << " : " << duration_cast<microseconds>(Time() - startTime).count() << std::endl;
-	data_->Serialize(out);
+    out << EventId() << " : " << duration_cast<microseconds>(Time() - startTime).count() << std::endl;
+    data_->Serialize(out);
 }
 
 EventLog::Entry& EventLog::Entry::operator=(Entry& rhs)
 {
-	time_ = rhs.time_,
-	data_ = std::move(rhs.data_);
-	return *this;
+    time_ = rhs.time_,
+    data_ = std::move(rhs.data_);
+    return *this;
 }
 
 bool EventLog::Entry::Equals(const Entry& other) const
 {
-	if (EventId() != other.EventId())
-		return false;
-	// Todo
-	return false;
+    if (EventId() != other.EventId())
+        return false;
+    // Todo
+    return false;
 }
 
 EventLog::EventLog() :
-	startTime_(std::chrono::system_clock::now())
+    startTime_(std::chrono::system_clock::now())
 {
 }
 
 EventLog::~EventLog()
 {
-	Clear();
+    Clear();
 }
 
 void EventLog::Print()
 {
-	Write(std::cout);
+    Write(std::cout);
 }
 
 void EventLog::Write(std::ostream& out)
 {
-	for (auto& e : entries_)
-		e.Serialize(out, startTime_);
+    for (auto& e : entries_)
+        e.Serialize(out, startTime_);
 }
 
 void EventLog::Clear()
 {
-	for (auto& e : entries_)
-		e.Release();
-	entries_.clear();
+    for (auto& e : entries_)
+        e.Release();
+    entries_.clear();
 }
 
-/**********************************/ REACT_IMPL_END /**********************************/
+/****************************************/ REACT_IMPL_END /***************************************/
