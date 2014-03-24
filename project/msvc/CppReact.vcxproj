@@ -77,7 +77,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\react\common\ReactiveDomain.h" />
     <ClInclude Include="..\..\include\react\graph\ReactorNodes.h" />
     <ClInclude Include="..\..\include\react\Options.h" />
     <ClInclude Include="..\..\include\react\common\Concurrency.h" />
@@ -111,6 +110,7 @@
     <ClInclude Include="..\..\include\react\propagation\TopoSortEngine.h" />
     <ClInclude Include="..\..\include\react\propagation\TopoSortO1Engine.h" />
     <ClInclude Include="..\..\include\react\ReactiveBase.h" />
+    <ClInclude Include="..\..\include\react\ReactiveDomain.h" />
     <ClInclude Include="..\..\include\react\ReactiveObject.h" />
     <ClInclude Include="..\..\include\react\Reactor.h" />
     <ClInclude Include="..\..\include\react\Signal.h" />
