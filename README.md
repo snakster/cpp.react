@@ -28,7 +28,7 @@ Example:
 
 ```C++
 #include "react/Signal.h"
-
+///...
 using namespace react;
 
 REACTIVE_DOMAIN(MyDomain);
@@ -38,9 +38,9 @@ auto height = MyDomain::MakeVar(2);
 
 auto area   = width * height;
 
-cout << "area: "   << area()   << endl; // => area: 2
+cout << "area: " << area() << endl; // => area: 2
 width <<= 10;
-cout << "area: "   << area()   << endl; // => area: 20
+cout << "area: " << area() << endl; // => area: 20
 ```
 
 #### Event streams
@@ -49,7 +49,7 @@ Event streams represent flows of discrete values as first-class objects, based o
 
 ```C++
 #include "react/EventStream.h"
-
+//...
 using namespace react;
 
 REACTIVE_DOMAIN(MyDomain);
@@ -70,8 +70,8 @@ For more details, see Propagation Engines.
 
 ```C++
 #include "react/propagation/TopoSortEngine.h"
-
-...
+//...
+using namespace react;
 
 // Single-threaded updating
 REACTIVE_DOMAIN(MyDomain, TopoSortEngine<sequential>);
@@ -91,10 +91,10 @@ REACTIVE_DOMAIN(MyDomain, TopoSortEngine<parallel_pipelining>);
 
 ```C++
 #include "react/Reactor.h"
+//...
+using namespace react;
 
 REACTIVE_DOMAIN(D);
-
-cout << "ReactiveLoop Example 1" << endl;
 
 using PointT = pair<int,int>;
 using PathT  = vector<PointT>;
@@ -105,9 +105,9 @@ auto mouseDown = D::MakeEventSource<PointT>();
 auto mouseUp   = D::MakeEventSource<PointT>();
 auto mouseMove = D::MakeEventSource<PointT>();
 
-D::ReactiveLoop loop
+D::ReactiveLoopT loop
 {
-	[&] (D::ReactiveLoop::Context& ctx)
+	[&] (D::ReactiveLoopT::Context& ctx)
 	{
 		PathT points;
 
@@ -133,13 +133,47 @@ mouseDown << PointT(10,10);
 mouseMove << PointT(20,20);
 mouseUp   << PointT(30,30);
 
-for (const auto& path : paths)
+// => paths[0]: (1,1) (2,2) (3,3) (4,4) (5,5)
+// => paths[1]: (10,10) (20,20) (30,30)
+```
+
+#### Reactive objects and dynamic reactives
+
+```C++
+#include "react/ReactiveObject.h"
+//...
+REACTIVE_DOMAIN(D);
+
+using namespace react;
+
+class Company : public ReactiveObject<D>
 {
-	cout << "Path: ";
-	for (const auto& point : path)
-		cout << "(" << point.first << "," << point.second << ")   ";
-	cout << endl;
-}
+public:
+    VarSignalT<string>    Name;
+
+    Company(const char* name) :
+        Name{ MakeVar(string(name)) }
+    {
+    }
+
+    inline bool operator==(const Company& other) const { /* ... */ }
+};
+
+class Manager : public ReactiveObject<D>
+{
+    ObserverT nameObs;
+
+public:
+    VarRefSignalT<Company>    CurrentCompany;
+
+    Manager(initialCompany& company) :
+        CurrentCompany{ MakeVar(std::ref(company)) }
+    {
+        nameObs = REACTIVE_REF(CurrentCompany, Name).Observe([] (string name) {
+            cout << "Manager: Now managing " << name << endl;
+        });
+    }
+};
 ```
 
 ### More examples
