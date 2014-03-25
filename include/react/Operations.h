@@ -134,8 +134,8 @@ template
 auto ChangedTo(const RSignal<D,S>& target, V&& value)
     -> REvents<D,bool>
 {
-    auto transformFunc    = [=] (const S& v)    { return v == value; };
-    auto filterFunc        = [=] (bool v)        { return v == true; };
+    auto transformFunc  = [=] (const S& v)    { return v == value; };
+    auto filterFunc     = [=] (bool v)        { return v == true; };
 
     return Filter(Transform(Monitor(target), transformFunc), filterFunc);
 }

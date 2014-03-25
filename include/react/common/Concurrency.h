@@ -73,9 +73,10 @@ public:
     }// ~mutex_
 
 private:
-    std::mutex                mutex_;
-    std::condition_variable    condition_;
-    bool                    blocked_ = false;
+    std::mutex                  mutex_;
+    std::condition_variable     condition_;
+
+    bool    blocked_ = false;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,14 +86,14 @@ template <typename T>
 class ThreadLocalStaticPtr
 {
 public:
-    static T*    Get()            { return ptr_; }
-    static void    Set(T* ptr)        { ptr_ = ptr; }
-    static void    Reset()            { ptr_ = nullptr; }
-    static bool    IsNull()        { return ptr_ == nullptr; }
+    static T*       Get()           { return ptr_; }
+    static void     Set(T* ptr)     { ptr_ = ptr; }
+    static void     Reset()         { ptr_ = nullptr; }
+    static bool     IsNull()        { return ptr_ == nullptr; }
+
+    ThreadLocalStaticPtr() = delete;
 
 private:
-    ThreadLocalStaticPtr() {}
-
     static __declspec(thread) T*    ptr_;
 };
 

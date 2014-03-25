@@ -59,11 +59,11 @@ public:
     static auto MakeVar(V&& value)
         -> VarSignal<S>
     {
-        return react::MakeVar<D>(std::forward<V>(value));
+        return REACT::MakeVar<D>(std::forward<V>(value));
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // MakeVar (higher order signal)
+    // MakeVar (higher order)
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     template
     <
@@ -76,7 +76,7 @@ public:
     static auto MakeVar(V&& value)
         -> VarSignal<Signal<TInner>>
     {
-        return react::MakeVar<D>(std::forward<V>(value));
+        return REACT::MakeVar<D>(std::forward<V>(value));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,7 +92,7 @@ public:
     {
         using S = typename std::result_of<F(TArgs...)>::type;
 
-        return react::MakeSignal<D>(std::forward<F>(func), args ...);
+        return REACT::MakeSignal<D>(std::forward<F>(func), args ...);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,13 +102,15 @@ public:
     static auto MakeEventSource()
         -> EventSource<E>
     {
-        return react::MakeEventSource<D,E>();
+        return REACT::MakeEventSource<D,E>();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     /// Flatten macros
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     // Todo: Add safety wrapper + static assert to check for this for ReactiveObject
+    // Note: Using static_cast rather than -> return type, because when using lambda for inline class
+    // initialization, decltype did not recognize the parameter r
     #define REACTIVE_REF(obj, name)                                             \
         Flatten(                                                                \
             MakeSignal(                                                         \

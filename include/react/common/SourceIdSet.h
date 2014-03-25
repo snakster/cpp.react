@@ -22,8 +22,8 @@ template <typename T>
 class SourceIdSet
 {
 private:
-    using MutexT = tbb::queuing_mutex;
-    using DataT = std::vector<T>;
+    using MutexT    = tbb::queuing_mutex;
+    using DataT     = std::vector<T>;
 
 public:
     void Insert(const T& e)
