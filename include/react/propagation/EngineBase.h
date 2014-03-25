@@ -29,12 +29,12 @@
 class TurnBase
 {
 public:
-    TurnBase(TurnIdT id, TurnFlagsT flags) :
+    inline TurnBase(TurnIdT id, TurnFlagsT flags) :
         id_{ id }
     {
     }
 
-    inline TurnIdT Id() const        { return id_; }
+    inline TurnIdT Id() const { return id_; }
 
     inline void QueueForDetach(IObserverNode& obs)
     {
@@ -61,8 +61,8 @@ private:
     }
 
 
-    std::unique_ptr<ObsVectT>    detachedObserversPtr_;
-    ContinuationInput continuation_;
+    std::unique_ptr<ObsVectT>   detachedObserversPtr_;
+    ContinuationInput           continuation_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,9 +124,9 @@ public:
         using MergedDataVectT = std::vector<std::pair<std::function<void()>,BlockingCondition*>>;
 
         bool                isMergeable_;
-        QueueEntry*            successor_ = nullptr;
-        MergedDataVectT        merged_;
-        BlockingCondition    blockCondition_;
+        QueueEntry*         successor_ = nullptr;
+        MergedDataVectT     merged_;
+        BlockingCondition   blockCondition_;
     };
 
     template <typename F>
@@ -176,8 +176,8 @@ public:
 private:
     using SeqMutexT = tbb::queuing_mutex;
 
-    SeqMutexT        seqMutex_;
-    QueueEntry*        tail_ = nullptr;
+    SeqMutexT       seqMutex_;
+    QueueEntry*     tail_ = nullptr;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

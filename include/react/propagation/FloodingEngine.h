@@ -58,7 +58,7 @@ private:
     using EvalMutexT = spin_mutex;
 
     atomic<bool>    isScheduled_;
-    EvalMutexT        mutex_;
+    EvalMutexT      mutex_;
 
     bool    shouldReprocess_;
     bool    isProcessing_;
@@ -86,17 +86,17 @@ private:
     using OutputMutexT = queuing_mutex;
     using NodeShiftMutexT = Node::ShiftMutexT;
 
-    set<Node*>        outputNodes_;
+    set<Node*>      outputNodes_;
     OutputMutexT    outputMutex_;
-    vector<Node*>    changedInputs_;
+    vector<Node*>   changedInputs_;
 
-    task_group        tasks_;
+    task_group      tasks_;
 
     void pulse(Node& node, TTurn& turn);
     void process(Node& node, TTurn& turn);
 };
 
-class BasicEngine :    public EngineBase<Turn> {};
+class BasicEngine : public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace flooding

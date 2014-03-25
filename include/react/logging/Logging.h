@@ -19,7 +19,7 @@ struct IEventRecord
 {
     virtual ~IEventRecord() {}
 
-    virtual const char*    EventId() const = 0;
+    virtual const char* EventId() const = 0;
     virtual void        Serialize(std::ostream& out) const = 0;
 };
 

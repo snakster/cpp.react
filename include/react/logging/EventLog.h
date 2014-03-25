@@ -28,7 +28,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class EventLog
 {
-    typedef std::chrono::time_point<std::chrono::high_resolution_clock> Timestamp;
+    using TimestampT = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
     class Entry
     {
@@ -45,7 +45,7 @@ class EventLog
             return data_->EventId();
         }
 
-        inline const Timestamp& Time() const
+        inline const TimestampT& Time() const
         {
             return time_;
         }
@@ -60,12 +60,12 @@ class EventLog
             delete data_;
         }
 
-        void Serialize(std::ostream& out, const Timestamp& startTime) const;
+        void Serialize(std::ostream& out, const TimestampT& startTime) const;
         bool Equals(const Entry& other) const;
 
     private:
-        Timestamp        time_;
-        IEventRecord*    data_;
+        TimestampT      time_;
+        IEventRecord*   data_;
     };
 
 public:
@@ -90,8 +90,8 @@ public:
 private:
     typedef tbb::concurrent_vector<Entry>    LogEntries;
 
-    LogEntries        entries_;
-    Timestamp        startTime_;
+    LogEntries  entries_;
+    TimestampT  startTime_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

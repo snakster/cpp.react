@@ -50,8 +50,8 @@ using tbb::task_group;
 class SeqNode : public IReactiveNode
 {
 public:
-    int        Level = 0;
-    int        NewLevel = 0;
+    int     Level = 0;
+    int     NewLevel = 0;
     bool    Queued = false;
 
     NodeVector<SeqNode>    Successors;
@@ -63,8 +63,8 @@ public:
 class ParNode : public IReactiveNode
 {
 public:
-    int                Level = 0;
-    int                NewLevel = 0;
+    int             Level = 0;
+    int             NewLevel = 0;
     atomic<bool>    Collected = false;    
 
     NodeVector<ParNode>    Successors;
@@ -151,8 +151,8 @@ private:
 
     virtual void processChildren(ParNode& node, TTurn& turn) override;
 
-    ConcNodeVectT    collectBuffer_;
-    DynRequestVectT    dynRequests_;
+    ConcNodeVectT       collectBuffer_;
+    DynRequestVectT     dynRequests_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -178,7 +178,7 @@ public:
 
     PipeliningTurn(TurnIdT id, TurnFlagsT flags);
 
-    int        CurrentLevel() const    { return currentLevel_; }
+    int     CurrentLevel() const    { return currentLevel_; }
 
     bool    AdvanceLevel();
     void    SetMaxLevel(int level);
@@ -217,16 +217,16 @@ public:
 
     void RunMergedInputs() const;
 
-    TopoQueueT            ScheduledNodes;
-    ConcNodeVectT        CollectBuffer;
-    DynRequestVectT        DynRequests;
-    task_group            Tasks;
+    TopoQueueT          ScheduledNodes;
+    ConcNodeVectT       CollectBuffer;
+    DynRequestVectT     DynRequests;
+    task_group          Tasks;
 
 private:
     using MergedDataVectT = vector<pair<function<void()>,BlockingCondition*>>;
 
-    const bool            isMergeable_;
-    MergedDataVectT        merged_;
+    const bool          isMergeable_;
+    MergedDataVectT     merged_;
 
     IntervalSetT        levelIntervals_;
 
@@ -239,8 +239,8 @@ private:
 
     int        curUpperBound_ = -1;
 
-    mutex                advMutex_;
-    condition_variable    advCondition_;
+    mutex               advMutex_;
+    condition_variable  advCondition_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -296,11 +296,11 @@ private:
 
     void advanceTurn(PipeliningTurn& turn);
 
-    SeqMutexT            seqMutex_;
-    PipeliningTurn*        tail_ = nullptr;
+    SeqMutexT           seqMutex_;
+    PipeliningTurn*     tail_ = nullptr;
 
     NodeSetT    dynamicNodes_;
-    int            maxDynamicLevel_;
+    int         maxDynamicLevel_;
 };
 
 } // ~namespace toposort

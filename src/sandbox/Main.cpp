@@ -140,33 +140,33 @@ void EventExample2()
         emitter.Emit();
 
     cout << "Counted " << counter() << " events" << endl;
-
     cout << endl;
 }
 
+// ReactiveObject
 class Person : public ReactiveObject<D>
 {
 public:
-    VarSignal<int>    Age        = MakeVar(1);
-    Signal<int>        Health    = 100 - Age;
-    Signal<int>        Wisdom  = Age * Age / 100;
+    VarSignal<int>  Age     = MakeVar(1);
+    Signal<int>     Health  = 100 - Age;
+    Signal<int>     Wisdom  = Age * Age / 100;
 
-    // Note: Initializing them directly uses the same lambda for both signals...
-    // compiler bug?
+    // Note ICC compiler bug:
+    // Initializing them directly uses the same lambda for both signals
     Observer    wisdomObs;
     Observer    weaknessObs;
 
-    Person(const char* name)
+    Person()
     {
         wisdomObs = Observe(Wisdom > 50, [] (bool isWise)
         {
-            if (isWise)    cout << "I'll do it next week!" << endl;
+            if (isWise) cout << "I'll do it next week!" << endl;
             else        cout << "I'll do it next month!" << endl;
         });
 
         weaknessObs = Observe(Health < 25, [] (bool isWeak)
         {
-            if (isWeak)    cout << ":<" << endl;
+            if (isWeak) cout << ":<" << endl;
             else        cout << ":D" << endl;
         });
     }
@@ -197,7 +197,6 @@ class Company : public ReactiveObject<D>
 {
 public:
     VarSignal<string>    Name;
-    VarSignal<string>    Test;
 
     Company(const char* name) :
         Name{ MakeVar(string(name)) }
@@ -220,7 +219,7 @@ public:
     Manager(Company& c) :
         CurrentCompany{ MakeVar(std::ref(c)) }
     {
-        nameObs = REACTIVE_REF(CurrentCompany, Test).Observe([] (string name) {
+        nameObs = REACTIVE_REF(CurrentCompany, Name).Observe([] (string name) {
             cout << "Manager: Now managing " << name.c_str() << endl;
         });
     }
@@ -238,7 +237,7 @@ void ObjectExample2()
     company1.Name <<= string("BT Cellnet");
     company2.Name <<= string("Inprise");
 
-    manager.CurrentCompany <<= std::ref(company2);
+   manager.CurrentCompany <<= std::ref(company2);
 
     company1.Name <<= string("O2");
     company2.Name <<= string("Borland");

@@ -32,7 +32,7 @@ EventLog::Entry::Entry(IEventRecord* ptr) :
 {
 }
 
-void EventLog::Entry::Serialize(std::ostream& out, const Timestamp& startTime) const
+void EventLog::Entry::Serialize(std::ostream& out, const TimestampT& startTime) const
 {
     out << EventId() << " : " << duration_cast<microseconds>(Time() - startTime).count() << std::endl;
     data_->Serialize(out);

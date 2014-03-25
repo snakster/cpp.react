@@ -111,23 +111,23 @@ public:
     // Todo: Add safety wrapper + static assert to check for this for ReactiveObject
     // Note: Using static_cast rather than -> return type, because when using lambda for inline class
     // initialization, decltype did not recognize the parameter r
-    #define REACTIVE_REF(obj, name)                                             \
-        Flatten(                                                                \
-            MakeSignal(                                                         \
-                [] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT::type r)  \
-                {                                                               \
-                    return static_cast<RemoveInput<DomainT, decltype(r.name)>::Type>(r.name); \
-                },                                                              \
+    #define REACTIVE_REF(obj, name)                                                             \
+        Flatten(                                                                                \
+            MakeSignal(                                                                         \
+                [] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT::type r)                  \
+                {                                                                               \
+                    return static_cast<RemoveInput<DomainT, decltype(r.name)>::Type>(r.name);   \
+                },                                                                              \
                 obj))
 
-    #define REACTIVE_PTR(obj, name)                                             \
-        Flatten(                                                                \
-            MakeSignal(                                                         \
-                [] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)        \
-                {                                                               \
-                    REACT_ASSERT(r != nullptr);                                 \
+    #define REACTIVE_PTR(obj, name)                                                             \
+        Flatten(                                                                                \
+            MakeSignal(                                                                         \
+                [] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)                        \
+                {                                                                               \
+                    REACT_ASSERT(r != nullptr);                                                 \
                     return static_cast<RemoveInput<DomainT, decltype(r->name)>::Type>(r->name); \
-                },                                                              \
+                },                                                                              \
                 obj))
 };
 

@@ -40,7 +40,7 @@ public:
     virtual bool    IsOutputNode() const override   { return false; }
     virtual bool    IsDynamicNode() const override  { return false; }
 
-    virtual int        DependencyCount() const      { return 0; }
+    virtual int     DependencyCount() const      { return 0; }
 
     PtrT GetSharedPtr() const
     {
@@ -79,9 +79,9 @@ public:
 
     virtual const char* GetNodeType() const override { return "ReactiveNode"; }
 
-    void    IncObsCount()        { obsCount_.fetch_add(1, std::memory_order_relaxed); }
-    void    DecObsCount()        { obsCount_.fetch_sub(1, std::memory_order_relaxed); }
-    uint    GetObsCount() const    { return obsCount_.load(std::memory_order_relaxed); }
+    void    IncObsCount()       { obsCount_.fetch_add(1, std::memory_order_relaxed); }
+    void    DecObsCount()       { obsCount_.fetch_sub(1, std::memory_order_relaxed); }
+    uint    GetObsCount() const { return obsCount_.load(std::memory_order_relaxed); }
 
 protected:
     void registerNode()

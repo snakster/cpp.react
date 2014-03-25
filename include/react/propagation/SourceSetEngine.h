@@ -47,7 +47,7 @@ public:
     SourceIdSetT& Sources()        { return sources_; }
 
 private:
-    SourceIdSetT    sources_;
+    SourceIdSetT sources_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,10 +56,10 @@ private:
 class Node : public IReactiveNode
 {
 public:
-    typedef Turn::SourceIdSetT    SourceIdSetT;
+    using SourceIdSetT = Turn::SourceIdSetT;
 
-    typedef queuing_mutex    NudgeMutexT;
-    typedef spin_mutex        ShiftMutexT;
+    using NudgeMutexT = queuing_mutex;
+    using ShiftMutexT = spin_mutex;
 
     Node();
 
@@ -97,11 +97,11 @@ private:
 
     uint            curTurnId_;
     
-    short            tickThreshold_;
-    uchar            flags_;
+    short           tickThreshold_;
+    uchar           flags_;
 
-    NudgeMutexT        nudgeMutex_;
-    ShiftMutexT        shiftMutex_;
+    NudgeMutexT     nudgeMutex_;
+    ShiftMutexT     shiftMutex_;
 
     void invalidateSources();
 };
@@ -130,10 +130,10 @@ public:
     void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
 private:
-    vector<Node*>    changedInputs_;
+    vector<Node*>   changedInputs_;
 };
 
-class BasicEngine :    public EngineBase<Turn> {};
+class BasicEngine : public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace sourceset

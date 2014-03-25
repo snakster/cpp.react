@@ -46,13 +46,13 @@ public:
 
     Node();
 
-    ShiftMutexT            ShiftMutex;
+    ShiftMutexT         ShiftMutex;
     NodeVector<Node>    Successors;
 
-    atomic<int16_t>        Counter;
+    atomic<int16_t>     Counter;
     atomic<bool>        ShouldUpdate;
 
-    TurnIdT                LastTurnId;
+    TurnIdT             LastTurnId;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -84,11 +84,11 @@ private:
     void processChild(Node& node, bool update, TTurn& turn);
     void nudgeChildren(Node& parent, bool update, TTurn& turn);
 
-    task_group    tasks_;
+    task_group  tasks_;
     NodeSetT    inputNodes_;
 };
 
-class BasicEngine :    public EngineBase<Turn> {};
+class BasicEngine : public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace elm

@@ -46,10 +46,10 @@ public:
 
     Node();
 
-    ShiftMutexT            ShiftMutex;
+    ShiftMutexT         ShiftMutex;
     NodeVector<Node>    Successors;
 
-    atomic<int>        Counter;
+    atomic<int>     Counter;
     atomic<bool>    ShouldUpdate;
     atomic<bool>    Marked;
 };
@@ -82,11 +82,11 @@ private:
     void processChild(Node& node, bool update, TTurn& turn);
     void nudgeChildren(Node& parent, bool update, TTurn& turn);
 
-    vector<Node*>    changedInputs_;
-    task_group        tasks_;
+    vector<Node*>   changedInputs_;
+    task_group      tasks_;
 };
 
-class BasicEngine :    public EngineBase<Turn> {};
+class BasicEngine : public EngineBase<Turn> {};
 class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 
 } // ~namespace pulsecount
