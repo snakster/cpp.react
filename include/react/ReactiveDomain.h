@@ -24,8 +24,10 @@
 #include "react/common/ContinuationInput.h"
 #include "react/common/Types.h"
 
-#include "react/logging/EventLog.h"
-#include "react/logging/EventRecords.h"
+#ifdef REACT_ENABLE_LOGGING
+    #include "react/logging/EventLog.h"
+    #include "react/logging/EventRecords.h"
+#endif //REACT_ENABLE_LOGGING
 
 #include "react/propagation/TopoSortEngine.h"
 
@@ -54,13 +56,11 @@ class ReactiveLoop;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename TEngine = TopoSortEngine<sequential>,
-    typename TLog = NullLog
+    typename TEngine = TopoSortEngine<sequential>
 >
 struct DomainPolicy
 {
-    using Engine    = TEngine;
-    using Log        = TLog;
+    using Engine = TEngine;
 };
 
 template <typename D, typename TPolicy>
@@ -108,14 +108,16 @@ public:
         return registry;
     }
 
+#ifdef REACT_ENABLE_LOGGING
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     /// Log
     ///////////////////////////////////////////////////////////////////////////////////////////////////
-    static typename Policy::Log& Log()
+    static EventLog& Log()
     {
-        static Policy::Log log;
+        static EventLog log;
         return log;
     }
+#endif //REACT_ENABLE_LOGGING
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     /// MakeVar
@@ -425,7 +427,10 @@ class DomainInitializer
 public:
     DomainInitializer()
     {
+#ifdef REACT_ENABLE_LOGGING
         D::Log();
+#endif //REACT_ENABLE_LOGGING
+
         typename D::Engine::Engine();
     }
 };

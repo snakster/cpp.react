@@ -20,11 +20,11 @@ EventLog::Entry::Entry() :
 {
 }
 
-//EventLog::Entry::Entry(const Entry& other) :
-//    time_{ other.time_ },
-//    data_{ other.data_}
-//{
-//}
+EventLog::Entry::Entry(const Entry& other) :
+    time_{ other.time_ },
+    data_{ other.data_}
+{
+}
 
 EventLog::Entry::Entry(IEventRecord* ptr) :
     time_{ std::chrono::system_clock::now() },
@@ -76,6 +76,8 @@ void EventLog::Write(std::ostream& out)
 
 void EventLog::Clear()
 {
+    for (auto& e : entries_)
+        e.Release();
     entries_.clear();
 }
 

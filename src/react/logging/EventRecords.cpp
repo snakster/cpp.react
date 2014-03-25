@@ -6,6 +6,8 @@
 
 #include "react/logging/EventRecords.h"
 
+#include <thread>
+
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -148,10 +150,10 @@ void DynamicNodeDetachEvent::Serialize(std::ostream& out) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeEvaluateBeginEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-NodeEvaluateBeginEvent::NodeEvaluateBeginEvent(ObjectId nodeId, int transactionId, size_t threadId) :
+NodeEvaluateBeginEvent::NodeEvaluateBeginEvent(ObjectId nodeId, int transactionId) :
     nodeId_{ nodeId },
     transactionId_{ transactionId },
-    threadId_{ threadId }
+    threadId_{ std::this_thread::get_id().hash() }
 {
 }
 
@@ -165,10 +167,10 @@ void NodeEvaluateBeginEvent::Serialize(std::ostream& out) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeEvaluateEndEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-NodeEvaluateEndEvent::NodeEvaluateEndEvent(ObjectId nodeId, int transactionId, size_t threadId) :
+NodeEvaluateEndEvent::NodeEvaluateEndEvent(ObjectId nodeId, int transactionId) :
     nodeId_{ nodeId },
     transactionId_{ transactionId },
-    threadId_{ threadId }
+    threadId_{ std::this_thread::get_id().hash() }
 {
 }
 

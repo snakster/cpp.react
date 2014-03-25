@@ -44,9 +44,13 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
-        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
         S newValue = calcNewValue();
-        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
 
         if (! impl::Equals(newValue, value_))
         {
@@ -188,11 +192,15 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
-        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
         S newValue = value_;
         if (! events_->Events().empty())
             newValue = events_->Events().back();
-        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
 
         if (newValue != value_)
         {
@@ -252,11 +260,15 @@ public:
 
         trigger_->SetCurrentTurn(turn);
 
-        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash()));
+
         S newValue = std::move(value_);
         if (! trigger_->Events().empty())
             newValue = target_->ValueRef();
-        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash()));
 
         if (newValue != value_)
         {
@@ -313,9 +325,13 @@ public:
 
         SetCurrentTurn(turn, true);
 
-        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
         events_.push_back(target_->ValueRef());
-        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
 
         if (events_.size() > 0)
         {
@@ -375,10 +391,14 @@ public:
         SetCurrentTurn(turn, true);
         trigger_->SetCurrentTurn(turn);
 
-        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
         for (const auto& e : trigger_->Events())
             events_.push_back(target_->ValueRef());
-        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
 
         if (events_.size() > 0)
         {
@@ -457,9 +477,13 @@ public:
             return ETickResult::invalidated;
         }
 
-        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
         events_.insert(events_.end(), inner_->Events().begin(), inner_->Events().end());
-        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
 
         if (events_.size() > 0)
         {

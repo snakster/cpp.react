@@ -38,8 +38,8 @@ public:
     {
     }
 
-    virtual const char*     GetNodeType() const     { return "ObserverNode"; }
-    virtual bool            IsOutputNode() const    { return true; }
+    virtual const char* GetNodeType() const     { return "ObserverNode"; }
+    virtual bool        IsOutputNode() const    { return true; }
 };
 
 template <typename D>
@@ -77,7 +77,8 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
-        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
 
         current_observer_state_::shouldDetach = false;
 
@@ -91,7 +92,9 @@ public:
         if (current_observer_state_::shouldDetach)
             turn.QueueForDetach(*this);
 
-        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
         return ETickResult::none;
     }
 
@@ -145,7 +148,8 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
-        D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
         
         current_observer_state_::shouldDetach = false;
 
@@ -162,7 +166,8 @@ public:
         if (current_observer_state_::shouldDetach)
             turn.QueueForDetach(*this);
 
-        D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
 
         return ETickResult::none;
     }

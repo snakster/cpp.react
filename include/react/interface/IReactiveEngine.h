@@ -67,55 +67,63 @@ struct EngineInterface
 
     static void OnNodeCreate(NodeT& node)
     {
-        D::Log().template Append<NodeCreateEvent>(GetObjectId(node), node.GetNodeType());
+        REACT_LOG(D::Log().template Append<NodeCreateEvent>(
+            GetObjectId(node), node.GetNodeType()));
         Engine().OnNodeCreate(node);
     }
 
     static void OnNodeDestroy(NodeT& node)
     {
-        D::Log().template Append<NodeDestroyEvent>(GetObjectId(node));
+        REACT_LOG(D::Log().template Append<NodeDestroyEvent>(
+            GetObjectId(node)));
         Engine().OnNodeDestroy(node);
     }
 
     static void OnNodeAttach(NodeT& node, NodeT& parent)
     {
-        D::Log().template Append<NodeAttachEvent>(GetObjectId(node), GetObjectId(parent));
+        REACT_LOG(D::Log().template Append<NodeAttachEvent>(
+            GetObjectId(node), GetObjectId(parent)));
         Engine().OnNodeAttach(node, parent);
     }
 
     static void OnNodeDetach(NodeT& node, NodeT& parent)
     {
-        D::Log().template Append<NodeDetachEvent>(GetObjectId(node), GetObjectId(parent));
+        REACT_LOG(D::Log().template Append<NodeDetachEvent>(
+            GetObjectId(node), GetObjectId(parent)));
         Engine().OnNodeDetach(node, parent);
     }
 
     static void OnNodePulse(NodeT& node, TurnT& turn)
     {
-        D::Log().template Append<NodePulseEvent>(GetObjectId(node), turn.Id());
+        REACT_LOG(D::Log().template Append<NodePulseEvent>(
+            GetObjectId(node), turn.Id()));
         Engine().OnNodePulse(node, turn);
     }
 
     static void OnNodeIdlePulse(NodeT& node, TurnT& turn)
     {
-        D::Log().template Append<NodeIdlePulseEvent>(GetObjectId(node), turn.Id());
+        REACT_LOG(D::Log().template Append<NodeIdlePulseEvent>(
+            GetObjectId(node), turn.Id()));
         Engine().OnNodeIdlePulse(node, turn);
     }
 
     static void OnDynamicNodeAttach(NodeT& node, NodeT& parent, TurnT& turn)
     {
-        D::Log().template Append<DynamicNodeAttachEvent>(GetObjectId(node), GetObjectId(parent), turn.Id());
+        REACT_LOG(D::Log().template Append<DynamicNodeAttachEvent>(
+            GetObjectId(node), GetObjectId(parent), turn.Id()));
         Engine().OnDynamicNodeAttach(node, parent, turn);
     }
 
     static void OnDynamicNodeDetach(NodeT& node, NodeT& parent, TurnT& turn)
     {
-        D::Log().template Append<DynamicNodeDetachEvent>(GetObjectId(node), GetObjectId(parent), turn.Id());
+        REACT_LOG(D::Log().template Append<DynamicNodeDetachEvent>(
+            GetObjectId(node), GetObjectId(parent), turn.Id()));
         Engine().OnDynamicNodeDetach(node, parent, turn);
     }
 
     static void OnTurnAdmissionStart(TurnT& turn)
     {
-        D::Log().template Append<TransactionBeginEvent>(turn.Id());
+        REACT_LOG(D::Log().template Append<TransactionBeginEvent>(turn.Id()));
         Engine().OnTurnAdmissionStart(turn);
     }
 
@@ -126,13 +134,14 @@ struct EngineInterface
 
     static void OnTurnEnd(TurnT& turn)
     {
-        D::Log().template Append<TransactionEndEvent>(turn.Id());
+        REACT_LOG(D::Log().template Append<TransactionEndEvent>(turn.Id()));
         Engine().OnTurnEnd(turn);
     }
 
     static void OnTurnInputChange(NodeT& node, TurnT& turn)
     {
-        D::Log().template Append<InputNodeAdmissionEvent>(GetObjectId(node), turn.Id());
+        REACT_LOG(D::Log().template Append<InputNodeAdmissionEvent>(
+            GetObjectId(node), turn.Id()));
         Engine().OnTurnInputChange(node, turn);
     }
 

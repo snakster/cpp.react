@@ -88,14 +88,8 @@ public:
 private:
     using LogEntriesT = tbb::concurrent_vector<Entry>;
 
-    LogEntriesT  entries_;
-    TimestampT  startTime_;
+    LogEntriesT     entries_;
+    TimestampT      startTime_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
-
-/*****************************************/ REACT_BEGIN /*****************************************/
-
-using EventLog = REACT_IMPL::EventLog;
-
-/******************************************/ REACT_END /******************************************/

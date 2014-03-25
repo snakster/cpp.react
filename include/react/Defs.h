@@ -25,6 +25,13 @@
 #define REACT_ASSERT(condition, ...) for (; !(condition); assert(condition)) printf(__VA_ARGS__ ## "\n")
 #define REACT_ERROR(...)    REACT_ASSERT(false, __VA_ARGS__)
 
+// Logging
+#ifdef REACT_ENABLE_LOGGING
+    #define REACT_LOG(...) __VA_ARGS__
+#else
+    #define REACT_LOG(...)
+#endif
+
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 // Type aliases

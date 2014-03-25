@@ -176,7 +176,7 @@ private:
 class NodeEvaluateBeginEvent : public IEventRecord
 {
 public:
-    NodeEvaluateBeginEvent(ObjectId nodeId, int transactionId, size_t threadId);
+    NodeEvaluateBeginEvent(ObjectId nodeId, int transactionId);
 
     virtual const char* EventId() const { return "NodeEvaluateBegin"; }
 
@@ -194,7 +194,7 @@ private:
 class NodeEvaluateEndEvent : public IEventRecord
 {
 public:
-    NodeEvaluateEndEvent(ObjectId nodeId, int transactionId, size_t threadId);
+    NodeEvaluateEndEvent(ObjectId nodeId, int transactionId);
 
     virtual const char* EventId() const { return "NodeEvaluateEnd"; }
 

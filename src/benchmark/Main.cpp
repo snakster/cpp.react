@@ -4,6 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+//#define REACT_ENABLE_LOGGING
+
 #include "tbb/tick_count.h"
 #include "tbb/tbbmalloc_proxy.h"
 
@@ -31,51 +33,44 @@ namespace {
 
 using namespace react;
 
-REACTIVE_DOMAIN(FloodingDomain, FloodingEngine<parallel>, EventLog);
-REACTIVE_DOMAIN(TopoSortDomain, TopoSortEngine<parallel>, EventLog);
-REACTIVE_DOMAIN(PulseCountDomain, PulseCountEngine<parallel>, EventLog);
-REACTIVE_DOMAIN(SourceSetDomain, SourceSetEngine<parallel>, EventLog);
-REACTIVE_DOMAIN(TopoSortSTDomain, TopoSortEngine<sequential>, EventLog);
-REACTIVE_DOMAIN(ELMDomain, ELMEngine<parallel>, EventLog);
-
-REACTIVE_DOMAIN(BFloodingDomain, FloodingEngine<parallel>);
-REACTIVE_DOMAIN(BTopoSortDomain, TopoSortEngine<parallel>);
-REACTIVE_DOMAIN(BPulseCountDomain, PulseCountEngine<parallel>);
-REACTIVE_DOMAIN(BSourceSetDomain, SourceSetEngine<parallel>);
-REACTIVE_DOMAIN(BTopoSortSTDomain, TopoSortEngine<sequential>);
-REACTIVE_DOMAIN(BELMDomain, ELMEngine<parallel>);
+REACTIVE_DOMAIN(FloodingDomain, FloodingEngine<parallel>);
+REACTIVE_DOMAIN(TopoSortDomain, TopoSortEngine<parallel>);
+REACTIVE_DOMAIN(PulseCountDomain, PulseCountEngine<parallel>);
+REACTIVE_DOMAIN(SourceSetDomain, SourceSetEngine<parallel>);
+REACTIVE_DOMAIN(TopoSortSTDomain, TopoSortEngine<sequential>);
+REACTIVE_DOMAIN(ELMDomain, ELMEngine<parallel>);
 
 void runBenchmarkGrid(std::ostream& out)
 {
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(10, 10000),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(20, 10000),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(40, 10000),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(50, 10000),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
 }
 
 void runBenchmarkFlooding(std::ostream& out)
 {
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(20, 10),
-        BFloodingDomain);
+        FloodingDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(30, 10),
-        BFloodingDomain);
+        FloodingDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(40, 10),
-        BFloodingDomain);
+        FloodingDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(50, 10),
-        BFloodingDomain);
+        FloodingDomain);
 }
 
 void runBenchmarkRandom(std::ostream& out)
@@ -94,10 +89,10 @@ void runBenchmarkRandom(std::ostream& out)
         {
             int x = (slowPercent * (w*(h-1))) / 100;
             //RUN_BENCHMARK(out, 5, Benchmark_Random, BenchmarkParams_Random(w, h, 20, 0, 10, 40, x, true, seed1, seed2),
-            //    BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+            //    TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
             RUN_BENCHMARK(out, 5, Benchmark_Random, BenchmarkParams_Random(w, h, 20, 0, 10, 40, x, true, seed1, seed2),
-                BTopoSortSTDomain);
+                TopoSortSTDomain);
         }
 
         seed1 *= 2;
@@ -108,58 +103,58 @@ void runBenchmarkRandom(std::ostream& out)
 void runBenchmarkFanout(std::ostream& out)
 {
     //RUN_BENCHMARK(out, 5, Benchmark_Fanout, BenchmarkParams_Fanout(10, 10000, 0),
-    //    BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+    //    TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     //RUN_BENCHMARK(out, 5, Benchmark_Fanout, BenchmarkParams_Fanout(100, 10000, 0),
-    //    BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+    //    TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     //RUN_BENCHMARK(out, 5, Benchmark_Fanout, BenchmarkParams_Fanout(1000, 10000, 0),
-    //    BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+    //    TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Fanout, BenchmarkParams_Fanout(10, 10, 10),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Fanout, BenchmarkParams_Fanout(100, 10, 10),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Fanout, BenchmarkParams_Fanout(1000, 10, 10),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 }
 
 void runBenchmarkSequence(std::ostream& out)
 {
     //RUN_BENCHMARK(out, 3, Benchmark_Sequence, BenchmarkParams_Sequence(10, 10000, 0),
-    //    BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+    //    TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     //RUN_BENCHMARK(out, 3, Benchmark_Sequence, BenchmarkParams_Sequence(100, 10000, 0),
-    //    BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+    //    TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     //RUN_BENCHMARK(out, 3, Benchmark_Sequence, BenchmarkParams_Sequence(1000, 10000, 0),
-    //    BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+    //    TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Sequence, BenchmarkParams_Sequence(10, 10, 10),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Sequence, BenchmarkParams_Sequence(100, 10, 10),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Sequence, BenchmarkParams_Sequence(1000, 10, 10),
-        BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BSourceSetDomain, BFloodingDomain);
+        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain, FloodingDomain);
 }
 
 void runBenchmarkLifeSim(std::ostream& out)
 {
     //RUN_BENCHMARK(std::cout, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(150, 1000),
-    //    BELMDomain);
+    //    ELMDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(250, 30, 10000),
-    //    BSourceSetDomain, BPulseCountDomain);
+    //    SourceSetDomain, PulseCountDomain);
 
     //RUN_BENCHMARK(out, 3, Benchmark_LifeSim, BenchmarkParams_LifeSim(250, 30, 10000),
-    //    BTopoSortSTDomain, BTopoSortDomain, BELMDomain, BPulseCountDomain, BPulseCountO1Domain, BSourceSetDomain, BFloodingDomain);
+    //    TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, BPulseCountO1Domain, SourceSetDomain, FloodingDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
-        BPulseCountDomain, BPulseCountDomain);
+        PulseCountDomain, PulseCountDomain);
 }
 
 void runBenchmarks()
@@ -191,10 +186,10 @@ void runBenchmarks()
 
 void debugBenchmarks()
 {
-    using TestDomain = BPulseCountDomain;
+    using TestDomain = PulseCountDomain;
 
     RUN_BENCHMARK(std::cout, 3, Benchmark_Grid, BenchmarkParams_Grid(30, 1000),
-        TestDomain, BPulseCountDomain);
+        TestDomain, PulseCountDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_Fanout, BenchmarkParams_Fanout(1000, 5, 0),
     //    TestDomain);
@@ -225,26 +220,28 @@ void debugBenchmarks()
     //}
 
     //RunBenchmark<1>(Benchmark2<BTokenDomain>());
-    //RunBenchmark<1>(Benchmark2<BSourceSetDomain>());
-    //RunBenchmark<3>(Benchmark2<BTopoSortDomain>());
+    //RunBenchmark<1>(Benchmark2<SourceSetDomain>());
+    //RunBenchmark<3>(Benchmark2<TopoSortDomain>());
 
-    //std::ofstream logfile;
-    //logfile.open("log.txt");
+#ifdef REACT_ENABLE_LOGGING
+    std::ofstream logfile;
+    logfile.open("log.txt");
 
-    //TestDomain::Log().Write(logfile);
-    //logfile.close();
+    TestDomain::Log().Write(logfile);
+    logfile.close();
+#endif
 }
 
 void profileBenchmark()
 {
-    RUN_BENCHMARK(std::cout, 3, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
-        BTopoSortDomain);
+    RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
+        TopoSortDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
-    //    BSourceSetDomain);
+    //    SourceSetDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_Random, BenchmarkParams_Random(20, 11, 100, 0, 10, 40, 40, false, 41556, 21624),
-    //    BFloodingDomain);
+    //    FloodingDomain);
 }
 
 } // ~anonymous namespace 
