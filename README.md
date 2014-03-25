@@ -156,10 +156,7 @@ public:
     {
     }
 
-    inline bool operator==(const Company& other) const
-    {
-        return this == &other;
-    }
+    inline bool operator==(const Company& other) const { /* ... */ }
 };
 
 class Manager : public ReactiveObject<D>
