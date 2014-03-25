@@ -137,7 +137,7 @@ mouseUp   << PointT(30,30);
 // => paths[1]: (10,10) (20,20) (30,30)
 ```
 
-#### Reactive loops
+#### Reactive objects and dynamic reactives
 
 ```C++
 #include "react/ReactiveObject.h"
