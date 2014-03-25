@@ -28,14 +28,14 @@ enum class EventToken
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// REvents
+/// Events
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
     typename D,
     typename E = EventToken
 >
-class REvents : public Reactive<REACT_IMPL::EventStreamNode<D,E>>
+class Events : public Reactive<REACT_IMPL::EventStreamNode<D,E>>
 {
 protected:
     using NodeT = REACT_IMPL::EventStreamNode<D, E>;
@@ -43,30 +43,30 @@ protected:
 public:
     using ValueT = E;
 
-    REvents() :
+    Events() :
         Reactive()
     {
     }
 
-    explicit REvents(const std::shared_ptr<NodeT>& ptr) :
+    explicit Events(const std::shared_ptr<NodeT>& ptr) :
         Reactive(ptr)
     {
     }
 
     template <typename F>
-    REvents Filter(F&& f)
+    Events Filter(F&& f)
     {
         return react::Filter(*this, std::forward<F>(f));
     }
 
     template <typename F>
-    REvents Transform(F&& f)
+    Events Transform(F&& f)
     {
         return react::Transform(*this, std::forward<F>(f));
     }
 
     template <typename F>
-    RObserver<D> Observe(F&& f)
+    Observer<D> Observe(F&& f)
     {
         return react::Observe(*this, std::forward<F>(f));
     }
@@ -77,7 +77,7 @@ public:
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 template <typename D, typename L, typename R>
-bool Equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
+bool Equals(const Events<D,L>& lhs, const Events<D,R>& rhs)
 {
     return lhs.Equals(rhs);
 }
@@ -87,26 +87,26 @@ bool Equals(const REvents<D,L>& lhs, const REvents<D,R>& rhs)
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// REventSource
+/// Eventsource
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
     typename D,
     typename E = EventToken
 >
-class REventSource : public REvents<D,E>
+class EventSource : public Events<D,E>
 {
 private:
     using NodeT = REACT_IMPL::EventSourceNode<D, E>;
 
 public:
-    REventSource() :
-        REvents()
+    EventSource() :
+        Events()
     {
     }
 
-    explicit REventSource(const std::shared_ptr<NodeT>& ptr) :
-        REvents(ptr)
+    explicit EventSource(const std::shared_ptr<NodeT>& ptr) :
+        Events(ptr)
     {
     }
 
@@ -122,7 +122,7 @@ public:
         Emit(EventToken::token);
     }
 
-    const REventSource& operator<<(const E& e) const
+    const EventSource& operator<<(const E& e) const
     {
         Emit(e);
         return *this;
@@ -134,17 +134,17 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D, typename E>
 auto MakeEventSource()
-    -> REventSource<D,E>
+    -> EventSource<D,E>
 {
-    return REventSource<D,E>(
+    return EventSource<D,E>(
         std::make_shared<REACT_IMPL::EventSourceNode<D,E>>(false));
 }
 
 template <typename D>
 auto MakeEventSource()
-    -> REventSource<D,EventToken>
+    -> EventSource<D,EventToken>
 {
-    return REventSource<D,EventToken>(
+    return EventSource<D,EventToken>(
         std::make_shared<REACT_IMPL::EventSourceNode<D,EventToken>>(false));
 }
 
@@ -157,15 +157,15 @@ template
     typename TArg1,
     typename ... TArgs
 >
-inline auto Merge(const REvents<D,TArg1>& arg1,
-                  const REvents<D,TArgs>& ... args)
-    -> REvents<D,TArg1>
+inline auto Merge(const Events<D,TArg1>& arg1,
+                  const Events<D,TArgs>& ... args)
+    -> Events<D,TArg1>
 {
     static_assert(sizeof...(TArgs) > 0,
         "react::Merge requires at least 2 arguments.");
 
     typedef TArg1 E;
-    return REvents<D,E>(
+    return Events<D,E>(
         std::make_shared<REACT_IMPL::EventMergeNode<D, E, TArg1, TArgs ...>>(
             arg1.GetPtr(), args.GetPtr() ..., false));
 }
@@ -176,9 +176,9 @@ template
     typename TLeftArg,
     typename TRightArg
 >
-inline auto operator|(const REvents<D,TLeftArg>& lhs,
-                      const REvents<D,TRightArg>& rhs)
-    -> REvents<D, TLeftArg>
+inline auto operator|(const Events<D,TLeftArg>& lhs,
+                      const Events<D,TRightArg>& rhs)
+    -> Events<D, TLeftArg>
 {
     return Merge(lhs,rhs);
 }
@@ -192,10 +192,10 @@ template
     typename E,
     typename F
 >
-inline auto Filter(const REvents<D,E>& src, F&& filter)
-    -> REvents<D,E>
+inline auto Filter(const Events<D,E>& src, F&& filter)
+    -> Events<D,E>
 {
-    return REvents<D,E>(
+    return Events<D,E>(
         std::make_shared<REACT_IMPL::EventFilterNode<D, E>>(
             src.GetPtr(), std::forward<F>(filter), false));
 }
@@ -209,12 +209,12 @@ template
     typename TIn,
     typename F
 >
-inline auto Transform(const REvents<D,TIn>& src, F&& func)
-    -> REvents<D, typename std::result_of<F(TIn)>::type>
+inline auto Transform(const Events<D,TIn>& src, F&& func)
+    -> Events<D, typename std::result_of<F(TIn)>::type>
 {
     using TOut = typename std::result_of<F(TIn)>::type;
 
-    return REvents<D,TOut>(
+    return Events<D,TOut>(
         std::make_shared<REACT_IMPL::EventTransformNode<D, TIn, TOut>>(
             src.GetPtr(), std::forward<F>(func), false));
 }

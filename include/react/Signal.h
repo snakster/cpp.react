@@ -41,14 +41,14 @@ class FunctionNode;
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// RSignal
+/// Signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
     typename D,
     typename S
 >
-class RSignal : public Reactive<REACT_IMPL::SignalNode<D,S>>
+class Signal : public Reactive<REACT_IMPL::SignalNode<D,S>>
 {
 protected:
     using NodeT = REACT_IMPL::SignalNode<D,S>;
@@ -56,17 +56,17 @@ protected:
 public:
     using ValueT = S;
 
-    RSignal() :
+    Signal() :
         Reactive()
     {
     }
     
-    explicit RSignal(const std::shared_ptr<NodeT>& ptr) :
+    explicit Signal(const std::shared_ptr<NodeT>& ptr) :
         Reactive(ptr)
     {
     }
 
-    explicit RSignal(std::shared_ptr<NodeT>&& ptr) :
+    explicit Signal(std::shared_ptr<NodeT>&& ptr) :
         Reactive(std::move(ptr))
     {
     }
@@ -82,38 +82,38 @@ public:
     }
 
     template <typename F>
-    RObserver<D> Observe(F&& f)
+    Observer<D> Observe(F&& f)
     {
         return react::Observe(*this, std::forward<F>(f));
     }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// RVarSignal
+/// VarSignal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
     typename D,
     typename S
 >
-class RVarSignal : public RSignal<D,S>
+class VarSignal : public Signal<D,S>
 {
 protected:
     using NodeT = REACT_IMPL::VarNode<D,S>;
 
 public:    
-    RVarSignal() :
-        RSignal()
+    VarSignal() :
+        Signal()
     {
     }
     
-    explicit RVarSignal(const std::shared_ptr<NodeT>& ptr) :
-        RSignal(ptr)
+    explicit VarSignal(const std::shared_ptr<NodeT>& ptr) :
+        Signal(ptr)
     {
     }
 
-    explicit RVarSignal(std::shared_ptr<NodeT>&& ptr) :
-        RSignal(std::move(ptr))
+    explicit VarSignal(std::shared_ptr<NodeT>&& ptr) :
+        Signal(std::move(ptr))
     {
     }
 
@@ -124,7 +124,7 @@ public:
     }
 
     template <typename V>
-    const RVarSignal& operator<<=(V&& newValue) const
+    const VarSignal& operator<<=(V&& newValue) const
     {
         Set(std::forward<V>(newValue));
         return *this;
@@ -136,13 +136,13 @@ public:
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 template <typename D, typename L, typename R>
-bool Equals(const RSignal<D,L>& lhs, const RSignal<D,R>& rhs)
+bool Equals(const Signal<D,L>& lhs, const Signal<D,R>& rhs)
 {
     return lhs.Equals(rhs);
 }
 
 template <typename D, typename L, typename R>
-bool Equals(const RVarSignal<D,L>& lhs, const RVarSignal<D,R>& rhs)
+bool Equals(const VarSignal<D,L>& lhs, const VarSignal<D,R>& rhs)
 {
     return lhs.Equals(rhs);
 }
@@ -163,9 +163,9 @@ template
         ! IsReactive<D,S>::value>::type
 >
 auto MakeVar(V&& value)
-    -> RVarSignal<D,S>
+    -> VarSignal<D,S>
 {
-    return RVarSignal<D,S>(
+    return VarSignal<D,S>(
         std::make_shared<REACT_IMPL::VarNode<D,S>>(
             std::forward<V>(value), false));
 }
@@ -183,10 +183,10 @@ template
         IsSignal<D,S>::value>::type
 >
 auto MakeVar(V&& value)
-    -> RVarSignal<D,RSignal<D,TInner>>
+    -> VarSignal<D,Signal<D,TInner>>
 {
-    return RVarSignal<D,RSignal<D,TInner>>(
-        std::make_shared<REACT_IMPL::VarNode<D,RSignal<D,TInner>>>(
+    return VarSignal<D,Signal<D,TInner>>(
+        std::make_shared<REACT_IMPL::VarNode<D,Signal<D,TInner>>>(
             std::forward<V>(value), false));
 }
 
@@ -200,10 +200,10 @@ template
         IsEvent<D,S>::value>::type
 >
 auto MakeVar(V&& value)
-    -> RVarSignal<D,REvents<D,TInner>>
+    -> VarSignal<D,Events<D,TInner>>
 {
-    return RVarSignal<D,REvents<D,TInner>>(
-        std::make_shared<REACT_IMPL::VarNode<D,REvents<D,TInner>>>(
+    return VarSignal<D,Events<D,TInner>>(
+        std::make_shared<REACT_IMPL::VarNode<D,Events<D,TInner>>>(
             std::forward<V>(value), false));
 }
 
@@ -217,9 +217,9 @@ template
     typename S = std::decay<V>::type
 >
 auto MakeVal(V&& value)
-    -> RSignal<D,S>
+    -> Signal<D,S>
 {
-    return RSignal<D,S>(
+    return Signal<D,S>(
         std::make_shared<REACT_IMPL::ValNode<D,S>>(
             std::forward<V>(value), false));
 }
@@ -233,15 +233,15 @@ template
     typename F,
     typename ... TArgs
 >
-auto MakeSignal(F&& func, const RSignal<D,TArgs>& ... args)
-    -> RSignal<D, typename std::result_of<F(TArgs...)>::type>
+auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
+    -> Signal<D, typename std::result_of<F(TArgs...)>::type>
 {
     static_assert(sizeof...(TArgs) > 0,
         "react::MakeSignal requires at least 1 signal dependency.");
 
     using S = typename std::result_of<F(TArgs...)>::type;
 
-    return RSignal<D,S>(
+    return Signal<D,S>(
         std::make_shared<REACT_IMPL::FunctionNode<D, S, TArgs ...>>(
             std::forward<F>(func), args.GetPtr() ..., false));
 }
@@ -259,9 +259,9 @@ template                                                                    \
         IsSignal<D,TSignal<D,TVal>>::value>::type                           \
 >                                                                           \
 auto operator ## op(const TSignal<D,TVal>& arg)                             \
-    -> RSignal<D,decltype(op std::declval<TVal>())>                         \
+    -> Signal<D,decltype(op std::declval<TVal>())>                         \
 {                                                                           \
-    return RSignal<D,decltype(op std::declval<TVal>())>(                    \
+    return Signal<D,decltype(op std::declval<TVal>())>(                    \
         std::make_shared<REACT_IMPL::FunctionNode<D,TVal,TVal>>(            \
             [] (TVal a) { return op a; }, arg.GetPtr(), false));            \
 }
@@ -291,13 +291,13 @@ template                                                                        
 >                                                                                   \
 auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,                             \
                     const TRightSignal<D,TRightVal>& rhs)                           \
-    -> RSignal<D,                                                                   \
+    -> Signal<D,                                                                   \
         typename std::remove_const<                                                 \
             decltype(std::declval<TLeftVal>() op std::declval<TRightVal>())>::type> \
 {                                                                                   \
     using TRet = typename std::remove_const<                                        \
         decltype(std::declval<TLeftVal>() op std::declval<TRightVal>())>::type;     \
-    return RSignal<D,TRet>(                                                         \
+    return Signal<D,TRet>(                                                         \
         std::make_shared<REACT_IMPL::FunctionNode<D,TRet,TLeftVal,TRightVal>>(      \
             [] (const TLeftVal& a, const TRightVal& b) { return a op b; },          \
                 lhs.GetPtr(), rhs.GetPtr(), false));                                \
@@ -316,13 +316,13 @@ template                                                                        
 >                                                                                   \
 auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,                             \
                     const TRightVal& rhs)                                           \
-    -> RSignal<D,                                                                   \
+    -> Signal<D,                                                                   \
         typename std::remove_const<                                                 \
             decltype(std::declval<TLeftVal>() op rhs)>::type>                       \
 {                                                                                   \
     using TRet = typename std::remove_const<                                        \
         decltype(std::declval<TLeftVal>() op rhs)>::type;                           \
-    return RSignal<D,TRet>(                                                         \
+    return Signal<D,TRet>(                                                         \
         std::make_shared<REACT_IMPL::FunctionNode<D,TRet,TLeftVal>>(                \
             [=] (const TLeftVal& a) { return a op rhs; }, lhs.GetPtr(), false));    \
 }                                                                                   \
@@ -340,13 +340,13 @@ template                                                                        
 >                                                                                   \
 auto operator ## op(const TLeftVal& lhs,                                            \
                     const TRightSignal<D,TRightVal>& rhs)                           \
-    -> RSignal<D,                                                                   \
+    -> Signal<D,                                                                   \
         typename std::remove_const<                                                 \
             decltype(lhs op std::declval<TRightVal>())>::type>                      \
 {                                                                                   \
     using TRet = typename std::remove_const<                                        \
         decltype(lhs op std::declval<TRightVal>())>::type;                          \
-    return RSignal<D,TRet>(                                                         \
+    return Signal<D,TRet>(                                                         \
         std::make_shared<REACT_IMPL::FunctionNode<D,TRet,TRightVal>>(               \
             [=] (const TRightVal& a) { return lhs op a; }, rhs.GetPtr(), false));   \
 }
@@ -383,7 +383,7 @@ DECLARE_OP(||);
 //>                                                                    
 //auto operator+(TLeftSignal<D,TLeftVal>&& lhs,
 //               const TRightSignal<D,TRightVal>& rhs)
-//    -> RSignal<D,TLeftVal>
+//    -> Signal<D,TLeftVal>
 //{
 //    lhs.GetPtr()->MergeOp(
 //        rhs.GetPtr(), [] (const TLeftVal& a, const TRightVal& b) { return a + b; });
@@ -400,16 +400,16 @@ template
 >
 struct InputPack
 {
-    std::tuple<const RSignal<D, TValues>& ...> Data;
+    std::tuple<const Signal<D, TValues>& ...> Data;
 
     template <typename TFirstValue, typename TSecondValue>
-    InputPack(const RSignal<D,TFirstValue>& first, const RSignal<D,TSecondValue>& second) :
+    InputPack(const Signal<D,TFirstValue>& first, const Signal<D,TSecondValue>& second) :
         Data(std::tie(first, second))
     {
     }
 
     template <typename ... TCurValues, typename TAppendValue>
-    InputPack(const InputPack<D, TCurValues ...>& curArgs, const RSignal<D,TAppendValue>& newArg) :
+    InputPack(const InputPack<D, TCurValues ...>& curArgs, const Signal<D,TAppendValue>& newArg) :
         Data(std::tuple_cat(curArgs.Data, std::tie(newArg)))
     {
     }
@@ -424,7 +424,7 @@ template
     typename TLeftVal,
     typename TRightVal
 >
-auto operator,(const RSignal<D,TLeftVal>& a, const RSignal<D,TRightVal>& b)
+auto operator,(const Signal<D,TLeftVal>& a, const Signal<D,TRightVal>& b)
     -> InputPack<D,TLeftVal, TRightVal>
 {
     return InputPack<D, TLeftVal, TRightVal>(a, b);
@@ -439,7 +439,7 @@ template
     typename ... TCurValues,
     typename TAppendValue
 >
-auto operator,(const InputPack<D, TCurValues ...>& cur, const RSignal<D,TAppendValue>& append)
+auto operator,(const InputPack<D, TCurValues ...>& cur, const Signal<D,TAppendValue>& append)
     -> InputPack<D,TCurValues ... , TAppendValue>
 {
     return InputPack<D, TCurValues ... , TAppendValue>(cur, append);
@@ -457,8 +457,8 @@ template
 >
 struct ApplyHelper
 {
-    static inline auto MakeSignal(F&& func, const RSignal<D,TValues>& ... args)
-        -> RSignal<D,decltype(func(std::declval<TValues>() ...))>
+    static inline auto MakeSignal(F&& func, const Signal<D,TValues>& ... args)
+        -> Signal<D,decltype(func(std::declval<TValues>() ...))>
     {
         return D::MakeSignal(std::forward<F>(func), args ...);
     }
@@ -482,7 +482,7 @@ template
         IsSignal<D,TSignal<D,TValue>>::value>::type
 >
 auto operator->*(const TSignal<D,TValue>& inputNode, F&& func)
-    -> RSignal<D, typename std::result_of<F(TValue)>::type>
+    -> Signal<D, typename std::result_of<F(TValue)>::type>
 {
     return D::MakeSignal(std::forward<F>(func), inputNode);
 }
@@ -495,7 +495,7 @@ template
     typename ... TSignals
 >
 auto operator->*(const InputPack<D,TSignals ...>& inputPack, F&& func)
-    -> RSignal<D, typename std::result_of<F(TSignals ...)>::type>
+    -> Signal<D, typename std::result_of<F(TSignals ...)>::type>
 {
     return apply(
         REACT_IMPL::ApplyHelper<D, F&&, TSignals ...>::MakeSignal,
@@ -510,11 +510,11 @@ template
     typename D,
     typename TInnerValue
 >
-auto Flatten(const RSignal<D,RSignal<D,TInnerValue>>& node)
-    -> RSignal<D,TInnerValue>
+auto Flatten(const Signal<D,Signal<D,TInnerValue>>& node)
+    -> Signal<D,TInnerValue>
 {
-    return RSignal<D,TInnerValue>(
-        std::make_shared<REACT_IMPL::FlattenNode<D, RSignal<D,TInnerValue>, TInnerValue>>(
+    return Signal<D,TInnerValue>(
+        std::make_shared<REACT_IMPL::FlattenNode<D, Signal<D,TInnerValue>, TInnerValue>>(
             node.GetPtr(), node.Value().GetPtr(), false));
 }
 

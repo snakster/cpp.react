@@ -39,11 +39,11 @@ template
     typename F,
     typename ... TArgs
 >
-auto MakeSignal(F&& func, const RSignal<D,TArgs>& ... args)
-    -> RSignal<D, typename std::result_of<F(TArgs...)>::type>;
+auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
+    -> Signal<D, typename std::result_of<F(TArgs...)>::type>;
 
 template <typename D>
-class RReactiveLoop;
+class ReactiveLoop;
 
 /******************************************/ REACT_END /******************************************/
 
@@ -78,26 +78,26 @@ public:
     /// Aliases for reactives of current domain
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename S>
-    using Signal = RSignal<D,S>;
+    using SignalT = Signal<D,S>;
 
     template <typename S>
-    using VarSignal = RVarSignal<D,S>;
+    using VarSignalT = VarSignal<D,S>;
 
     template <typename S>
-    using RefSignal = RRefSignal<D,S>;
+    using RefSignalT = RefSignal<D,S>;
 
     template <typename S>
-    using VarRefSignal = RVarRefSignal<D,S>;
+    using VarRefSignalT = VarRefSignal<D,S>;
 
     template <typename E = EventToken>
-    using Events = REvents<D,E>;
+    using EventsT = Events<D,E>;
 
     template <typename E = EventToken>
-    using EventSource = REventSource<D,E>;
+    using EventSourceT = EventSource<D,E>;
 
-    using Observer = RObserver<D>;
+    using ObserverT = Observer<D>;
 
-    using ReactiveLoop = RReactiveLoop<D>;
+    using ReactiveLoopT = ReactiveLoop<D>;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     /// ObserverRegistry
@@ -128,9 +128,9 @@ public:
             !IsSignal<D,S>::value>::type
     >
     static auto MakeVar(V&& value)
-        -> VarSignal<S>
+        -> VarSignalT<S>
     {
-        return react::MakeVar<D>(std::forward<V>(value));
+        return REACT::MakeVar<D>(std::forward<V>(value));
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -145,9 +145,9 @@ public:
             IsSignal<D,S>::value>::type
     >
     static auto MakeVar(V&& value)
-        -> VarSignal<Signal<TInner>>
+        -> VarSignalT<SignalT<TInner>>
     {
-        return react::MakeVar<D>(std::forward<V>(value));
+        return REACT::MakeVar<D>(std::forward<V>(value));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -159,9 +159,9 @@ public:
         typename S = std::decay<V>::type
     >
     static auto MakeVal(V&& value)
-        -> Signal<S>
+        -> SignalT<S>
     {
-        return react::MakeVal<D>(std::forward<V>(value));
+        return REACT::MakeVal<D>(std::forward<V>(value));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -172,12 +172,12 @@ public:
         typename F,
         typename ... TArgs
     >
-    static auto MakeSignal(F&& func, const Signal<TArgs>& ... args)
-        -> Signal<typename std::result_of<F(TArgs...)>::type>
+    static auto MakeSignal(F&& func, const SignalT<TArgs>& ... args)
+        -> SignalT<typename std::result_of<F(TArgs...)>::type>
     {
         using S = typename std::result_of<F(TArgs...)>::type;
 
-        return react::MakeSignal<D>(std::forward<F>(func), args ...);
+        return REACT::MakeSignal<D>(std::forward<F>(func), args ...);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -185,15 +185,15 @@ public:
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename E>
     static auto MakeEventSource()
-        -> EventSource<E>
+        -> EventSourceT<E>
     {
-        return react::MakeEventSource<D,E>();
+        return REACT::MakeEventSource<D,E>();
     }
 
     static auto MakeEventSource()
-        -> EventSource<EventToken>
+        -> EventSourceT<EventToken>
     {
-        return react::MakeEventSource<D>();
+        return REACT::MakeEventSource<D>();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -143,18 +143,17 @@ void EventExample2()
     cout << endl;
 }
 
-// ReactiveObject
 class Person : public ReactiveObject<D>
 {
 public:
-    VarSignal<int>  Age     = MakeVar(1);
-    Signal<int>     Health  = 100 - Age;
-    Signal<int>     Wisdom  = Age * Age / 100;
+    VarSignalT<int>  Age     = MakeVar(1);
+    SignalT<int>     Health  = 100 - Age;
+    SignalT<int>     Wisdom  = Age * Age / 100;
 
     // Note ICC compiler bug:
     // Initializing them directly uses the same lambda for both signals
-    Observer    wisdomObs;
-    Observer    weaknessObs;
+    ObserverT    wisdomObs;
+    ObserverT    weaknessObs;
 
     Person()
     {
@@ -181,7 +180,7 @@ void ObjectExample1()
 {
     cout << "Object Example 1" << endl;
 
-    Person somePerson{ "Peter" };
+    Person somePerson;
 
     somePerson.Age <<= 30;
     somePerson.Age <<= 60;
@@ -196,7 +195,7 @@ void ObjectExample1()
 class Company : public ReactiveObject<D>
 {
 public:
-    VarSignal<string>    Name;
+    VarSignalT<string>    Name;
 
     Company(const char* name) :
         Name{ MakeVar(string(name)) }
@@ -211,10 +210,10 @@ public:
 
 class Manager : public ReactiveObject<D>
 {
-    Observer nameObs;
+    ObserverT nameObs;
 
 public:
-    VarRefSignal<Company>    CurrentCompany;
+    VarRefSignalT<Company>    CurrentCompany;
 
     Manager(Company& c) :
         CurrentCompany{ MakeVar(std::ref(c)) }
@@ -237,7 +236,7 @@ void ObjectExample2()
     company1.Name <<= string("BT Cellnet");
     company2.Name <<= string("Inprise");
 
-   manager.CurrentCompany <<= std::ref(company2);
+    manager.CurrentCompany <<= std::ref(company2);
 
     company1.Name <<= string("O2");
     company2.Name <<= string("Borland");
@@ -327,9 +326,9 @@ void LoopTest()
     auto mouseUp   = D::MakeEventSource<PointT>();
     auto mouseMove = D::MakeEventSource<PointT>();
 
-    D::ReactiveLoop loop
+    D::ReactiveLoopT loop
     {
-        [&] (D::ReactiveLoop::Context& ctx)
+        [&] (D::ReactiveLoopT::Context& ctx)
         {
             PathT points;
 

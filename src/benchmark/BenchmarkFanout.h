@@ -46,7 +46,7 @@ struct Benchmark_Fanout : public BenchmarkBase<D>
     double Run(const BenchmarkParams_Fanout& params)
     {
         using MyDomain = D;
-        using MyHandle = MyDomain::Signal<int>;
+        using MyHandle = MyDomain::SignalT<int>;
 
         bool initializing = true;
 

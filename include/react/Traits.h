@@ -11,22 +11,22 @@
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 template <typename D, typename S>
-class RSignal;
+class Signal;
 
 template <typename D, typename S>
-class RVarSignal;
+class VarSignal;
 
 template <typename D, typename S>
-using RRefSignal = RSignal<D,std::reference_wrapper<S>>;
+using RefSignal = Signal<D,std::reference_wrapper<S>>;
 
 template <typename D, typename S>
-using RVarRefSignal = RVarSignal<D,std::reference_wrapper<S>>;
+using VarRefSignal = VarSignal<D,std::reference_wrapper<S>>;
 
 template <typename D, typename E>
-class REvents;
+class Events;
 
 template <typename D, typename E>
-class REventSource;
+class EventSource;
 
 enum class EventToken;
 
@@ -36,8 +36,8 @@ template
     typename F,
     typename ... TArgs
 >
-auto MakeSignal(F&& func, const RSignal<D,TArgs>& ... args)
-    -> RSignal<D, typename std::result_of<F(TArgs...)>::type>;
+auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
+    -> Signal<D, typename std::result_of<F(TArgs...)>::type>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsSignal
@@ -46,10 +46,10 @@ template <typename D, typename T>
 struct IsSignal { static const bool value = false; };
 
 template <typename D, typename T>
-struct IsSignal<D, RSignal<D,T>> { static const bool value = true; };
+struct IsSignal<D, Signal<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsSignal<D, RVarSignal<D,T>> { static const bool value = true; };
+struct IsSignal<D, VarSignal<D,T>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsEvent
@@ -58,10 +58,10 @@ template <typename D, typename T>
 struct IsEvent { static const bool value = false; };
 
 template <typename D, typename T>
-struct IsEvent<D, REvents<D,T>> { static const bool value = true; };
+struct IsEvent<D, Events<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsEvent<D, REventSource<D,T>> { static const bool value = true; };
+struct IsEvent<D, EventSource<D,T>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsReactive
@@ -70,16 +70,16 @@ template <typename D, typename T>
 struct IsReactive { static const bool value = false; };
 
 template <typename D, typename T>
-struct IsReactive<D, RSignal<D,T>> { static const bool value = true; };
+struct IsReactive<D, Signal<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsReactive<D, RVarSignal<D,T>> { static const bool value = true; };
+struct IsReactive<D, VarSignal<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsReactive<D, REvents<D,T>> { static const bool value = true; };
+struct IsReactive<D, Events<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsReactive<D, REventSource<D,T>> { static const bool value = true; };
+struct IsReactive<D, EventSource<D,T>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// RemoveInput
@@ -88,9 +88,9 @@ template <typename D, typename T>
 struct RemoveInput { using Type = T; };
 
 template <typename D, typename T>
-struct RemoveInput<D, RVarSignal<D,T>> { using Type = RSignal<D,T>; };
+struct RemoveInput<D, VarSignal<D,T>> { using Type = Signal<D,T>; };
 
 template <typename D, typename T>
-struct RemoveInput<D, REventSource<D,T>> { using Type = REvents<D,T>; };
+struct RemoveInput<D, EventSource<D,T>> { using Type = Events<D,T>; };
 
 /******************************************/ REACT_END /******************************************/

@@ -21,30 +21,30 @@ template <typename T>
 class Reactive;
 
 template <typename D, typename S>
-class RSignal;
+class Signal;
 
 template <typename D, typename E>
-class REvents;
+class Events;
 
 enum class EventToken;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// RObserver
+/// Observer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
-class RObserver
+class Observer
 {
 public:
     using SubjectT = REACT_IMPL::NodeBase<D>;
     using ObserverNodeT = REACT_IMPL::ObserverNode<D>;
 
-    RObserver() :
+    Observer() :
         ptr_{ nullptr },
         subject_{ nullptr }
     {
     }
 
-    RObserver(ObserverNodeT* ptr, const std::shared_ptr<SubjectT>& subject) :
+    Observer(ObserverNodeT* ptr, const std::shared_ptr<SubjectT>& subject) :
         ptr_{ ptr },
         subject_{ subject }
     {
@@ -155,8 +155,8 @@ template
     typename F,
     typename TArg
 >
-inline auto Observe(const RSignal<D,TArg>& subject, F&& func)
-    -> RObserver<D>
+inline auto Observe(const Signal<D,TArg>& subject, F&& func)
+    -> Observer<D>
 {
     std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
         new  REACT_IMPL::SignalObserverNode<D,TArg>(
@@ -166,7 +166,7 @@ inline auto Observe(const RSignal<D,TArg>& subject, F&& func)
 
     D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
-    return RObserver<D>(raw, subject.GetPtr());
+    return Observer<D>(raw, subject.GetPtr());
 }
 
 template
@@ -177,8 +177,8 @@ template
     typename = std::enable_if<
         ! std::is_same<TArg,EventToken>::value>::type
 >
-inline auto Observe(const REvents<D,TArg>& subject, F&& func)
-    -> RObserver<D>
+inline auto Observe(const Events<D,TArg>& subject, F&& func)
+    -> Observer<D>
 {
     std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
         new  REACT_IMPL::EventObserverNode<D,TArg>(
@@ -188,7 +188,7 @@ inline auto Observe(const REvents<D,TArg>& subject, F&& func)
 
     D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
-    return RObserver<D>(raw, subject.GetPtr());
+    return Observer<D>(raw, subject.GetPtr());
 }
 
 template
@@ -196,8 +196,8 @@ template
     typename D,
     typename F
 >
-inline auto Observe(const REvents<D,EventToken>& subject, F&& func)
-    -> RObserver<D>
+inline auto Observe(const Events<D,EventToken>& subject, F&& func)
+    -> Observer<D>
 {
     std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
         new  REACT_IMPL::EventObserverNode<D,EventToken>(
@@ -207,7 +207,7 @@ inline auto Observe(const REvents<D,EventToken>& subject, F&& func)
 
     D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
-    return RObserver<D>(raw, subject.GetPtr());
+    return Observer<D>(raw, subject.GetPtr());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

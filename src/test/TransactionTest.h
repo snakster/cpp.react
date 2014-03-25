@@ -101,7 +101,7 @@ TYPED_TEST_P(TransactionTest, Concurrent2)
     auto in = MyDomain::MakeVar(-1);
 
     // 1. Generate graph
-    MyDomain::Signal<int> n0 = in;
+    MyDomain::SignalT<int> n0 = in;
 
     auto next = n0;
 

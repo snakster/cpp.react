@@ -24,7 +24,7 @@
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 template <typename D>
-class RReactiveLoop
+class ReactiveLoop
 {
 public:
     class Context;
@@ -40,13 +40,13 @@ public:
         }
 
         template <typename E>
-        E& Take(const REvents<D,E>& evn)
+        E& Take(const Events<D,E>& evn)
         {
             return node_.Take<E>(evn.GetPtr());
         }
 
         template <typename E, typename F>
-        void RepeatUntil(const REvents<D,E>& evn, F func)
+        void RepeatUntil(const Events<D,E>& evn, F func)
         {
             node_.RepeatUntil<E>(evn.GetPtr(), func);
         }
@@ -56,7 +56,7 @@ public:
     };
 
     template <typename F>
-    RReactiveLoop(F&& func) :
+    ReactiveLoop(F&& func) :
         nodePtr_{ new REACT_IMPL::ReactorNode<D, Context>(std::forward<F>(func), false) }
     {
         nodePtr_->StartLoop();

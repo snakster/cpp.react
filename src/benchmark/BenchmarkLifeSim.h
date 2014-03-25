@@ -31,7 +31,7 @@ using std::pair;
 using std::make_pair;
 using std::get;
 
-enum class Seasons        { summer,  winter };
+enum class Seasons      { summer,  winter };
 enum class Migration    { enter,  leave };
 
 typedef pair<int,int> PositionT;
@@ -40,12 +40,12 @@ template <typename D>
 class Time : public ReactiveObject<D>
 {
 public:
-    EventSource<bool>    NewDay    = MakeEventSource<bool>();
+    EventSourceT<bool>    NewDay    = MakeEventSource<bool>();
 
-    Signal<int>        TotalDays    = Iterate(0, NewDay, Incrementer<int>());
-    Signal<int>        DayOfYear    = TotalDays % 365;
+    SignalT<int>        TotalDays    = Iterate(0, NewDay, Incrementer<int>());
+    SignalT<int>        DayOfYear    = TotalDays % 365;
 
-    Signal<Seasons>    Season = DayOfYear ->* [] (int day) {
+    SignalT<Seasons>    Season = DayOfYear ->* [] (int day) {
         return day < 180 ? Seasons::winter : Seasons::summer;
     };
 };
@@ -56,26 +56,26 @@ class Region : public ReactiveObject<D>
     Time<D>&            theTime;
 
 public:
-    typedef tuple<int,int,int,int> BoundsT;
+    using BoundsT = tuple<int,int,int,int>;
 
     BoundsT Bounds;
 
-    EventSource<Migration>    EnterOrLeave = MakeEventSource<Migration>();
+    EventSourceT<Migration>    EnterOrLeave = MakeEventSource<Migration>();
 
-    Signal<int>    AnimalCount = Fold(0, EnterOrLeave, [] (int count, Migration m) {
+    SignalT<int>    AnimalCount = Fold(0, EnterOrLeave, [] (int count, Migration m) {
         return m == Migration::enter ? count + 1 : count - 1;
     });
 
-    Signal<int>    FoodPerDay = theTime.Season ->* [] (Seasons season) {
+    SignalT<int>    FoodPerDay = theTime.Season ->* [] (Seasons season) {
         return season == Seasons::summer ? 20 : 10;
     };
 
-    Signal<int>    FoodOutputPerDay =
+    SignalT<int>    FoodOutputPerDay =
         (FoodPerDay, AnimalCount) ->* [] (int food, int count) {
             return count > 0 ? food/count : 0;
     };
 
-    Events<int> FoodOutput = Pulse(FoodOutputPerDay, theTime.NewDay);
+    EventsT<int> FoodOutput = Pulse(FoodOutputPerDay, theTime.NewDay);
 
     Region(Time<D>& time, int x, int y):
         theTime { time },
@@ -149,11 +149,11 @@ class Animal : public ReactiveObject<D>
     std::mt19937 generator;
 
 public:
-    Signal<PositionT>            Position;
-    VarSignal<Region<D>*>    CurrentRegion;
-    Signal<Region<D>*>    NewRegion;
+    SignalT<PositionT>      Position;
+    VarSignalT<Region<D>*>  CurrentRegion;
+    SignalT<Region<D>*>     NewRegion;
 
-    Animal(Time<D>& time, World<D>&    world, Region<D>* initRegion, unsigned seed) :
+    Animal(Time<D>& time, World<D>& world, Region<D>* initRegion, unsigned seed) :
         theTime( time ),
         theWorld( world ),
         CurrentRegion( MakeVar(initRegion) ),
@@ -192,21 +192,21 @@ public:
         });
     }
         
-    Events<int> FoodReceived = REACTIVE_PTR(CurrentRegion, FoodOutput);
+    EventsT<int>    FoodReceived = REACTIVE_PTR(CurrentRegion, FoodOutput);
 
-    Signal<int>    Age = Iterate(0, theTime.NewDay, Incrementer<int>());
+    SignalT<int>    Age = Iterate(0, theTime.NewDay, Incrementer<int>());
 
-    Signal<int>    Health = Fold(100, FoodReceived, [] (int health, int food) {
+    SignalT<int>    Health = Fold(100, FoodReceived, [] (int health, int food) {
         auto newHealth = health + food - 10;
         return newHealth < 0 ? 0 : newHealth > 10000 ? 10000 : newHealth;
     });
 
-    //Signal<bool>        YoungAndHealthy = Age < 1000 && Health > 0;
+    //Signal<bool>  YoungAndHealthy = Age < 1000 && Health > 0;
     
-    //Event<bool>        Migrating = EventSource<bool>();
+    //Event<bool>   Migrating = EventSource<bool>();
 
-    Signal<bool>        ShouldMigrate = Hold(0, FoodReceived) < 10;
-    Events<bool>        Moving = Pulse(ShouldMigrate, theTime.NewDay);
+    SignalT<bool>   ShouldMigrate = Hold(0, FoodReceived) < 10;
+    EventsT<bool>   Moving = Pulse(ShouldMigrate, theTime.NewDay);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

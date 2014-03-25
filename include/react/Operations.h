@@ -31,10 +31,10 @@ template
     typename E,
     typename F
 >
-auto Fold(V&& init, const REvents<D,E>& events, F&& func)
-    -> RSignal<D,S>
+auto Fold(V&& init, const Events<D,E>& events, F&& func)
+    -> Signal<D,S>
 {
-    return RSignal<D,S>(
+    return Signal<D,S>(
         std::make_shared<REACT_IMPL::FoldNode<D,S,E>>(
             std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
 }
@@ -50,10 +50,10 @@ template
     typename E,
     typename F
 >
-auto Iterate(V&& init, const REvents<D,E>& events, F&& func)
-    -> RSignal<D,S>
+auto Iterate(V&& init, const Events<D,E>& events, F&& func)
+    -> Signal<D,S>
 {
-    return RSignal<D,S>(
+    return Signal<D,S>(
         std::make_shared<REACT_IMPL::IterateNode<D,S,E>>(
             std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
 }
@@ -67,10 +67,10 @@ template
     typename V,
     typename T = std::decay<V>::type
 >
-auto Hold(V&& init, const REvents<D,T>& events)
-    -> RSignal<D,T>
+auto Hold(V&& init, const Events<D,T>& events)
+    -> Signal<D,T>
 {
-    return RSignal<D,T>(
+    return Signal<D,T>(
         std::make_shared<REACT_IMPL::HoldNode<D,T>>(
             std::forward<V>(init), events.GetPtr(), false));
 }
@@ -84,10 +84,10 @@ template
     typename S,
     typename E
 >
-auto Snapshot(const RSignal<D,S>& target, const REvents<D,E>& trigger)
-    -> RSignal<D,S>
+auto Snapshot(const Signal<D,S>& target, const Events<D,E>& trigger)
+    -> Signal<D,S>
 {
-    return RSignal<D,S>(
+    return Signal<D,S>(
         std::make_shared<REACT_IMPL::SnapshotNode<D,S,E>>(
             target.GetPtr(), trigger.GetPtr(), false));
 }
@@ -100,10 +100,10 @@ template
     typename D,
     typename S
 >
-auto Monitor(const RSignal<D,S>& target)
-    -> REvents<D,S>
+auto Monitor(const Signal<D,S>& target)
+    -> Events<D,S>
 {
-    return REvents<D,S>(
+    return Events<D,S>(
         std::make_shared<REACT_IMPL::MonitorNode<D, S>>(
             target.GetPtr(), false));
 }
@@ -116,8 +116,8 @@ template
     typename D,
     typename S
 >
-auto Changed(const RSignal<D,S>& target)
-    -> REvents<D,bool>
+auto Changed(const Signal<D,S>& target)
+    -> Events<D,bool>
 {
     return Transform(Monitor(target), [] (const S& v) { return true; });
 }
@@ -131,8 +131,8 @@ template
     typename V,
     typename S = std::decay<V>::type
 >
-auto ChangedTo(const RSignal<D,S>& target, V&& value)
-    -> REvents<D,bool>
+auto ChangedTo(const Signal<D,S>& target, V&& value)
+    -> Events<D,bool>
 {
     auto transformFunc  = [=] (const S& v)    { return v == value; };
     auto filterFunc     = [=] (bool v)        { return v == true; };
@@ -149,10 +149,10 @@ template
     typename S,
     typename E
 >
-auto Pulse(const RSignal<D,S>& target, const REvents<D,E>& trigger)
-    -> REvents<D,S>
+auto Pulse(const Signal<D,S>& target, const Events<D,E>& trigger)
+    -> Events<D,S>
 {
-    return REvents<D,S>(
+    return Events<D,S>(
         std::make_shared<REACT_IMPL::PulseNode<D,S,E>>(
             target.GetPtr(), trigger.GetPtr(), false));
 }
@@ -165,11 +165,11 @@ template
     typename D,
     typename TInnerValue
 >
-auto Flatten(const RSignal<D,REvents<D,TInnerValue>>& node)
-    -> REvents<D,TInnerValue>
+auto Flatten(const Signal<D,Events<D,TInnerValue>>& node)
+    -> Events<D,TInnerValue>
 {
-    return REvents<D,TInnerValue>(
-        std::make_shared<REACT_IMPL::EventFlattenNode<D, REvents<D,TInnerValue>, TInnerValue>>(
+    return Events<D,TInnerValue>(
+        std::make_shared<REACT_IMPL::EventFlattenNode<D, Events<D,TInnerValue>, TInnerValue>>(
             node.GetPtr(), node().GetPtr(), false));
 }
 

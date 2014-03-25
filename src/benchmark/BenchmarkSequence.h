@@ -43,7 +43,7 @@ struct Benchmark_Sequence : public BenchmarkBase<D>
     double Run(const BenchmarkParams_Sequence& params)
     {
         using MyDomain = D;
-        using MyHandle = MyDomain::Signal<int>;
+        using MyHandle = MyDomain::SignalT<int>;
 
         bool initializing = true;
 

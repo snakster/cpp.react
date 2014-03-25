@@ -25,51 +25,51 @@ template
 class RandomGraphGenerator
 {
 public:
-    typedef typename D::template Signal<TValue>            MyHandle;
-    typedef typename D::template VarSignal<TValue>        MyInputHandle;
+    typedef typename D::template SignalT<TValue>        MyHandle;
+    typedef typename D::template VarSignalT<TValue>     MyInputHandle;
 
-    typedef std::vector<MyHandle>        HandleVect;
-    typedef std::vector<MyInputHandle>    InputHandleVect;
+    typedef std::vector<MyHandle>       HandleVect;
+    typedef std::vector<MyInputHandle>  InputHandleVect;
 
-    InputHandleVect    InputSignals;
-    HandleVect        OutputSignals;
+    InputHandleVect InputSignals;
+    HandleVect      OutputSignals;
 
     std::function<void()>    SlowDelayFunc;
     std::function<void()>    FastDelayFunc;
 
 
-    typedef std::function<TValue(TValue)>                        Func1T;
+    typedef std::function<TValue(TValue)>                       Func1T;
     typedef std::function<TValue(TValue,TValue)>                Func2T;
-    typedef std::function<TValue(TValue,TValue,TValue)>            Func3T;
-    typedef std::function<TValue(TValue,TValue,TValue,TValue)>    Func4T;
+    typedef std::function<TValue(TValue,TValue,TValue)>         Func3T;
+    typedef std::function<TValue(TValue,TValue,TValue,TValue)>  Func4T;
 
     Func1T    Function1;
     Func2T    Function2;
     Func3T    Function3;
     Func4T    Function4;
 
-    int        Width    = 1;
-    int        Height    = 1;
+    int     Width    = 1;
+    int     Height    = 1;
 
-    int        SelectSlowCount = 0;
-    int        SelectEdgeCount = 0;
+    int     SelectSlowCount = 0;
+    int     SelectEdgeCount = 0;
 
-    int        EdgeSeed;
-    int        SlowSeed;
+    int     EdgeSeed;
+    int     SlowSeed;
 
     void Generate()
     {
         assert(InputSignals.size() == Width);
 
-        Func1T f1Slow = [this] (TValue a1)                                    { SlowDelayFunc(); return Function1(a1); };
-        Func2T f2Slow = [this] (TValue a1, TValue a2)                        { SlowDelayFunc(); return Function2(a1,a2); };
+        Func1T f1Slow = [this] (TValue a1)                                  { SlowDelayFunc(); return Function1(a1); };
+        Func2T f2Slow = [this] (TValue a1, TValue a2)                       { SlowDelayFunc(); return Function2(a1,a2); };
         Func3T f3Slow = [this] (TValue a1, TValue a2, TValue a3)            { SlowDelayFunc(); return Function3(a1,a2,a3); };
-        Func4T f4Slow = [this] (TValue a1, TValue a2, TValue a3, TValue a4)    { SlowDelayFunc(); return Function4(a1,a2,a3,a4); };
+        Func4T f4Slow = [this] (TValue a1, TValue a2, TValue a3, TValue a4) { SlowDelayFunc(); return Function4(a1,a2,a3,a4); };
 
-        Func1T f1Fast = [this] (TValue a1)                                    { FastDelayFunc(); return Function1(a1); };
-        Func2T f2Fast = [this] (TValue a1, TValue a2)                        { FastDelayFunc(); return Function2(a1,a2); };
+        Func1T f1Fast = [this] (TValue a1)                                  { FastDelayFunc(); return Function1(a1); };
+        Func2T f2Fast = [this] (TValue a1, TValue a2)                       { FastDelayFunc(); return Function2(a1,a2); };
         Func3T f3Fast = [this] (TValue a1, TValue a2, TValue a3)            { FastDelayFunc(); return Function3(a1,a2,a3); };
-        Func4T f4Fast = [this] (TValue a1, TValue a2, TValue a3, TValue a4)    { FastDelayFunc(); return Function4(a1,a2,a3,a4); };
+        Func4T f4Fast = [this] (TValue a1, TValue a2, TValue a3, TValue a4) { FastDelayFunc(); return Function4(a1,a2,a3,a4); };
 
         int nodeCount = Width * Height;
         

@@ -25,26 +25,26 @@ public:
     using DomainT = D;
 
     template <typename S>
-    using Signal = RSignal<D,S>;
+    using SignalT = Signal<D,S>;
 
     template <typename S>
-    using VarSignal = RVarSignal<D,S>;
+    using VarSignalT = VarSignal<D,S>;
 
     template <typename S>
-    using RefSignal = RRefSignal<D,S>;
+    using RefSignalT = RefSignal<D,S>;
 
     template <typename S>
-    using VarRefSignal = RVarRefSignal<D,S>;
+    using VarRefSignalT = VarRefSignal<D,S>;
 
     template <typename E = EventToken>
-    using Events = REvents<D,E>;
+    using EventsT = Events<D,E>;
 
     template <typename E = EventToken>
-    using EventSource = REventSource<D,E>;
+    using EventSourceT = EventSource<D,E>;
 
-    using Observer = RObserver<D>;
+    using ObserverT = Observer<D>;
 
-    using ReactiveLoop = RReactiveLoop<D>;
+    using ReactiveLoopT = ReactiveLoop<D>;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     /// MakeVar
@@ -57,7 +57,7 @@ public:
             !IsSignal<D,S>::value>::type
     >
     static auto MakeVar(V&& value)
-        -> VarSignal<S>
+        -> VarSignalT<S>
     {
         return REACT::MakeVar<D>(std::forward<V>(value));
     }
@@ -74,7 +74,7 @@ public:
             IsSignal<D,S>::value>::type
     >
     static auto MakeVar(V&& value)
-        -> VarSignal<Signal<TInner>>
+        -> VarSignalT<SignalT<TInner>>
     {
         return REACT::MakeVar<D>(std::forward<V>(value));
     }
@@ -87,8 +87,8 @@ public:
         typename F,
         typename ... TArgs
     >
-    static auto MakeSignal(F&& func, const Signal<TArgs>& ... args)
-        -> Signal<typename std::result_of<F(TArgs...)>::type>
+    static auto MakeSignal(F&& func, const SignalT<TArgs>& ... args)
+        -> SignalT<typename std::result_of<F(TArgs...)>::type>
     {
         using S = typename std::result_of<F(TArgs...)>::type;
 
@@ -100,7 +100,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename E>
     static auto MakeEventSource()
-        -> EventSource<E>
+        -> EventSourceT<E>
     {
         return REACT::MakeEventSource<D,E>();
     }
