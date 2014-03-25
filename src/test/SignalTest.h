@@ -290,7 +290,7 @@ TYPED_TEST_P(SignalTest, FunctionBind1)
 
 int myfunc(int a, int b)        { return a + b; }
 float myfunc2(int a)            { return a / 2.0f; }
-float myfunc3(float a, float b)    { return a * b; }
+float myfunc3(float a, float b) { return a * b; }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FunctionBind2 test

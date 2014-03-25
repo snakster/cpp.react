@@ -41,7 +41,7 @@ public:
     using WeakPtrT  = std::weak_ptr<EventStreamNode>;
 
     using EngineT   = typename D::Engine;
-    using TurnT     = typename EngineT::TurnInterface;
+    using TurnT     = typename EngineT::TurnT;
 
     explicit EventStreamNode(bool registered) :
         ReactiveNode(true)
@@ -104,8 +104,8 @@ public:
     {
         if (events_.size() > 0 && !changedFlag_)
         {
-            using TurnT = typename D::Engine::TurnInterface;
-            TurnT& turn = *static_cast<TurnInterface*>(turnPtr);
+            using TurnT = typename D::Engine::TurnT;
+            TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
             SetCurrentTurn(turn, true, true);
             changedFlag_ = true;
@@ -176,7 +176,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         //printf("EventMergeNode: Tick %08X by thread %08X\n", this, std::this_thread::get_id().hash());
@@ -189,12 +189,12 @@ public:
 
         if (events_.size() > 0)
         {
-            Engine::OnNodePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::pulsed;
         }
         else
         {
-            Engine::OnNodeIdlePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::idle_pulsed;
         }
     }
@@ -203,15 +203,15 @@ public:
 
 private:
     const std::tuple<EventStreamNodePtr<D, TArgs> ...>  deps_;
-    const std::function<void(const TurnInterface&)>     func_;
+    const std::function<void(const TurnT&)>     func_;
 
-    inline void expand(const TurnInterface& turn, const EventStreamNodePtr<D, TArgs>& ... args)
+    inline void expand(const TurnT& turn, const EventStreamNodePtr<D, TArgs>& ... args)
     {
         REACT_EXPAND_PACK(processArgs<TArgs>(turn, args));
     }
 
     template <typename TArg>
-    inline void processArgs(const TurnInterface& turn, const EventStreamNodePtr<D, TArg>& arg)
+    inline void processArgs(const TurnT& turn, const EventStreamNodePtr<D, TArg>& arg)
     {
         arg->SetCurrentTurn(turn);
 
@@ -251,7 +251,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
@@ -262,12 +262,12 @@ public:
 
         if (events_.size() > 0)
         {
-            Engine::OnNodePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::pulsed;
         }
         else
         {
-            Engine::OnNodeIdlePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::idle_pulsed;
         }
     }
@@ -312,7 +312,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
@@ -323,12 +323,12 @@ public:
 
         if (events_.size() > 0)
         {
-            Engine::OnNodePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::pulsed;
         }
         else
         {
-            Engine::OnNodeIdlePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::idle_pulsed;
         }
     }

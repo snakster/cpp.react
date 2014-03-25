@@ -23,7 +23,7 @@
 template <typename D>
 class NodeBase :
     public std::enable_shared_from_this<NodeBase<D>>,
-    public D::Policy::Engine::NodeInterface
+    public D::Policy::Engine::NodeT
 {
 public:
     using PtrT = std::shared_ptr<NodeBase>;
@@ -31,8 +31,8 @@ public:
     using Domain = D;
     using Policy = typename D::Policy;
     using Engine = typename D::Engine;
-    using NodeInterface = typename Engine::NodeInterface;
-    using TurnInterface = typename Engine::TurnInterface;
+    using NodeT = typename Engine::NodeT;
+    using TurnT = typename Engine::TurnT;
 
     virtual const char* GetNodeType() const override { return "NodeBase"; }
     

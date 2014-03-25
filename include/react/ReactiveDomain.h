@@ -67,7 +67,7 @@ template <typename D, typename TPolicy>
 class DomainBase
 {
 public:
-    using TurnT = typename TPolicy::Engine::TurnInterface;
+    using TurnT = typename TPolicy::Engine::TurnT;
 
     DomainBase() = delete;
 

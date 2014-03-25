@@ -9,11 +9,9 @@
 #include "react/Defs.h"
 
 #include <memory>
-#include <map>
 #include <cstdint>
 #include <functional>
 #include <iostream>
-#include <queue>
 #include <chrono>
 
 #include "react/common/Types.h"
@@ -88,9 +86,9 @@ public:
     }
 
 private:
-    typedef tbb::concurrent_vector<Entry>    LogEntries;
+    using LogEntriesT = tbb::concurrent_vector<Entry>;
 
-    LogEntries  entries_;
+    LogEntriesT  entries_;
     TimestampT  startTime_;
 };
 

@@ -74,7 +74,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
@@ -142,7 +142,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());

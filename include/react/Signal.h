@@ -20,24 +20,6 @@
 #include "react/common/Util.h"
 #include "react/graph/SignalNodes.h"
 
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-template <typename D, typename S>
-class SignalNode;
-
-template <typename D, typename S>
-class VarNode;
-
-template
-<
-    typename D,
-    typename S,
-    typename ... TArgs
->
-class FunctionNode;
-
-/****************************************/ REACT_IMPL_END /***************************************/
-
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

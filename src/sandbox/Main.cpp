@@ -31,12 +31,12 @@ void SignalExample1()
 {
     cout << "Signal Example 1" << endl;
 
-    auto width = D::MakeVar(60);
+    auto width  = D::MakeVar(60);
     auto height = D::MakeVar(70);
-    auto depth = D::MakeVar(8);
+    auto depth  = D::MakeVar(8);
 
-    auto area    = width * height;
-    auto volume    = area * depth;
+    auto area   = width * height;
+    auto volume = area  * depth;
 
     cout << "t0" << endl;
     cout << "\tArea: " << area() << endl;
@@ -56,9 +56,9 @@ void SignalExample2()
 {
     cout << "Signal Example 2" << endl;
 
-    auto width = D::MakeVar(60);
+    auto width  = D::MakeVar(60);
     auto height = D::MakeVar(70);
-    auto depth = D::MakeVar(8);
+    auto depth  = D::MakeVar(8);
 
     auto volume = (width,height,depth) ->* [] (int w, int h, int d) {
         return w * h * d;
@@ -219,7 +219,7 @@ public:
         CurrentCompany{ MakeVar(std::ref(c)) }
     {
         nameObs = REACTIVE_REF(CurrentCompany, Name).Observe([] (string name) {
-            cout << "Manager: Now managing " << name.c_str() << endl;
+            cout << "Manager: Now managing " << name << endl;
         });
     }
 };

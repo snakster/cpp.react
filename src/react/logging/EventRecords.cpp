@@ -112,22 +112,37 @@ void NodeIdlePulseEvent::Serialize(std::ostream& out) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// NodeInvalidateEvent
+/// DynamicNodeAttachEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-NodeInvalidateEvent::NodeInvalidateEvent(ObjectId nodeId, ObjectId oldParentId, ObjectId newParentId, int transactionId) :
+DynamicNodeAttachEvent::DynamicNodeAttachEvent(ObjectId nodeId, ObjectId parentId, int transactionId) :
     nodeId_{ nodeId },
-    oldParentId_ {oldParentId },
-    newParentId_{ newParentId },
+    parentId_{ parentId },
     transactionId_{ transactionId }
 {
 }
 
-void NodeInvalidateEvent::Serialize(std::ostream& out) const
+void DynamicNodeAttachEvent::Serialize(std::ostream& out) const
 {
     out << "> Node = " << nodeId_ << std::endl;
+    out << "> Parent = " << parentId_ << std::endl;
     out << "> Transaction = " << transactionId_ << std::endl;
-    out << "> OldParent = " << oldParentId_ << std::endl;
-    out << "> NewParent = " << newParentId_ << std::endl;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// DynamicNodeDetachEvent
+///////////////////////////////////////////////////////////////////////////////////////////////////
+DynamicNodeDetachEvent::DynamicNodeDetachEvent(ObjectId nodeId, ObjectId parentId, int transactionId) :
+    nodeId_{ nodeId },
+    parentId_{ parentId },
+    transactionId_{ transactionId }
+{
+}
+
+void DynamicNodeDetachEvent::Serialize(std::ostream& out) const
+{
+    out << "> Node = " << nodeId_ << std::endl;
+    out << "> Parent = " << parentId_ << std::endl;
+    out << "> Transaction = " << transactionId_ << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

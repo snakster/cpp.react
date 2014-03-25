@@ -15,34 +15,32 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename TNodeInterface,
-    typename TTurnInterface
+    typename TNode,
+    typename TTurn
 >
 struct IReactiveEngine
 {
-    using NodeInterface = TNodeInterface;
-    using TurnInterface = TTurnInterface;
+    using NodeT = TNode;
+    using TurnT = TTurn;
 
-    void OnNodeCreate(NodeInterface& node)                                {}
-    void OnNodeDestroy(NodeInterface& node)                                {}
+    void OnNodeCreate(NodeT& node)          {}
+    void OnNodeDestroy(NodeT& node)         {}
 
-    void OnNodeAttach(NodeInterface& node, NodeInterface& parent)        {}
-    void OnNodeDetach(NodeInterface& node, NodeInterface& parent)        {}
+    void OnNodeAttach(NodeT& node, NodeT& parent)   {}
+    void OnNodeDetach(NodeT& node, NodeT& parent)   {}
 
-    void OnTurnAdmissionStart(TurnInterface& turn)                        {}
-    void OnTurnAdmissionEnd(TurnInterface& turn)                        {}
-    void OnTurnEnd(TurnInterface& turn)                                    {}
+    void OnTurnAdmissionStart(TurnT& turn)  {}
+    void OnTurnAdmissionEnd(TurnT& turn)    {}
+    void OnTurnEnd(TurnT& turn)             {}
 
-    void OnTurnInputChange(NodeInterface& node, TurnInterface& turn)    {}
-    void OnTurnPropagate(TurnInterface& turn)                            {}
+    void OnTurnInputChange(NodeT& node, TurnT& turn)    {}
+    void OnTurnPropagate(TurnT& turn)                           {}
 
-    void OnNodePulse(NodeInterface& node, TurnInterface& turn)            {}
-    void OnNodeIdlePulse(NodeInterface& node, TurnInterface& turn)        {}
+    void OnNodePulse(NodeT& node, TurnT& turn)      {}
+    void OnNodeIdlePulse(NodeT& node, TurnT& turn)  {}
 
-    //void OnNodeShift(NodeInterface& node, NodeInterface& oldParent, NodeInterface& newParent, TurnInterface& turn)    {}
-
-    void OnDynamicNodeAttach(NodeInterface& node, NodeInterface& parent, TurnInterface& turn)    {}
-    void OnDynamicNodeDetach(NodeInterface& node, NodeInterface& parent, TurnInterface& turn)    {}
+    void OnDynamicNodeAttach(NodeT& node, NodeT& parent, TurnT& turn)    {}
+    void OnDynamicNodeDetach(NodeT& node, NodeT& parent, TurnT& turn)    {}
 
     template <typename F>
     bool TryMerge(F&& f) { return false; }
@@ -58,8 +56,8 @@ template
 >
 struct EngineInterface
 {
-    using NodeInterface = typename TEngine::NodeInterface;
-    using TurnInterface = typename TEngine::TurnInterface;
+    using NodeT = typename TEngine::NodeT;
+    using TurnT = typename TEngine::TurnT;
 
     static TEngine& Engine()
     {
@@ -67,76 +65,78 @@ struct EngineInterface
         return engine;
     }
 
-    static void OnNodeCreate(NodeInterface& node)
+    static void OnNodeCreate(NodeT& node)
     {
         D::Log().template Append<NodeCreateEvent>(GetObjectId(node), node.GetNodeType());
         Engine().OnNodeCreate(node);
     }
 
-    static void OnNodeDestroy(NodeInterface& node)
+    static void OnNodeDestroy(NodeT& node)
     {
         D::Log().template Append<NodeDestroyEvent>(GetObjectId(node));
         Engine().OnNodeDestroy(node);
     }
 
-    static void OnNodeAttach(NodeInterface& node, NodeInterface& parent)
+    static void OnNodeAttach(NodeT& node, NodeT& parent)
     {
         D::Log().template Append<NodeAttachEvent>(GetObjectId(node), GetObjectId(parent));
         Engine().OnNodeAttach(node, parent);
     }
 
-    static void OnNodeDetach(NodeInterface& node, NodeInterface& parent)
+    static void OnNodeDetach(NodeT& node, NodeT& parent)
     {
         D::Log().template Append<NodeDetachEvent>(GetObjectId(node), GetObjectId(parent));
         Engine().OnNodeDetach(node, parent);
     }
 
-    static void OnNodePulse(NodeInterface& node, TurnInterface& turn)
+    static void OnNodePulse(NodeT& node, TurnT& turn)
     {
         D::Log().template Append<NodePulseEvent>(GetObjectId(node), turn.Id());
         Engine().OnNodePulse(node, turn);
     }
 
-    static void OnNodeIdlePulse(NodeInterface& node, TurnInterface& turn)
+    static void OnNodeIdlePulse(NodeT& node, TurnT& turn)
     {
         D::Log().template Append<NodeIdlePulseEvent>(GetObjectId(node), turn.Id());
         Engine().OnNodeIdlePulse(node, turn);
     }
 
-    static void OnDynamicNodeAttach(NodeInterface& node, NodeInterface& parent, TurnInterface& turn)
+    static void OnDynamicNodeAttach(NodeT& node, NodeT& parent, TurnT& turn)
     {
+        D::Log().template Append<DynamicNodeAttachEvent>(GetObjectId(node), GetObjectId(parent), turn.Id());
         Engine().OnDynamicNodeAttach(node, parent, turn);
     }
 
-    static void OnDynamicNodeDetach(NodeInterface& node, NodeInterface& parent, TurnInterface& turn)
+    static void OnDynamicNodeDetach(NodeT& node, NodeT& parent, TurnT& turn)
     {
+        D::Log().template Append<DynamicNodeDetachEvent>(GetObjectId(node), GetObjectId(parent), turn.Id());
         Engine().OnDynamicNodeDetach(node, parent, turn);
     }
 
-    static void OnTurnAdmissionStart(TurnInterface& turn)
+    static void OnTurnAdmissionStart(TurnT& turn)
     {
         D::Log().template Append<TransactionBeginEvent>(turn.Id());
         Engine().OnTurnAdmissionStart(turn);
     }
 
-    static void OnTurnAdmissionEnd(TurnInterface& turn)
+    static void OnTurnAdmissionEnd(TurnT& turn)
     {
         Engine().OnTurnAdmissionEnd(turn);
     }
 
-    static void OnTurnEnd(TurnInterface& turn)
+    static void OnTurnEnd(TurnT& turn)
     {
         D::Log().template Append<TransactionEndEvent>(turn.Id());
         Engine().OnTurnEnd(turn);
     }
 
-    static void OnTurnInputChange(NodeInterface& node, TurnInterface& turn)
+    static void OnTurnInputChange(NodeT& node, TurnT& turn)
     {
         D::Log().template Append<InputNodeAdmissionEvent>(GetObjectId(node), turn.Id());
         Engine().OnTurnInputChange(node, turn);
     }
 
-    static void OnTurnPropagate(TurnInterface& turn)
+    static void OnTurnPropagate(TurnT& turn)
     {
         Engine().OnTurnPropagate(turn);
     }

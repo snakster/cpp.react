@@ -41,7 +41,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
@@ -185,7 +185,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
@@ -247,7 +247,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         trigger_->SetCurrentTurn(turn);
@@ -308,7 +308,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
@@ -319,12 +319,12 @@ public:
 
         if (events_.size() > 0)
         {
-            Engine::OnNodePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::pulsed;
         }
         else
         {
-            Engine::OnNodeIdlePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::idle_pulsed;
         }
     }
@@ -369,8 +369,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        typedef typename D::Engine::TurnT TurnT;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
         trigger_->SetCurrentTurn(turn);
@@ -382,12 +382,12 @@ public:
 
         if (events_.size() > 0)
         {
-            Engine::OnNodePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::pulsed;
         }
         else
         {
-            Engine::OnNodeIdlePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::idle_pulsed;
         }
     }
@@ -435,8 +435,8 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        typedef typename D::Engine::TurnInterface TurnInterface;
-        TurnInterface& turn = *static_cast<TurnInterface*>(turnPtr);
+        typedef typename D::Engine::TurnT TurnT;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
         inner_->SetCurrentTurn(turn);
@@ -463,12 +463,12 @@ public:
 
         if (events_.size() > 0)
         {
-            Engine::OnNodePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::pulsed;
         }
         else
         {
-            Engine::OnNodeIdlePulse(*this, *static_cast<TurnInterface*>(turnPtr));
+            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
             return ETickResult::idle_pulsed;
         }
     }

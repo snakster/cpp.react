@@ -131,7 +131,7 @@ public:
     {
         if (! impl::Equals(value_, newValue_))
         {
-            using TurnT = typename D::Engine::TurnInterface;
+            using TurnT = typename D::Engine::TurnT;
             TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
             value_ = std::move(newValue_);
@@ -226,7 +226,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash());
@@ -302,7 +302,7 @@ public:
 
     virtual ETickResult Tick(void* turnPtr) override
     {
-        using TurnT = typename D::Engine::TurnInterface;
+        using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         auto newInner = outer_->ValueRef().GetPtr();

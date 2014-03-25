@@ -24,10 +24,7 @@ class NodeCreateEvent : public IEventRecord
 public:
     NodeCreateEvent(ObjectId nodeId, const char* type);
 
-    virtual const char*    EventId() const
-    {
-        return "NodeCreate";
-    }
+    virtual const char* EventId() const { return "NodeCreate"; }
 
     virtual void Serialize(std::ostream& out) const;
 
@@ -44,10 +41,7 @@ class NodeDestroyEvent : public IEventRecord
 public:
     NodeDestroyEvent(ObjectId nodeId);
 
-    virtual const char*    EventId() const
-    {
-        return "NodeDestroy";
-    }
+    virtual const char* EventId() const { return "NodeDestroy"; }
 
     virtual void Serialize(std::ostream& out) const;
 
@@ -63,10 +57,7 @@ class NodeAttachEvent : public IEventRecord
 public:
     NodeAttachEvent(ObjectId nodeId, ObjectId parentId);
 
-    virtual const char*    EventId() const
-    {
-        return "NodeAttach";
-    }
+    virtual const char* EventId() const { return "NodeAttach"; }
     
     virtual void Serialize(std::ostream& out) const;
 
@@ -83,10 +74,7 @@ class NodeDetachEvent : public IEventRecord
 public:
     NodeDetachEvent(ObjectId nodeId, ObjectId parentId);
 
-    virtual const char*    EventId() const
-    {
-        return "NodeDetach";
-    }
+    virtual const char* EventId() const { return "NodeDetach"; }
     
     virtual void Serialize(std::ostream& out) const;
 
@@ -103,16 +91,13 @@ class InputNodeAdmissionEvent : public IEventRecord
 public:
     InputNodeAdmissionEvent(ObjectId nodeId, int transactionId);
 
-    virtual const char*    EventId() const
-    {
-        return "InputNodeAdmission";
-    }
+    virtual const char* EventId() const { return "InputNodeAdmission"; }
 
     virtual void Serialize(std::ostream& out) const;
 
 private:
     ObjectId    nodeId_;
-    int            transactionId_;
+    int         transactionId_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -123,16 +108,13 @@ class NodePulseEvent : public IEventRecord
 public:
     NodePulseEvent(ObjectId nodeId, int transactionId);
 
-    virtual const char*    EventId() const
-    {
-        return "NodePulse";
-    }
+    virtual const char* EventId() const { return "NodePulse"; }
 
     virtual void Serialize(std::ostream& out) const;
 
 private:
     ObjectId    nodeId_;
-    int            transactionId_;
+    int         transactionId_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -143,38 +125,49 @@ class NodeIdlePulseEvent : public IEventRecord
 public:
     NodeIdlePulseEvent(ObjectId nodeId, int transactionId);
 
-    virtual const char*    EventId() const
-    {
-        return "NodeIdlePulse";
-    }
+    virtual const char* EventId() const { return "NodeIdlePulse"; }
 
     virtual void Serialize(std::ostream& out) const;
 
 private:
     ObjectId    nodeId_;
-    int            transactionId_;
+    int         transactionId_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// NodeInvalidateEvent
+/// DynamicNodeAttachEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class NodeInvalidateEvent : public IEventRecord
+class DynamicNodeAttachEvent : public IEventRecord
 {
 public:
-    NodeInvalidateEvent(ObjectId nodeId, ObjectId oldParentId, ObjectId newParentId, int transactionId);
+    DynamicNodeAttachEvent(ObjectId nodeId, ObjectId parentId, int transactionId);
 
-    virtual const char*    EventId() const
-    {
-        return "NodeInvalidate";
-    }
-
+    virtual const char* EventId() const { return "DynamicNodeAttach"; }
+    
     virtual void Serialize(std::ostream& out) const;
 
 private:
     ObjectId    nodeId_;
-    ObjectId    oldParentId_;
-    ObjectId    newParentId_;
-    int            transactionId_;
+    ObjectId    parentId_;
+    int         transactionId_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// DynamicNodeDetachEvent
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class DynamicNodeDetachEvent : public IEventRecord
+{
+public:
+    DynamicNodeDetachEvent(ObjectId nodeId, ObjectId parentId, int transactionId);
+
+    virtual const char* EventId() const { return "DynamicNodeDetach"; }
+    
+    virtual void Serialize(std::ostream& out) const;
+
+private:
+    ObjectId    nodeId_;
+    ObjectId    parentId_;
+    int         transactionId_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -185,17 +178,14 @@ class NodeEvaluateBeginEvent : public IEventRecord
 public:
     NodeEvaluateBeginEvent(ObjectId nodeId, int transactionId, size_t threadId);
 
-    virtual const char*    EventId() const
-    {
-        return "NodeEvaluateBegin";
-    }
+    virtual const char* EventId() const { return "NodeEvaluateBegin"; }
 
     virtual void Serialize(std::ostream& out) const;
 
 private:
     ObjectId    nodeId_;
-    int            transactionId_;
-    size_t        threadId_;
+    int         transactionId_;
+    size_t      threadId_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -206,17 +196,14 @@ class NodeEvaluateEndEvent : public IEventRecord
 public:
     NodeEvaluateEndEvent(ObjectId nodeId, int transactionId, size_t threadId);
 
-    virtual const char*    EventId() const
-    {
-        return "NodeEvaluateEnd";
-    }
+    virtual const char* EventId() const { return "NodeEvaluateEnd"; }
 
     virtual void Serialize(std::ostream& out) const;
 
 private:
     ObjectId    nodeId_;
-    int            transactionId_;
-    size_t        threadId_;
+    int         transactionId_;
+    size_t      threadId_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,10 +214,7 @@ class TransactionBeginEvent : public IEventRecord
 public:
     TransactionBeginEvent(int transactionId);
 
-    virtual const char*    EventId() const
-    {
-        return "TransactionBegin";
-    }
+    virtual const char* EventId() const { return "TransactionBegin"; }
 
     virtual void Serialize(std::ostream& out) const;
 
@@ -246,10 +230,7 @@ class TransactionEndEvent : public IEventRecord
 public:
     TransactionEndEvent(int transactionId);
 
-    virtual const char*    EventId() const
-    {
-        return "TransactionEnd";
-    }
+    virtual const char* EventId() const { return "TransactionEnd"; }
 
     virtual void Serialize(std::ostream& out) const;
 
@@ -265,10 +246,7 @@ class UserBreakpointEvent : public IEventRecord
 public:
     UserBreakpointEvent(const char* name);
 
-    virtual const char*    EventId() const
-    {
-        return "UserBreakpoint";
-    }
+    virtual const char* EventId() const { return "UserBreakpoint"; }
 
     virtual void Serialize(std::ostream& out) const;
 

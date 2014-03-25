@@ -35,7 +35,7 @@ template <typename D>
 class Observer
 {
 public:
-    using SubjectT = REACT_IMPL::NodeBase<D>;
+    using SubjectT      = REACT_IMPL::NodeBase<D>;
     using ObserverNodeT = REACT_IMPL::ObserverNode<D>;
 
     Observer() :
@@ -66,7 +66,7 @@ public:
 
 private:
     // Ownership managed by registry
-    ObserverNodeT*        ptr_;
+    ObserverNodeT*  ptr_;
 
     // While the observer handle exists, the subject is not destroyed
     std::shared_ptr<SubjectT>    subject_;
@@ -83,7 +83,7 @@ template <typename D>
 class ObserverRegistry
 {
 public:
-    typedef NodeBase<D>    SubjectT;
+    using SubjectT = NodeBase<D>;
 
 private:
     class Entry_
@@ -139,7 +139,7 @@ public:
     }
 
 private:
-    std::unordered_map<IObserverNode*,Entry_>    observerMap_;
+    std::unordered_map<IObserverNode*,Entry_>   observerMap_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
@@ -155,7 +155,7 @@ template
     typename F,
     typename TArg
 >
-inline auto Observe(const Signal<D,TArg>& subject, F&& func)
+auto Observe(const Signal<D,TArg>& subject, F&& func)
     -> Observer<D>
 {
     std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
@@ -177,7 +177,7 @@ template
     typename = std::enable_if<
         ! std::is_same<TArg,EventToken>::value>::type
 >
-inline auto Observe(const Events<D,TArg>& subject, F&& func)
+auto Observe(const Events<D,TArg>& subject, F&& func)
     -> Observer<D>
 {
     std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
@@ -196,7 +196,7 @@ template
     typename D,
     typename F
 >
-inline auto Observe(const Events<D,EventToken>& subject, F&& func)
+auto Observe(const Events<D,EventToken>& subject, F&& func)
     -> Observer<D>
 {
     std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
@@ -219,7 +219,7 @@ template
     template <typename Domain_, typename Val_> class TNode,
     typename TArg
 >
-inline void DetachAllObservers(const Reactive<TNode<D,TArg>>& subject)
+void DetachAllObservers(const Reactive<TNode<D,TArg>>& subject)
 {
     D::Observers().UnregisterFrom(subject.GetPtr().get());
 }

@@ -41,7 +41,7 @@ public:
     using LoopT = typename CoroutineT::pull_type;
     using OutT = typename CoroutineT::push_type;
     
-    using TurnT = typename D::Engine::TurnInterface;
+    using TurnT = typename D::Engine::TurnT;
 
     template <typename F>
     ReactorNode(F&& func, bool registered) :
