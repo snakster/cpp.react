@@ -72,7 +72,7 @@ public:
 
     virtual const char* GetNodeType() const override { return "SignalObserverNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -95,7 +95,7 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        return ETickResult::none;
+        return;
     }
 
     virtual int DependencyCount() const    { return 1; }
@@ -143,7 +143,7 @@ public:
 
     virtual const char* GetNodeType() const override { return "EventObserverNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -169,7 +169,7 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        return ETickResult::none;
+        return;
     }
 
     virtual int DependencyCount() const    { return 1; }

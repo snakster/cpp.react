@@ -88,7 +88,9 @@ template
     typename D,
     typename E
 >
-class EventSourceNode : public EventStreamNode<D,E>
+class EventSourceNode :
+    public EventStreamNode<D,E>,
+    public IInputNode
 {
 public:
     explicit EventSourceNode(bool registered) :
@@ -100,22 +102,10 @@ public:
 
     virtual const char* GetNodeType() const override    { return "EventSourceNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
-        if (events_.size() > 0 && !changedFlag_)
-        {
-            using TurnT = typename D::Engine::TurnT;
-            TurnT& turn = *static_cast<TurnT*>(turnPtr);
-
-            SetCurrentTurn(turn, true, true);
-            changedFlag_ = true;
-            Engine::OnTurnInputChange(*this, turn);
-            return ETickResult::pulsed;
-        }
-        else
-        {
-            return ETickResult::none;
-        }
+        REACT_ASSERT(false, "Don't tick the EventSourceNode\n");
+        return;
     }
 
     virtual bool IsInputNode() const override    { return true; }
@@ -131,6 +121,24 @@ public:
         }
 
         events_.push_back(std::forward<V>(v));
+    }
+
+    virtual bool ApplyInput(void* turnPtr) override
+    {
+        if (events_.size() > 0 && !changedFlag_)
+        {
+            using TurnT = typename D::Engine::TurnT;
+            TurnT& turn = *static_cast<TurnT*>(turnPtr);
+
+            SetCurrentTurn(turn, true, true);
+            changedFlag_ = true;
+            Engine::OnTurnInputChange(*this, turn);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
 private:
@@ -174,7 +182,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "EventMergeNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -194,12 +202,12 @@ public:
         if (events_.size() > 0)
         {
             Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return ETickResult::pulsed;
+            return;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return ETickResult::idle_pulsed;
+            return;
         }
     }
 
@@ -253,7 +261,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "EventFilterNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -271,12 +279,12 @@ public:
         if (events_.size() > 0)
         {
             Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return ETickResult::pulsed;
+            return;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return ETickResult::idle_pulsed;
+            return;
         }
     }
 
@@ -318,7 +326,7 @@ public:
 
     virtual const char* GetNodeType() const override { return "EventTransformNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -336,12 +344,12 @@ public:
         if (events_.size() > 0)
         {
             Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return ETickResult::pulsed;
+            return;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return ETickResult::idle_pulsed;
+            return;
         }
     }
 

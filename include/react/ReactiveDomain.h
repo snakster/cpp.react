@@ -228,7 +228,7 @@ public:
 
         // Phase 2 - Apply input node changes
         for (auto* p : transactionState_.Inputs)
-            if (p->Tick(&turn) == ETickResult::pulsed)
+            if (p->ApplyInput(&turn))
                 shouldPropagate = true;
         transactionState_.Inputs.clear();
 
@@ -318,7 +318,7 @@ private:
     struct TransactionState
     {
         bool    Active = false;
-        std::vector<IReactiveNode*>    Inputs;
+        std::vector<IInputNode*>    Inputs;
     };
 
     static TransactionState transactionState_;
@@ -338,7 +338,7 @@ private:
         r.AddInput(std::forward<V>(v));
         Engine::OnTurnAdmissionEnd(turn);
 
-        if (r.Tick(&turn) == ETickResult::pulsed)
+        if (r.ApplyInput(&turn))
             Engine::OnTurnPropagate(turn);
 
         Engine::OnTurnEnd(turn);
@@ -390,7 +390,7 @@ private:
             transactionState_.Active = false;
 
             for (auto* p : transactionState_.Inputs)
-                if (p->Tick(&turn) == ETickResult::pulsed)
+                if (p->ApplyInput(&turn))
                     shouldPropagate = true;
             transactionState_.Inputs.clear();
 

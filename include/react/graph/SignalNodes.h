@@ -62,10 +62,10 @@ public:
 
     virtual const char* GetNodeType() const override { return "SignalNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         REACT_ASSERT(false, "Don't tick SignalNode\n");
-        return ETickResult::none;
+        return;
     }
 
     const S& ValueRef() const
@@ -113,7 +113,9 @@ template
     typename D,
     typename S
 >
-class VarNode : public SignalNode<D,S>
+class VarNode :
+    public SignalNode<D,S>,
+    public IInputNode
 {
 public:
     template <typename T>
@@ -127,21 +129,10 @@ public:
 
     virtual const char* GetNodeType() const override { return "VarNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
-        if (! impl::Equals(value_, newValue_))
-        {
-            using TurnT = typename D::Engine::TurnT;
-            TurnT& turn = *static_cast<TurnT*>(turnPtr);
-
-            value_ = std::move(newValue_);
-            Engine::OnTurnInputChange(*this, turn);
-            return ETickResult::pulsed;
-        }
-        else
-        {
-            return ETickResult::none;
-        }
+        REACT_ASSERT(false, "Don't tick the VarNode\n");
+        return;
     }
 
     virtual bool IsInputNode() const override    { return true; }
@@ -150,6 +141,23 @@ public:
     void AddInput(V&& newValue)
     {
         newValue_ = std::forward<V>(newValue);
+    }
+
+    virtual bool ApplyInput(void* turnPtr) override
+    {
+        if (! impl::Equals(value_, newValue_))
+        {
+            using TurnT = typename D::Engine::TurnT;
+            TurnT& turn = *static_cast<TurnT*>(turnPtr);
+
+            value_ = std::move(newValue_);
+            Engine::OnTurnInputChange(*this, turn);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
 private:
@@ -177,10 +185,10 @@ public:
 
     virtual const char* GetNodeType() const override { return "ValNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         REACT_ASSERT(false, "Don't tick the ValNode\n");
-        return ETickResult::none;
+        return;
     }
 };
 
@@ -224,7 +232,7 @@ public:
 
     virtual const char* GetNodeType() const override { return "FunctionNode"; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -243,12 +251,12 @@ public:
         {
             value_ = std::move(newValue);
             Engine::OnNodePulse(*this, turn);
-            return ETickResult::pulsed;
+            return;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return ETickResult::idle_pulsed;
+            return;
         }
     }
 
@@ -304,7 +312,7 @@ public:
 
     virtual bool IsDynamicNode() const override    { return true; }
 
-    virtual ETickResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -320,7 +328,7 @@ public:
             Engine::OnDynamicNodeDetach(*this, *oldInner, turn);
             Engine::OnDynamicNodeAttach(*this, *newInner, turn);
 
-            return ETickResult::invalidated;
+            return;
         }
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
@@ -335,12 +343,12 @@ public:
         {
             value_ = newValue;
             Engine::OnNodePulse(*this, turn);
-            return ETickResult::pulsed;
+            return;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return ETickResult::idle_pulsed;
+            return;
         }
     }
 
