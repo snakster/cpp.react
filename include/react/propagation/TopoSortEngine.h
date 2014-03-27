@@ -18,7 +18,6 @@
 
 #include "tbb/concurrent_vector.h"
 #include "tbb/task_group.h"
-#include "tbb/task.h"
 #include "tbb/queuing_rw_mutex.h"
 
 #include "EngineBase.h"
@@ -26,9 +25,6 @@
 #include "react/common/Containers.h"
 #include "react/common/TopoQueue.h"
 #include "react/common/Types.h"
-
-//#define REACT_NO_CONC_VECTOR
-#define REACT_NO_TASKS
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -196,10 +192,6 @@ private:
     ConcurrentTopoQueue<ParNode> topoQueue_;
 
     DynRequestVectT     dynRequests_;
-
-    task_group_context  context_;
-    empty_task*         rootTask_;
-
     task_group          tasks_;
 };
 
