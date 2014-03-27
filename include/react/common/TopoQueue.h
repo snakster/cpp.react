@@ -12,6 +12,8 @@
 #include <array>
 #include <vector>
 
+#include "tbb/enumerable_thread_specific.h"
+
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,12 +40,12 @@ public:
         data_.pop_back();
     }
 
-    T* TopoQueue::Top() const
+    T* Top() const
     {
         return data_.front();
     }
 
-    bool TopoQueue::Empty() const
+    bool Empty() const
     {
         return data_.empty();
     }
@@ -55,6 +57,86 @@ public:
 
 private:
     std::vector<T*>    data_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ConcurrentTopoQueue
+/// Usage based on two phases:
+///     1. Multiple threads push nodes to the queue concurrently.
+///     2. FetchNodes() prepares all nodes of the next level in NextNodes().
+///         The previous contents of NextNodes() are automatically cleared. 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+class ConcurrentTopoQueue
+{
+public:
+    void Push(T* node)
+    {
+        auto& t = collectBuffer_.local();
+        
+        t.Data.push_back(node);
+        if (t.MinLevel > node->Level)
+            t.MinLevel = node->Level;
+    }
+
+    bool FetchNextNodes()
+    {
+        nextNodes_.clear();
+
+        // Determine current min level
+        minLevel_ = INT_MAX;
+        for (auto& buf : collectBuffer_)
+            if (minLevel_ > buf.MinLevel)
+                minLevel_ = buf.MinLevel;
+
+        for (auto& buf : collectBuffer_)
+        {
+            auto& v = buf.Data;
+
+            // Swap min level nodes to end of v
+            Comp_ comp{ minLevel_ };
+            auto p = std::partition(v.begin(), v.end(), comp);
+
+            // Copy them to nextNodes_
+            std::copy(p, v.end(), std::back_inserter(nextNodes_));
+
+            // Truncate remaining
+            v.resize(std::distance(v.begin(), p));
+
+            // Set new min level
+            buf.MinLevel = INT_MAX;
+            for (const T* x : v)
+                if (buf.MinLevel > x->Level)
+                    buf.MinLevel = x->Level;
+        }
+
+        // Found more nodes?
+        return !nextNodes_.empty();
+    }
+
+    const std::vector<T*>& NextNodes() const
+    {
+        return nextNodes_;
+    }
+
+private:
+    struct Comp_
+    {
+        const int Level;
+        Comp_(int level) : Level{ level } {}
+        bool operator()(T* other) { return other->Level != Level; }
+    };
+
+    struct ThreadLocalBuffer_
+    {
+        int             MinLevel = INT_MAX;
+        std::vector<T*> Data;
+    };
+
+    int                 minLevel_ = INT_MAX;
+    std::vector<T*>     nextNodes_;
+
+    tbb::enumerable_thread_specific<ThreadLocalBuffer_>    collectBuffer_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

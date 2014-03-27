@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "react/propagation/TopoSortEngine.h"
+#include "tbb/parallel_for.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 namespace toposort {
@@ -129,40 +130,36 @@ template class SeqEngineBase<DefaultQueueableTurn<ExclusiveTurn>>;
 template <typename TTurn>
 void ParEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
-    while (!collectBuffer_.empty() || !scheduledNodes_.Empty())
+    while (topoQueue_.FetchNextNodes())
     {
-        // Merge thread-safe buffer of nodes that pulsed during last turn into queue
-        for (auto node : collectBuffer_)
-            scheduledNodes_.Push(node);
-        collectBuffer_.clear();
-
-        auto curNode = scheduledNodes_.Top();
-        auto currentLevel = curNode->Level;
+        using RangeT = tbb::blocked_range<vector<ParNode*>::const_iterator>;
 
         // Pop all nodes of current level and start processing them in parallel
-        do
-        {
-            scheduledNodes_.Pop();
-
-            if (curNode->Level < curNode->NewLevel)
+        tbb::parallel_for(
+            RangeT(topoQueue_.NextNodes().begin(), topoQueue_.NextNodes().end(), 16),
+            [&] (const RangeT& range)
             {
-                curNode->Level = curNode->NewLevel;
-                invalidateSuccessors(*curNode);
-                scheduledNodes_.Push(curNode);
-                break;
-            }
+                for (auto* curNode : range)
+                {
+                    if (curNode->Level < curNode->NewLevel)
+                    {
+                        // Todo: Not threadsafe anymore
+                        curNode->Level = curNode->NewLevel;
+                        invalidateSuccessors(*curNode);
+                        topoQueue_.Push(curNode);
+                        //scheduledNodes_.Push(curNode);
+                        continue;
+                    }
 
-            curNode->Collected = false;
+                    curNode->Collected = false;
 
-            // Tick -> if changed: OnNodePulse -> adds child nodes to the queue
-            tasks_.run(std::bind(&ParNode::Tick, curNode, &turn));
-
-            if (scheduledNodes_.Empty())
-                break;
-
-            curNode = scheduledNodes_.Top();
-        }
-        while (curNode->Level == currentLevel);
+                    // Tick -> if changed: OnNodePulse -> adds child nodes to the queue
+                    curNode->Tick(&turn);
+                    //tasks_.run(std::bind(&ParNode::Tick, curNode, &turn));
+                }
+            },
+            tbb::affinity_partitioner()
+        );
 
         // Wait for tasks of current level
         tasks_.wait();
@@ -201,7 +198,7 @@ void ParEngineBase<TTurn>::OnDynamicNodeDetach(ParNode& node, ParNode& parent, T
 //        for (const auto& succ : range)
 //        {
 //            succ->Counter++;
-
+//
 //            if (succ->SetMark(mark))
 //                nextNodes.push_back(succ);
 //        }
@@ -217,7 +214,8 @@ void ParEngineBase<TTurn>::applyDynamicAttach(ParNode& node, ParNode& parent, TT
 
     // Re-schedule this node
     node.Collected = true;
-    collectBuffer_.push_back(&node);
+    
+    topoQueue_.Push(&node);
 }
 
 template <typename TTurn>
@@ -231,10 +229,8 @@ void ParEngineBase<TTurn>::processChildren(ParNode& node, TTurn& turn)
 {
     // Add children to queue
     for (auto* succ : node.Successors)
-    {
-        if (!succ->Collected.exchange(true))
-            collectBuffer_.push_back(succ);
-    }
+        if (!succ->Collected.exchange(true, std::memory_order_relaxed))
+            topoQueue_.Push(succ);
 }
 
 // Explicit instantiation
@@ -468,6 +464,8 @@ void PipeliningEngine::OnTurnPropagate(PipeliningTurn& turn)
             curNode->Collected = false;
 
             // Tick -> if changed: OnNodePulse -> adds child nodes to the queue
+            //UpdateTask x{ curNode, &turn };
+
             turn.Tasks.run(std::bind(&ParNode::Tick, curNode, &turn));
 
             if (turn.ScheduledNodes.Empty())

@@ -17,8 +17,8 @@
 #include <vector>
 
 #include "tbb/concurrent_vector.h"
-#include "tbb/concurrent_priority_queue.h"
 #include "tbb/task_group.h"
+#include "tbb/task.h"
 #include "tbb/queuing_rw_mutex.h"
 
 #include "EngineBase.h"
@@ -26,6 +26,9 @@
 #include "react/common/Containers.h"
 #include "react/common/TopoQueue.h"
 #include "react/common/Types.h"
+
+//#define REACT_NO_CONC_VECTOR
+#define REACT_NO_TASKS
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -43,6 +46,37 @@ using std::vector;
 using tbb::concurrent_vector;
 using tbb::queuing_rw_mutex;
 using tbb::task_group;
+using tbb::task;
+using tbb::task_group_context;
+using tbb::empty_task;
+
+using AffinityT = task::affinity_id;
+
+template <typename TNode, typename TTurn>
+class UpdateTask : public task
+{
+public:
+    UpdateTask(TNode* node, TTurn* turn) :
+        node_{ node },
+        turn_{ turn }
+    {
+    }
+
+    virtual task* execute() override
+    {
+        node_->Tick(turn_);
+        return nullptr;
+    }
+
+    virtual void note_affinity (AffinityT id)
+    {
+        node_->Affinity = id;
+    }
+
+private:
+    TNode*    node_;
+    TTurn*    turn_;
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SeqNode
@@ -65,7 +99,9 @@ class ParNode : public IReactiveNode
 public:
     int             Level = 0;
     int             NewLevel = 0;
-    atomic<bool>    Collected = false;    
+    atomic<bool>    Collected = false;
+    task*           CurrentTask = nullptr;
+    AffinityT       Affinity = 0;
 
     NodeVector<ParNode>    Successors;
 };
@@ -97,8 +133,6 @@ template <typename TNode, typename TTurn>
 class EngineBase : public IReactiveEngine<TNode,TTurn>
 {
 public:
-    using TopoQueueT = TopoQueue<TNode>;
-
     void OnNodeAttach(TNode& node, TNode& parent);
     void OnNodeDetach(TNode& node, TNode& parent);
 
@@ -109,9 +143,6 @@ protected:
     void invalidateSuccessors(TNode& node);
 
     virtual void processChildren(TNode& node, TTurn& turn) = 0;
-
-    TopoQueueT    scheduledNodes_;
-    task_group    tasks_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -121,6 +152,8 @@ template <typename TTurn>
 class SeqEngineBase : public EngineBase<SeqNode,TTurn>
 {
 public:
+    using TopoQueueT = TopoQueue<SeqNode>;
+
     void OnTurnPropagate(TTurn& turn);
 
     void OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, TTurn& turn);
@@ -128,6 +161,8 @@ public:
 
 private:
     virtual void processChildren(SeqNode& node, TTurn& turn) override;
+
+    TopoQueueT    scheduledNodes_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -137,8 +172,14 @@ template <typename TTurn>
 class ParEngineBase : public EngineBase<ParNode,TTurn>
 {
 public:
-    using ConcNodeVectT = concurrent_vector<ParNode*>;
     using DynRequestVectT = concurrent_vector<DynRequestData>;
+
+    ParEngineBase() :
+        context_{task_group_context::bound, task_group_context::default_traits | task_group_context::concurrent_wait}
+    {
+        rootTask_ = new( task::allocate_root(context_) ) empty_task;
+        rootTask_->set_ref_count(1);
+    }
 
     void OnTurnPropagate(TTurn& turn);
 
@@ -151,8 +192,15 @@ private:
 
     virtual void processChildren(ParNode& node, TTurn& turn) override;
 
-    ConcNodeVectT       collectBuffer_;
+
+    ConcurrentTopoQueue<ParNode> topoQueue_;
+
     DynRequestVectT     dynRequests_;
+
+    task_group_context  context_;
+    empty_task*         rootTask_;
+
+    task_group          tasks_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -233,11 +281,11 @@ private:
     PipeliningTurn*    predecessor_ = nullptr;
     PipeliningTurn*    successor_ = nullptr;
 
-    int        currentLevel_ = -1;
-    int        maxLevel_ = INT_MAX;            /// This turn may only advance up to maxLevel
-    int        minLevel_ = -1;            /// successor.maxLevel = this.minLevel - 1
+    int     currentLevel_ = -1;
+    int     maxLevel_ = INT_MAX;        /// This turn may only advance up to maxLevel
+    int     minLevel_ = -1;             /// successor.maxLevel = this.minLevel - 1
 
-    int        curUpperBound_ = -1;
+    int     curUpperBound_ = -1;
 
     mutex               advMutex_;
     condition_variable  advCondition_;
