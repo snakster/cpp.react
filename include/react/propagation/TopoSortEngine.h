@@ -42,37 +42,6 @@ using std::vector;
 using tbb::concurrent_vector;
 using tbb::queuing_rw_mutex;
 using tbb::task_group;
-using tbb::task;
-using tbb::task_group_context;
-using tbb::empty_task;
-
-using AffinityT = task::affinity_id;
-
-template <typename TNode, typename TTurn>
-class UpdateTask : public task
-{
-public:
-    UpdateTask(TNode* node, TTurn* turn) :
-        node_{ node },
-        turn_{ turn }
-    {
-    }
-
-    virtual task* execute() override
-    {
-        node_->Tick(turn_);
-        return nullptr;
-    }
-
-    virtual void note_affinity (AffinityT id)
-    {
-        node_->Affinity = id;
-    }
-
-private:
-    TNode*    node_;
-    TTurn*    turn_;
-};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SeqNode
@@ -96,8 +65,6 @@ public:
     int             Level = 0;
     int             NewLevel = 0;
     atomic<bool>    Collected = false;
-    task*           CurrentTask = nullptr;
-    AffinityT       Affinity = 0;
 
     NodeVector<ParNode>    Successors;
 };
@@ -170,13 +137,6 @@ class ParEngineBase : public EngineBase<ParNode,TTurn>
 public:
     using DynRequestVectT = concurrent_vector<DynRequestData>;
 
-    ParEngineBase() :
-        context_{task_group_context::bound, task_group_context::default_traits | task_group_context::concurrent_wait}
-    {
-        rootTask_ = new( task::allocate_root(context_) ) empty_task;
-        rootTask_->set_ref_count(1);
-    }
-
     void OnTurnPropagate(TTurn& turn);
 
     void OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn);
@@ -187,7 +147,6 @@ private:
     void applyDynamicDetach(ParNode& node, ParNode& parent, TTurn& turn);
 
     virtual void processChildren(ParNode& node, TTurn& turn) override;
-
 
     ConcurrentTopoQueue<ParNode> topoQueue_;
 
