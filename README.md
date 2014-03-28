@@ -111,13 +111,13 @@ D::ReactiveLoopT loop
 	{
 		PathT points;
 
-		points.emplace_back(ctx.Take(mouseDown));
+		points.emplace_back(ctx.Await(mouseDown));
 
 		ctx.RepeatUntil(mouseUp, [&] {
-			points.emplace_back(ctx.Take(mouseMove));
+			points.emplace_back(ctx.Await(mouseMove));
 		});
 
-		points.emplace_back(ctx.Take(mouseUp));
+		points.emplace_back(ctx.Await(mouseUp));
 
 		paths.push_back(points);
 	}
