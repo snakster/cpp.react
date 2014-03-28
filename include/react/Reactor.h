@@ -40,9 +40,9 @@ public:
         }
 
         template <typename E>
-        E& Take(const Events<D,E>& evn)
+        E& Await(const Events<D,E>& evn)
         {
-            return node_.Take<E>(evn.GetPtr());
+            return node_.Await<E>(evn.GetPtr());
         }
 
         template <typename E, typename F>

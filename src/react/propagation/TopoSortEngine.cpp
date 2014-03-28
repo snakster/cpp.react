@@ -48,16 +48,6 @@ void EngineBase<TNode,TTurn>::OnNodePulse(TNode& node, TTurn& turn)
     processChildren(node, turn);
 }
 
-template <typename TNode, typename TTurn>
-void EngineBase<TNode,TTurn>::invalidateSuccessors(TNode& node)
-{
-    for (auto* succ : node.Successors)
-    {
-        if (succ->NewLevel <= node.Level)
-            succ->NewLevel = node.Level + 1;
-    }
-}
-
 // Explicit instantiation
 template class EngineBase<SeqNode,ExclusiveTurn>;
 template class EngineBase<ParNode,ExclusiveTurn>;
@@ -120,6 +110,16 @@ void SeqEngineBase<TTurn>::processChildren(SeqNode& node, TTurn& turn)
     }
 }
 
+template <typename TTurn>
+void SeqEngineBase<TTurn>::invalidateSuccessors(SeqNode& node)
+{
+    for (auto* succ : node.Successors)
+    {
+        if (succ->NewLevel <= node.Level)
+            succ->NewLevel = node.Level + 1;
+    }
+}
+
 // Explicit instantiation
 template class SeqEngineBase<ExclusiveTurn>;
 template class SeqEngineBase<DefaultQueueableTurn<ExclusiveTurn>>;
@@ -134,20 +134,18 @@ void ParEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
     {
         using RangeT = tbb::blocked_range<vector<ParNode*>::const_iterator>;
 
-        // Pop all nodes of current level and start processing them in parallel
+        // Iterate all nodes of current level and start processing them in parallel
         tbb::parallel_for(
-            RangeT(topoQueue_.NextNodes().begin(), topoQueue_.NextNodes().end(), 16),
+            RangeT(topoQueue_.NextNodes().begin(), topoQueue_.NextNodes().end()),
             [&] (const RangeT& range)
             {
                 for (auto* curNode : range)
                 {
                     if (curNode->Level < curNode->NewLevel)
                     {
-                        // Todo: Not threadsafe anymore
                         curNode->Level = curNode->NewLevel;
                         invalidateSuccessors(*curNode);
                         topoQueue_.Push(curNode);
-                        //scheduledNodes_.Push(curNode);
                         continue;
                     }
 
@@ -155,10 +153,8 @@ void ParEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 
                     // Tick -> if changed: OnNodePulse -> adds child nodes to the queue
                     curNode->Tick(&turn);
-                    //tasks_.run(std::bind(&ParNode::Tick, curNode, &turn));
                 }
-            },
-            tbb::affinity_partitioner()
+            }
         );
 
         // Wait for tasks of current level
@@ -192,19 +188,6 @@ void ParEngineBase<TTurn>::OnDynamicNodeDetach(ParNode& node, ParNode& parent, T
     dynRequests_.push_back(data);
 }
 
-//tbb::parallel_for(tbb::blocked_range<NodeVectorT::iterator>(curNodes.begin(), curNodes.end(), 1),
-//    [&] (const tbb::blocked_range<NodeVectorT::iterator>& range)
-//    {
-//        for (const auto& succ : range)
-//        {
-//            succ->Counter++;
-//
-//            if (succ->SetMark(mark))
-//                nextNodes.push_back(succ);
-//        }
-//    }
-//);
-
 template <typename TTurn>
 void ParEngineBase<TTurn>::applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn)
 {
@@ -214,7 +197,6 @@ void ParEngineBase<TTurn>::applyDynamicAttach(ParNode& node, ParNode& parent, TT
 
     // Re-schedule this node
     node.Collected = true;
-    
     topoQueue_.Push(&node);
 }
 
@@ -231,6 +213,18 @@ void ParEngineBase<TTurn>::processChildren(ParNode& node, TTurn& turn)
     for (auto* succ : node.Successors)
         if (!succ->Collected.exchange(true, std::memory_order_relaxed))
             topoQueue_.Push(succ);
+}
+
+template <typename TTurn>
+void ParEngineBase<TTurn>::invalidateSuccessors(ParNode& node)
+{
+    for (auto* succ : node.Successors)
+    {// succ->InvalidateMutex
+        ParNode::InvalidateMutexT::scoped_lock lock(succ->InvalidateMutex);
+
+        if (succ->NewLevel <= node.Level)
+            succ->NewLevel = node.Level + 1;
+    }// ~succ->InvalidateMutex
 }
 
 // Explicit instantiation
@@ -321,8 +315,6 @@ void PipeliningTurn::UpdateSuccessor()
     if (successor_)
         successor_->SetMaxLevel(minLevel_ - 1);
 }
-
-
 
 void PipeliningTurn::Remove()
 {
@@ -433,47 +425,37 @@ void PipeliningEngine::OnTurnPropagate(PipeliningTurn& turn)
     if (maxDynamicLevel_ > 0)
         turn.AdjustUpperBound(maxDynamicLevel_);
 
-    while (!turn.CollectBuffer.empty() || !turn.ScheduledNodes.Empty())
+    while (turn.TopoQueue.FetchNextNodes())
     {
-        // Merge thread-safe buffer of nodes that pulsed during last turn into queue
-        for (auto node : turn.CollectBuffer)
-        {
+        using RangeT = tbb::blocked_range<vector<ParNode*>::const_iterator>;
+
+        for (const auto* node : turn.TopoQueue.NextNodes())
             turn.AdjustUpperBound(node->Level);
-            turn.ScheduledNodes.Push(node);
-        }
-        turn.CollectBuffer.clear();
 
         advanceTurn(turn);
 
-        auto curNode = turn.ScheduledNodes.Top();
-        auto currentLevel = curNode->Level;
-
-        // Pop all nodes of current level and start processing them in parallel
-        do
-        {
-            turn.ScheduledNodes.Pop();
-
-            if (curNode->Level < curNode->NewLevel)
+        // Iterate all nodes of current level and start processing them in parallel
+        tbb::parallel_for(
+            RangeT(turn.TopoQueue.NextNodes().begin(), turn.TopoQueue.NextNodes().end()),
+            [&] (const RangeT& range)
             {
-                curNode->Level = curNode->NewLevel;
-                invalidateSuccessors(*curNode);
-                turn.ScheduledNodes.Push(curNode);
-                break;
+                for (auto* curNode : range)
+                {
+                    if (curNode->Level < curNode->NewLevel)
+                    {
+                        curNode->Level = curNode->NewLevel;
+                        invalidateSuccessors(*curNode);
+                        turn.TopoQueue.Push(curNode);
+                        continue;
+                    }
+
+                    curNode->Collected = false;
+
+                    // Tick -> if changed: OnNodePulse -> adds child nodes to the queue
+                    curNode->Tick(&turn);
+                }
             }
-
-            curNode->Collected = false;
-
-            // Tick -> if changed: OnNodePulse -> adds child nodes to the queue
-            //UpdateTask x{ curNode, &turn };
-
-            turn.Tasks.run(std::bind(&ParNode::Tick, curNode, &turn));
-
-            if (turn.ScheduledNodes.Empty())
-                break;
-
-            curNode = turn.ScheduledNodes.Top();
-        }
-        while (curNode->Level == currentLevel);
+        );
 
         // Wait for tasks of current level
         turn.Tasks.wait();
@@ -512,11 +494,9 @@ void PipeliningEngine::applyDynamicAttach(ParNode& node, ParNode& parent, Pipeli
     
     invalidateSuccessors(node);
 
-    turn.ScheduledNodes.Invalidate();
-
     // Re-schedule this node
     node.Collected = true;
-    turn.CollectBuffer.push_back(&node);
+    turn.TopoQueue.Push(&node);    
 }
 
 void PipeliningEngine::applyDynamicDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn)
@@ -528,25 +508,28 @@ void PipeliningEngine::processChildren(ParNode& node, PipeliningTurn& turn)
 {
     // Add children to queue
     for (auto* succ : node.Successors)
-    {
-        if (!succ->Collected.exchange(true))
-            turn.CollectBuffer.push_back(succ);
-    }
+        if (!succ->Collected.exchange(true, std::memory_order_relaxed))
+            turn.TopoQueue.Push(succ);
 }
 
 void PipeliningEngine::invalidateSuccessors(ParNode& node)
 {
     for (auto* succ : node.Successors)
-    {
+    {// succ->InvalidateMutex
+        ParNode::InvalidateMutexT::scoped_lock lock(succ->InvalidateMutex);
+
         if (succ->NewLevel <= node.Level)
         {
             auto newLevel = node.Level + 1;
             succ->NewLevel = newLevel;
 
-            if (succ->IsDynamicNode() && maxDynamicLevel_ < newLevel)
-                maxDynamicLevel_ = newLevel;
+            {// maxDynamicLevelMutex_
+                MaxDynamicLevelMutexT::scoped_lock lock(maxDynamicLevelMutex_);
+                if (succ->IsDynamicNode() && maxDynamicLevel_ < newLevel)
+                    maxDynamicLevel_ = newLevel;
+            }// ~maxDynamicLevelMutex_
         }
-    }
+    }// ~succ->InvalidateMutex
 }
 
 void PipeliningEngine::advanceTurn(PipeliningTurn& turn)

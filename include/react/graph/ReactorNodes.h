@@ -110,7 +110,7 @@ public:
     }
 
     template <typename E>
-    E& Take(const EventStreamNodePtr<D,E>& events)
+    E& Await(const EventStreamNodePtr<D,E>& events)
     {
         // First attach to target event node
         (*curOutPtr_)(&std::static_pointer_cast<NodeBase<D>>(events));
