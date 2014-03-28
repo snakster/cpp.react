@@ -87,9 +87,6 @@
     <ClInclude Include="..\..\include\react\propagation\EngineBase.h">
       <Filter>Header Files\propagation</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\FloodingEngine.h">
-      <Filter>Header Files\propagation</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\propagation\PulseCountEngine.h">
       <Filter>Header Files\propagation</Filter>
     </ClInclude>
@@ -97,9 +94,6 @@
       <Filter>Header Files\propagation</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\propagation\TopoSortEngine.h">
-      <Filter>Header Files\propagation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\TopoSortO1Engine.h">
       <Filter>Header Files\propagation</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\logging\Logging.h">
@@ -174,12 +168,6 @@
       <Filter>Source Files\propagation</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\react\propagation\TopoSortEngine.cpp">
-      <Filter>Source Files\propagation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\react\propagation\TopoSortO1Engine.cpp">
-      <Filter>Source Files\propagation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\react\propagation\FloodingEngine.cpp">
       <Filter>Source Files\propagation</Filter>
     </ClCompile>
   </ItemGroup>

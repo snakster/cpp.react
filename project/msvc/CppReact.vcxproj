@@ -104,11 +104,9 @@
     <ClInclude Include="..\..\include\react\Observer.h" />
     <ClInclude Include="..\..\include\react\propagation\ELMEngine.h" />
     <ClInclude Include="..\..\include\react\propagation\EngineBase.h" />
-    <ClInclude Include="..\..\include\react\propagation\FloodingEngine.h" />
     <ClInclude Include="..\..\include\react\propagation\PulseCountEngine.h" />
     <ClInclude Include="..\..\include\react\propagation\SourceSetEngine.h" />
     <ClInclude Include="..\..\include\react\propagation\TopoSortEngine.h" />
-    <ClInclude Include="..\..\include\react\propagation\TopoSortO1Engine.h" />
     <ClInclude Include="..\..\include\react\ReactiveBase.h" />
     <ClInclude Include="..\..\include\react\ReactiveDomain.h" />
     <ClInclude Include="..\..\include\react\ReactiveObject.h" />
@@ -121,11 +119,9 @@
     <ClCompile Include="..\..\src\react\logging\EventLog.cpp" />
     <ClCompile Include="..\..\src\react\logging\EventRecords.cpp" />
     <ClCompile Include="..\..\src\react\propagation\ELMEngine.cpp" />
-    <ClCompile Include="..\..\src\react\propagation\FloodingEngine.cpp" />
     <ClCompile Include="..\..\src\react\propagation\PulseCountEngine.cpp" />
     <ClCompile Include="..\..\src\react\propagation\SourceSetEngine.cpp" />
     <ClCompile Include="..\..\src\react\propagation\TopoSortEngine.cpp" />
-    <ClCompile Include="..\..\src\react\propagation\TopoSortO1Engine.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
