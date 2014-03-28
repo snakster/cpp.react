@@ -224,28 +224,29 @@ auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
     using S = typename std::result_of<F(TArgs...)>::type;
 
     return Signal<D,S>(
-        std::make_shared<REACT_IMPL::FunctionNode<D, S, TArgs ...>>(
+        std::make_shared<REACT_IMPL::FunctionNode<D,S,F,TArgs ...>>(
             std::forward<F>(func), args.GetPtr() ..., false));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Unary operators
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_OP(op)                                                      \
-template                                                                    \
-<                                                                           \
-    typename D,                                                             \
-    template <typename D_, typename V_> class TSignal,                      \
-    typename TVal,                                                          \
-    class = std::enable_if<                                                 \
-        IsSignal<D,TSignal<D,TVal>>::value>::type                           \
->                                                                           \
-auto operator ## op(const TSignal<D,TVal>& arg)                             \
-    -> Signal<D,decltype(op std::declval<TVal>())>                          \
-{                                                                           \
-    return Signal<D,decltype(op std::declval<TVal>())>(                     \
-        std::make_shared<REACT_IMPL::FunctionNode<D,TVal,TVal>>(            \
-            [] (TVal a) { return op a; }, arg.GetPtr(), false));            \
+#define DECLARE_OP(op)                                                          \
+template                                                                        \
+<                                                                               \
+    typename D,                                                                 \
+    template <typename D_, typename V_> class TSignal,                          \
+    typename TVal,                                                              \
+    class = std::enable_if<                                                     \
+        IsSignal<D,TSignal<D,TVal>>::value>::type                               \
+>                                                                               \
+auto operator ## op(const TSignal<D,TVal>& arg)                                 \
+    -> Signal<D,decltype(op std::declval<TVal>())>                              \
+{                                                                               \
+    auto f = [] (TVal a) { return op a; };                                      \
+    return Signal<D,decltype(op std::declval<TVal>())>(                         \
+        std::make_shared<REACT_IMPL::FunctionNode<D,TVal,decltype(f),TVal>>(    \
+            f, arg.GetPtr(), false));                                           \
 }
 
 DECLARE_OP(+);
@@ -279,10 +280,10 @@ auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,                         
 {                                                                                   \
     using TRet = typename std::remove_const<                                        \
         decltype(std::declval<TLeftVal>() op std::declval<TRightVal>())>::type;     \
+    auto f = [] (const TLeftVal& a, const TRightVal& b) { return a op b; };         \
     return Signal<D,TRet>(                                                          \
-        std::make_shared<REACT_IMPL::FunctionNode<D,TRet,TLeftVal,TRightVal>>(      \
-            [] (const TLeftVal& a, const TRightVal& b) { return a op b; },          \
-                lhs.GetPtr(), rhs.GetPtr(), false));                                \
+        std::make_shared<REACT_IMPL::FunctionNode<D,TRet,decltype(f),TLeftVal,TRightVal>>(  \
+            f, lhs.GetPtr(), rhs.GetPtr(), false));                                 \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -304,9 +305,10 @@ auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,                         
 {                                                                                   \
     using TRet = typename std::remove_const<                                        \
         decltype(std::declval<TLeftVal>() op rhs)>::type;                           \
+    auto f = [=] (const TLeftVal& a) { return a op rhs; };                          \
     return Signal<D,TRet>(                                                          \
-        std::make_shared<REACT_IMPL::FunctionNode<D,TRet,TLeftVal>>(                \
-            [=] (const TLeftVal& a) { return a op rhs; }, lhs.GetPtr(), false));    \
+        std::make_shared<REACT_IMPL::FunctionNode<D,TRet,decltype(f),TLeftVal>>(    \
+            f, lhs.GetPtr(), false));                                               \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -328,9 +330,10 @@ auto operator ## op(const TLeftVal& lhs,                                        
 {                                                                                   \
     using TRet = typename std::remove_const<                                        \
         decltype(lhs op std::declval<TRightVal>())>::type;                          \
+    auto f = [=] (const TRightVal& a) { return lhs op a; };                         \
     return Signal<D,TRet>(                                                          \
-        std::make_shared<REACT_IMPL::FunctionNode<D,TRet,TRightVal>>(               \
-            [=] (const TRightVal& a) { return lhs op a; }, rhs.GetPtr(), false));   \
+        std::make_shared<REACT_IMPL::FunctionNode<D,TRet,decltype(f),TRightVal>>(   \
+            f, rhs.GetPtr(), false));                                               \
 }
 
 DECLARE_OP(+);

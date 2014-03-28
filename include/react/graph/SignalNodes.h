@@ -199,6 +199,7 @@ template
 <
     typename D,
     typename S,
+    typename TFunc,
     typename ... TArgs
 >
 class FunctionNode : public SignalNode<D,S>
@@ -264,7 +265,7 @@ public:
 
 private:
     const std::tuple<SignalNodePtr<D,TArgs> ...>    deps_;
-    const std::function<S(const TArgs& ...)>        func_;
+    TFunc   func_;
 
     S evaluate() const
     {
