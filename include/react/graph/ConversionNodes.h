@@ -80,7 +80,8 @@ template
 <
     typename D,
     typename S,
-    typename E
+    typename E,
+    typename TFunc
 >
 class FoldNode : public FoldBaseNode<D,S,E>
 {
@@ -104,7 +105,7 @@ public:
     virtual const char* GetNodeType() const override    { return "FoldNode"; }
 
 protected:
-    const std::function<S(S,E)>    func_;
+    TFunc   func_;
 
     virtual S calcNewValue() const override
     {
@@ -123,7 +124,8 @@ template
 <
     typename D,
     typename S,
-    typename E
+    typename E,
+    typename TFunc
 >
 class IterateNode : public FoldBaseNode<D,S,E>
 {
@@ -147,7 +149,7 @@ public:
     virtual const char* GetNodeType() const override    { return "IterateNode"; }
 
 protected:
-    const std::function<S(S)>    func_;
+    TFunc   func_;
 
     virtual S calcNewValue() const override
     {

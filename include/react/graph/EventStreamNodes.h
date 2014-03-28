@@ -237,7 +237,8 @@ private:
 template
 <
     typename D,
-    typename E
+    typename E,
+    typename TFunc
 >
 class EventFilterNode : public EventStreamNode<D, E>
 {
@@ -291,8 +292,8 @@ public:
     virtual int DependencyCount() const override    { return 1; }
 
 private:
-    const EventStreamNodePtr<D,E>         src_;
-    const std::function<bool(const E&)>   filter_;
+    const EventStreamNodePtr<D,E>   src_;
+    TFunc   filter_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -302,7 +303,8 @@ template
 <
     typename D,
     typename TIn,
-    typename TOut
+    typename TOut,
+    typename TFunc
 >
 class EventTransformNode : public EventStreamNode<D,TOut>
 {
@@ -356,8 +358,9 @@ public:
     virtual int DependencyCount() const override    { return 1; }
 
 private:
-    const EventStreamNodePtr<D,TIn>         src_;
-    const std::function<TOut(const TIn&)>   func_;
+    const EventStreamNodePtr<D,TIn>     src_;
+
+    TFunc   func_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -35,7 +35,7 @@ auto Fold(V&& init, const Events<D,E>& events, F&& func)
     -> Signal<D,S>
 {
     return Signal<D,S>(
-        std::make_shared<REACT_IMPL::FoldNode<D,S,E>>(
+        std::make_shared<REACT_IMPL::FoldNode<D,S,E,F>>(
             std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
 }
 
@@ -54,7 +54,7 @@ auto Iterate(V&& init, const Events<D,E>& events, F&& func)
     -> Signal<D,S>
 {
     return Signal<D,S>(
-        std::make_shared<REACT_IMPL::IterateNode<D,S,E>>(
+        std::make_shared<REACT_IMPL::IterateNode<D,S,E,F>>(
             std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
 }
 
@@ -179,7 +179,7 @@ auto Flatten(const Signal<D,Events<D,TInnerValue>>& node)
 template <typename T>
 struct Incrementer : public std::unary_function<T,T>
 {
-    T operator() (T v) { return v+1; }
+    T operator() (T v) const { return v+1; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -188,7 +188,7 @@ struct Incrementer : public std::unary_function<T,T>
 template <typename T>
 struct Decrementer : public std::unary_function<T,T>
 {
-    T operator() (T v) { return v-1; }
+    T operator() (T v) const { return v-1; }
 };
 
 /******************************************/ REACT_END /******************************************/

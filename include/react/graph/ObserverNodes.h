@@ -51,7 +51,8 @@ using ObserverNodePtr = typename ObserverNode<D>::PtrT;
 template
 <
     typename D,
-    typename TArg
+    typename TArg,
+    typename TFunc
 >
 class SignalObserverNode : public ObserverNode<D>
 {
@@ -112,8 +113,9 @@ public:
     }
 
 private:
-    SignalNodeWeakPtr<D,TArg>           subject_;
-    const std::function<void(TArg)>     func_;
+    SignalNodeWeakPtr<D,TArg>   subject_;
+
+    TFunc   func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -122,7 +124,8 @@ private:
 template
 <
     typename D,
-    typename TArg
+    typename TArg,
+    typename TFunc
 >
 class EventObserverNode : public ObserverNode<D>
 {
@@ -187,7 +190,7 @@ public:
 
 private:
     EventStreamNodeWeakPtr<D,TArg>      subject_;
-    const std::function<void(TArg)>     func_;
+    TFunc   func_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

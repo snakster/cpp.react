@@ -190,7 +190,7 @@ inline auto Filter(const Events<D,E>& src, F&& filter)
     -> Events<D,E>
 {
     return Events<D,E>(
-        std::make_shared<REACT_IMPL::EventFilterNode<D, E>>(
+        std::make_shared<REACT_IMPL::EventFilterNode<D,E,F>>(
             src.GetPtr(), std::forward<F>(filter), false));
 }
 
@@ -209,7 +209,7 @@ inline auto Transform(const Events<D,TIn>& src, F&& func)
     using TOut = typename std::result_of<F(TIn)>::type;
 
     return Events<D,TOut>(
-        std::make_shared<REACT_IMPL::EventTransformNode<D, TIn, TOut>>(
+        std::make_shared<REACT_IMPL::EventTransformNode<D,TIn,TOut,F>>(
             src.GetPtr(), std::forward<F>(func), false));
 }
 
