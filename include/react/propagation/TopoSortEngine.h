@@ -19,6 +19,7 @@
 #include "tbb/concurrent_vector.h"
 #include "tbb/task_group.h"
 #include "tbb/queuing_rw_mutex.h"
+#include "tbb/spin_mutex.h"
 
 #include "EngineBase.h"
 #include "react/common/Concurrency.h"
@@ -41,6 +42,7 @@ using std::set;
 using std::vector;
 using tbb::concurrent_vector;
 using tbb::queuing_rw_mutex;
+using tbb::spin_mutex;
 using tbb::task_group;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,11 +64,14 @@ public:
 class ParNode : public IReactiveNode
 {
 public:
+    using InvalidateMutexT = spin_mutex;
+
     int             Level = 0;
     int             NewLevel = 0;
     atomic<bool>    Collected = false;
 
-    NodeVector<ParNode>    Successors;
+    NodeVector<ParNode>     Successors;
+    InvalidateMutexT        InvalidateMutex;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,8 +108,6 @@ public:
     void OnNodePulse(TNode& node, TTurn& turn);
 
 protected:
-    void invalidateSuccessors(TNode& node);
-
     virtual void processChildren(TNode& node, TTurn& turn) = 0;
 };
 
@@ -123,6 +126,8 @@ public:
     void OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, TTurn& turn);
 
 private:
+    void invalidateSuccessors(SeqNode& node);
+
     virtual void processChildren(SeqNode& node, TTurn& turn) override;
 
     TopoQueueT    scheduledNodes_;
@@ -146,6 +151,8 @@ private:
     void applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn);
     void applyDynamicDetach(ParNode& node, ParNode& parent, TTurn& turn);
 
+    void invalidateSuccessors(ParNode& node);
+
     virtual void processChildren(ParNode& node, TTurn& turn) override;
 
     ConcurrentTopoQueue<ParNode> topoQueue_;
@@ -160,7 +167,7 @@ private:
 class BasicSeqEngine : public SeqEngineBase<ExclusiveTurn> {};
 class QueuingSeqEngine : public DefaultQueuingEngine<SeqEngineBase,ExclusiveTurn> {};
 
-class BasicParEngine :    public ParEngineBase<ExclusiveTurn> {};
+class BasicParEngine : public ParEngineBase<ExclusiveTurn> {};
 class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveTurn> {};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -216,8 +223,8 @@ public:
 
     void RunMergedInputs() const;
 
-    TopoQueueT          ScheduledNodes;
-    ConcNodeVectT       CollectBuffer;
+    ConcurrentTopoQueue<ParNode>    TopoQueue;
+
     DynRequestVectT     DynRequests;
     task_group          Tasks;
 
@@ -229,8 +236,8 @@ private:
 
     IntervalSetT        levelIntervals_;
 
-    PipeliningTurn*    predecessor_ = nullptr;
-    PipeliningTurn*    successor_ = nullptr;
+    PipeliningTurn*     predecessor_ = nullptr;
+    PipeliningTurn*     successor_ = nullptr;
 
     int     currentLevel_ = -1;
     int     maxLevel_ = INT_MAX;        /// This turn may only advance up to maxLevel
@@ -250,6 +257,7 @@ class PipeliningEngine : public IReactiveEngine<ParNode,PipeliningTurn>
 public:
     using SeqMutexT = queuing_rw_mutex;
     using NodeSetT = set<ParNode*>;
+    using MaxDynamicLevelMutexT = spin_mutex;
 
     void OnNodeAttach(ParNode& node, ParNode& parent);
     void OnNodeDetach(ParNode& node, ParNode& parent);
@@ -300,6 +308,8 @@ private:
 
     NodeSetT    dynamicNodes_;
     int         maxDynamicLevel_;
+    
+    MaxDynamicLevelMutexT   maxDynamicLevelMutex_;
 };
 
 } // ~namespace toposort
