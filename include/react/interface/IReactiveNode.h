@@ -20,7 +20,9 @@ struct IReactiveNode
     // Unique type identifier
     virtual const char* GetNodeType() const = 0;
 
-    virtual void    Tick(void* turnPtr) = 0;
+    // Note: Could get rid of this ugly ptr by adding a template parameter to the interface
+    // But that would mean all engine nodes need that template parameter too - so rather cast
+    virtual void    Tick(void* turnPtr) = 0;  
 
     /// Input nodes can be manipulated externally.
     virtual bool    IsInputNode() const = 0;

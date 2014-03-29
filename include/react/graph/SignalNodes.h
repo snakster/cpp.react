@@ -208,7 +208,7 @@ public:
     template <typename F>
     FunctionNode(F&& func, const SignalNodePtr<D,TArgs>& ... args, bool registered) :
         SignalNode<D, S>(true),
-        deps_{ make_tuple(args ...) },
+        deps_{ std::make_tuple(args ...) },
         func_{ std::forward<F>(func) }
     {
         if (!registered)
@@ -264,7 +264,7 @@ public:
     virtual int DependencyCount() const override    { return sizeof ... (TArgs); }
 
 private:
-    const std::tuple<SignalNodePtr<D,TArgs> ...>    deps_;
+    std::tuple<SignalNodePtr<D,TArgs> ...>    deps_;
     TFunc   func_;
 
     S evaluate() const
@@ -277,6 +277,52 @@ private:
     {
         return std::tie(args->ValueRef() ...);
     }
+};
+
+template
+<
+    typename D,
+    typename S,
+    typename ... TOps
+>
+class OpNode : public SignalNode<D,S>
+{
+public:
+    template <typename ... TOpsIn>
+    OpNode(TOpsIn&& ... ops, bool registered) :
+        SignalNode<D, S>(true),
+        ops_{ std::make_tuple(std::forward<TOpsIn>(ops) ...) }
+    {
+        if (!registered)
+            registerNode();
+    }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+
+        S newValue = evaluate();
+        if (mergedOps_ != nullptr)
+            newValue = applyMergedOps(std::move(newValue));
+
+        if (! impl::Equals(value_, newValue))
+        {
+            value_ = std::move(newValue);
+            Engine::OnNodePulse(*this, turn);
+            return;
+        }
+        else
+        {
+            Engine::OnNodeIdlePulse(*this, turn);
+            return;
+        }
+    }
+
+    virtual int DependencyCount() const override    { return sizeof ... (TArgs); }
+
+private:
+    std::tuple<TOps...>    ops_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
