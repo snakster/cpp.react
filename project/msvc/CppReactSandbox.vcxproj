@@ -76,9 +76,11 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\sandbox\IncludeCheck.cpp" />
     <ClCompile Include="..\..\src\sandbox\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
