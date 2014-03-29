@@ -57,7 +57,7 @@ public:
 
     template <typename F>
     ReactiveLoop(F&& func) :
-        nodePtr_{ new REACT_IMPL::ReactorNode<D, Context>(std::forward<F>(func), false) }
+        nodePtr_{ new REACT_IMPL::ReactorNode<D, Context>(std::forward<F>(func)) }
     {
         nodePtr_->StartLoop();
     }

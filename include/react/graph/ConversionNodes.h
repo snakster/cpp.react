@@ -33,8 +33,8 @@ class FoldBaseNode : public SignalNode<D,S>
 {
 public:
     template <typename T>
-    FoldBaseNode(T&& init, const EventStreamNodePtr<D,E>& events, bool registered) :
-        SignalNode<D, S>(std::forward<T>(init), true),
+    FoldBaseNode(T&& init, const EventStreamNodePtr<D,E>& events) :
+        SignalNode<D, S>(std::forward<T>(init)),
         events_{ events }
     {
     }
@@ -87,19 +87,18 @@ class FoldNode : public FoldBaseNode<D,S,E>
 {
 public:
     template <typename T, typename F>
-    FoldNode(T&& init, const EventStreamNodePtr<D,E>& events, F&& func, bool registered) :
-        FoldBaseNode<D,S,E>(std::forward<T>(init), events, true),
+    FoldNode(T&& init, const EventStreamNodePtr<D,E>& events, F&& func) :
+        FoldBaseNode<D,S,E>(std::forward<T>(init), events),
         func_{ std::forward<F>(func) }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events);
     }
 
     ~FoldNode()
     {
         Engine::OnNodeDetach(*this, *events_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override    { return "FoldNode"; }
@@ -131,19 +130,18 @@ class IterateNode : public FoldBaseNode<D,S,E>
 {
 public:
     template <typename T, typename F>
-    IterateNode(T&& init, const EventStreamNodePtr<D,E>& events, F&& func, bool registered) :
-        FoldBaseNode<D,S,E>(std::forward<T>(init), events, true),
+    IterateNode(T&& init, const EventStreamNodePtr<D,E>& events, F&& func) :
+        FoldBaseNode<D,S,E>(std::forward<T>(init), events),
         func_{ std::forward<F>(func) }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events);
     }
 
     ~IterateNode()
     {
         Engine::OnNodeDetach(*this, *events_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override    { return "IterateNode"; }
@@ -172,19 +170,18 @@ class HoldNode : public SignalNode<D,S>
 {
 public:
     template <typename T>
-    HoldNode(T&& init, const EventStreamNodePtr<D,S>& events, bool registered) :
-        SignalNode<D, S>(std::forward<T>(init), true),
+    HoldNode(T&& init, const EventStreamNodePtr<D,S>& events) :
+        SignalNode<D, S>(std::forward<T>(init)),
         events_{ events }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events_);
     }
 
     ~HoldNode()
     {
         Engine::OnNodeDetach(*this, *events_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override    { return "HoldNode"; }
@@ -235,14 +232,12 @@ template
 class SnapshotNode : public SignalNode<D,S>
 {
 public:
-    SnapshotNode(const SignalNodePtr<D,S>& target, const EventStreamNodePtr<D,E>& trigger, bool registered) :
-        SignalNode<D, S>(target->ValueRef(), true),
+    SnapshotNode(const SignalNodePtr<D,S>& target, const EventStreamNodePtr<D,E>& trigger) :
+        SignalNode<D, S>(target->ValueRef()),
         target_{ target },
         trigger_{ trigger }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *target_);
         Engine::OnNodeAttach(*this, *trigger_);
     }
@@ -251,6 +246,7 @@ public:
     {
         Engine::OnNodeDetach(*this, *target_);
         Engine::OnNodeDetach(*this, *trigger_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override    { return "SnapshotNode"; }
@@ -303,19 +299,18 @@ template
 class MonitorNode : public EventStreamNode<D,E>
 {
 public:
-    MonitorNode(const SignalNodePtr<D,E>& target, bool registered) :
-        EventStreamNode<D, E>(true),
+    MonitorNode(const SignalNodePtr<D,E>& target) :
+        EventStreamNode<D, E>(),
         target_{ target }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *target_);
     }
 
     ~MonitorNode()
     {
         Engine::OnNodeDetach(*this, *target_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override    { return "MonitorNode"; }
@@ -365,14 +360,12 @@ template
 class PulseNode : public EventStreamNode<D,S>
 {
 public:
-    PulseNode(const SignalNodePtr<D,S>& target, const EventStreamNodePtr<D,E>& trigger, bool registered) :
-        EventStreamNode<D, S>(true),
+    PulseNode(const SignalNodePtr<D,S>& target, const EventStreamNodePtr<D,E>& trigger) :
+        EventStreamNode<D, S>(),
         target_{ target },
         trigger_{ trigger }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *target_);
         Engine::OnNodeAttach(*this, *trigger_);
     }
@@ -381,6 +374,7 @@ public:
     {
         Engine::OnNodeDetach(*this, *target_);
         Engine::OnNodeDetach(*this, *trigger_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override    { return "PulseNode"; }
@@ -433,14 +427,12 @@ template
 class EventFlattenNode : public EventStreamNode<D, TInner>
 {
 public:
-    EventFlattenNode(const SignalNodePtr<D, TOuter>& outer, const EventStreamNodePtr<D, TInner>& inner, bool registered) :
-        EventStreamNode<D, TInner>(true),
+    EventFlattenNode(const SignalNodePtr<D, TOuter>& outer, const EventStreamNodePtr<D, TInner>& inner) :
+        EventStreamNode<D, TInner>(),
         outer_{ outer },
         inner_{ inner }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *outer_);
         Engine::OnNodeAttach(*this, *inner_);
     }
@@ -449,6 +441,7 @@ public:
     {
         Engine::OnNodeDetach(*this, *outer_);
         Engine::OnNodeDetach(*this, *inner_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override { return "EventFlattenNode"; }

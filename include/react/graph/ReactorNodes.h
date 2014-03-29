@@ -44,10 +44,16 @@ public:
     using TurnT = typename D::Engine::TurnT;
 
     template <typename F>
-    ReactorNode(F&& func, bool registered) :
-        ReactiveNode<D,void,void>(true),
+    ReactorNode(F&& func) :
+        ReactiveNode<D,void,void>(),
         func_{ std::forward<F>(func) }
     {
+        Engine::OnNodeCreate(*this);
+    }
+
+    ~ReactorNode()
+    {
+        Engine::OnNodeDestroy(*this);
     }
 
     void StartLoop()

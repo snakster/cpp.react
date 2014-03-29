@@ -160,7 +160,7 @@ auto Observe(const Signal<D,TArg>& subject, F&& func)
 {
     std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
         new  REACT_IMPL::SignalObserverNode<D,TArg,F>(
-            subject.GetPtr(), std::forward<F>(func), false));
+            subject.GetPtr(), std::forward<F>(func)));
 
     auto* raw = pUnique.get();
 
@@ -182,7 +182,7 @@ auto Observe(const Events<D,TArg>& subject, F&& func)
 {
     std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
         new  REACT_IMPL::EventObserverNode<D,TArg,F>(
-            subject.GetPtr(), std::forward<F>(func), false));
+            subject.GetPtr(), std::forward<F>(func)));
 
     auto* raw = pUnique.get();
 
@@ -202,7 +202,7 @@ auto Observe(const Events<D,EventToken>& subject, F&& func)
     auto f = [func] (EventToken _) { func(); };
     std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
         new  REACT_IMPL::EventObserverNode<D,EventToken,decltype(f)>(
-            subject.GetPtr(), std::move(f), false));
+            subject.GetPtr(), std::move(f)));
 
     auto* raw = pUnique.get();
 

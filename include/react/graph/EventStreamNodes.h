@@ -43,11 +43,9 @@ public:
     using EngineT   = typename D::Engine;
     using TurnT     = typename EngineT::TurnT;
 
-    explicit EventStreamNode(bool registered) :
-        ReactiveNode(true)
+    EventStreamNode() :
+        ReactiveNode()
     {
-        if (!registered)
-            registerNode();
     }
 
     virtual const char* GetNodeType() const override    { return "EventStreamNode"; }
@@ -93,11 +91,15 @@ class EventSourceNode :
     public IInputNode
 {
 public:
-    explicit EventSourceNode(bool registered) :
-        EventStreamNode(true)
+    EventSourceNode() :
+        EventStreamNode()
     {
-        if (!registered)
-            registerNode();
+        Engine::OnNodeCreate(*this);
+    }
+
+    ~EventSourceNode()
+    {
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override    { return "EventSourceNode"; }
@@ -157,13 +159,12 @@ template
 class EventMergeNode : public EventStreamNode<D, E>
 {
 public:
-    EventMergeNode(const EventStreamNodePtr<D, TArgs>& ... args, bool registered) :
-        EventStreamNode<D, E>(true),
+    EventMergeNode(const EventStreamNodePtr<D, TArgs>& ... args) :
+        EventStreamNode<D, E>(),
         deps_{ make_tuple(args ...) },
         func_{ std::bind(&EventMergeNode::expand, this, std::placeholders::_1, args ...) }
     {
-        if (!registered)
-            registerNode();
+        Engine::OnNodeCreate(*this);
 
         REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
     }
@@ -178,6 +179,8 @@ public:
             },
             deps_
         );
+
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override    { return "EventMergeNode"; }
@@ -244,20 +247,19 @@ class EventFilterNode : public EventStreamNode<D, E>
 {
 public:
     template <typename F>
-    EventFilterNode(const EventStreamNodePtr<D, E>& src, F&& filter, bool registered) :
-        EventStreamNode<D, E>(true),
+    EventFilterNode(const EventStreamNodePtr<D, E>& src, F&& filter) :
+        EventStreamNode<D, E>(),
         src_{ src },
         filter_{ std::forward<F>(filter) }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *src_);
     }
 
     ~EventFilterNode()
     {
         Engine::OnNodeDetach(*this, *src_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override    { return "EventFilterNode"; }
@@ -310,20 +312,19 @@ class EventTransformNode : public EventStreamNode<D,TOut>
 {
 public:
     template <typename F>
-    EventTransformNode(const EventStreamNodePtr<D,TIn>& src, F&& func, bool registered) :
-        EventStreamNode<D,TOut>(true),
+    EventTransformNode(const EventStreamNodePtr<D,TIn>& src, F&& func) :
+        EventStreamNode<D,TOut>(),
         src_{ src },
         func_{ std::forward<F>(func) }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *src_);
     }
 
     ~EventTransformNode()
     {
         Engine::OnNodeDetach(*this, *src_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override { return "EventTransformNode"; }

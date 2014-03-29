@@ -149,7 +149,7 @@ auto MakeVar(V&& value)
 {
     return VarSignal<D,S>(
         std::make_shared<REACT_IMPL::VarNode<D,S>>(
-            std::forward<V>(value), false));
+            std::forward<V>(value)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -169,7 +169,7 @@ auto MakeVar(V&& value)
 {
     return VarSignal<D,Signal<D,TInner>>(
         std::make_shared<REACT_IMPL::VarNode<D,Signal<D,TInner>>>(
-            std::forward<V>(value), false));
+            std::forward<V>(value)));
 }
 
 template
@@ -186,7 +186,7 @@ auto MakeVar(V&& value)
 {
     return VarSignal<D,Events<D,TInner>>(
         std::make_shared<REACT_IMPL::VarNode<D,Events<D,TInner>>>(
-            std::forward<V>(value), false));
+            std::forward<V>(value)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -203,7 +203,7 @@ auto MakeVal(V&& value)
 {
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::ValNode<D,S>>(
-            std::forward<V>(value), false));
+            std::forward<V>(value)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -225,7 +225,7 @@ auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
 
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::FunctionNode<D,S,F,TArgs ...>>(
-            std::forward<F>(func), args.GetPtr() ..., false));
+            std::forward<F>(func), args.GetPtr() ...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -246,7 +246,7 @@ auto operator ## op(const TSignal<D,TVal>& arg)                                 
     auto f = [] (TVal a) { return op a; };                                      \
     return Signal<D,decltype(op std::declval<TVal>())>(                         \
         std::make_shared<REACT_IMPL::FunctionNode<D,TVal,decltype(f),TVal>>(    \
-            f, arg.GetPtr(), false));                                           \
+            f, arg.GetPtr()));                                                  \
 }
 
 DECLARE_OP(+);
@@ -283,7 +283,7 @@ auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,                         
     auto f = [] (const TLeftVal& a, const TRightVal& b) { return a op b; };         \
     return Signal<D,TRet>(                                                          \
         std::make_shared<REACT_IMPL::FunctionNode<D,TRet,decltype(f),TLeftVal,TRightVal>>(  \
-            f, lhs.GetPtr(), rhs.GetPtr(), false));                                 \
+            f, lhs.GetPtr(), rhs.GetPtr()));                                        \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -308,7 +308,7 @@ auto operator ## op(const TLeftSignal<D,TLeftVal>& lhs,                         
     auto f = [=] (const TLeftVal& a) { return a op rhs; };                          \
     return Signal<D,TRet>(                                                          \
         std::make_shared<REACT_IMPL::FunctionNode<D,TRet,decltype(f),TLeftVal>>(    \
-            f, lhs.GetPtr(), false));                                               \
+            f, lhs.GetPtr()));                                                      \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -333,7 +333,7 @@ auto operator ## op(const TLeftVal& lhs,                                        
     auto f = [=] (const TRightVal& a) { return lhs op a; };                         \
     return Signal<D,TRet>(                                                          \
         std::make_shared<REACT_IMPL::FunctionNode<D,TRet,decltype(f),TRightVal>>(   \
-            f, rhs.GetPtr(), false));                                               \
+            f, rhs.GetPtr()));                                                      \
 }
 
 DECLARE_OP(+);
@@ -500,7 +500,7 @@ auto Flatten(const Signal<D,Signal<D,TInnerValue>>& node)
 {
     return Signal<D,TInnerValue>(
         std::make_shared<REACT_IMPL::FlattenNode<D, Signal<D,TInnerValue>, TInnerValue>>(
-            node.GetPtr(), node.Value().GetPtr(), false));
+            node.GetPtr(), node.Value().GetPtr()));
 }
 
 /******************************************/ REACT_END /******************************************/

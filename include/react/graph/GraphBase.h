@@ -62,19 +62,15 @@ class ReactiveNode : public NodeBase<D>
 public:
     using PtrT = std::shared_ptr<ReactiveNode>;
 
-    explicit ReactiveNode(bool registered) :
-        obsCount_(0)
+    ReactiveNode() :
+        obsCount_{ 0 }
     {
-        if (!registered)
-            registerNode();
     }
 
     ~ReactiveNode()
     {
         if (GetObsCount() > 0)
             D::Observers().UnregisterFrom(this);
-
-        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override { return "ReactiveNode"; }
@@ -82,12 +78,6 @@ public:
     void    IncObsCount()       { obsCount_.fetch_add(1, std::memory_order_relaxed); }
     void    DecObsCount()       { obsCount_.fetch_sub(1, std::memory_order_relaxed); }
     uint    GetObsCount() const { return obsCount_.load(std::memory_order_relaxed); }
-
-protected:
-    void registerNode()
-    {
-        Engine::OnNodeCreate(*this);
-    }
 
 private:
     std::atomic<uint>    obsCount_;

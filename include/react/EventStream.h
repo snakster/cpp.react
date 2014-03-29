@@ -131,7 +131,7 @@ auto MakeEventSource()
     -> EventSource<D,E>
 {
     return EventSource<D,E>(
-        std::make_shared<REACT_IMPL::EventSourceNode<D,E>>(false));
+        std::make_shared<REACT_IMPL::EventSourceNode<D,E>>());
 }
 
 template <typename D>
@@ -139,7 +139,7 @@ auto MakeEventSource()
     -> EventSource<D,EventToken>
 {
     return EventSource<D,EventToken>(
-        std::make_shared<REACT_IMPL::EventSourceNode<D,EventToken>>(false));
+        std::make_shared<REACT_IMPL::EventSourceNode<D,EventToken>>());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -161,7 +161,7 @@ inline auto Merge(const Events<D,TArg1>& arg1,
     typedef TArg1 E;
     return Events<D,E>(
         std::make_shared<REACT_IMPL::EventMergeNode<D, E, TArg1, TArgs ...>>(
-            arg1.GetPtr(), args.GetPtr() ..., false));
+            arg1.GetPtr(), args.GetPtr() ...));
 }
 
 template
@@ -191,7 +191,7 @@ inline auto Filter(const Events<D,E>& src, F&& filter)
 {
     return Events<D,E>(
         std::make_shared<REACT_IMPL::EventFilterNode<D,E,F>>(
-            src.GetPtr(), std::forward<F>(filter), false));
+            src.GetPtr(), std::forward<F>(filter)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -210,7 +210,7 @@ inline auto Transform(const Events<D,TIn>& src, F&& func)
 
     return Events<D,TOut>(
         std::make_shared<REACT_IMPL::EventTransformNode<D,TIn,TOut,F>>(
-            src.GetPtr(), std::forward<F>(func), false));
+            src.GetPtr(), std::forward<F>(func)));
 }
 
 /******************************************/ REACT_END /******************************************/

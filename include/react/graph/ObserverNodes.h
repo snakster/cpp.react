@@ -33,8 +33,8 @@ class ObserverNode :
 public:
     using PtrT = std::shared_ptr<ObserverNode>;
 
-    explicit ObserverNode(bool registered) :
-        ReactiveNode<D,void,void>(true)
+    ObserverNode() :
+        ReactiveNode<D,void,void>()
     {
     }
 
@@ -58,17 +58,21 @@ class SignalObserverNode : public ObserverNode<D>
 {
 public:
     template <typename F>
-    SignalObserverNode(const SignalNodePtr<D,TArg>& subject, F&& func, bool registered) :
-        ObserverNode<D>(true),
+    SignalObserverNode(const SignalNodePtr<D,TArg>& subject, F&& func) :
+        ObserverNode<D>(),
         subject_{ subject },
         func_{ std::forward<F>(func) }
     {
-        if (!registered)
-            registerNode();
+        Engine::OnNodeCreate(*this);
 
         subject->IncObsCount();
 
         Engine::OnNodeAttach(*this, *subject);
+    }
+
+    ~SignalObserverNode()
+    {
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override { return "SignalObserverNode"; }
@@ -131,17 +135,21 @@ class EventObserverNode : public ObserverNode<D>
 {
 public:
     template <typename F>
-    EventObserverNode(const EventStreamNodePtr<D,TArg>& subject, F&& func, bool registered) :
-        ObserverNode<D>(true),
+    EventObserverNode(const EventStreamNodePtr<D,TArg>& subject, F&& func) :
+        ObserverNode<D>(),
         subject_{ subject },
         func_{ std::forward<F>(func) }
     {
-        if (!registered)
-            registerNode();
+        Engine::OnNodeCreate(*this);
 
         subject->IncObsCount();
 
         Engine::OnNodeAttach(*this, *subject);
+    }
+
+    ~EventObserverNode()
+    {
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override { return "EventObserverNode"; }

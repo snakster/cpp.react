@@ -37,27 +37,16 @@ public:
     using MergedOpT = std::pair<std::function<S(const S&,const S&)>, PtrT>;
     using MergedOpVectT = std::vector<MergedOpT>;
 
-    explicit SignalNode(bool registered) :
-        ReactiveNode(true)
+    SignalNode() :
+        ReactiveNode()
     {
-        if (!registered)
-            registerNode();
     }
 
     template <typename T>
-    SignalNode(T&& value, bool registered) :
-        ReactiveNode{ true },
+    SignalNode(T&& value) :
+        ReactiveNode(),
         value_{ std::forward<T>(value) }
     {
-        if (!registered)
-            registerNode();
-    }
-
-    ~SignalNode()
-    {
-        if (mergedOps_ != nullptr)
-            for (const auto& mo : *mergedOps_)
-                Engine::OnNodeDetach(*this, *mo.second);
     }
 
     virtual const char* GetNodeType() const override { return "SignalNode"; }
@@ -119,12 +108,16 @@ class VarNode :
 {
 public:
     template <typename T>
-    VarNode(T&& value, bool registered) :
-        SignalNode<D,S>(std::forward<T>(value), true),
+    VarNode(T&& value) :
+        SignalNode<D,S>(std::forward<T>(value)),
         newValue_{ value_ }
     {
-        if (!registered)
-            registerNode();
+        Engine::OnNodeCreate(*this);
+    }
+
+    ~VarNode()
+    {
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override { return "VarNode"; }
@@ -176,11 +169,15 @@ class ValNode : public SignalNode<D,S>
 {
 public:
     template <typename T>
-    ValNode(T&& value, bool registered) :
-        SignalNode<D,S>(std::forward<T>(value), true)
+    ValNode(T&& value) :
+        SignalNode<D,S>(std::forward<T>(value))
     {
-        if (!registered)
-            registerNode();
+        Engine::OnNodeCreate(*this);
+    }
+
+    ~ValNode()
+    {
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override { return "ValNode"; }
@@ -206,15 +203,14 @@ class FunctionNode : public SignalNode<D,S>
 {
 public:
     template <typename F>
-    FunctionNode(F&& func, const SignalNodePtr<D,TArgs>& ... args, bool registered) :
-        SignalNode<D, S>(true),
+    FunctionNode(F&& func, const SignalNodePtr<D,TArgs>& ... args) :
+        SignalNode<D, S>(),
         deps_{ std::make_tuple(args ...) },
         func_{ std::forward<F>(func) }
     {
-        if (!registered)
-            registerNode();
-
         value_ = func_(args->ValueRef() ...);
+
+        Engine::OnNodeCreate(*this);
 
         REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
     }
@@ -229,6 +225,8 @@ public:
             },
             deps_
         );
+            
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override { return "FunctionNode"; }
@@ -279,52 +277,6 @@ private:
     }
 };
 
-template
-<
-    typename D,
-    typename S,
-    typename ... TOps
->
-class OpNode : public SignalNode<D,S>
-{
-public:
-    template <typename ... TOpsIn>
-    OpNode(TOpsIn&& ... ops, bool registered) :
-        SignalNode<D, S>(true),
-        ops_{ std::make_tuple(std::forward<TOpsIn>(ops) ...) }
-    {
-        if (!registered)
-            registerNode();
-    }
-
-    virtual void Tick(void* turnPtr) override
-    {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
-
-        S newValue = evaluate();
-        if (mergedOps_ != nullptr)
-            newValue = applyMergedOps(std::move(newValue));
-
-        if (! impl::Equals(value_, newValue))
-        {
-            value_ = std::move(newValue);
-            Engine::OnNodePulse(*this, turn);
-            return;
-        }
-        else
-        {
-            Engine::OnNodeIdlePulse(*this, turn);
-            return;
-        }
-    }
-
-    virtual int DependencyCount() const override    { return sizeof ... (TArgs); }
-
-private:
-    std::tuple<TOps...>    ops_;
-};
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlattenNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -337,14 +289,12 @@ template
 class FlattenNode : public SignalNode<D,TInner>
 {
 public:
-    FlattenNode(const SignalNodePtr<D,TOuter>& outer, const SignalNodePtr<D,TInner>& inner, bool registered) :
-        SignalNode<D, TInner>(inner->ValueRef(), true),
+    FlattenNode(const SignalNodePtr<D,TOuter>& outer, const SignalNodePtr<D,TInner>& inner) :
+        SignalNode<D, TInner>(inner->ValueRef()),
         outer_{ outer },
         inner_{ inner }
     {
-        if (!registered)
-            registerNode();
-
+        Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *outer_);
         Engine::OnNodeAttach(*this, *inner_);
     }
@@ -353,6 +303,7 @@ public:
     {
         Engine::OnNodeDetach(*this, *inner_);
         Engine::OnNodeDetach(*this, *outer_);
+        Engine::OnNodeDestroy(*this);
     }
 
     virtual const char* GetNodeType() const override { return "FlattenNode"; }

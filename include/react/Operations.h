@@ -36,7 +36,7 @@ auto Fold(V&& init, const Events<D,E>& events, F&& func)
 {
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::FoldNode<D,S,E,F>>(
-            std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
+            std::forward<V>(init), events.GetPtr(), std::forward<F>(func)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,7 +55,7 @@ auto Iterate(V&& init, const Events<D,E>& events, F&& func)
 {
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::IterateNode<D,S,E,F>>(
-            std::forward<V>(init), events.GetPtr(), std::forward<F>(func), false));
+            std::forward<V>(init), events.GetPtr(), std::forward<F>(func)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,7 +72,7 @@ auto Hold(V&& init, const Events<D,T>& events)
 {
     return Signal<D,T>(
         std::make_shared<REACT_IMPL::HoldNode<D,T>>(
-            std::forward<V>(init), events.GetPtr(), false));
+            std::forward<V>(init), events.GetPtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,7 +89,7 @@ auto Snapshot(const Signal<D,S>& target, const Events<D,E>& trigger)
 {
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::SnapshotNode<D,S,E>>(
-            target.GetPtr(), trigger.GetPtr(), false));
+            target.GetPtr(), trigger.GetPtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,7 +105,7 @@ auto Monitor(const Signal<D,S>& target)
 {
     return Events<D,S>(
         std::make_shared<REACT_IMPL::MonitorNode<D, S>>(
-            target.GetPtr(), false));
+            target.GetPtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -154,7 +154,7 @@ auto Pulse(const Signal<D,S>& target, const Events<D,E>& trigger)
 {
     return Events<D,S>(
         std::make_shared<REACT_IMPL::PulseNode<D,S,E>>(
-            target.GetPtr(), trigger.GetPtr(), false));
+            target.GetPtr(), trigger.GetPtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -170,7 +170,7 @@ auto Flatten(const Signal<D,Events<D,TInnerValue>>& node)
 {
     return Events<D,TInnerValue>(
         std::make_shared<REACT_IMPL::EventFlattenNode<D, Events<D,TInnerValue>, TInnerValue>>(
-            node.GetPtr(), node().GetPtr(), false));
+            node.GetPtr(), node().GetPtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
