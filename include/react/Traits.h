@@ -16,6 +16,9 @@ class Signal;
 template <typename D, typename S>
 class VarSignal;
 
+template <typename D, typename S, typename TOp>
+class TempSignal;
+
 template <typename D, typename S>
 using RefSignal = Signal<D,std::reference_wrapper<S>>;
 
@@ -34,10 +37,12 @@ template
 <
     typename D,
     typename F,
-    typename ... TArgs
+    typename ... TArgs,
+    typename S = std::result_of<F(TArgs...)>::type,
+    typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtr<D,TArgs> ...>
 >
 auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
-    -> Signal<D, typename std::result_of<F(TArgs...)>::type>;
+    -> TempSignal<D,S,TOp>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsSignal
@@ -50,6 +55,9 @@ struct IsSignal<D, Signal<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
 struct IsSignal<D, VarSignal<D,T>> { static const bool value = true; };
+
+template <typename D, typename T, typename TOp>
+struct IsSignal<D, TempSignal<D,T,TOp>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsEvent

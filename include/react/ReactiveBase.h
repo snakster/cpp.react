@@ -21,6 +21,7 @@ class Reactive
 {
 public:
     using Domain = typename T::Domain;
+    using DomainT = typename T::Domain;
 
     Reactive() :
         ptr_{ nullptr }

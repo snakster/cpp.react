@@ -35,15 +35,6 @@
 
 enum class EventToken;
 
-template
-<
-    typename D,
-    typename F,
-    typename ... TArgs
->
-auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
-    -> Signal<D, typename std::result_of<F(TArgs...)>::type>;
-
 template <typename D>
 class ReactiveLoop;
 

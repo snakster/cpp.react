@@ -158,38 +158,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ValNode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S
->
-class ValNode : public SignalNode<D,S>
-{
-public:
-    template <typename T>
-    ValNode(T&& value) :
-        SignalNode<D,S>(std::forward<T>(value))
-    {
-        Engine::OnNodeCreate(*this);
-    }
-
-    ~ValNode()
-    {
-        Engine::OnNodeDestroy(*this);
-    }
-
-    virtual const char* GetNodeType() const override { return "ValNode"; }
-
-    virtual void Tick(void* turnPtr) override
-    {
-        REACT_ASSERT(false, "Don't tick the ValNode\n");
-        return;
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FunctionNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -205,7 +173,7 @@ public:
     template <typename F>
     FunctionNode(F&& func, const SignalNodePtr<D,TArgs>& ... args) :
         SignalNode<D, S>(),
-        deps_{ std::make_tuple(args ...) },
+        deps_{ args ... },
         func_{ std::forward<F>(func) }
     {
         value_ = func_(args->ValueRef() ...);
@@ -275,6 +243,126 @@ private:
     {
         return std::tie(args->ValueRef() ...);
     }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FunctionOp
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename S,
+    typename F,
+    typename ... TArgs
+>
+class FunctionOp
+{
+public:
+    template <typename FIn, typename ... TArgsIn>
+    FunctionOp(FIn&& func, TArgsIn&& ... args) :
+        deps_{ std::forward<TArgsIn>(args) ... },
+        func_{ std::forward<FIn>(func) }
+    {}
+
+    FunctionOp(FunctionOp&& other) :
+        deps_{ std::move(other.deps_) },
+        func_{ std::move(other.func_) }
+    {}
+
+    FunctionOp() = delete;
+    FunctionOp(const FunctionOp& other) = delete;
+
+    S Evaluate() const
+    {
+        return apply(func_, apply(unpackValues, deps_));
+    }
+
+private:
+    //template <typename T>
+    //static S getValue(const T& arg)
+    //{
+    //    return arg.Evaluate();
+    //}
+
+    //template <typename T>
+    //static S getValue(const T& arg)
+    //{
+    //    return arg->ValueRef();
+    //}
+
+    static inline auto unpackValues(const TArgs& ... args)
+        -> decltype(std::tie(args->ValueRef() ...))
+    {
+        return std::tie(args->ValueRef() ...);
+    }
+
+    std::tuple<TArgs ...>   deps_;
+    F                       func_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// OpSignalNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename S,
+    typename TOp
+>
+class OpSignalNode : public SignalNode<D,S>
+{
+public:
+    template <typename ... TArgs>
+    OpSignalNode(TArgs&& ... args) :
+        SignalNode<D, S>(),
+        op_{ std::forward<TArgs>(args) ... }
+    {
+        value_ = op_.Evaluate();
+
+        Engine::OnNodeCreate(*this);
+    }
+
+    ~OpSignalNode()
+    {            
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual const char* GetNodeType() const override { return "OpSignalNode"; }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        S newValue = op_.Evaluate();
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        if (! impl::Equals(value_, newValue))
+        {
+            value_ = std::move(newValue);
+            Engine::OnNodePulse(*this, turn);
+            return;
+        }
+        else
+        {
+            Engine::OnNodeIdlePulse(*this, turn);
+            return;
+        }
+    }
+
+    virtual int DependencyCount() const override    { return 1; }
+
+    TOp StealOp()
+    {
+        return std::move(op_);
+    }
+
+private:
+    TOp    op_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
