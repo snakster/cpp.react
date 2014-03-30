@@ -47,17 +47,17 @@ auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsSignal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename T>
+template <typename T>
 struct IsSignal { static const bool value = false; };
 
 template <typename D, typename T>
-struct IsSignal<D, Signal<D,T>> { static const bool value = true; };
+struct IsSignal<Signal<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsSignal<D, VarSignal<D,T>> { static const bool value = true; };
+struct IsSignal<VarSignal<D,T>> { static const bool value = true; };
 
 template <typename D, typename T, typename TOp>
-struct IsSignal<D, TempSignal<D,T,TOp>> { static const bool value = true; };
+struct IsSignal<TempSignal<D,T,TOp>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsEvent

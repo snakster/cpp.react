@@ -118,7 +118,7 @@ public:
         typename V,
         typename S = std::decay<V>::type,
         class = std::enable_if<
-            !IsSignal<D,S>::value>::type
+            !IsSignal<S>::value>::type
     >
     static auto MakeVar(V&& value)
         -> VarSignalT<S>
