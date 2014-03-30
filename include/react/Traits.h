@@ -62,32 +62,35 @@ struct IsSignal<TempSignal<D,T,TOp>> { static const bool value = true; };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename T>
+template <typename T>
 struct IsEvent { static const bool value = false; };
 
 template <typename D, typename T>
-struct IsEvent<D, Events<D,T>> { static const bool value = true; };
+struct IsEvent<Events<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsEvent<D, EventSource<D,T>> { static const bool value = true; };
+struct IsEvent<EventSource<D,T>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsReactive
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename T>
+template <typename T>
 struct IsReactive { static const bool value = false; };
 
 template <typename D, typename T>
-struct IsReactive<D, Signal<D,T>> { static const bool value = true; };
+struct IsReactive<Signal<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsReactive<D, VarSignal<D,T>> { static const bool value = true; };
+struct IsReactive<VarSignal<D,T>> { static const bool value = true; };
+
+template <typename D, typename T, typename TOp>
+struct IsReactive<TempSignal<D,T,TOp>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsReactive<D, Events<D,T>> { static const bool value = true; };
+struct IsReactive<Events<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
-struct IsReactive<D, EventSource<D,T>> { static const bool value = true; };
+struct IsReactive<EventSource<D,T>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// RemoveInput

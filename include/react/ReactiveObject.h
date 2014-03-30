@@ -54,7 +54,7 @@ public:
         typename V,
         typename S = std::decay<V>::type,
         class = std::enable_if<
-            !IsSignal<D,S>::value>::type
+            !IsSignal<S>::value>::type
     >
     static auto MakeVar(V&& value)
         -> VarSignalT<S>
@@ -71,7 +71,7 @@ public:
         typename S = std::decay<V>::type,
         typename TInner = S::ValueT,
         class = std::enable_if<
-            IsSignal<D,S>::value>::type
+            IsSignal<S>::value>::type
     >
     static auto MakeVar(V&& value)
         -> VarSignalT<SignalT<TInner>>

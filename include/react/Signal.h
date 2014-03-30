@@ -41,6 +41,8 @@ public:
     Signal() :
         Reactive()
     {}
+
+//    Signal(const Signal& other) = delete;
     
     explicit Signal(const std::shared_ptr<NodeT>& ptr) :
         Reactive(ptr)
@@ -169,7 +171,7 @@ template
     typename V,
     typename S = std::decay<V>::type,
     class = std::enable_if<
-        ! IsReactive<D,S>::value>::type
+        ! IsReactive<S>::value>::type
 >
 auto MakeVar(V&& value)
     -> VarSignal<D,S>
@@ -189,7 +191,7 @@ template
     typename S = std::decay<V>::type,
     typename TInner = S::ValueT,
     class = std::enable_if<
-        IsSignal<D,S>::value>::type
+        IsSignal<S>::value>::type
 >
 auto MakeVar(V&& value)
     -> VarSignal<D,Signal<D,TInner>>
@@ -206,30 +208,13 @@ template
     typename S = std::decay<V>::type,
     typename TInner = S::ValueT,
     class = std::enable_if<
-        IsEvent<D,S>::value>::type
+        IsEvent<S>::value>::type
 >
 auto MakeVar(V&& value)
     -> VarSignal<D,Events<D,TInner>>
 {
     return VarSignal<D,Events<D,TInner>>(
         std::make_shared<REACT_IMPL::VarNode<D,Events<D,TInner>>>(
-            std::forward<V>(value)));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// MakeVal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename V,
-    typename S = std::decay<V>::type
->
-auto MakeVal(V&& value)
-    -> Signal<D,S>
-{
-    return Signal<D,S>(
-        std::make_shared<REACT_IMPL::ValNode<D,S>>(
             std::forward<V>(value)));
 }
 
