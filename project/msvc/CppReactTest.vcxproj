@@ -54,6 +54,7 @@
       <AdditionalIncludeDirectories>..\..\include;$(GTestDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Cpp0xSupport>true</Cpp0xSupport>
+      <DisableSpecificWarnings>4503;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -72,6 +73,7 @@
       <AdditionalIncludeDirectories>..\..\include;$(GTestDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Cpp0xSupport>true</Cpp0xSupport>
+      <DisableSpecificWarnings>4503;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
