@@ -483,7 +483,11 @@ auto operator+(TLeftValIn&& lhs,
 template <typename L, typename R>                                                   \
 struct name ## OpFunctor                                                            \
 {                                                                                   \
-    L operator()(const L& lhs, const R& rhs) const { return lhs op rhs; }           \
+    auto operator()(const L& lhs, const R& rhs) const                               \
+        -> decltype(std::declval<L>() op std::declval<R>())                         \
+    {                                                                               \
+        return lhs op rhs;                                                          \
+    }                                                                               \
 };                                                                                  \
                                                                                     \
 template                                                                            \
@@ -525,7 +529,11 @@ struct name ## OpLFunctor                                                       
                                                                                     \
     name ## OpLFunctor(const name ## OpLFunctor& other) = delete;                   \
                                                                                     \
-    L operator()(const L& lhs) const { return lhs op RightVal; }                    \
+    auto operator()(const L& lhs) const                                             \
+        -> decltype(std::declval<L>() op std::declval<R>())                         \
+    {                                                                               \
+        return lhs op RightVal;                                                     \
+    }                                                                               \
                                                                                     \
     R RightVal;                                                                     \
 };                                                                                  \
@@ -568,7 +576,11 @@ struct name ## OpRFunctor                                                       
                                                                                     \
     name ## OpRFunctor(const name ## OpRFunctor& other) = delete;                   \
                                                                                     \
-    R operator()(const R& rhs) const { return LeftVal op rhs; }                     \
+    auto operator()(const R& rhs) const                                             \
+        -> decltype(std::declval<L>() op std::declval<R>())                         \
+    {                                                                               \
+        return LeftVal op rhs;                                                      \
+    }                                                                               \
                                                                                     \
     L LeftVal;                                                                      \
 };                                                                                  \
