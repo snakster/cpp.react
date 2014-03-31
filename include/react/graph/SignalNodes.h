@@ -34,7 +34,7 @@ public:
     using PtrT      = std::shared_ptr<SignalNode>;
     using WeakPtrT  = std::weak_ptr<SignalNode>;
 
-    using MergedOpT = std::pair<std::function<S(const S&,const S&)>, PtrT>;
+    using MergedOpT     = std::pair<std::function<S(const S&,const S&)>, PtrT>;
     using MergedOpVectT = std::vector<MergedOpT>;
 
     SignalNode() :
@@ -62,30 +62,8 @@ public:
         return value_;
     }
 
-    template <typename F>
-    void MergeOp(const PtrT& dep, F&& func)
-    {
-        if (mergedOps_ == nullptr)
-            mergedOps_ = std::unique_ptr<MergedOpVectT>(new MergedOpVectT());
-
-        mergedOps_->emplace_back(std::forward<F>(func),  dep);
-
-        Engine::OnNodeAttach(*this, *dep);
-
-        value_ = func(value_, dep->ValueRef());
-    }
-
 protected:
-    S applyMergedOps(S newValue) const
-    {
-        for (const auto& mo : *mergedOps_)
-            newValue = mo.first(newValue, mo.second->ValueRef());
-        return std::move(newValue);
-    }
-
     S value_;
-
-    std::unique_ptr<MergedOpVectT>    mergedOps_ = nullptr;
 };
 
 template <typename D, typename S>
@@ -266,41 +244,114 @@ public:
     FunctionOp(FunctionOp&& other) :
         deps_{ std::move(other.deps_) },
         func_{ std::move(other.func_) }
-    {}
+    {
+    }
 
+    // Can't be copied, only moved
     FunctionOp() = delete;
     FunctionOp(const FunctionOp& other) = delete;
 
     S Evaluate() const
     {
-        return applyMemberFn(this, &FunctionOp::unpackValues, deps_);
+        return apply(EvalFunctor{ func_ }, deps_);
+    }
+
+    template <typename D, typename TNode>
+    void Attach(TNode& node) const
+    {
+        return apply(AttachFunctor<D,TNode>{ node }, deps_);
+    }
+
+    template <typename D, typename TNode>
+    void Detach(TNode& node) const
+    {
+        return apply(DetachFunctor<D,TNode>{ node }, deps_);
     }
 
 private:
     template <typename T>
-    struct Unwrapper
+    struct Helper
     {
-        static auto unwrap(const T& arg)
-            -> decltype(arg.Evaluate())
+        static auto eval(const T& arg) -> decltype(arg.Evaluate())
         {
             return arg.Evaluate();
+        }
+
+        template <typename D, typename TNode>
+        static void attach(TNode& node, const T& arg)
+        {
+            return arg.Attach<D>(node);
+        }
+
+        template <typename D, typename TNode>
+        static void detach(TNode& node, const T& arg)
+        {
+            return arg.Detach<D>(node);
         }
     };
 
     template <typename T>
-    struct Unwrapper<std::shared_ptr<T>>
+    struct Helper<std::shared_ptr<T>>
     {
-        static auto unwrap(const std::shared_ptr<T>& arg)
-            -> decltype(arg->ValueRef())
+        static auto eval(const std::shared_ptr<T>& depPtr)
+            -> decltype(depPtr->ValueRef())
         {
-            return arg->ValueRef();
+            return depPtr->ValueRef();
+        }
+
+        template <typename D, typename TNode>
+        static void attach(TNode& node, const std::shared_ptr<T>& depPtr)
+        {
+            D::Engine::OnNodeAttach(node, *depPtr);
+        }
+
+        template <typename D, typename TNode>
+        static void detach(TNode& node, const std::shared_ptr<T>& depPtr)
+        {
+            D::Engine::OnNodeDetach(node, *depPtr);
         }
     };
 
-    S unpackValues(const TArgs& ... args) const
+    struct EvalFunctor
     {
-        return func_(Unwrapper<std::decay<decltype(args)>::type>::unwrap(args) ...);
-    }
+        EvalFunctor(const F& f) : MyFunc{ f }
+        {}
+
+        S operator()(const TArgs& ... args) const
+        {
+            return MyFunc(Helper<std::decay<decltype(args)>::type>::eval(args) ...);
+        }
+
+        const F& MyFunc;
+    };
+
+    template <typename D, typename TNode>
+    struct AttachFunctor
+    {
+        AttachFunctor(TNode& node) : MyNode{ node }
+        {}
+
+        void operator()(const TArgs& ... args) const
+        {
+            REACT_EXPAND_PACK(Helper<std::decay<decltype(args)>::type>::attach<D>(MyNode, args));
+        }
+
+        TNode& MyNode;
+    };
+
+    template <typename D, typename TNode>
+    struct DetachFunctor
+    {
+        DetachFunctor(TNode& node) : MyNode{ node }
+        {}
+
+        void operator()(const TArgs& ... args) const
+        {
+            REACT_EXPAND_PACK(Helper<std::decay<decltype(args)>::type>::detach<D>(MyNode, args));
+        }
+
+        TNode& MyNode;
+    };
 
     std::tuple<TArgs ...>   deps_;
     F                       func_;
@@ -326,10 +377,13 @@ public:
         value_ = op_.Evaluate();
 
         Engine::OnNodeCreate(*this);
+        op_.Attach<D>(*this);
     }
 
     ~OpSignalNode()
-    {            
+    {
+        if (!wasOpStolen_)
+            op_.Detach<D>(*this);
         Engine::OnNodeDestroy(*this);
     }
 
@@ -365,11 +419,15 @@ public:
 
     TOp StealOp()
     {
+        REACT_ASSERT(wasOpStolen_ == false, "Op was already stolen.");
+        wasOpStolen_ = true;
+        op_.Detach<D>(*this);
         return std::move(op_);
     }
 
 private:
-    TOp    op_;
+    TOp     op_;
+    bool    wasOpStolen_ = false;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
