@@ -273,26 +273,33 @@ public:
 
     S Evaluate() const
     {
-        return apply(func_, apply(unpackValues, deps_));
+        return applyMemberFn(this, &FunctionOp::unpackValues, deps_);
     }
 
 private:
-    //template <typename T>
-    //static S getValue(const T& arg)
-    //{
-    //    return arg.Evaluate();
-    //}
-
-    //template <typename T>
-    //static S getValue(const T& arg)
-    //{
-    //    return arg->ValueRef();
-    //}
-
-    static inline auto unpackValues(const TArgs& ... args)
-        -> decltype(std::tie(args->ValueRef() ...))
+    template <typename T>
+    struct Unwrapper
     {
-        return std::tie(args->ValueRef() ...);
+        static auto unwrap(const T& arg)
+            -> decltype(arg.Evaluate())
+        {
+            return arg.Evaluate();
+        }
+    };
+
+    template <typename T>
+    struct Unwrapper<std::shared_ptr<T>>
+    {
+        static auto unwrap(const std::shared_ptr<T>& arg)
+            -> decltype(arg->ValueRef())
+        {
+            return arg->ValueRef();
+        }
+    };
+
+    S unpackValues(const TArgs& ... args) const
+    {
+        return func_(Unwrapper<std::decay<decltype(args)>::type>::unwrap(args) ...);
     }
 
     std::tuple<TArgs ...>   deps_;

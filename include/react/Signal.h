@@ -283,36 +283,6 @@ auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
 //            PlusFunctor<TLeftVal,TRightVal>(), lhs.StealOp(), rhs.GetPtr()));
 //}
 
-//template <typename T>                                                           
-//struct NegationOpFunctor                                                        
-//{                                                                               
-//    using RetT = decltype(! std::declval<T>());                                  
-//                                                                                
-//    RetT operator()(const T& v) const                                           
-//    {                                                                           
-//        return ! v;                                                            
-//    }                                                                           
-//};                                                                              
-//                                                                                
-//template                                                                        
-//<                                                                               
-//    typename D,                                                                 
-//    template <typename D_, typename V_> class TSignal,                          
-//    typename TVal,                                                              
-//    typename F = NegationOpFunctor<TVal>,                                       
-//    typename S = F::RetT,
-//    typename TOp = REACT_IMPL::FunctionOp<S,F,REACT_IMPL::SignalNodePtr<D,TVal>>,
-//    class = std::enable_if<                                                     
-//        IsSignal<D,TSignal<D,TVal>>::value>::type                               
-//>                                                                               
-//auto operator!(const TSignal<D,TVal>& arg)
-//    -> TempSignal<D,S,TOp>
-//{
-//    return TempSignal<D,S,TOp>(
-//        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(
-//            F(), arg.GetPtr()));
-//}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Unary operators
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -345,136 +315,10 @@ auto operator ## op(const TSignal& arg)                                         
 DECLARE_OP(+, UnaryPlus);
 DECLARE_OP(-, UnaryMinus);
 DECLARE_OP(!, LogicalNegation);
-//DECLARE_OP(++, Increment);
-//DECLARE_OP(--, Decrement);
+DECLARE_OP(++, Increment);
+DECLARE_OP(--, Decrement);
 
-#undef DECLARE_OP 
-
-/*template <typename L, typename R>                                                   
-struct AdditionOpFunctor                                                            
-{                                                                                   
-    L operator()(const L& lhs, const R& rhs) const { return lhs + rhs; }        
-};
-
-template                                                                            
-<                                                                                   
-    typename TLeftSignal,                          
-    typename TRightSignal,                         
-    typename D = TLeftSignal::DomainT,                                                                     
-    typename TLeftVal = TLeftSignal::ValueT,                                                              
-    typename TRightVal = TRightSignal::ValueT,                                                             
-    typename F = AdditionOpFunctor<TLeftVal,TRightVal>,                             
-    typename S = std::result_of<F(TLeftVal,TRightVal)>::type,
-    typename TOp = REACT_IMPL::FunctionOp<S,F,
-        REACT_IMPL::SignalNodePtr<D,TLeftVal>,
-        REACT_IMPL::SignalNodePtr<D,TRightVal>>,   
-    class = std::enable_if<                                                         
-        IsSignal<TLeftSignal>::value>::type,                          
-    class = std::enable_if<                                                         
-        IsSignal<TRightSignal>::value>::type                         
->                                                                                   
-auto operator+(const TLeftSignal& lhs,                             
-               const TRightSignal& rhs)                           
-    -> TempSignal<D,S,TOp>                                                          
-{
-
-    return TempSignal<D,S,TOp>(                                                     
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        
-            F(), lhs.GetPtr(), rhs.GetPtr()));                                      
-}
-
-template <typename L, typename R>                                                   
-struct AdditionOpLFunctor                                                            
-{                                                                                       
-    AdditionOpLFunctor(AdditionOpLFunctor&& other) :
-        RightVal{ std::move(other.RightVal) }
-    {}
-
-    template <typename T>
-    AdditionOpLFunctor(T&& val) :
-        RightVal{ std::forward<T>(val) }
-    {}
-
-    AdditionOpLFunctor(const AdditionOpLFunctor& other) = delete;
-
-    L operator()(const L& lhs) const
-    {
-        return lhs + RightVal;
-    }
-
-    R RightVal;
-};
-
-template                                                                            
-<
-    typename TLeftSignal,                          
-    typename TRightValIn,                                                             
-    typename D = TLeftSignal::DomainT,                                                                     
-    typename TLeftVal = TLeftSignal::ValueT,                                                              
-    typename TRightVal = std::decay<TRightValIn>::type,                                                  
-    typename F = AdditionOpLFunctor<TLeftVal,TRightVal>,                             
-    typename S = std::result_of<F(TLeftVal)>::type,
-    typename TOp = REACT_IMPL::FunctionOp<S,F,
-        REACT_IMPL::SignalNodePtr<D,TLeftVal>>,
-    class = std::enable_if<                                                         
-        IsSignal<TLeftSignal>::value>::type,                          
-    class = std::enable_if<                                                         
-        ! IsSignal<TRightVal>::value>::type
->                                                                                   
-auto operator+(const TLeftSignal& lhs, TRightValIn&& rhs)                                           
-    -> TempSignal<D,S,TOp>                                                                  
-{
-    return TempSignal<D,S,TOp>(                                                     
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        
-            F(std::forward<TRightValIn>(rhs)), lhs.GetPtr()));
-}
-
-template <typename L, typename R>                                                   
-struct AdditionOpRFunctor                                                            
-{                                                                                       
-    AdditionOpRFunctor(AdditionOpRFunctor&& other) :
-        LeftVal{ std::move(other.LeftVal) }
-    {}
-
-    template <typename T>
-    AdditionOpRFunctor(T&& val) :
-        LeftVal{ std::forward<T>(val) }
-    {}
-
-    AdditionOpRFunctor(const AdditionOpLFunctor& other) = delete;
-
-    R operator()(const R& rhs) const
-    {
-        return LeftVal + rhs;
-    }
-
-    L LeftVal;
-};
-
-template                                                                            
-<   
-    typename TLeftValIn,                                                              
-    typename TRightSignal,                         
-    typename D = TRightSignal::DomainT,                                                                     
-    typename TLeftVal = std::decay<TLeftValIn>::type,                                                  
-    typename TRightVal = TRightSignal::ValueT, 
-    typename F = AdditionOpRFunctor<TLeftVal,TRightVal>,                             
-    typename S = std::result_of<F(TRightVal)>::type,
-    typename TOp = REACT_IMPL::FunctionOp<S,F,
-        REACT_IMPL::SignalNodePtr<D,TRightVal>>,
-    class = std::enable_if<                                                         
-        ! IsSignal<TLeftVal>::value>::type,                                      
-    class = std::enable_if<                                                         
-        IsSignal<TRightSignal>::value>::type                         
->                                                                                   
-auto operator+(TLeftValIn&& lhs,                                            
-                const TRightSignal& rhs)                           
-    -> TempSignal<D,S,TOp>                                                                  
-{                                                                                   
-    return TempSignal<D,S,TOp>(                                                     
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        
-            F(std::forward<TLeftValIn>(lhs)), rhs.GetPtr()));                                                     
-}    */                                                                       
+#undef DECLARE_OP                                                                      
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Binary operators
@@ -627,26 +471,28 @@ DECLARE_OP(||, LogicalOr);
 
 #undef DECLARE_OP
 
-//template
-//<
-//    typename D,                                                        
-//    template <typename D_, typename V_> class TLeftSignal,            
-//    template <typename D_, typename V_> class TRightSignal,            
-//    typename TLeftVal,                                                
-//    typename TRightVal,                                                
-//    class = std::enable_if<                                            
-//        IsSignal<D,TLeftSignal<D,TLeftVal>>::value>::type,            
-//    class = std::enable_if<                                            
-//        IsSignal<D,TRightSignal<D,TRightVal>>::value>::type        
-//>                                                                    
-//auto operator+(TLeftSignal<D,TLeftVal>&& lhs,
-//               const TRightSignal<D,TRightVal>& rhs)
-//    -> Signal<D,TLeftVal>
-//{
-//    lhs.GetPtr()->MergeOp(
-//        rhs.GetPtr(), [] (const TLeftVal& a, const TRightVal& b) { return a + b; });
-//    return std::move(lhs);
-//}
+template                                                                            
+<                                                                                   
+    typename D,
+    typename TLeftVal,
+    typename TLeftOp,
+    typename TRightSignal,                                                          
+    typename TRightVal = TRightSignal::ValueT,                                      
+    typename F = AdditionOpFunctor<TLeftVal,TRightVal>,                             
+    typename S = std::result_of<F(TLeftVal,TRightVal)>::type,                       
+    typename TOp = REACT_IMPL::FunctionOp<S,F,                                      
+        TLeftOp,                                      
+        REACT_IMPL::SignalNodePtr<D,TRightVal>>,                                    
+    class = std::enable_if<                                                         
+        IsSignal<TRightSignal>::value>::type                                        
+>                                                                                   
+auto operator+(TempSignal<D,TLeftVal,TLeftOp>&& lhs, const TRightSignal& rhs)                
+    -> TempSignal<D,S,TOp>                                                          
+{                                                                                   
+    return TempSignal<D,S,TOp>(                                                     
+        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        
+            F(), lhs.StealOp(), rhs.GetPtr()));                                      
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// InputPack - Wraps several nodes in a tuple. Create with comma operator.
