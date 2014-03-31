@@ -55,6 +55,35 @@ inline auto apply(F && f, T && t)
         ::apply(std::forward<F>(f), std::forward<T>(t));
 }
 
+template<size_t N>
+struct ApplyMemberFn {
+    template <typename O, typename F, typename T, typename... A>
+    static inline auto apply(O obj, F f, T && t, A &&... a)
+        -> decltype(ApplyMemberFn<N-1>::apply(obj, f, std::forward<T>(t), std::get<N-1>(std::forward<T>(t)), std::forward<A>(a)...))
+    {
+        return ApplyMemberFn<N-1>::apply(obj, f, std::forward<T>(t), std::get<N-1>(std::forward<T>(t)), std::forward<A>(a)...);
+    }
+};
+
+template<>
+struct ApplyMemberFn<0>
+{
+    template<typename O, typename F, typename T, typename... A>
+    static inline auto apply(O obj, F f, T &&, A &&... a)
+        -> decltype((obj->*f)(std::forward<A>(a)...))
+    {
+        return (obj->*f)(std::forward<A>(a)...);
+    }
+};
+
+template <typename O, typename F, typename T>
+inline auto applyMemberFn(O obj, F f, T&& t)
+    -> decltype(ApplyMemberFn<std::tuple_size<typename std::decay<T>::type>::value>::apply(obj, f, std::forward<T>(t)))
+{
+    return ApplyMemberFn<std::tuple_size<typename std::decay<T>::type>::value>
+        ::apply(obj, f, std::forward<T>(t));
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Helper to enable calling a function on each element of an argument pack.
 /// We can't do f(args) ...; because ... expands with a comma.
