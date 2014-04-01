@@ -85,25 +85,25 @@ public:
 
         // Determine current min level
         minLevel_ = INT_MAX;
-        for (auto& buf : collectBuffer_)
+        for (const auto& buf : collectBuffer_)
             if (minLevel_ > buf.MinLevel)
                 minLevel_ = buf.MinLevel;
 
+        // For each thread local buffer...
         for (auto& buf : collectBuffer_)
         {
             auto& v = buf.Data;
 
             // Swap min level nodes to end of v
-            Comp_ comp{ minLevel_ };
-            auto p = std::partition(v.begin(), v.end(), comp);
+            auto p = std::partition(v.begin(), v.end(), Comp_{ minLevel_ });
 
-            // Copy them to nextNodes_
+            // Copy them to global nextNodes_
             std::copy(p, v.end(), std::back_inserter(nextNodes_));
 
             // Truncate remaining
             v.resize(std::distance(v.begin(), p));
 
-            // Set new min level
+            // Calc new min level for this buffer
             buf.MinLevel = INT_MAX;
             for (const T* x : v)
                 if (buf.MinLevel > x->Level)
