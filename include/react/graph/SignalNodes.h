@@ -136,94 +136,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// FunctionNode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename TFunc,
-    typename ... TArgs
->
-class FunctionNode : public SignalNode<D,S>
-{
-public:
-    template <typename F>
-    FunctionNode(F&& func, const SignalNodePtr<D,TArgs>& ... args) :
-        SignalNode<D, S>(),
-        deps_{ args ... },
-        func_{ std::forward<F>(func) }
-    {
-        value_ = func_(args->ValueRef() ...);
-
-        Engine::OnNodeCreate(*this);
-
-        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *args));
-    }
-
-    ~FunctionNode()
-    {
-        apply
-        (
-            [this] (const SignalNodePtr<D,TArgs>& ... args)
-            {
-                REACT_EXPAND_PACK(Engine::OnNodeDetach(*this, *args));
-            },
-            deps_
-        );
-            
-        Engine::OnNodeDestroy(*this);
-    }
-
-    virtual const char* GetNodeType() const override { return "FunctionNode"; }
-
-    virtual void Tick(void* turnPtr) override
-    {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        S newValue = evaluate();
-        if (mergedOps_ != nullptr)
-            newValue = applyMergedOps(std::move(newValue));
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! impl::Equals(value_, newValue))
-        {
-            value_ = std::move(newValue);
-            Engine::OnNodePulse(*this, turn);
-            return;
-        }
-        else
-        {
-            Engine::OnNodeIdlePulse(*this, turn);
-            return;
-        }
-    }
-
-    virtual int DependencyCount() const override    { return sizeof ... (TArgs); }
-
-private:
-    std::tuple<SignalNodePtr<D,TArgs> ...>    deps_;
-    TFunc   func_;
-
-    S evaluate() const
-    {
-        return apply(func_, apply(unpackValues, deps_));
-    }
-
-    static inline auto unpackValues(const SignalNodePtr<D,TArgs>& ... args)
-        -> decltype(std::tie(args->ValueRef() ...))
-    {
-        return std::tie(args->ValueRef() ...);
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FunctionOp
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -234,6 +146,8 @@ template
 >
 class FunctionOp
 {
+private:
+
 public:
     template <typename FIn, typename ... TArgsIn>
     FunctionOp(FIn&& func, TArgsIn&& ... args) :
@@ -288,6 +202,8 @@ private:
         {
             return arg.Detach<D>(node);
         }
+
+        static const int count_value = T::dependency_count;
     };
 
     template <typename T>
@@ -310,6 +226,8 @@ private:
         {
             D::Engine::OnNodeDetach(node, *depPtr);
         }
+
+        static const int count_value = 1;
     };
 
     struct EvalFunctor
@@ -353,8 +271,30 @@ private:
         TNode& MyNode;
     };
 
+private:
     std::tuple<TArgs ...>   deps_;
     F                       func_;
+
+// Dependency counting
+private:
+    template <int N, typename... Args>
+    struct DepCounter;
+
+    template <int N, typename First, typename... Args>
+    struct DepCounter<N, First, Args...>
+    {
+        static int const Value =
+            Helper<std::decay<First>::type>::count_value + DepCounter<N-1,Args...>::Value;
+    };
+
+    template <>
+    struct DepCounter<0>
+    {
+        static int const Value = 0;
+    };
+
+public:
+    static const int dependency_count = DepCounter<sizeof...(TArgs), TArgs...>::Value;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -415,7 +355,10 @@ public:
         }
     }
 
-    virtual int DependencyCount() const override    { return 1; }
+    virtual int DependencyCount() const override
+    {
+        return TOp::dependency_count;
+    }
 
     TOp StealOp()
     {
