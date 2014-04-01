@@ -1,15 +1,16 @@
 ## Introduction
 
-Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) framework for C++11.
-It provides abstractions to simplify the implementation of reactive behaviour.
-This is accomplished by enabling the declarative expression of dataflows and handling the propagation of changes automatically.
-Implicit parallelism for this process is supported as well.
+Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) framework for C++11. Its purpose is to provide abstractions that simplify the implementation of reactive behaviour.
 
-#### Building
+The general idea is that dependency relations between data/actions are expressed declarively, while the actual propagation of changes is handled automatically. The benefits:
+* Reduction of boilerplate code.
+* Updating is always consistent and glitch-free.
+* Support for implicit parallelization of updates.
 
-So far, I've only tested building the framework on Windows, with:
-* Visual Studio 2013
-* Intel C++ Compiler 14.0 in Visual Studio 2012/13
+#### Compiling
+
+I mainly tested the build on Windows with Visual Studio 2013.
+The Intel C++ Compiler 14.0 with Visual Studio 2012/13 is theoretically supported as well, but it doesn't compile the current codebase anymore due to [some bugs]() with C++11 support.
 
 Cpp.React uses standard C++11 and the dependencies are portable, so other compilers/platforms should work, too.
 
@@ -18,13 +19,12 @@ Cpp.React uses standard C++11 and the dependencies are portable, so other compil
 * [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the tests)
 * [Boost C++ Libraries](http://www.boost.org/) (optional, to use ReactiveLoop, which requires boost::coroutine)
 
-## Feature overview
+## Features by example
 
 #### Signals
 
 Signals are time-varying reactive values, that can be combined to create reactive expressions.
 These expressions are automatically recalculated whenever one of their dependent values changes.
-Example:
 
 ```C++
 #include "react/Signal.h"
@@ -43,9 +43,11 @@ width <<= 10;
 cout << "area: " << area() << endl; // => area: 20
 ```
 
+For more information, see the [Signal guide](SignalGuide)
+
 #### Event streams
 
-Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer Pattern](http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf). Example:
+Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer Pattern](http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf).
 
 ```C++
 #include "react/EventStream.h"
