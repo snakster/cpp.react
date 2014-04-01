@@ -47,9 +47,8 @@ void EngineBase<TTurn>::OnNodeCreate(Node& node)
 template <typename TTurn>
 void EngineBase<TTurn>::OnNodeDestroy(Node& node)
 {
-    // NOTE: Called from dtor, vtables have already been changed and IsInputNode will never return true
-    // maybe change this
-    inputNodes_.erase(&node);
+    if (node.IsInputNode())
+        inputNodes_.erase(&node);
 }
 
 template <typename TTurn>
