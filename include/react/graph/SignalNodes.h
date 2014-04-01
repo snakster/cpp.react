@@ -158,8 +158,7 @@ public:
     FunctionOp(FunctionOp&& other) :
         deps_{ std::move(other.deps_) },
         func_{ std::move(other.func_) }
-    {
-    }
+    {}
 
     // Can't be copied, only moved
     FunctionOp() = delete;
@@ -237,7 +236,7 @@ private:
 
         S operator()(const TArgs& ... args) const
         {
-            return MyFunc(Helper<std::decay<decltype(args)>::type>::eval(args) ...);
+            return MyFunc(Helper<typename std::decay<decltype(args)>::type>::eval(args) ...);
         }
 
         const F& MyFunc;
@@ -251,7 +250,9 @@ private:
 
         void operator()(const TArgs& ... args) const
         {
-            REACT_EXPAND_PACK(Helper<std::decay<decltype(args)>::type>::attach<D>(MyNode, args));
+            REACT_EXPAND_PACK(
+                Helper<typename std::decay<decltype(args)>::type>::
+                    template attach<D>(MyNode, args));
         }
 
         TNode& MyNode;
@@ -265,7 +266,9 @@ private:
 
         void operator()(const TArgs& ... args) const
         {
-            REACT_EXPAND_PACK(Helper<std::decay<decltype(args)>::type>::detach<D>(MyNode, args));
+            REACT_EXPAND_PACK(
+                Helper<typename std::decay<decltype(args)>::type>::
+                    template detach<D>(MyNode, args));
         }
 
         TNode& MyNode;
@@ -298,7 +301,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// OpSignalNode
+/// SignalOpNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -306,11 +309,11 @@ template
     typename S,
     typename TOp
 >
-class OpSignalNode : public SignalNode<D,S>
+class SignalOpNode : public SignalNode<D,S>
 {
 public:
     template <typename ... TArgs>
-    OpSignalNode(TArgs&& ... args) :
+    SignalOpNode(TArgs&& ... args) :
         SignalNode<D, S>(),
         op_{ std::forward<TArgs>(args) ... }
     {
@@ -320,14 +323,14 @@ public:
         op_.Attach<D>(*this);
     }
 
-    ~OpSignalNode()
+    ~SignalOpNode()
     {
         if (!wasOpStolen_)
             op_.Detach<D>(*this);
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override { return "OpSignalNode"; }
+    virtual const char* GetNodeType() const override { return "SignalOpNode"; }
 
     virtual void Tick(void* turnPtr) override
     {

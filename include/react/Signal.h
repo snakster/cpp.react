@@ -121,7 +121,7 @@ template
 class TempSignal : public Signal<D,S>
 {
 protected:
-    using NodeT = REACT_IMPL::OpSignalNode<D,S,TOp>;
+    using NodeT = REACT_IMPL::SignalOpNode<D,S,TOp>;
 
 public:    
     TempSignal() :
@@ -236,7 +236,7 @@ auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
         "react::MakeSignal requires at least 1 signal dependency.");
 
     return TempSignal<D,S,TOp>(
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(
             std::forward<F>(func), args.GetPtr() ...  ));
 }
 
@@ -265,7 +265,7 @@ auto operator ## op(const TSignal& arg)                                         
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(), arg.GetPtr()));                                                    \
 }
 
@@ -358,7 +358,7 @@ auto operator ## op(const TLeftSignal& lhs, const TRightSignal& rhs)            
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(), lhs.GetPtr(), rhs.GetPtr()));                                      \
 }                                                                                   \
                                                                                     \
@@ -382,7 +382,7 @@ auto operator ## op(const TLeftSignal& lhs, TRightValIn&& rhs)                  
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(std::forward<TRightValIn>(rhs)), lhs.GetPtr()));                      \
 }                                                                                   \
                                                                                     \
@@ -406,7 +406,7 @@ auto operator ## op(TLeftValIn&& lhs, const TRightSignal& rhs)                  
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(std::forward<TLeftValIn>(lhs)), rhs.GetPtr()));                       \
 }                                                                                   \
 template                                                                            \
@@ -425,7 +425,7 @@ auto operator ## op(TempSignal<D,TLeftVal,TLeftOp>&& lhs,                       
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(), lhs.StealOp(), rhs.StealOp()));                                    \
 }                                                                                   \
                                                                                     \
@@ -449,7 +449,7 @@ template                                                                        
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(), lhs.StealOp(), rhs.GetPtr()));                                     \
 }                                                                                   \
                                                                                     \
@@ -472,7 +472,7 @@ auto operator ## op(const TLeftSignal& lhs, TempSignal<D,TRightVal,TRightOp>&& r
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(), lhs.GetPtr(), rhs.StealOp()));                                     \
 }                                                                                   \
                                                                                     \
@@ -493,7 +493,7 @@ auto operator ## op(TempSignal<D,TLeftVal,TLeftOp>&& lhs, TRightValIn&& rhs)    
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(std::forward<TRightValIn>(rhs)), lhs.StealOp()));                     \
 }                                                                                   \
                                                                                     \
@@ -514,7 +514,7 @@ auto operator ## op(TLeftValIn&& lhs, TempSignal<D,TRightVal,TRightOp>&& rhs)   
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
-        std::make_shared<REACT_IMPL::OpSignalNode<D,S,TOp>>(                        \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(std::forward<TLeftValIn>(lhs)), rhs.StealOp()));                      \
 }                                                                                   
 
