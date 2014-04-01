@@ -273,50 +273,50 @@ void FoldExample1()
 //
 //#include "tbb/tick_count.h"
 //
-void Debug()
-{
-    cout << "A" << endl;
-    {
-        int x = 0;
-
-        auto t0 = tbb::tick_count::now();
-
-        for (int i=0; i<10000000; i++)
-        {
-            x += i;
-        }
-
-        auto t1 = tbb::tick_count::now();
-
-        auto d = (t1 - t0).seconds();
-
-        //cout << x << endl;
-        cout << d << endl;
-    }
-
-    cout << "B" << endl;
-    {
-        auto a = D::MakeVar(0);
-        auto b = D::MakeVar(1);
-        auto c = D::MakeVar(2);
-        auto d = D::MakeVar(4);
-        auto e = D::MakeVar(5);
-
-        auto x = a + b + c + d + e;
-
-        auto t0 = tbb::tick_count::now();
-
-        for (int i=0; i<10000000; i++)
-            a <<= i;
-
-        auto t1 = tbb::tick_count::now();
-
-        auto td = (t1 - t0).seconds();
-
-        cout << x() << endl;
-        cout << td << endl;
-    }
-}
+//void Debug()
+//{
+//    cout << "A" << endl;
+//    {
+//        int x = 0;
+//
+//        auto t0 = tbb::tick_count::now();
+//
+//        for (int i=0; i<10000000; i++)
+//        {
+//            x += i;
+//        }
+//
+//        auto t1 = tbb::tick_count::now();
+//
+//        auto d = (t1 - t0).seconds();
+//
+//        //cout << x << endl;
+//        cout << d << endl;
+//    }
+//
+//    cout << "B" << endl;
+//    {
+//        auto a = D::MakeVar(0);
+//        auto b = D::MakeVar(1);
+//        auto c = D::MakeVar(2);
+//        auto d = D::MakeVar(4);
+//        auto e = D::MakeVar(5);
+//
+//        auto x = a + b + c + d + e;
+//
+//        auto t0 = tbb::tick_count::now();
+//
+//        for (int i=0; i<10000000; i++)
+//            a <<= i;
+//
+//        auto t1 = tbb::tick_count::now();
+//
+//        auto td = (t1 - t0).seconds();
+//
+//        cout << x() << endl;
+//        cout << td << endl;
+//    }
+//}
 
 #ifndef REACT_DISABLE_REACTORS
 #include "react/Reactor.h"
@@ -374,20 +374,20 @@ void LoopTest()
 
 int main()
 {
-    //SignalExample1();
-    //SignalExample2();
-    //SignalExample3();
+    SignalExample1();
+    SignalExample2();
+    SignalExample3();
 
-    //EventExample1();
-    //EventExample2();
+    EventExample1();
+    EventExample2();
 
-    //ObjectExample1();
-    //ObjectExample2();
+    ObjectExample1();
+    ObjectExample2();
 
-    //FoldExample1();
+    FoldExample1();
 
 #ifndef REACT_DISABLE_REACTORS
-    //LoopTest();
+    LoopTest();
 #endif
 
     //Debug();
