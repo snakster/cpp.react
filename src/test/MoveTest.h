@@ -115,7 +115,7 @@ TYPED_TEST_P(MoveTest, Copy1)
     a <<= CopyCounter{2,&stats1};
 
     ASSERT_EQ(stats1.copyCount, 4);
-    ASSERT_EQ(stats1.moveCount, 12);
+    ASSERT_EQ(stats1.moveCount, 10);
     ASSERT_EQ(x().v, 1112);
 }
 
