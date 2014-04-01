@@ -225,28 +225,6 @@ template
 <
     typename D,
     typename F,
-    typename ... TArgs
->
-auto MakeSignal_old(F&& func, const Signal<D,TArgs>& ... args)
-    -> Signal<D, typename std::result_of<F(TArgs...)>::type>
-{
-    static_assert(sizeof...(TArgs) > 0,
-        "react::MakeSignal requires at least 1 signal dependency.");
-
-    using S = typename std::result_of<F(TArgs...)>::type;
-
-    return Signal<D,S>(
-        std::make_shared<REACT_IMPL::FunctionNode<D,S,F,TArgs ...>>(
-            std::forward<F>(func), args.GetPtr() ...));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// MakeSignal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename F,
     typename ... TArgs,
     typename S,
     typename TOp
