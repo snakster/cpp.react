@@ -183,51 +183,41 @@ public:
 
 private:
     template <typename T>
-    struct Helper
+    static auto eval(const T& arg) -> decltype(arg.Evaluate())
     {
-        static auto eval(const T& arg) -> decltype(arg.Evaluate())
-        {
-            return arg.Evaluate();
-        }
-
-        template <typename D, typename TNode>
-        static void attach(TNode& node, const T& arg)
-        {
-            return arg.Attach<D>(node);
-        }
-
-        template <typename D, typename TNode>
-        static void detach(TNode& node, const T& arg)
-        {
-            return arg.Detach<D>(node);
-        }
-
-        static const int count_value = T::dependency_count;
-    };
+        return arg.Evaluate();
+    }
 
     template <typename T>
-    struct Helper<std::shared_ptr<T>>
+    static auto eval(const std::shared_ptr<T>& depPtr)
+        -> decltype(depPtr->ValueRef())
     {
-        static auto eval(const std::shared_ptr<T>& depPtr)
-            -> decltype(depPtr->ValueRef())
-        {
-            return depPtr->ValueRef();
-        }
+        return depPtr->ValueRef();
+    }
 
-        template <typename D, typename TNode>
-        static void attach(TNode& node, const std::shared_ptr<T>& depPtr)
-        {
-            D::Engine::OnNodeAttach(node, *depPtr);
-        }
+    template <typename D, typename TNode, typename T>
+    static void attach(TNode& node, const T& arg)
+    {
+        return arg.Attach<D>(node);
+    }
 
-        template <typename D, typename TNode>
-        static void detach(TNode& node, const std::shared_ptr<T>& depPtr)
-        {
-            D::Engine::OnNodeDetach(node, *depPtr);
-        }
+    template <typename D, typename TNode, typename T>
+    static void attach(TNode& node, const std::shared_ptr<T>& depPtr)
+    {
+        D::Engine::OnNodeAttach(node, *depPtr);
+    }
 
-        static const int count_value = 1;
-    };
+    template <typename D, typename TNode, typename T>
+    static void detach(TNode& node, const T& arg)
+    {
+        return arg.Detach<D>(node);
+    }
+
+    template <typename D, typename TNode, typename T>
+    static void detach(TNode& node, const std::shared_ptr<T>& depPtr)
+    {
+        D::Engine::OnNodeDetach(node, *depPtr);
+    }
 
     struct EvalFunctor
     {
@@ -236,7 +226,7 @@ private:
 
         S operator()(const TArgs& ... args) const
         {
-            return MyFunc(Helper<typename std::decay<decltype(args)>::type>::eval(args) ...);
+            return MyFunc(eval(args) ...);
         }
 
         const F& MyFunc;
@@ -250,9 +240,7 @@ private:
 
         void operator()(const TArgs& ... args) const
         {
-            REACT_EXPAND_PACK(
-                Helper<typename std::decay<decltype(args)>::type>::
-                    template attach<D>(MyNode, args));
+            REACT_EXPAND_PACK(attach<D>(MyNode, args));
         }
 
         TNode& MyNode;
@@ -266,9 +254,7 @@ private:
 
         void operator()(const TArgs& ... args) const
         {
-            REACT_EXPAND_PACK(
-                Helper<typename std::decay<decltype(args)>::type>::
-                    template detach<D>(MyNode, args));
+            REACT_EXPAND_PACK(detach<D>(MyNode, args));
         }
 
         TNode& MyNode;
@@ -280,24 +266,27 @@ private:
 
 // Dependency counting
 private:
+    template <typename T>
+    struct CountHelper { static const int value = T::dependency_count; };
+
+    template <typename T>
+    struct CountHelper<std::shared_ptr<T>> { static const int value = 1; };
+
     template <int N, typename... Args>
     struct DepCounter;
+
+    template <>
+    struct DepCounter<0> { static int const value = 0; };
 
     template <int N, typename First, typename... Args>
     struct DepCounter<N, First, Args...>
     {
-        static int const Value =
-            Helper<std::decay<First>::type>::count_value + DepCounter<N-1,Args...>::Value;
-    };
-
-    template <>
-    struct DepCounter<0>
-    {
-        static int const Value = 0;
+        static int const value =
+            CountHelper<std::decay<First>::type>::value + DepCounter<N-1,Args...>::value;
     };
 
 public:
-    static const int dependency_count = DepCounter<sizeof...(TArgs), TArgs...>::Value;
+    static const int dependency_count = DepCounter<sizeof...(TArgs), TArgs...>::value;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
