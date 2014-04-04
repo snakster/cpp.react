@@ -10,6 +10,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 
 #include "tbb/concurrent_vector.h"
 
@@ -36,8 +37,9 @@ public:
     template <typename F>
     void Add(F&& input)
     {
-        if (bufferedInputsPtr_ == nullptr)
-            bufferedInputsPtr_ = std::unique_ptr<InputVectT>(new InputVectT());
+        std::call_once(bufferedInputsInit_, [this] {
+            bufferedInputsPtr_.reset(new InputVectT());
+        });
         bufferedInputsPtr_->push_back(std::forward<F>(input));
     }
 
@@ -52,7 +54,8 @@ public:
     }
 
 private:
-    std::unique_ptr<InputVectT>    bufferedInputsPtr_ = nullptr;
+    std::once_flag                  bufferedInputsInit_;
+    std::unique_ptr<InputVectT>     bufferedInputsPtr_ = nullptr;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
