@@ -10,6 +10,7 @@
 
 #include <thread>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "ReactiveBase.h"
@@ -124,6 +125,39 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// TempEvents
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename E,
+    typename TOp
+>
+class TempEvents : public Events<D,E>
+{
+protected:
+    using NodeT = REACT_IMPL::EventOpNode<D,E,TOp>;
+
+public:    
+    TempEvents() :
+        Events()
+    {}
+
+    explicit TempEvents(const std::shared_ptr<NodeT>& ptr) :
+        Events(ptr)
+    {}
+
+    explicit TempEvents(std::shared_ptr<NodeT>&& ptr) :
+        Events(std::move(ptr))
+    {}
+
+    TOp StealOp()
+    {
+        return std::move(std::static_pointer_cast<NodeT>(ptr_)->StealOp());
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MakeEventSource
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D, typename E>
@@ -149,32 +183,107 @@ template
 <
     typename D,
     typename TArg1,
-    typename ... TArgs
+    typename ... TArgs,
+    typename E = TArg1,
+    typename TOp = REACT_IMPL::EventMergeOp<E,
+        REACT_IMPL::EventStreamNodePtr<D,TArg1>,
+        REACT_IMPL::EventStreamNodePtr<D,TArgs> ...>
 >
-inline auto Merge(const Events<D,TArg1>& arg1,
-                  const Events<D,TArgs>& ... args)
-    -> Events<D,TArg1>
+auto Merge(const Events<D,TArg1>& arg1, const Events<D,TArgs>& ... args)
+    -> TempEvents<D,E,TOp>
 {
     static_assert(sizeof...(TArgs) > 0,
         "react::Merge requires at least 2 arguments.");
 
-    typedef TArg1 E;
-    return Events<D,E>(
-        std::make_shared<REACT_IMPL::EventMergeNode<D, E, TArg1, TArgs ...>>(
+    return TempEvents<D,E,TOp>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
             arg1.GetPtr(), args.GetPtr() ...));
 }
 
 template
 <
-    typename D,
-    typename TLeftArg,
-    typename TRightArg
+    typename TLeftEvents,
+    typename TRightEvents,
+    typename D = TLeftEvents::DomainT,
+    typename TLeftVal = TLeftEvents::ValueT,
+    typename TRightVal = TRightEvents::ValueT,
+    typename E = TLeftVal,
+    typename TOp = REACT_IMPL::EventMergeOp<E,
+        REACT_IMPL::EventStreamNodePtr<D,TLeftVal>,
+        REACT_IMPL::EventStreamNodePtr<D,TRightVal>>,
+    class = std::enable_if<
+        IsEvent<TLeftEvents>::value>::type,
+    class = std::enable_if<
+        IsEvent<TRightEvents>::value>::type
 >
-inline auto operator|(const Events<D,TLeftArg>& lhs,
-                      const Events<D,TRightArg>& rhs)
-    -> Events<D, TLeftArg>
+auto operator|(const TLeftEvents& lhs, const TRightEvents& rhs)
+    -> TempEvents<D,E,TOp>
 {
-    return Merge(lhs,rhs);
+    return TempEvents<D,E,TOp>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+            lhs.GetPtr(), rhs.GetPtr()));
+}
+
+template
+<
+    typename D,
+    typename TLeftVal,
+    typename TLeftOp,
+    typename TRightVal,
+    typename TRightOp,
+    typename E = TLeftVal,
+    typename TOp = REACT_IMPL::EventMergeOp<E,TLeftOp,TRightOp>
+>
+auto operator|(TempEvents<D,TLeftVal,TLeftOp>&& lhs, TempEvents<D,TRightVal,TRightOp>&& rhs)
+    -> TempEvents<D,E,TOp>
+{
+    return TempEvents<D,E,TOp>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+            lhs.StealOp(), rhs.StealOp()));
+}
+
+template
+<
+    typename D,
+    typename TLeftVal,
+    typename TLeftOp,
+    typename TRightEvents,
+    typename TRightVal = TRightEvents::ValueT,
+    typename E = TLeftVal,
+    typename TOp = REACT_IMPL::EventMergeOp<E,
+        TLeftOp,
+        REACT_IMPL::EventStreamNodePtr<D,TRightVal>>,
+    class = std::enable_if<
+        IsEvent<TRightEvents>::value>::type
+>
+auto operator|(TempEvents<D,TLeftVal,TLeftOp>&& lhs, const TRightEvents& rhs)
+    -> TempEvents<D,E,TOp>
+{
+    return TempEvents<D,E,TOp>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+            lhs.StealOp(), rhs.GetPtr()));
+}
+
+template
+<
+    typename TLeftEvents,
+    typename D,
+    typename TRightVal,
+    typename TRightOp,
+    typename TLeftVal = TLeftEvents::ValueT,
+    typename E = TLeftVal,
+    typename TOp = REACT_IMPL::EventMergeOp<E,
+        REACT_IMPL::EventStreamNodePtr<D,TRightVal>,
+        TRightOp>,
+    class = std::enable_if<
+        IsEvent<TLeftEvents>::value>::type
+>
+auto operator|(const TLeftEvents& lhs, TempEvents<D,TRightVal,TRightOp>&& rhs)
+    -> TempEvents<D,E,TOp>
+{
+    return TempEvents<D,E,TOp>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+            lhs.GetPtr(), rhs.StealOp()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,14 +293,47 @@ template
 <
     typename D,
     typename E,
-    typename F
+    typename FIn,
+    typename F = std::decay<FIn>::type,
+    typename TOp = REACT_IMPL::EventFilterOp<E,F,
+        REACT_IMPL::EventStreamNodePtr<D,E>>
 >
-inline auto Filter(const Events<D,E>& src, F&& filter)
-    -> Events<D,E>
+auto Filter(const Events<D,E>& src, FIn&& filter)
+    -> TempEvents<D,E,TOp>
 {
-    return Events<D,E>(
-        std::make_shared<REACT_IMPL::EventFilterNode<D,E,F>>(
-            src.GetPtr(), std::forward<F>(filter)));
+    return TempEvents<D,E,TOp>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+            std::forward<FIn>(filter), src.GetPtr()));
+}
+
+template
+<
+    typename D,
+    typename E,
+    typename TOpIn,
+    typename FIn,
+    typename F = std::decay<FIn>::type,
+    typename TOpOut = REACT_IMPL::EventFilterOp<E,F,TOpIn>
+>
+auto Filter(TempEvents<D,E,TOpIn>&& src, FIn&& filter)
+    -> TempEvents<D,E,TOpOut>
+{
+    return TempEvents<D,E,TOpOut>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOpOut>>(
+            std::forward<FIn>(filter), src.StealOp()));
+}
+
+template
+<
+    typename TEvents,
+    typename F,
+    class = std::enable_if<
+        IsEvent<TEvents>::value>::type
+>
+auto operator&(TEvents&& src, F&& filter)
+    -> decltype(Filter(std::forward<TEvents>(src), std::forward<F>(filter)))
+{
+    return Filter(std::forward<TEvents>(src), std::forward<F>(filter));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -200,17 +342,48 @@ inline auto Filter(const Events<D,E>& src, F&& filter)
 template
 <
     typename D,
-    typename TIn,
-    typename F
+    typename E,
+    typename FIn,
+    typename F = std::decay<FIn>::type,
+    typename TOp = REACT_IMPL::EventTransformOp<E,F,
+        REACT_IMPL::EventStreamNodePtr<D,E>>
 >
-inline auto Transform(const Events<D,TIn>& src, F&& func)
-    -> Events<D, typename std::result_of<F(TIn)>::type>
+auto Transform(const Events<D,E>& src, FIn&& func)
+    -> TempEvents<D,E,TOp>
 {
-    using TOut = typename std::result_of<F(TIn)>::type;
+    return TempEvents<D,E,TOp>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+            std::forward<FIn>(func), src.GetPtr()));
+}
 
-    return Events<D,TOut>(
-        std::make_shared<REACT_IMPL::EventTransformNode<D,TIn,TOut,F>>(
-            src.GetPtr(), std::forward<F>(func)));
+template
+<
+    typename D,
+    typename E,
+    typename TOpIn,
+    typename FIn,
+    typename F = std::decay<FIn>::type,
+    typename TOpOut = REACT_IMPL::EventTransformOp<E,F,TOpIn>
+>
+auto Transform(TempEvents<D,E,TOpIn>&& src, FIn&& func)
+    -> TempEvents<D,E,TOpOut>
+{
+    return TempEvents<D,E,TOpOut>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOpOut>>(
+            std::forward<FIn>(func), src.StealOp()));
+}
+
+template
+<
+    typename TEvents,
+    typename F,
+    class = std::enable_if<
+        IsEvent<TEvents>::value>::type
+>
+auto operator->*(TEvents&& src, F&& func)
+    -> decltype(Transform(std::forward<TEvents>(src), std::forward<F>(func)))
+{
+    return Transform(std::forward<TEvents>(src), std::forward<F>(func));
 }
 
 /******************************************/ REACT_END /******************************************/

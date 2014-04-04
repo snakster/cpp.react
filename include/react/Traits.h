@@ -31,6 +31,9 @@ class Events;
 template <typename D, typename E>
 class EventSource;
 
+template <typename D, typename E, typename TOp>
+class TempEvents;
+
 enum class EventToken;
 
 template
@@ -71,6 +74,9 @@ struct IsEvent<Events<D,T>> { static const bool value = true; };
 template <typename D, typename T>
 struct IsEvent<EventSource<D,T>> { static const bool value = true; };
 
+template <typename D, typename T, typename TOp>
+struct IsEvent<TempEvents<D,T,TOp>> { static const bool value = true; };
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsReactive
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,6 +97,9 @@ struct IsReactive<Events<D,T>> { static const bool value = true; };
 
 template <typename D, typename T>
 struct IsReactive<EventSource<D,T>> { static const bool value = true; };
+
+template <typename D, typename T, typename TOp>
+struct IsReactive<TempEvents<D,T,TOp>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// RemoveInput
