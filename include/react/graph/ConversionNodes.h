@@ -194,24 +194,25 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        S newValue = value_;
+        bool changed = false;
+
         if (! events_->Events().empty())
-            newValue = events_->Events().back();
+        {
+            const S& newValue = events_->Events().back();
+            if (newValue != value_)
+            {
+                changed = true;
+                value_ = newValue;
+            }
+        }
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (newValue != value_)
-        {
-            value_ = newValue;
+        if (changed)
             Engine::OnNodePulse(*this, turn);
-            return;
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, turn);
-            return;
-        }
     }
 
     virtual int DependencyCount() const override    { return 1; }
@@ -261,24 +262,25 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash()));
 
-        S newValue = std::move(value_);
+        bool changed = false;
+        
         if (! trigger_->Events().empty())
-            newValue = target_->ValueRef();
+        {
+            const S& newValue = target_->ValueRef();
+            if (newValue != value_)
+            {
+                changed = true;
+                value_ = newValue;
+            }
+        }
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash()));
 
-        if (newValue != value_)
-        {
-            value_ = newValue;
+        if (changed)
             Engine::OnNodePulse(*this, turn);
-            return;
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, turn);
-            return;
-        }
     }
 
     virtual int DependencyCount() const    override    { return 2; }
@@ -331,15 +333,9 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (events_.size() > 0)
-        {
             Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return;
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return;
-        }
     }
 
     virtual int DependencyCount() const override    { return 1; }
@@ -397,15 +393,9 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (events_.size() > 0)
-        {
-            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return;
-        }
+            Engine::OnNodePulse(*this, turn);
         else
-        {
-            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return;
-        }
+            Engine::OnNodeIdlePulse(*this, turn);
     }
 
     virtual int DependencyCount() const    { return 2; }

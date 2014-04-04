@@ -17,9 +17,6 @@
 
 #include "tbb/spin_mutex.h"
 
-//#include <boost/range/adaptors.hpp>
-//#include <boost/range/join.hpp>
-
 #include "GraphBase.h"
 #include "react/common/Types.h"
 
@@ -300,6 +297,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventTransformOp
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// Todo: Refactor code duplication
 template
 <
     typename E,
@@ -349,8 +347,8 @@ private:
             MyTarget(MyFunc(e));
         }
 
-        const TFunc&        MyFunc;
-        const TTarget&      MyTarget;
+        const TFunc&    MyFunc;
+        const TTarget&  MyTarget;
     };
 
     template <typename TTurn, typename TCollector, typename T>
@@ -411,7 +409,7 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        op_.Collect(turn, EventCollector_{ Events() });
+        op_.Collect(turn, EventCollector{ Events() });
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -436,9 +434,9 @@ public:
     }
 
 private:
-    struct EventCollector_
+    struct EventCollector
     {
-        EventCollector_(EventListT& events) : MyEvents{ events }
+        EventCollector(EventListT& events) : MyEvents{ events }
         {}
 
         void operator()(const E& e) const { MyEvents.push_back(e); }
