@@ -8,6 +8,7 @@
 
 #include "react/Defs.h"
 #include <cstdint>
+#include <chrono>
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -21,5 +22,6 @@ ObjectId GetObjectId(const O& obj)
 
 using TurnIdT = uint;
 using TurnFlagsT = uint;
+using UpdateDurationT = std::chrono::duration<uint, std::micro>;
 
 /****************************************/ REACT_IMPL_END /***************************************/

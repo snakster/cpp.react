@@ -7,6 +7,7 @@
 #pragma once
 
 #include "react/Defs.h"
+#include "react/common/Types.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -23,8 +24,8 @@ struct IReactiveEngine
     using NodeT = TNode;
     using TurnT = TTurn;
 
-    void OnNodeCreate(NodeT& node)          {}
-    void OnNodeDestroy(NodeT& node)         {}
+    void OnNodeCreate(NodeT& node)  {}
+    void OnNodeDestroy(NodeT& node) {}
 
     void OnNodeAttach(NodeT& node, NodeT& parent)   {}
     void OnNodeDetach(NodeT& node, NodeT& parent)   {}
@@ -34,7 +35,7 @@ struct IReactiveEngine
     void OnTurnEnd(TurnT& turn)             {}
 
     void OnTurnInputChange(NodeT& node, TurnT& turn)    {}
-    void OnTurnPropagate(TurnT& turn)                           {}
+    void OnTurnPropagate(TurnT& turn)                   {}
 
     void OnNodePulse(NodeT& node, TurnT& turn)      {}
     void OnNodeIdlePulse(NodeT& node, TurnT& turn)  {}
@@ -44,6 +45,8 @@ struct IReactiveEngine
 
     template <typename F>
     bool TryMerge(F&& f) { return false; }
+
+    void HintUpdateDuration(NodeT& node, uint dur)    {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -155,6 +158,21 @@ struct EngineInterface
     {
         return Engine().TryMerge(std::forward<F>(f));
     }
+
+    static void HintUpdateDuration(NodeT& node, uint dur)
+    {
+        Engine().HintUpdateDuration(node, dur);
+    }
+
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Traits
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+struct UseUpdateProfiling
+{
+    static const bool value = false;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
