@@ -17,7 +17,6 @@
 #include <vector>
 
 #include "tbb/concurrent_vector.h"
-#include "tbb/task_group.h"
 #include "tbb/queuing_rw_mutex.h"
 #include "tbb/spin_mutex.h"
 
@@ -43,7 +42,6 @@ using std::vector;
 using tbb::concurrent_vector;
 using tbb::queuing_rw_mutex;
 using tbb::spin_mutex;
-using tbb::task_group;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SeqNode
@@ -69,6 +67,7 @@ public:
     int             Level = 0;
     int             NewLevel = 0;
     atomic<bool>    Collected = false;
+    int             Weight = 1;
 
     NodeVector<ParNode>     Successors;
     InvalidateMutexT        InvalidateMutex;
@@ -140,12 +139,18 @@ template <typename TTurn>
 class ParEngineBase : public EngineBase<ParNode,TTurn>
 {
 public:
+    static const uint min_weight = 1;
+    static const uint grain_size = 100;
+
     using DynRequestVectT = concurrent_vector<DynRequestData>;
+    using TopoQueueT = ConcurrentTopoQueue<ParNode,grain_size>;
 
     void OnTurnPropagate(TTurn& turn);
 
     void OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn);
     void OnDynamicNodeDetach(ParNode& node, ParNode& parent, TTurn& turn);
+
+    void HintUpdateDuration(ParNode& node, uint dur);
 
 private:
     void applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn);
@@ -155,10 +160,8 @@ private:
 
     virtual void processChildren(ParNode& node, TTurn& turn) override;
 
-    ConcurrentTopoQueue<ParNode> topoQueue_;
-
+    TopoQueueT          topoQueue_;
     DynRequestVectT     dynRequests_;
-    task_group          tasks_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -180,7 +183,7 @@ public:
     using NodeVectT = vector<ParNode*>;
     using IntervalSetT = set<pair<int,int>>;
     using DynRequestVectT = concurrent_vector<DynRequestData>;
-    using TopoQueueT = TopoQueue<ParNode>;
+    using TopoQueueT = ConcurrentTopoQueue<ParNode,128>;
 
     PipeliningTurn(TurnIdT id, TurnFlagsT flags);
 
@@ -223,10 +226,8 @@ public:
 
     void RunMergedInputs() const;
 
-    ConcurrentTopoQueue<ParNode>    TopoQueue;
-
+    TopoQueueT          TopoQueue;
     DynRequestVectT     DynRequests;
-    task_group          Tasks;
 
 private:
     using MergedDataVectT = vector<pair<function<void()>,BlockingCondition*>>;
@@ -313,6 +314,7 @@ private:
 };
 
 } // ~namespace toposort
+
 /****************************************/ REACT_IMPL_END /***************************************/
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -326,10 +328,35 @@ struct parallel_pipelining;
 template <typename TMode>
 class TopoSortEngine;
 
-template <> class TopoSortEngine<sequential> : public REACT_IMPL::toposort::BasicSeqEngine {};
-template <> class TopoSortEngine<sequential_queuing> : public REACT_IMPL::toposort::QueuingSeqEngine {};
-template <> class TopoSortEngine<parallel> : public REACT_IMPL::toposort::BasicParEngine {};
-template <> class TopoSortEngine<parallel_queuing> : public REACT_IMPL::toposort::QueuingParEngine {};
-template <> class TopoSortEngine<parallel_pipelining> : public REACT_IMPL::toposort::PipeliningEngine {};
+template <> class TopoSortEngine<sequential> :
+    public REACT_IMPL::toposort::BasicSeqEngine {};
+
+template <> class TopoSortEngine<sequential_queuing> :
+    public REACT_IMPL::toposort::QueuingSeqEngine {};
+
+template <> class TopoSortEngine<parallel> :
+    public REACT_IMPL::toposort::BasicParEngine {};
+
+template <> class TopoSortEngine<parallel_queuing> :
+    public REACT_IMPL::toposort::QueuingParEngine {};
+
+template <> class TopoSortEngine<parallel_pipelining> :
+    public REACT_IMPL::toposort::PipeliningEngine {};
 
 /******************************************/ REACT_END /******************************************/
+
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+template <typename T>
+struct UseUpdateProfiling;
+
+template <>
+struct UseUpdateProfiling<TopoSortEngine<parallel>> { static const bool value = true; };
+
+template <>
+struct UseUpdateProfiling<TopoSortEngine<parallel_queuing>> { static const bool value = true; };
+
+template <>
+struct UseUpdateProfiling<TopoSortEngine<parallel_pipelining>> { static const bool value = true; };
+
+/****************************************/ REACT_IMPL_END /***************************************/

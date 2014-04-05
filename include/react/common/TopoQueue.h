@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "tbb/enumerable_thread_specific.h"
+#include "tbb/tbb_stddef.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -60,28 +61,95 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// WeightedRange
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename TValue,
+    uint grain_size
+>
+class WeightedRange
+{
+public:
+    using const_iterator = TValue;
+
+    WeightedRange() = default;
+    WeightedRange(const WeightedRange& other) = default;
+
+    WeightedRange(const TValue& a, const TValue& b, uint weight) :
+        begin_{ a },
+        end_{ b },
+        weight_{ weight }
+    {
+    }
+
+    WeightedRange(WeightedRange& source, tbb::split)
+    {
+        uint sum = 0;        
+        TValue p = source.begin_;
+        while (p != source.end_)
+        {
+            sum += (*p)->Weight;
+            ++p;
+            if (sum >= grain_size)
+                break;
+        }
+
+        // New [p,b)
+        begin_ = p;
+        end_ = source.end_;
+        weight_ =  source.weight_ - sum;
+
+        // Source [a,p)
+        source.end_ = p;
+        source.weight_ = sum;
+    }
+
+    // tbb range interface
+    bool empty() const          { return !(Size() > 0); }
+    bool is_divisible() const   { return  weight_ > grain_size && Size() > 1; }
+
+    // iteration interface
+    const_iterator begin() const    { return begin_; }
+    const_iterator end() const      { return end_; }
+
+    size_t  Size() const    { return end_ - begin_; }
+    uint    Weight() const  { return weight_; }
+
+private:
+    TValue  begin_;
+    TValue  end_;
+    uint    weight_ = 0;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ConcurrentTopoQueue
 /// Usage based on two phases:
 ///     1. Multiple threads push nodes to the queue concurrently.
-///     2. FetchNodes() prepares all nodes of the next level in NextNodes().
+///     2. FetchNext() prepares all nodes of the next level in NextNodes().
 ///         The previous contents of NextNodes() are automatically cleared. 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
+template <typename T, uint grain_size>
 class ConcurrentTopoQueue
 {
 public:
+    using NodesT = std::vector<T*>;
+    using RangeT = WeightedRange<typename NodesT::const_iterator, grain_size>;
+
     void Push(T* node)
     {
         auto& t = collectBuffer_.local();
         
         t.Data.push_back(node);
+        t.Weight += node->Weight;
         if (t.MinLevel > node->Level)
             t.MinLevel = node->Level;
     }
 
-    bool FetchNextNodes()
+    bool FetchNext()
     {
-        nextNodes_.clear();
+        nodes_.clear();
+        uint totalWeight = 0;
 
         // Determine current min level
         minLevel_ = INT_MAX;
@@ -95,48 +163,60 @@ public:
             auto& v = buf.Data;
 
             // Swap min level nodes to end of v
-            auto p = std::partition(v.begin(), v.end(), Comp_{ minLevel_ });
+            auto p = std::partition(v.begin(), v.end(), CompFunctor{ minLevel_ });
 
-            // Copy them to global nextNodes_
-            std::copy(p, v.end(), std::back_inserter(nextNodes_));
+            // Copy them to global nodes_
+            std::copy(p, v.end(), std::back_inserter(nodes_));
 
             // Truncate remaining
             v.resize(std::distance(v.begin(), p));
 
-            // Calc new min level for this buffer
+            // Calc new min level and weight for this buffer
             buf.MinLevel = INT_MAX;
+            int oldWeight = buf.Weight;
+            buf.Weight = 0;
             for (const T* x : v)
+            {
+                buf.Weight += x->Weight;
                 if (buf.MinLevel > x->Level)
                     buf.MinLevel = x->Level;
+            }
+
+            // Add diff to nodes_ weight
+            totalWeight += oldWeight - buf.Weight;
         }
 
+        range_ = RangeT(nodes_.begin(), nodes_.end(), totalWeight);
+
         // Found more nodes?
-        return !nextNodes_.empty();
+        return !nodes_.empty();
     }
 
-    const std::vector<T*>& NextNodes() const
+    const RangeT& NextRange() const
     {
-        return nextNodes_;
+        return range_;
     }
 
 private:
-    struct Comp_
+    struct CompFunctor
     {
-        const int Level;
-        Comp_(int level) : Level{ level } {}
+        CompFunctor(int level) : Level{ level } {}
         bool operator()(T* other) { return other->Level != Level; }
+        const int Level;
     };
 
-    struct ThreadLocalBuffer_
+    struct ThreadLocalBuffer
     {
-        int             MinLevel = INT_MAX;
         std::vector<T*> Data;
+        int             MinLevel = INT_MAX;
+        uint            Weight = 0;
     };
 
     int                 minLevel_ = INT_MAX;
-    std::vector<T*>     nextNodes_;
+    std::vector<T*>     nodes_;
+    RangeT              range_;
 
-    tbb::enumerable_thread_specific<ThreadLocalBuffer_>    collectBuffer_;
+    tbb::enumerable_thread_specific<ThreadLocalBuffer>    collectBuffer_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

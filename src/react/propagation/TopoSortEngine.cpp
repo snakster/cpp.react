@@ -130,13 +130,14 @@ template class SeqEngineBase<DefaultQueueableTurn<ExclusiveTurn>>;
 template <typename TTurn>
 void ParEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
-    while (topoQueue_.FetchNextNodes())
+    while (topoQueue_.FetchNext())
     {
-        using RangeT = tbb::blocked_range<vector<ParNode*>::const_iterator>;
+        //using RangeT = tbb::blocked_range<vector<ParNode*>::const_iterator>;
+        using RangeT = ParEngineBase::TopoQueueT::RangeT;
 
         // Iterate all nodes of current level and start processing them in parallel
         tbb::parallel_for(
-            RangeT(topoQueue_.NextNodes().begin(), topoQueue_.NextNodes().end()),
+            topoQueue_.NextRange(),
             [&] (const RangeT& range)
             {
                 for (auto* curNode : range)
@@ -156,9 +157,6 @@ void ParEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
                 }
             }
         );
-
-        // Wait for tasks of current level
-        tasks_.wait();
 
         if (dynRequests_.size() > 0)
         {
@@ -186,6 +184,15 @@ void ParEngineBase<TTurn>::OnDynamicNodeDetach(ParNode& node, ParNode& parent, T
 {
     DynRequestData data{ false, &node, &parent };
     dynRequests_.push_back(data);
+}
+
+template <typename TTurn>
+void ParEngineBase<TTurn>::HintUpdateDuration(ParNode& node, uint dur)
+{
+    if (dur < min_weight)
+        dur = min_weight;
+
+    node.Weight = dur;
 }
 
 template <typename TTurn>
@@ -425,18 +432,18 @@ void PipeliningEngine::OnTurnPropagate(PipeliningTurn& turn)
     if (maxDynamicLevel_ > 0)
         turn.AdjustUpperBound(maxDynamicLevel_);
 
-    while (turn.TopoQueue.FetchNextNodes())
+    while (turn.TopoQueue.FetchNext())
     {
-        using RangeT = tbb::blocked_range<vector<ParNode*>::const_iterator>;
+        using RangeT = PipeliningTurn::TopoQueueT::RangeT;
 
-        for (const auto* node : turn.TopoQueue.NextNodes())
+        for (const auto* node : turn.TopoQueue.NextRange())
             turn.AdjustUpperBound(node->Level);
 
         advanceTurn(turn);
 
         // Iterate all nodes of current level and start processing them in parallel
         tbb::parallel_for(
-            RangeT(turn.TopoQueue.NextNodes().begin(), turn.TopoQueue.NextNodes().end()),
+            turn.TopoQueue.NextRange(),
             [&] (const RangeT& range)
             {
                 for (auto* curNode : range)
@@ -456,9 +463,6 @@ void PipeliningEngine::OnTurnPropagate(PipeliningTurn& turn)
                 }
             }
         );
-
-        // Wait for tasks of current level
-        turn.Tasks.wait();
 
         if (turn.DynRequests.size() > 0)
         {
