@@ -62,8 +62,7 @@ class ReactiveNode : public NodeBase<D>
 public:
     using PtrT = std::shared_ptr<ReactiveNode>;
 
-    ReactiveNode() :
-        obsCount_{ 0 }
+    ReactiveNode()
     {
     }
 
@@ -79,8 +78,18 @@ public:
     void    DecObsCount()       { obsCount_.fetch_sub(1, std::memory_order_relaxed); }
     uint    GetObsCount() const { return obsCount_.load(std::memory_order_relaxed); }
 
+    enum
+    {
+        flag_time_measured = 1 << 0
+    };
+
+    void    SetFlag(uint m)         { flags_ |= m; }
+    void    ClearFlag(uint m)       { flags_ &= ~m; }
+    bool    IsFlagSet(uint m) const { return (flags_ & m) != 0; }
+
 private:
-    std::atomic<uint>    obsCount_;
+    std::atomic<uint>   obsCount_   = 0;
+    uint                flags_      = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
