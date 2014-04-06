@@ -14,6 +14,7 @@
 #include <mutex>
 #include <set>
 #include <utility>
+#include <type_traits>
 #include <vector>
 
 #include "tbb/concurrent_vector.h"
@@ -348,15 +349,15 @@ template <> class TopoSortEngine<parallel_pipelining> :
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 template <typename T>
-struct UseUpdateProfiling;
+struct EnableNodeUpdateTimer;
 
 template <>
-struct UseUpdateProfiling<TopoSortEngine<parallel>> { static const bool value = true; };
+struct EnableNodeUpdateTimer<TopoSortEngine<parallel>> : std::true_type {};
 
 template <>
-struct UseUpdateProfiling<TopoSortEngine<parallel_queuing>> { static const bool value = true; };
+struct EnableNodeUpdateTimer<TopoSortEngine<parallel_queuing>> : std::true_type {};
 
 template <>
-struct UseUpdateProfiling<TopoSortEngine<parallel_pipelining>> { static const bool value = true; };
+struct EnableNodeUpdateTimer<TopoSortEngine<parallel_pipelining>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/

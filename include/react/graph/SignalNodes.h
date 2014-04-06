@@ -8,10 +8,6 @@
 
 #include "react/Defs.h"
 
-// vc12 clock too inaccurate
-#include <chrono>
-#include "tbb/tick_count.h"
-
 #include <memory>
 #include <functional>
 #include <tuple>
@@ -232,48 +228,33 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
-        using namespace std::chrono;
-
-        const bool shouldMeasure = !IsFlagSet(flag_time_measured)
-            && UseUpdateProfiling<typename D::Policy::Engine>::value;
-
-        //high_resolution_clock::time_point t0, t1;
-        tbb::tick_count t0, t1;
-
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
         
-        if (shouldMeasure)
-            t0 = tbb::tick_count::now();
+        bool changed = false;
 
-        S newValue = op_.Evaluate();
+        {// timer
+            ScopedUpdateTimer<SignalOpNode> timer{ *this };
 
-        if (shouldMeasure)
-            t1 = tbb::tick_count::now();
+            S newValue = op_.Evaluate();
+
+            if (! REACT_IMPL::Equals(value_, newValue))
+            {
+                value_ = std::move(newValue);
+                changed = true;
+            }
+        }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (shouldMeasure)
-        {
-            SetFlag(flag_time_measured);
-
-            auto d = std::chrono::duration<double>((t1 - t0).seconds());
-            Engine::HintUpdateDuration(*this, duration_cast<UpdateDurationT>(d).count());
-        }
-
-        if (! REACT_IMPL::Equals(value_, newValue))
-        {
-            value_ = std::move(newValue);
+        if (changed)
             Engine::OnNodePulse(*this, turn);
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, turn);
-        }
     }
 
     virtual int DependencyCount() const override
