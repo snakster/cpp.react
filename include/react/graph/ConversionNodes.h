@@ -39,7 +39,7 @@ public:
     {
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual EUpdateResult Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -56,12 +56,12 @@ public:
         {
             value_ = newValue;
             Engine::OnNodePulse(*this, turn);
-            return;
+            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return;
+            return EUpdateResult::unchanged;
         }
     }
 
@@ -186,7 +186,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "HoldNode"; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual EUpdateResult Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -210,9 +210,15 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (changed)
+        {
             Engine::OnNodePulse(*this, turn);
+            return EUpdateResult::changed;
+        }
         else
+        {
             Engine::OnNodeIdlePulse(*this, turn);
+            return EUpdateResult::unchanged;
+        }
     }
 
     virtual int DependencyCount() const override    { return 1; }
@@ -252,7 +258,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "SnapshotNode"; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual EUpdateResult Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -278,9 +284,15 @@ public:
             GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash()));
 
         if (changed)
+        {
             Engine::OnNodePulse(*this, turn);
+            return EUpdateResult::changed;
+        }
         else
+        {
             Engine::OnNodeIdlePulse(*this, turn);
+            return EUpdateResult::unchanged;
+        }
     }
 
     virtual int DependencyCount() const    override    { return 2; }
@@ -317,7 +329,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "MonitorNode"; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual EUpdateResult Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -333,9 +345,15 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (events_.size() > 0)
-            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
+        {
+            Engine::OnNodePulse(*this, turn);
+            return EUpdateResult::changed;
+        }
         else
-            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
+        {
+            Engine::OnNodeIdlePulse(*this, turn);
+            return EUpdateResult::unchanged;
+        }
     }
 
     virtual int DependencyCount() const override    { return 1; }
@@ -375,7 +393,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "PulseNode"; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual EUpdateResult Tick(void* turnPtr) override
     {
         typedef typename D::Engine::TurnT TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -393,9 +411,15 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (events_.size() > 0)
+        {
             Engine::OnNodePulse(*this, turn);
+            return EUpdateResult::changed;
+        }
         else
+        {
             Engine::OnNodeIdlePulse(*this, turn);
+            return EUpdateResult::unchanged;
+        }
     }
 
     virtual int DependencyCount() const    { return 2; }
@@ -438,7 +462,7 @@ public:
 
     virtual bool IsDynamicNode() const override    { return true; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual EUpdateResult Tick(void* turnPtr) override
     {
         typedef typename D::Engine::TurnT TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -459,7 +483,7 @@ public:
             Engine::OnDynamicNodeDetach(*this, *oldInner, turn);
             Engine::OnDynamicNodeAttach(*this, *newInner, turn);
 
-            return;
+            return EUpdateResult::invalidated;
         }
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
@@ -473,12 +497,12 @@ public:
         if (events_.size() > 0)
         {
             Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return;
+            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return;
+            return EUpdateResult::unchanged;
         }
     }
 

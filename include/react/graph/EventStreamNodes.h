@@ -109,10 +109,10 @@ public:
 
     virtual const char* GetNodeType() const override    { return "EventSourceNode"; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual EUpdateResult Tick(void* turnPtr) override
     {
         REACT_ASSERT(false, "Don't tick the EventSourceNode\n");
-        return;
+        return EUpdateResult::none;
     }
 
     virtual bool IsInputNode() const override    { return true; }
@@ -399,7 +399,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "EventOpNode"; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual EUpdateResult Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -415,9 +415,15 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (! events_.empty())
+        {
             Engine::OnNodePulse(*this, turn);
+            return EUpdateResult::changed;
+        }
         else
+        {
             Engine::OnNodeIdlePulse(*this, turn);
+            return EUpdateResult::unchanged;
+        }
     }
 
     virtual int DependencyCount() const override

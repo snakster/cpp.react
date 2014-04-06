@@ -10,6 +10,15 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+
+enum class EUpdateResult
+{
+    none,
+    unchanged,
+    changed,
+    invalidated
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -22,7 +31,7 @@ struct IReactiveNode
 
     // Note: Could get rid of this ugly ptr by adding a template parameter to the interface
     // But that would mean all engine nodes need that template parameter too - so rather cast
-    virtual void    Tick(void* turnPtr) = 0;  
+    virtual EUpdateResult Tick(void* turnPtr) = 0;  
 
     /// Input nodes can be manipulated externally.
     virtual bool    IsInputNode() const = 0;
@@ -30,7 +39,7 @@ struct IReactiveNode
     /// Output nodes can't have any successors.
     virtual bool    IsOutputNode() const = 0;
 
-    /// This node can have successors and may be re-attached to other nodes.
+    /// May change in topology as a result of tick.
     virtual bool    IsDynamicNode() const = 0;
 
     virtual int     DependencyCount() const = 0;
