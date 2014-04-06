@@ -39,12 +39,13 @@ enum class EventToken;
 template
 <
     typename D,
-    typename F,
+    typename FIn,
     typename ... TArgs,
+    typename F = std::decay<FIn>::type,
     typename S = std::result_of<F(TArgs...)>::type,
     typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtr<D,TArgs> ...>
 >
-auto MakeSignal(F&& func, const Signal<D,TArgs>& ... args)
+auto MakeSignal(FIn&& func, const Signal<D,TArgs>& ... args)
     -> TempSignal<D,S,TOp>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

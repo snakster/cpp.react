@@ -34,9 +34,6 @@ public:
     using PtrT      = std::shared_ptr<SignalNode>;
     using WeakPtrT  = std::weak_ptr<SignalNode>;
 
-    using MergedOpT     = std::pair<std::function<S(const S&,const S&)>, PtrT>;
-    using MergedOpVectT = std::vector<MergedOpT>;
-
     SignalNode() :
         ReactiveNode()
     {

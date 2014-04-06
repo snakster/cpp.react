@@ -27,16 +27,17 @@ template
 <
     typename D,
     typename V,
-    typename S = std::decay<V>::type,
     typename E,
-    typename F
+    typename FIn,
+    typename S = std::decay<V>::type,
+    typename F = std::decay<FIn>::type
 >
-auto Fold(V&& init, const Events<D,E>& events, F&& func)
+auto Fold(V&& init, const Events<D,E>& events, FIn&& func)
     -> Signal<D,S>
 {
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::FoldNode<D,S,E,F>>(
-            std::forward<V>(init), events.GetPtr(), std::forward<F>(func)));
+            std::forward<V>(init), events.GetPtr(), std::forward<FIn>(func)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,16 +47,17 @@ template
 <
     typename D,
     typename V,
-    typename S = std::decay<V>::type,
     typename E,
-    typename F
+    typename FIn,
+    typename S = std::decay<V>::type,
+    typename F = std::decay<FIn>::type
 >
-auto Iterate(V&& init, const Events<D,E>& events, F&& func)
+auto Iterate(V&& init, const Events<D,E>& events, FIn&& func)
     -> Signal<D,S>
 {
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::IterateNode<D,S,E,F>>(
-            std::forward<V>(init), events.GetPtr(), std::forward<F>(func)));
+            std::forward<V>(init), events.GetPtr(), std::forward<FIn>(func)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
