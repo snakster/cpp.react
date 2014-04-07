@@ -136,7 +136,39 @@ ScopeGuard<F> operator+(ScopeGuardDummy_, F&& func)
     return ScopeGuard<F>(std::forward<F>(func));
 }
 
+// 
+
+template <typename T>
+class MoveBindWrapper
+{
+public:
+    explicit MoveBindWrapper(T&& v):
+        v_{ std::forward<T>(v) }
+    {} 
+
+    template <typename ... U>
+    T&& operator()(U&& ...)
+    {
+        return std::forward<T>(v_); 
+    } 
+
+private:
+    T v_; 
+}; 
+
+template <typename T>
+MoveBindWrapper<T> MoveIntoBind(T&& t)
+{ 
+    return MoveBindWrapper<T>{std::forward<T>(t)}; 
+}
+
 /****************************************/ REACT_IMPL_END /***************************************/
+
+namespace std
+{ 
+    template <typename T> 
+    struct is_bind_expression<REACT_IMPL::MoveBindWrapper<T>> : std::true_type {}; 
+}
 
 // Expand args by wrapping them in a dummy function
 // Use comma operator to replace potential void return value with 0
