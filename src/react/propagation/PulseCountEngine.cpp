@@ -26,16 +26,6 @@ Turn::Turn(TurnIdT id, TurnFlagsT flags) :
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Node
-///////////////////////////////////////////////////////////////////////////////////////////////////
-Node::Node() :
-    Counter{ 0 },
-    ShouldUpdate{ false },
-    Marked{ false }
-{
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PulseCountEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TTurn>
@@ -99,7 +89,7 @@ void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& tur
         }
         else
         {
-            node.Counter = 1;
+            node.SetCounter(1);
             node.ShouldUpdate = true;
         }
     }// ~parent.ShiftMutex (write)
@@ -147,7 +137,7 @@ void EngineBase<TTurn>::runInitReachableNodesTask(NodeVectorT leftNodes)
         // Increment counter of each successor and add it to smaller stack
         for (auto* succ : node->Successors)
         {
-            succ->Counter++;
+            succ->IncCounter();
 
             // Skip if already marked
             if (succ->Marked.exchange(true))
@@ -186,7 +176,7 @@ void EngineBase<TTurn>::processChild(Node& node, bool update, TTurn& turn)
 template <typename TTurn>
 void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
 {// node.ShiftMutex (read)
-    NodeShiftMutexT::scoped_lock    lock(node.ShiftMutex);
+    NodeShiftMutexT::scoped_lock    lock(node.ShiftMutex, false);
 
     // Select first child as next node, dispatch tasks for rest
     for (auto* succ : node.Successors)
@@ -195,7 +185,7 @@ void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
             succ->ShouldUpdate = true;
 
         // Delay tick?
-        if (succ->Counter-- > 1)
+        if (succ->DecCounter())
             continue;
 
         tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));

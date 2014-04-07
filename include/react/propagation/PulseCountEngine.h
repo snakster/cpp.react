@@ -44,14 +44,18 @@ class Node : public IReactiveNode
 public:
     using ShiftMutexT = spin_rw_mutex;
 
-    Node();
+    inline void IncCounter() { counter_.fetch_add(1, std::memory_order_relaxed); }
+    inline bool DecCounter() { return counter_.fetch_sub(1, std::memory_order_relaxed) > 1; }
+    inline void SetCounter(int c) { counter_.store(c, std::memory_order_relaxed); }
 
     ShiftMutexT         ShiftMutex;
     NodeVector<Node>    Successors;
 
-    atomic<int>     Counter;
-    atomic<bool>    ShouldUpdate;
-    atomic<bool>    Marked;
+    atomic<bool>    ShouldUpdate = false;
+    atomic<bool>    Marked = false;
+
+private:
+    atomic<int>     counter_ = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
