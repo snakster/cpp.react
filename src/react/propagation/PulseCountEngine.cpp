@@ -7,10 +7,16 @@
 #include "react/propagation/PulseCountEngine.h"
 
 #include <cstdint>
+#include <utility>
 
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
 #include "tbb/tick_count.h"
+#include "tbb/task.h"
+
+using tbb::task;
+using tbb::empty_task;
+
 
 #include "react/common/Types.h"
 
@@ -28,6 +34,7 @@ Turn::Turn(TurnIdT id, TurnFlagsT flags) :
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PulseCountEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 template <typename TTurn>
 void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
 {
@@ -49,9 +56,11 @@ void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
 template <typename TTurn>
 void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
-    // Note: Copies the vector
-    runInitReachableNodesTask(changedInputs_);
-    tasks_.wait();
+    auto& mainTask = *new(rootTask_->allocate_child())
+        NodeMarkerTask(changedInputs_.size(), changedInputs_.begin(), changedInputs_.end());
+
+    rootTask_->set_ref_count(2);
+    rootTask_->spawn_and_wait_for_all(mainTask);
 
     for (auto* node : changedInputs_)
         nudgeChildren(*node, true, turn);
@@ -106,55 +115,181 @@ void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& tur
     parent.Successors.Remove(node);
 }// ~oldParent.ShiftMutex (write)
 
-template <typename TTurn>
-void EngineBase<TTurn>::runInitReachableNodesTask(NodeVectorT leftNodes)
+
+using NodeVectorT = vector<Node*>;
+
+//class NodeMarkerTask: public task
+//{
+//public:
+//    NodeMarkerTask(NodeVectorT&& nodes) :
+//        nodes_{ std::move(nodes) }
+//    {}
+//
+//    task* execute()
+//    {
+//        do
+//        {
+//            Node* node = nullptr;
+//
+//            // Take a node from the larger stack, or exit if no more nodes
+//            if (nodes_.size() > 0)
+//            {
+//                node = nodes_.back();
+//                nodes_.pop_back();
+//            }
+//            else
+//            {
+//                break;
+//            }
+//
+//            // Increment counter of each successor and add it to smaller stack
+//            for (auto* succ : node->Successors)
+//            {
+//                succ->IncCounter();
+//
+//                // Skip if already marked
+//                if (succ->Marked.exchange(true))
+//                    continue;
+//                
+//                nodes_.push_back(succ);
+//
+//                if (nodes_.size() > 8)
+//                {
+//                    //Delegate stack to new task
+//                    auto& t = *new(task::allocate_additional_child_of(*parent()))
+//                        NodeMarkerTask(NodeVectorT{nodes_.begin()+4, nodes_.end()});
+//                    spawn(t);
+//                    nodes_.resize(4);
+//                }
+//            }
+//        }
+//        while (true);
+//
+//        return nullptr;
+//    }
+//
+//private:
+//    NodeVectorT     nodes_;
+//};
+
+class NodeMarkerTask: public task
 {
-    NodeVectorT rightNodes;
-
-    // Manage two balanced stacks of nodes.
-    // Left size is always >= right size.
-    // If left size exceeds threshold, move work to another task
-    do
+public:
+    template <typename TInput>
+    NodeMarkerTask(size_t size, TInput srcBegin, TInput srcEnd) :
+        Size{ size }
     {
-        Node* node = nullptr;
+        std::copy(srcBegin, srcEnd, nodes_.begin());
+    }
 
-        // Take a node from the larger stack, or exit if no more nodes
-        if (leftNodes.size() > rightNodes.size())
+    task* execute()
+    {
+        do
         {
-            node = leftNodes.back();
-            leftNodes.pop_back();
-        }
-        else if (rightNodes.size() > 0)
-        {
-            node = rightNodes.back();
-            rightNodes.pop_back();
-        }
-        else
-        {
-            break;
-        }
+            Node* node = nullptr;
 
-        // Increment counter of each successor and add it to smaller stack
-        for (auto* succ : node->Successors)
-        {
-            succ->IncCounter();
-
-            // Skip if already marked
-            if (succ->Marked.exchange(true))
-                continue;
-                
-            (leftNodes.size() > rightNodes.size() ? rightNodes : leftNodes).push_back(succ);
-
-            if (leftNodes.size() > 4)
+            if (Size > 0)
             {
-                //Delegate stack to new task
-                tasks_.run(std::bind(&EngineBase<TTurn>::runInitReachableNodesTask, this, std::move(leftNodes)));
-                leftNodes.clear();
+                node = nodes_[--Size];
+            }
+            else
+            {
+                break;
+            }
+
+            // Increment counter of each successor and add it to smaller stack
+            for (auto* succ : node->Successors)
+            {
+                succ->IncCounter();
+
+                // Skip if already marked
+                if (succ->Marked.exchange(true))
+                    continue;
+                
+                nodes_[Size++] = succ;
+
+                if (Size == 8)
+                {
+                    //Delegate stack to new task
+                    auto& t = *new(task::allocate_additional_child_of(*parent()))
+                        NodeMarkerTask(4, nodes_.begin() + 4, nodes_.end());
+                    spawn(t);
+
+                    Size = 4;
+                }
             }
         }
+        while (true);
+
+        return nullptr;
     }
-    while (true);
-}
+
+    int Size = 0;
+    std::array<Node*,8>     nodes_;
+
+private:
+    
+};
+
+//class NodeMarkerTask: public task
+//{
+//public:
+//    NodeMarkerTask(NodeVectorT&& leftNodes) :
+//        leftNodes_{ std::move(leftNodes) }
+//    {}
+//
+//    task* execute()
+//    {
+//        do
+//        {
+//            Node* node = nullptr;
+//
+//            // Take a node from the larger stack, or exit if no more nodes
+//            if (leftNodes_.size() > rightNodes_.size())
+//            {
+//                node = leftNodes_.back();
+//                leftNodes_.pop_back();
+//            }
+//            else if (rightNodes_.size() > 0)
+//            {
+//                node = rightNodes_.back();
+//                rightNodes_.pop_back();
+//            }
+//            else
+//            {
+//                break;
+//            }
+//
+//            // Increment counter of each successor and add it to smaller stack
+//            for (auto* succ : node->Successors)
+//            {
+//                succ->IncCounter();
+//
+//                // Skip if already marked
+//                if (succ->Marked.exchange(true))
+//                    continue;
+//                
+//                (leftNodes_.size() > rightNodes_.size() ?rightNodes_ : leftNodes_).push_back(succ);
+//
+//                if (leftNodes_.size() > 4)
+//                {
+//                    //Delegate stack to new task
+//                    auto& t = *new(task::allocate_additional_child_of(*parent()))
+//                        NodeMarkerTask(std::move(leftNodes_));
+//                    spawn(t);
+//                    leftNodes_.clear();
+//                }
+//            }
+//        }
+//        while (true);
+//
+//        return nullptr;
+//    }
+//
+//private:
+//    NodeVectorT     leftNodes_;
+//    NodeVectorT     rightNodes_;
+//};
 
 template <typename TTurn>
 void EngineBase<TTurn>::processChild(Node& node, bool update, TTurn& turn)

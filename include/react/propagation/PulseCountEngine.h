@@ -13,6 +13,7 @@
 
 #include "tbb/task_group.h"
 #include "tbb/spin_rw_mutex.h"
+#include "tbb/task.h"
 
 #include "EngineBase.h"
 #include "react/ReactiveDomain.h"
@@ -24,7 +25,10 @@ namespace pulsecount {
 
 using std::atomic;
 using std::vector;
+
 using tbb::task_group;
+using tbb::task;
+using tbb::empty_task;
 using tbb::spin_rw_mutex;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,13 +85,13 @@ public:
     void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
 private:
-    void runInitReachableNodesTask(NodeVectorT leftNodes);
-
     void processChild(Node& node, bool update, TTurn& turn);
     void nudgeChildren(Node& parent, bool update, TTurn& turn);
 
     vector<Node*>   changedInputs_;
     task_group      tasks_;
+
+    empty_task*     rootTask_ = new( task::allocate_root() ) empty_task;
 };
 
 class BasicEngine : public EngineBase<Turn> {};
