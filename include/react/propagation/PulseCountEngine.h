@@ -26,7 +26,6 @@ namespace pulsecount {
 using std::atomic;
 using std::vector;
 
-using tbb::task_group;
 using tbb::task;
 using tbb::empty_task;
 using tbb::spin_rw_mutex;
@@ -40,6 +39,9 @@ public:
     Turn(TurnIdT id, TurnFlagsT flags);
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Node
+///////////////////////////////////////////////////////////////////////////////////////////////////
 enum class ENodeMark
 {
     unmarked,
@@ -54,9 +56,6 @@ enum class ENodeState
     deferred
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Node
-///////////////////////////////////////////////////////////////////////////////////////////////////
 class Node : public IReactiveNode
 {
 public:
@@ -84,16 +83,11 @@ public:
     ShiftMutexT         ShiftMutex;
     NodeVector<Node>    Successors;
     
-    ENodeState          State   = ENodeState::unchanged;
-
-    bool Visited = false;
-
-    atomic<int>     ReachCount  = 0;
-    int             ReachMax    = 0;
+    ENodeState          State       = ENodeState::unchanged;
 
 private:
-    atomic<int>         counter_ = 0;
-    atomic<ENodeMark>   mark_    = ENodeMark::unmarked;
+    atomic<int>         counter_    = 0;
+    atomic<ENodeMark>   mark_       = ENodeMark::unmarked;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -104,7 +98,7 @@ class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
     using NodeShiftMutexT = Node::ShiftMutexT;
-    using NodeVectorT = vector<Node*>;
+    using NodeVectT = vector<Node*>;
 
     void OnNodeAttach(Node& node, Node& parent);
     void OnNodeDetach(Node& node, Node& parent);
@@ -119,13 +113,8 @@ public:
     void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
 private:
-    void processChild(Node& node, bool update, TTurn& turn);
-    void nudgeChildren(Node& parent, bool update, TTurn& turn);
-
-    vector<Node*>   changedInputs_;
-    task_group      tasks_;
-
-    empty_task*     rootTask_ = new( task::allocate_root() ) empty_task;
+    NodeVectT       changedInputs_;
+    empty_task*     rootTask_ = new(task::allocate_root()) empty_task;
 };
 
 class BasicEngine : public EngineBase<Turn> {};
