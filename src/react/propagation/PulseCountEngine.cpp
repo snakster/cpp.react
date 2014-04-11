@@ -227,8 +227,8 @@ void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& tur
         
         parent.Successors.Add(node);
 
-        // Has already been ticked & nudged its neighbors? (Note: Input nodes are always ready)
-        if (parent.Mark() != ENodeMark::unmarked)
+        // Has already nudged its neighbors?
+        if (parent.Mark() == ENodeMark::unmarked)
         {
             shouldTick = true;
         }
