@@ -40,6 +40,20 @@ public:
     Turn(TurnIdT id, TurnFlagsT flags);
 };
 
+enum class ENodeMark
+{
+    unmarked,
+    visited,
+    should_update
+};
+
+enum class ENodeState
+{
+    unchanged,
+    changed,
+    deferred
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Node
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,14 +66,34 @@ public:
     inline bool DecCounter() { return counter_.fetch_sub(1, std::memory_order_relaxed) > 1; }
     inline void SetCounter(int c) { counter_.store(c, std::memory_order_relaxed); }
 
+    inline ENodeMark Mark() const
+    {
+        return mark_.load(std::memory_order_relaxed);
+    }
+
+    inline void SetMark(ENodeMark mark)
+    {
+        mark_.store(mark, std::memory_order_relaxed);
+    }
+
+    inline bool ExchangeMark(ENodeMark mark)
+    {
+        return mark_.exchange(mark, std::memory_order_relaxed) != mark;
+    }
+
     ShiftMutexT         ShiftMutex;
     NodeVector<Node>    Successors;
+    
+    ENodeState          State   = ENodeState::unchanged;
 
-    atomic<bool>    ShouldUpdate = false;
-    atomic<bool>    Marked = false;
+    bool Visited = false;
+
+    atomic<int>     ReachCount  = 0;
+    int             ReachMax    = 0;
 
 private:
-    atomic<int>     counter_ = 0;
+    atomic<int>         counter_ = 0;
+    atomic<ENodeMark>   mark_    = ENodeMark::unmarked;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

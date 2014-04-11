@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <stack>
 
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
@@ -51,20 +52,65 @@ template <typename TTurn>
 void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
 {
     changedInputs_.push_back(&node);
+    node.State = ENodeState::changed;
 }
+
+static vector<Node*> markNodes_;
 
 template <typename TTurn>
 void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
-    auto& mainTask = *new(rootTask_->allocate_child())
-        NodeMarkerTask(changedInputs_.size(), changedInputs_.begin(), changedInputs_.end());
+    //auto& markerTask = *new(rootTask_->allocate_child())
+    //    MarkerTask(changedInputs_.begin(), changedInputs_.end());
+
+    //rootTask_->set_ref_count(2);
+    //rootTask_->spawn_and_wait_for_all(markerTask);
+
+    for (auto* inputNode : changedInputs_)
+    {
+        // Increment counter of each successor and add it to smaller stack
+        for (auto* succ : inputNode->Successors)
+        {
+            ++succ->ReachMax;
+
+            // Skip if already marked as reachable
+            if (succ->Visited)
+                continue;
+
+            succ->Visited = true;
+            markNodes_.push_back(succ);
+        }
+    }
+
+    while (! markNodes_.empty())
+    {
+        Node& node = *markNodes_.back();
+        markNodes_.pop_back();
+
+        // Increment counter of each successor and add it to smaller stack
+        for (auto* succ : node.Successors)
+        {
+            ++succ->ReachMax;
+
+            // Skip if already marked as reachable
+            if (succ->Visited)
+                continue;
+
+            succ->Visited = true;
+            markNodes_.push_back(succ);
+        }
+    }
+
+
+    auto& updaterTask = *new(rootTask_->allocate_child())
+        UpdaterTask<TTurn>(turn, changedInputs_.begin(), changedInputs_.end());
 
     rootTask_->set_ref_count(2);
-    rootTask_->spawn_and_wait_for_all(mainTask);
+    rootTask_->spawn_and_wait_for_all(updaterTask);
 
-    for (auto* node : changedInputs_)
-        nudgeChildren(*node, true, turn);
-    tasks_.wait();
+    //for (auto* node : changedInputs_)
+//        nudgeChildren(*node, true, turn);
+//    tasks_.wait();
 
     changedInputs_.clear();
 }
@@ -72,13 +118,15 @@ void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 template <typename TTurn>
 void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
 {
-    nudgeChildren(node, true, turn);
+    node.State = ENodeState::changed;
+//    nudgeChildren(node, true, turn);
 }
 
 template <typename TTurn>
 void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 {
-    nudgeChildren(node, false, turn);
+    node.State = ENodeState::unchanged;
+//    nudgeChildren(node, false, turn);
 }
 
 template <typename TTurn>
@@ -92,14 +140,14 @@ void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& tur
         parent.Successors.Add(node);
 
         // Has already been ticked & nudged its neighbors? (Note: Input nodes are always ready)
-        if (! parent.Marked)
+        if (parent.Mark() != ENodeMark::unmarked)
         {
             shouldTick = true;
         }
         else
         {
             node.SetCounter(1);
-            node.ShouldUpdate = true;
+            node.SetMark(ENodeMark::should_update);
         }
     }// ~parent.ShiftMutex (write)
 
@@ -118,118 +166,185 @@ void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& tur
 
 using NodeVectorT = vector<Node*>;
 
-//class NodeMarkerTask: public task
+
+
+//class MarkerTask: public task
 //{
 //public:
-//    NodeMarkerTask(NodeVectorT&& nodes) :
-//        nodes_{ std::move(nodes) }
+//    using StackT = NodeBuffer<Node,8>;
+//
+//    template <typename TInput>
+//    MarkerTask(TInput srcBegin, TInput srcEnd) :
+//        nodes_{ srcBegin, srcEnd }
+//    {}
+//
+//    MarkerTask(MarkerTask& other, SplitTag) :
+//        nodes_{ other.nodes_, SplitTag{} }
 //    {}
 //
 //    task* execute()
 //    {
-//        do
-//        {
-//            Node* node = nullptr;
+//        int splitCount = 0;
 //
-//            // Take a node from the larger stack, or exit if no more nodes
-//            if (nodes_.size() > 0)
-//            {
-//                node = nodes_.back();
-//                nodes_.pop_back();
-//            }
-//            else
-//            {
-//                break;
-//            }
+//        while (! nodes_.IsEmpty())
+//        {
+//            Node& node = splitCount > 3 ? *nodes_.PopBack() : *nodes_.PopFront();
 //
 //            // Increment counter of each successor and add it to smaller stack
-//            for (auto* succ : node->Successors)
+//            for (auto* succ : node.Successors)
 //            {
 //                succ->IncCounter();
 //
-//                // Skip if already marked
-//                if (succ->Marked.exchange(true))
+//                // Skip if already marked as reachable
+//                if (! succ->ExchangeMark(ENodeMark::visited))
 //                    continue;
 //                
-//                nodes_.push_back(succ);
+//                nodes_.PushBack(succ);
 //
-//                if (nodes_.size() > 8)
+//                if (nodes_.IsFull())
 //                {
-//                    //Delegate stack to new task
+//                    splitCount++;
+//
+//                    //Delegate half the work to new task
 //                    auto& t = *new(task::allocate_additional_child_of(*parent()))
-//                        NodeMarkerTask(NodeVectorT{nodes_.begin()+4, nodes_.end()});
+//                        MarkerTask(*this, SplitTag{});
+//
 //                    spawn(t);
-//                    nodes_.resize(4);
 //                }
 //            }
 //        }
-//        while (true);
 //
 //        return nullptr;
 //    }
 //
 //private:
-//    NodeVectorT     nodes_;
+//    StackT  nodes_;
 //};
 
-class NodeMarkerTask: public task
+template <typename TTurn>
+class UpdaterTask: public task
 {
 public:
+    using BufferT = NodeBuffer<Node,8>;
+
     template <typename TInput>
-    NodeMarkerTask(size_t size, TInput srcBegin, TInput srcEnd) :
-        Size{ size }
-    {
-        std::copy(srcBegin, srcEnd, nodes_.begin());
-    }
+    UpdaterTask(TTurn& turn, TInput srcBegin, TInput srcEnd) :
+        turn_{ turn },
+        nodes_{ srcBegin, srcEnd }
+    {}
+
+    UpdaterTask(UpdaterTask& other, SplitTag) :
+        turn_{ other.turn_ },
+        nodes_{ other.nodes_, SplitTag{} }
+    {}
 
     task* execute()
     {
-        do
+        int splitCount = 0;
+
+        while (!nodes_.IsEmpty())
         {
-            Node* node = nullptr;
+            Node& node = splitCount > 3 ? *nodes_.PopBack() : *nodes_.PopFront();
 
-            if (Size > 0)
-            {
-                node = nodes_[--Size];
-            }
-            else
-            {
-                break;
-            }
+            if (node.Mark() == ENodeMark::should_update)
+                node.Tick(&turn_);
 
-            // Increment counter of each successor and add it to smaller stack
-            for (auto* succ : node->Successors)
-            {
-                succ->IncCounter();
+            if (node.State == ENodeState::deferred)
+                continue;
 
-                // Skip if already marked
-                if (succ->Marked.exchange(true))
-                    continue;
-                
-                nodes_[Size++] = succ;
+            // Mark successors for update?
+            bool update = node.State == ENodeState::changed;
 
-                if (Size == 8)
+            node.State = ENodeState::unchanged;
+
+            {// node.ShiftMutex
+                Node::ShiftMutexT::scoped_lock lock(node.ShiftMutex, false);
+
+                for (auto* succ : node.Successors)
                 {
-                    //Delegate stack to new task
-                    auto& t = *new(task::allocate_additional_child_of(*parent()))
-                        NodeMarkerTask(4, nodes_.begin() + 4, nodes_.end());
-                    spawn(t);
+                    if (update)
+                        succ->SetMark(ENodeMark::should_update);
 
-                    Size = 4;
+                    // Delay tick?
+                    //if (succ->DecCounter())
+                        //continue;
+                    int t = succ->ReachMax - 1;
+                    if (succ->ReachCount++ < t)
+                        continue;
+
+                    succ->ReachMax = 0;
+                    succ->ReachCount = 0;
+
+                    nodes_.PushBack(succ);
+
+                    if (nodes_.IsFull())
+                    {
+                        splitCount++;
+
+                        //Delegate half the work to new task
+                        auto& t = *new(task::allocate_additional_child_of(*parent()))
+                            UpdaterTask(*this, SplitTag{});
+
+                        spawn(t);
+                    }
                 }
-            }
+
+                node.SetMark(ENodeMark::unmarked);
+                node.Visited = false;
+            }// ~node.ShiftMutex
         }
-        while (true);
 
         return nullptr;
     }
 
-    int Size = 0;
-    std::array<Node*,8>     nodes_;
-
 private:
-    
+    TTurn&  turn_;
+    BufferT nodes_;
 };
+
+
+
+template <typename TTurn>
+void EngineBase<TTurn>::processChild(Node& node, bool update, TTurn& turn)
+{
+    // Invalidated, this node has to be ticked
+    if (node.Mark() == ENodeMark::should_update)
+    {
+        // Reset flag
+        node.Tick(&turn);
+    }
+    // No tick required
+    else
+    {
+        nudgeChildren(node, false, turn);
+    }
+}
+
+template <typename TTurn>
+void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
+{// node.ShiftMutex (read)
+    NodeShiftMutexT::scoped_lock    lock(node.ShiftMutex, false);
+
+    // Select first child as next node, dispatch tasks for rest
+    for (auto* succ : node.Successors)
+    {
+        if (update)
+            succ->SetMark(ENodeMark::should_update);
+
+        // Delay tick?
+        if (succ->DecCounter())
+            continue;
+
+        tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));
+    }
+
+    node.SetMark(ENodeMark::unmarked);
+}// ~node.ShiftMutex (read)
+
+// Explicit instantiation
+template class EngineBase<Turn>;
+template class EngineBase<DefaultQueueableTurn<Turn>>;
+
 
 //class NodeMarkerTask: public task
 //{
@@ -291,47 +406,59 @@ private:
 //    NodeVectorT     rightNodes_;
 //};
 
-template <typename TTurn>
-void EngineBase<TTurn>::processChild(Node& node, bool update, TTurn& turn)
-{
-    // Invalidated, this node has to be ticked
-    if (node.ShouldUpdate)
-    {
-        // Reset flag
-        node.ShouldUpdate = false;
-        node.Tick(&turn);
-    }
-    // No tick required
-    else
-    {
-        nudgeChildren(node, false, turn);
-    }
-}
-
-template <typename TTurn>
-void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
-{// node.ShiftMutex (read)
-    NodeShiftMutexT::scoped_lock    lock(node.ShiftMutex, false);
-
-    // Select first child as next node, dispatch tasks for rest
-    for (auto* succ : node.Successors)
-    {
-        if (update)
-            succ->ShouldUpdate = true;
-
-        // Delay tick?
-        if (succ->DecCounter())
-            continue;
-
-        tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));
-    }
-
-    node.Marked = false;
-}// ~node.ShiftMutex (read)
-
-// Explicit instantiation
-template class EngineBase<Turn>;
-template class EngineBase<DefaultQueueableTurn<Turn>>;
+//class NodeMarkerTask: public task
+//{
+//public:
+//    NodeMarkerTask(NodeVectorT&& nodes) :
+//        nodes_{ std::move(nodes) }
+//    {}
+//
+//    task* execute()
+//    {
+//        do
+//        {
+//            Node* node = nullptr;
+//
+//            // Take a node from the larger stack, or exit if no more nodes
+//            if (nodes_.size() > 0)
+//            {
+//                node = nodes_.back();
+//                nodes_.pop_back();
+//            }
+//            else
+//            {
+//                break;
+//            }
+//
+//            // Increment counter of each successor and add it to smaller stack
+//            for (auto* succ : node->Successors)
+//            {
+//                succ->IncCounter();
+//
+//                // Skip if already marked
+//                if (succ->Marked.exchange(true))
+//                    continue;
+//                
+//                nodes_.push_back(succ);
+//
+//                if (nodes_.size() > 8)
+//                {
+//                    //Delegate stack to new task
+//                    auto& t = *new(task::allocate_additional_child_of(*parent()))
+//                        NodeMarkerTask(NodeVectorT{nodes_.begin()+4, nodes_.end()});
+//                    spawn(t);
+//                    nodes_.resize(4);
+//                }
+//            }
+//        }
+//        while (true);
+//
+//        return nullptr;
+//    }
+//
+//private:
+//    NodeVectorT     nodes_;
+//};
 
 } // ~namespace pulsecount
 /****************************************/ REACT_IMPL_END /***************************************/
