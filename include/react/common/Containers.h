@@ -12,8 +12,6 @@
 #include <array>
 #include <vector>
 
-#include <boost/circular_buffer.hpp>
-
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,58 +48,10 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// NodeStack
+/// NodeBuffer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct SplitTag {};
 
-template <typename T, int N>
-class NodeStack
-{
-public:
-    using DataT = std::array<T*,N>;
-    using iterator = typename DataT::iterator;
-    using const_iterator = typename DataT::const_iterator;
-
-    static const int split_size = N / 2;
-
-    NodeStack() :
-        cursor_{ nodes_.begin() }
-    {}
-
-    template <typename TInput>
-    NodeStack(TInput srcBegin, TInput srcEnd) :
-        cursor_{ nodes_.begin() + std::distance(srcBegin, srcEnd) }
-    {
-        std::copy(srcBegin, srcEnd, nodes_.begin());
-    }
-
-    // Other must be full
-    NodeStack(NodeStack& other, SplitTag) :
-        cursor_{ nodes_.begin() + split_size }
-    {
-        std::copy(other.nodes_.begin() + split_size, other.nodes_.end(), nodes_.begin());
-        other.cursor_ = other.nodes_.begin() + split_size;
-    }
-
-    void Push(T* e)         { *cursor_ = e; ++cursor_; }
-    T*   Pop()              { --cursor_; return *cursor_; }
-
-    bool IsFull() const     { return cursor_ == nodes_.end(); }
-    bool IsEmpty() const    { return cursor_ == nodes_.begin(); }
-
-    iterator        begin()         { return nodes_.begin(); }
-    const_iterator  begin() const   { return nodes_.begin(); }
-    iterator        end()           { return cursor_; }
-    const_iterator  end() const     { return cursor_; }
-
-private:
-    DataT       nodes_;
-    iterator    cursor_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// NodeBuffer
-///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T, int N>
 class NodeBuffer
 {
@@ -118,11 +68,19 @@ public:
         back_{ nodes_.begin() }
     {}
 
+    NodeBuffer(T* node) :
+        size_{ 1 },
+        front_{ nodes_.begin() },
+        back_{ nodes_.begin() + 1 }
+    {
+        nodes_[0] = node;
+    }
+
     template <typename TInput>
     NodeBuffer(TInput srcBegin, TInput srcEnd) :
         size_{ std::distance(srcBegin, srcEnd) },
         front_{ nodes_.begin() },
-        back_{ nodes_.begin() + size_}
+        back_{ size_ != N ? nodes_.begin() + size_ : nodes_.begin() }
     {
         std::copy(srcBegin, srcEnd, front_);
     }
