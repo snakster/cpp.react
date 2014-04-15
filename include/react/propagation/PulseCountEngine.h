@@ -29,6 +29,7 @@ using std::vector;
 using tbb::task;
 using tbb::empty_task;
 using tbb::spin_rw_mutex;
+using tbb::task_list;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
@@ -84,6 +85,7 @@ public:
     NodeVector<Node>    Successors;
     
     ENodeState          State       = ENodeState::unchanged;
+    uint                Weight      = 0;
 
 private:
     atomic<int>         counter_    = 0;
@@ -112,9 +114,12 @@ public:
     void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
     void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
 
+    void HintUpdateDuration(Node& node, uint dur);
+
 private:
     NodeVectT       changedInputs_;
     empty_task*     rootTask_ = new(task::allocate_root()) empty_task;
+    task_list       spawnList_;
 };
 
 class BasicEngine : public EngineBase<Turn> {};
@@ -135,3 +140,16 @@ template <> class PulseCountEngine<parallel> : public REACT_IMPL::pulsecount::Ba
 template <> class PulseCountEngine<parallel_queuing> : public REACT_IMPL::pulsecount::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/
+
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+template <typename T>
+struct EnableNodeUpdateTimer;
+
+template <>
+struct EnableNodeUpdateTimer<PulseCountEngine<parallel>> : std::true_type {};
+
+template <>
+struct EnableNodeUpdateTimer<PulseCountEngine<parallel_queuing>> : std::true_type {};
+
+/****************************************/ REACT_IMPL_END /***************************************/

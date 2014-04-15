@@ -15,21 +15,30 @@
 namespace pulsecount {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Constants
+///////////////////////////////////////////////////////////////////////////////////////////////////
+static const uint chunk_size    = 8;
+static const uint dfs_threshold = 3;
+static const uint heavy_weight  = 1000;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MarkerTask
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class MarkerTask: public task
 {
 public:
-    using StackT = NodeBuffer<Node,8>;
+    using BufferT = NodeBuffer<Node,chunk_size>;
 
     template <typename TInput>
     MarkerTask(TInput srcBegin, TInput srcEnd) :
         nodes_{ srcBegin, srcEnd }
-    {}
+    {
+    }
 
     MarkerTask(MarkerTask& other, SplitTag) :
         nodes_{ other.nodes_, SplitTag{} }
-    {}
+    {
+    }
 
     task* execute()
     {
@@ -37,7 +46,7 @@ public:
 
         while (! nodes_.IsEmpty())
         {
-            Node& node = splitCount > 3 ? *nodes_.PopBack() : *nodes_.PopFront();
+            Node& node = splitCount > dfs_threshold ? *nodes_.PopBack() : *nodes_.PopFront();
 
             // Increment counter of each successor and add it to smaller stack
             for (auto* succ : node.Successors)
@@ -67,7 +76,7 @@ public:
     }
 
 private:
-    StackT  nodes_;
+    BufferT  nodes_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,12 +86,17 @@ template <typename TTurn>
 class UpdaterTask: public task
 {
 public:
-    using BufferT = NodeBuffer<Node,8>;
+    using BufferT = NodeBuffer<Node,chunk_size>;
 
     template <typename TInput>
     UpdaterTask(TTurn& turn, TInput srcBegin, TInput srcEnd) :
         turn_{ turn },
         nodes_{ srcBegin, srcEnd }
+    {}
+
+    UpdaterTask(TTurn& turn, Node* node) :
+        turn_{ turn },
+        nodes_{ node }
     {}
 
     UpdaterTask(UpdaterTask& other, SplitTag) :
@@ -96,7 +110,7 @@ public:
 
         while (!nodes_.IsEmpty())
         {
-            Node& node = splitCount > 3 ? *nodes_.PopBack() : *nodes_.PopFront();
+            Node& node = splitCount > dfs_threshold ? *nodes_.PopBack() : *nodes_.PopFront();
 
             if (node.Mark() == ENodeMark::should_update)
                 node.Tick(&turn_);
@@ -120,17 +134,29 @@ public:
                     if (succ->DecCounter())
                         continue;
 
-                    nodes_.PushBack(succ);
-
-                    if (nodes_.IsFull())
+                    // Heavyweight - spawn new task
+                    if (succ->Weight > heavy_weight)
                     {
-                        splitCount++;
-
-                        //Delegate half the work to new task
                         auto& t = *new(task::allocate_additional_child_of(*parent()))
-                            UpdaterTask(*this, SplitTag{});
+                            UpdaterTask(turn_, succ);
 
                         spawn(t);
+                    }
+                    // Leightweight - add to buffer, split if full
+                    else
+                    {
+                        nodes_.PushBack(succ);
+
+                        if (nodes_.IsFull())
+                        {
+                            splitCount++;
+
+                            //Delegate half the work to new task
+                            auto& t = *new(task::allocate_additional_child_of(*parent()))
+                                UpdaterTask(*this, SplitTag{});
+
+                            spawn(t);
+                        }
                     }
                 }
 
@@ -178,31 +204,41 @@ void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
     node.State = ENodeState::changed;
 }
 
-//static vector<Node*> markNodes_;
+template <typename TTask, typename TIt, typename ... TArgs>
+void spawnHelper
+(
+    task* rootTask, task_list& spawnList,
+    const int count, TIt start, TIt end,
+    TArgs& ... args
+)
+{
+    rootTask->set_ref_count(1 + count);
+
+    for (int i=0; i < (count - 1); i++)
+    {
+        spawnList.push_back(*new(rootTask->allocate_child())
+            TTask(args ..., start, start + chunk_size));
+        start += chunk_size;
+    }
+
+    spawnList.push_back(*new(rootTask->allocate_child())
+        TTask(args ..., start, end));
+
+    rootTask->spawn_and_wait_for_all(spawnList);
+
+    spawnList.clear();
+}
 
 template <typename TTurn>
 void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
-    if (changedInputs_.size() <= 8)
-    {
-        auto& markerTask = *new(rootTask_->allocate_child())
-            MarkerTask(changedInputs_.begin(), changedInputs_.end());
+    const int initialTaskCount = (changedInputs_.size() - 1) / chunk_size + 1;
 
-        rootTask_->set_ref_count(2);
-        rootTask_->spawn_and_wait_for_all(markerTask);
-    }
-    else
-    {
-        REACT_ASSERT(false, "not implemented yet\n");
-    }
+    spawnHelper<MarkerTask>(rootTask_, spawnList_, initialTaskCount,
+        changedInputs_.begin(), changedInputs_.end());
 
-    auto& updaterTask = *new(rootTask_->allocate_child())
-        UpdaterTask<TTurn>(turn, changedInputs_.begin(), changedInputs_.end());
-
-    rootTask_->set_ref_count(2);
-    rootTask_->spawn_and_wait_for_all(updaterTask);
-
-    changedInputs_.clear();
+    spawnHelper<UpdaterTask<TTurn>>(rootTask_, spawnList_, initialTaskCount,
+        changedInputs_.begin(), changedInputs_.end(), turn);
 }
 
 template <typename TTurn>
@@ -251,6 +287,12 @@ void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& tur
 
     parent.Successors.Remove(node);
 }// ~oldParent.ShiftMutex (write)
+
+template <typename TTurn>
+void EngineBase<TTurn>::HintUpdateDuration(Node& node, uint dur)
+{
+    node.Weight = dur;
+}
 
 // Explicit instantiation
 template class EngineBase<Turn>;
