@@ -68,7 +68,7 @@ public:
     int             Level = 0;
     int             NewLevel = 0;
     atomic<bool>    Collected = false;
-    int             Weight = 1;
+    uint            Weight = 1;
 
     NodeVector<ParNode>     Successors;
     InvalidateMutexT        InvalidateMutex;

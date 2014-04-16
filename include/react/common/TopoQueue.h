@@ -24,40 +24,43 @@ template <typename T>
 class TopoQueue
 {
 public:
-    static bool LevelOrderOp(const T* lhs, const T* rhs)
-    {
-        return lhs->Level > rhs->Level;
-    }
+    using DataT = std::vector<T*>;
 
     void Push(T* node)
     {
         data_.push_back(node);
-        std::push_heap(data_.begin(), data_.end(), LevelOrderOp);
     }
 
-    void Pop()
+    bool FetchNext()
     {
-        std::pop_heap(data_.begin(), data_.end(), LevelOrderOp);
-        data_.pop_back();
+        next_.clear();
+
+        minLevel_ = INT_MAX;
+        for (const auto& e : data_)
+            if (minLevel_ > e->Level)
+                minLevel_ = e->Level;
+
+        auto p = std::partition(data_.begin(), data_.end(), CompFunctor{ minLevel_ });
+
+        next_.insert(next_.end(), p, data_.end());
+        data_.resize(std::distance(data_.begin(), p));
+
+        return !next_.empty();
     }
 
-    T* Top() const
-    {
-        return data_.front();
-    }
-
-    bool Empty() const
-    {
-        return data_.empty();
-    }
-
-    void Invalidate()
-    {
-        std::make_heap(data_.begin(), data_.end(), LevelOrderOp);
-    }
+    const DataT& NextNodes() const  { return next_; }
 
 private:
-    std::vector<T*>    data_;
+    struct CompFunctor
+    {
+        CompFunctor(int level) : Level{ level } {}
+        bool operator()(T* x) { return x->Level != Level; }
+        const int Level;
+    };
+
+    DataT   next_;
+    DataT   data_;
+    int     minLevel_ = INT_MAX;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

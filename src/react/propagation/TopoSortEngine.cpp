@@ -60,21 +60,21 @@ template class EngineBase<ParNode,DefaultQueueableTurn<ExclusiveTurn>>;
 template <typename TTurn>
 void SeqEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
-    while (!scheduledNodes_.Empty())
+    while (scheduledNodes_.FetchNext())
     {
-        auto node = scheduledNodes_.Top();
-        scheduledNodes_.Pop();
-
-        if (node->Level < node->NewLevel)
+        for (auto* curNode : scheduledNodes_.NextNodes())
         {
-            node->Level = node->NewLevel;
-            invalidateSuccessors(*node);
-            scheduledNodes_.Push(node);
-            continue;
-        }
+            if (curNode->Level < curNode->NewLevel)
+            {
+                curNode->Level = curNode->NewLevel;
+                invalidateSuccessors(*curNode);
+                scheduledNodes_.Push(curNode);
+                continue;
+            }
 
-        node->Queued = false;
-        node->Tick(&turn);
+            curNode->Queued = false;
+            curNode->Tick(&turn);
+        }
     }
 }
 
