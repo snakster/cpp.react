@@ -136,8 +136,11 @@ struct parallel_queuing;
 template <typename TMode>
 class PulseCountEngine;
 
-template <> class PulseCountEngine<parallel> : public REACT_IMPL::pulsecount::BasicEngine {};
-template <> class PulseCountEngine<parallel_queuing> : public REACT_IMPL::pulsecount::QueuingEngine {};
+template <> class PulseCountEngine<parallel> :
+    public REACT_IMPL::pulsecount::BasicEngine {};
+
+template <> class PulseCountEngine<parallel_queuing> :
+    public REACT_IMPL::pulsecount::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/
 

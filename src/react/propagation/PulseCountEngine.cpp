@@ -239,6 +239,8 @@ void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 
     spawnHelper<UpdaterTask<TTurn>>(rootTask_, spawnList_, initialTaskCount,
         changedInputs_.begin(), changedInputs_.end(), turn);
+
+    changedInputs_.clear();
 }
 
 template <typename TTurn>
