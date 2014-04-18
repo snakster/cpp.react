@@ -10,6 +10,7 @@
 #include "react/propagation/TopoSortEngine.h"
 #include "react/propagation/SourceSetEngine.h"
 #include "react/propagation/ELMEngine.h"
+#include "react/propagation/SubtreeEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {
@@ -22,5 +23,6 @@ INSTANTIATE_TYPED_TEST_CASE_P(ELMQ, OperationsTest, ELMEngine<parallel_queuing>)
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCountQ, OperationsTest, PulseCountEngine<parallel_queuing>);
 INSTANTIATE_TYPED_TEST_CASE_P(SourceSetQ, OperationsTest, SourceSetEngine<parallel_queuing>);
 INSTANTIATE_TYPED_TEST_CASE_P(ParTopoSortP, OperationsTest, TopoSortEngine<parallel_pipelining>);
+INSTANTIATE_TYPED_TEST_CASE_P(SubtreeQ, OperationsTest, SubtreeEngine<parallel_queuing>);
 
 } // ~namespace

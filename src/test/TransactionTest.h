@@ -199,11 +199,12 @@ TYPED_TEST_P(TransactionTest, Concurrent3)
     });
 
     n1 <<= 1000;    // 676972
-    n1 <<= 100;        // 68572
-    n1 <<= 10;        // 7732
+    n1 <<= 100;     // 68572
+    n1 <<= 10;      // 7732
 
 
     ASSERT_EQ(results.size(), 3);
+
     ASSERT_TRUE(std::find(results.begin(), results.end(), 7732) != results.end());
     ASSERT_TRUE(std::find(results.begin(), results.end(), 68572) != results.end());
     ASSERT_TRUE(std::find(results.begin(), results.end(), 676972) != results.end());

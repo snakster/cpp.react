@@ -10,6 +10,7 @@
 #include "react/propagation/TopoSortEngine.h"
 #include "react/propagation/SourceSetEngine.h"
 #include "react/propagation/ELMEngine.h"
+#include "react/propagation/SubtreeEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {
@@ -21,6 +22,6 @@ INSTANTIATE_TYPED_TEST_CASE_P(ParTopoSort, EventStreamTest, TopoSortEngine<paral
 INSTANTIATE_TYPED_TEST_CASE_P(ELM, EventStreamTest, ELMEngine<parallel>);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, EventStreamTest, PulseCountEngine<parallel>);
 INSTANTIATE_TYPED_TEST_CASE_P(SourceSet, EventStreamTest, SourceSetEngine<parallel>);
+INSTANTIATE_TYPED_TEST_CASE_P(Subtree, EventStreamTest, SubtreeEngine<parallel>);
 
-// ---
-}
+} // ~namespace
