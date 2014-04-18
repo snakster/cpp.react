@@ -106,6 +106,7 @@
     <ClInclude Include="..\..\include\react\propagation\EngineBase.h" />
     <ClInclude Include="..\..\include\react\propagation\PulseCountEngine.h" />
     <ClInclude Include="..\..\include\react\propagation\SourceSetEngine.h" />
+    <ClInclude Include="..\..\include\react\propagation\SubtreeEngine.h" />
     <ClInclude Include="..\..\include\react\propagation\TopoSortEngine.h" />
     <ClInclude Include="..\..\include\react\ReactiveBase.h" />
     <ClInclude Include="..\..\include\react\ReactiveDomain.h" />
@@ -121,6 +122,7 @@
     <ClCompile Include="..\..\src\react\propagation\ELMEngine.cpp" />
     <ClCompile Include="..\..\src\react\propagation\PulseCountEngine.cpp" />
     <ClCompile Include="..\..\src\react\propagation\SourceSetEngine.cpp" />
+    <ClCompile Include="..\..\src\react\propagation\SubtreeEngine.cpp" />
     <ClCompile Include="..\..\src\react\propagation\TopoSortEngine.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

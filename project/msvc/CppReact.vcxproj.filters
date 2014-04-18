@@ -147,6 +147,9 @@
     <ClInclude Include="..\..\include\react\ReactiveDomain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\react\propagation\SubtreeEngine.h">
+      <Filter>Header Files\propagation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\react\common\Util.cpp">
@@ -168,6 +171,9 @@
       <Filter>Source Files\propagation</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\react\propagation\TopoSortEngine.cpp">
+      <Filter>Source Files\propagation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\react\propagation\SubtreeEngine.cpp">
       <Filter>Source Files\propagation</Filter>
     </ClCompile>
   </ItemGroup>
