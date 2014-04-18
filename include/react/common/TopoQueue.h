@@ -17,16 +17,29 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+template <typename T>
+struct NodeLevelHelper
+{
+    int operator()(const T& x) const { return x.Level; }
+};
+
+template <typename T>
+struct NodeLevelHelper<T*>
+{
+    int operator()(const T* x) const { return x->Level; }
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// TopoQueue
+/// Sequential TopoQueue
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
 class TopoQueue
 {
 public:
-    using DataT = std::vector<T*>;
+    using DataT = std::vector<T>;
+    using LevelFunctorT = NodeLevelHelper<T>;
 
-    void Push(T* node)
+    void Push(const T& node)
     {
         data_.push_back(node);
     }
@@ -37,8 +50,11 @@ public:
 
         minLevel_ = INT_MAX;
         for (const auto& e : data_)
-            if (minLevel_ > e->Level)
-                minLevel_ = e->Level;
+        {
+            auto l = LevelFunctorT{}(e);
+            if (minLevel_ > l)
+                minLevel_ = l;
+        }
 
         auto p = std::partition(data_.begin(), data_.end(), CompFunctor{ minLevel_ });
 
@@ -54,7 +70,7 @@ private:
     struct CompFunctor
     {
         CompFunctor(int level) : Level{ level } {}
-        bool operator()(T* x) { return x->Level != Level; }
+        bool operator()(const T& x) { return LevelFunctorT{}(x) != Level; }
         const int Level;
     };
 
@@ -66,6 +82,18 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// WeightedRange
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+struct NodeWeightHelper
+{
+    int operator()(const T& x) const { return x.Weight; }
+};
+
+template <typename T>
+struct NodeWeightHelper<T*>
+{
+    int operator()(const T* x) const { return x->Weight; }
+};
+
 template
 <
     typename TValue,
@@ -136,17 +164,20 @@ template <typename T, uint grain_size>
 class ConcurrentTopoQueue
 {
 public:
-    using NodesT = std::vector<T*>;
-    using RangeT = WeightedRange<typename NodesT::const_iterator, grain_size>;
+    using DataT = std::vector<T>;
+    using RangeT = WeightedRange<typename DataT::const_iterator, grain_size>;
+    using LevelFunctorT = NodeLevelHelper<T>;
+    using WeightFunctorT = NodeWeightHelper<T>;
 
-    void Push(T* node)
+    void Push(const T& node)
     {
         auto& t = collectBuffer_.local();
         
         t.Data.push_back(node);
-        t.Weight += node->Weight;
-        if (t.MinLevel > node->Level)
-            t.MinLevel = node->Level;
+        t.Weight += WeightFunctorT{}(node);
+        auto l = LevelFunctorT{}(node);
+        if (t.MinLevel > l)
+            t.MinLevel = l;
     }
 
     bool FetchNext()
@@ -178,11 +209,12 @@ public:
             buf.MinLevel = INT_MAX;
             int oldWeight = buf.Weight;
             buf.Weight = 0;
-            for (const T* x : v)
+            for (const T& x : v)
             {
-                buf.Weight += x->Weight;
-                if (buf.MinLevel > x->Level)
-                    buf.MinLevel = x->Level;
+                buf.Weight += WeightFunctorT{}(x);
+                auto l = LevelFunctorT{}(x);
+                if (buf.MinLevel > l)
+                    buf.MinLevel = l;
             }
 
             // Add diff to nodes_ weight
@@ -204,19 +236,19 @@ private:
     struct CompFunctor
     {
         CompFunctor(int level) : Level{ level } {}
-        bool operator()(T* other) { return other->Level != Level; }
+        bool operator()(const T& x) { return  LevelFunctorT{}(x) != Level; }
         const int Level;
     };
 
     struct ThreadLocalBuffer
     {
-        std::vector<T*> Data;
-        int             MinLevel = INT_MAX;
-        uint            Weight = 0;
+        DataT   Data;
+        int     MinLevel = INT_MAX;
+        uint    Weight = 0;
     };
 
     int                 minLevel_ = INT_MAX;
-    std::vector<T*>     nodes_;
+    DataT               nodes_;
     RangeT              range_;
 
     tbb::enumerable_thread_specific<ThreadLocalBuffer>    collectBuffer_;
