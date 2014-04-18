@@ -96,18 +96,20 @@ struct NodeWeightHelper<T*>
 
 template
 <
-    typename TValue,
+    typename TIt,
     uint grain_size
 >
 class WeightedRange
 {
 public:
-    using const_iterator = TValue;
+    using const_iterator = TIt;
+    using ValueT = typename TIt::value_type;
+    using WeightFunctorT = NodeWeightHelper<ValueT>;
 
     WeightedRange() = default;
     WeightedRange(const WeightedRange& other) = default;
 
-    WeightedRange(const TValue& a, const TValue& b, uint weight) :
+    WeightedRange(const TIt& a, const TIt& b, uint weight) :
         begin_{ a },
         end_{ b },
         weight_{ weight }
@@ -117,10 +119,10 @@ public:
     WeightedRange(WeightedRange& source, tbb::split)
     {
         uint sum = 0;        
-        TValue p = source.begin_;
+        TIt p = source.begin_;
         while (p != source.end_)
         {
-            sum += (*p)->Weight;
+            sum += WeightFunctorT{}(*p);
             ++p;
             if (sum >= grain_size)
                 break;
@@ -148,8 +150,8 @@ public:
     uint    Weight() const  { return weight_; }
 
 private:
-    TValue  begin_;
-    TValue  end_;
+    TIt     begin_;
+    TIt     end_;
     uint    weight_ = 0;
 };
 
