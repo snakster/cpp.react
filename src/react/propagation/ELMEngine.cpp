@@ -107,7 +107,7 @@ void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& tur
         else
         {
             node.ShouldUpdate = true;
-            node.Counter = node.DependencyCount() - 1;
+            node.Counter.store(node.DependencyCount() - 1, std::memory_order_relaxed);
         }
     }// ~parent.ShiftMutex
 
@@ -151,10 +151,10 @@ void EngineBase<TTurn>::nudgeChildren(Node& node, bool update, TTurn& turn)
             succ->ShouldUpdate = true;
 
         // Delay tick?
-        if (++succ->Counter < succ->DependencyCount())
+        if (succ->Counter.fetch_add(1, std::memory_order_relaxed) < succ->DependencyCount() - 1)
             continue;
 
-        succ->Counter = 0;
+        succ->Counter.store(0, std::memory_order_relaxed);
         tasks_.run(std::bind(&EngineBase<TTurn>::processChild, this, std::ref(*succ), update, std::ref(turn)));
     }
 

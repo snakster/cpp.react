@@ -45,6 +45,12 @@ using tbb::queuing_rw_mutex;
 using tbb::spin_mutex;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Parameters
+///////////////////////////////////////////////////////////////////////////////////////////////////
+static const uint min_weight = 1;
+static const uint grain_size = 100;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SeqNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class SeqNode : public IReactiveNode
@@ -118,7 +124,7 @@ template <typename TTurn>
 class SeqEngineBase : public EngineBase<SeqNode,TTurn>
 {
 public:
-    using TopoQueueT = TopoQueue<SeqNode>;
+    using TopoQueueT = TopoQueue<SeqNode*>;
 
     void OnTurnPropagate(TTurn& turn);
 
@@ -140,11 +146,8 @@ template <typename TTurn>
 class ParEngineBase : public EngineBase<ParNode,TTurn>
 {
 public:
-    static const uint min_weight = 1;
-    static const uint grain_size = 100;
-
     using DynRequestVectT = concurrent_vector<DynRequestData>;
-    using TopoQueueT = ConcurrentTopoQueue<ParNode,grain_size>;
+    using TopoQueueT = ConcurrentTopoQueue<ParNode*,grain_size>;
 
     void OnTurnPropagate(TTurn& turn);
 
@@ -184,7 +187,7 @@ public:
     using NodeVectT = vector<ParNode*>;
     using IntervalSetT = set<pair<int,int>>;
     using DynRequestVectT = concurrent_vector<DynRequestData>;
-    using TopoQueueT = ConcurrentTopoQueue<ParNode,128>;
+    using TopoQueueT = ConcurrentTopoQueue<ParNode*,grain_size>;
 
     PipeliningTurn(TurnIdT id, TurnFlagsT flags);
 

@@ -288,7 +288,7 @@ void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& tur
     NodeShiftMutexT::scoped_lock    lock(parent.ShiftMutex, true);
 
     parent.Successors.Remove(node);
-}// ~oldParent.ShiftMutex (write)
+}// ~parent.ShiftMutex (write)
 
 template <typename TTurn>
 void EngineBase<TTurn>::HintUpdateDuration(Node& node, uint dur)
