@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "react/Defs.h"
+#include "react/detail/Defs.h"
 
 #include <functional>
 #include <memory>
@@ -14,11 +14,10 @@
 #include <type_traits>
 #include <utility>
 
-#include "ReactiveBase.h"
-#include "ReactiveDomain.h"
-
 #include "react/common/Util.h"
-#include "react/graph/SignalNodes.h"
+#include "react/detail/ReactiveBase.h"
+#include "react/detail/ReactiveDomain.h"
+#include "react/detail/graph/SignalNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 

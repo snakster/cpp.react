@@ -6,11 +6,11 @@
 
 #include "ObserverTest.h"
 
-#include "react/propagation/PulseCountEngine.h"
-#include "react/propagation/TopoSortEngine.h"
-#include "react/propagation/SourceSetEngine.h"
-#include "react/propagation/ELMEngine.h"
-#include "react/propagation/SubtreeEngine.h"
+#include "react/engine/PulseCountEngine.h"
+#include "react/engine/TopoSortEngine.h"
+#include "react/engine/SourceSetEngine.h"
+#include "react/engine/ELMEngine.h"
+#include "react/engine/SubtreeEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {

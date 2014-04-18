@@ -18,15 +18,15 @@
 #include "BenchmarkLifeSim.h"
 
 #include "react/Signal.h"
-#include "react/Operations.h"
+#include "react/Algorithm.h"
 #include "react/common/Util.h"
 #include "react/logging/EventLog.h"
 
-#include "react/propagation/TopoSortEngine.h"
-#include "react/propagation/PulseCountEngine.h"
-#include "react/propagation/SourceSetEngine.h"
-#include "react/propagation/ELMEngine.h"
-#include "react/propagation/SubtreeEngine.h"
+#include "react/engine/TopoSortEngine.h"
+#include "react/engine/PulseCountEngine.h"
+#include "react/engine/SourceSetEngine.h"
+#include "react/engine/ELMEngine.h"
+#include "react/engine/SubtreeEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "react/Defs.h"
+#include "react/detail/Defs.h"
 
 #include <mutex>
 #include <condition_variable>

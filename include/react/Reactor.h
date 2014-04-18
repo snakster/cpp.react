@@ -8,18 +8,17 @@
 
 #ifndef REACT_DISABLE_REACTORS
 
-#include "react/Defs.h"
+#include "react/detail/Defs.h"
 
 #include <functional>
 #include <memory>
 
-#include "ReactiveBase.h"
-#include "ReactiveDomain.h"
-
 #include "react/common/Util.h"
 
 #include "react/EventStream.h"
-#include "react/graph/ReactorNodes.h"
+#include "react/detail/ReactiveBase.h"
+#include "react/detail/ReactiveDomain.h"
+#include "react/detail/graph/ReactorNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 

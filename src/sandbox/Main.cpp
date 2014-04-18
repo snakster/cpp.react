@@ -14,11 +14,11 @@
 
 #include "react/Signal.h"
 #include "react/EventStream.h"
-#include "react/Operations.h"
+#include "react/Algorithm.h"
 #include "react/ReactiveObject.h"
 
-//#include "react/propagation/SubtreeEngine.h"
-//#include "react/propagation/PulseCountEngine.h"
+//#include "react/engine/SubtreeEngine.h"
+//#include "react/engine/PulseCountEngine.h"
 
 using namespace std;
 using namespace react;

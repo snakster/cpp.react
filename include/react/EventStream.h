@@ -6,17 +6,17 @@
 
 #pragma once
 
-#include "react/Defs.h"
+#include "react/detail/Defs.h"
 
 #include <thread>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
-#include "ReactiveBase.h"
-#include "ReactiveDomain.h"
 #include "Observer.h"
-#include "react/graph/EventStreamNodes.h"
+#include "react/detail/ReactiveBase.h"
+#include "react/detail/ReactiveDomain.h"
+#include "react/detail/graph/EventStreamNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 

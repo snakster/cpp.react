@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include "react/Defs.h"
+#include "react/detail/Defs.h"
 
-#include "ReactiveDomain.h"
+#include "react/detail/ReactiveDomain.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 

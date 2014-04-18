@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "react/Defs.h"
+#include "react/detail/Defs.h"
 
 #include <memory>
 #include <cstdint>
@@ -14,10 +14,10 @@
 #include <iostream>
 #include <chrono>
 
-#include "react/common/Types.h"
-#include "react/logging/Logging.h"
-
 #include "tbb/concurrent_vector.h"
+
+#include "Logging.h"
+#include "react/common/Types.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 

@@ -13,29 +13,26 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\common">
-      <UniqueIdentifier>{11a75126-8bfd-4693-be4b-4e06ab73450c}</UniqueIdentifier>
+    <Filter Include="Header Files\detail">
+      <UniqueIdentifier>{82fd9b9e-0b63-40f7-b245-b5eb0271b0d2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\graph">
+    <Filter Include="Header Files\detail\graph">
       <UniqueIdentifier>{c7adc39d-d19e-4fe2-b945-332515717bc8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\logging">
-      <UniqueIdentifier>{22da08e3-fb85-4fed-9fbc-8944ef866ccc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\propagation">
+    <Filter Include="Header Files\engine">
       <UniqueIdentifier>{6883dd62-b27e-4b11-9cc8-cbac096f4723}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\common">
-      <UniqueIdentifier>{9da47e26-5373-413b-b847-6a6b22b52b81}</UniqueIdentifier>
+    <Filter Include="Header Files\common">
+      <UniqueIdentifier>{11a75126-8bfd-4693-be4b-4e06ab73450c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\logging">
       <UniqueIdentifier>{f58215db-3a12-432a-a4c1-e24a90df70a9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\propagation">
-      <UniqueIdentifier>{e32c6e31-a761-4beb-828e-73afcec53147}</UniqueIdentifier>
+    <Filter Include="Source Files\engine">
+      <UniqueIdentifier>{3f444875-ab1a-4bbd-99eb-7018c930098a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\interface">
-      <UniqueIdentifier>{382c4195-f9d3-4afe-b9da-60c61e75d79a}</UniqueIdentifier>
+    <Filter Include="Header Files\logging">
+      <UniqueIdentifier>{22da08e3-fb85-4fed-9fbc-8944ef866ccc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -60,52 +57,10 @@
     <ClInclude Include="..\..\include\react\common\Util.h">
       <Filter>Header Files\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\graph\ConversionNodes.h">
-      <Filter>Header Files\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\graph\EventStreamNodes.h">
-      <Filter>Header Files\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\graph\GraphBase.h">
-      <Filter>Header Files\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\graph\ObserverNodes.h">
-      <Filter>Header Files\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\graph\SignalNodes.h">
-      <Filter>Header Files\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\logging\EventLog.h">
-      <Filter>Header Files\logging</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\logging\EventRecords.h">
-      <Filter>Header Files\logging</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\ELMEngine.h">
-      <Filter>Header Files\propagation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\EngineBase.h">
-      <Filter>Header Files\propagation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\PulseCountEngine.h">
-      <Filter>Header Files\propagation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\SourceSetEngine.h">
-      <Filter>Header Files\propagation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\TopoSortEngine.h">
-      <Filter>Header Files\propagation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\logging\Logging.h">
-      <Filter>Header Files\logging</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\EventStream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\Observer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\ReactiveBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\ReactiveObject.h">
@@ -114,67 +69,106 @@
     <ClInclude Include="..\..\include\react\Signal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\Operations.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\common\Concurrency.h">
       <Filter>Header Files\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\Defs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\common\ContinuationInput.h">
-      <Filter>Header Files\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\interface\IReactiveNode.h">
-      <Filter>Header Files\interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\interface\IReactiveEngine.h">
-      <Filter>Header Files\interface</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\Options.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\Traits.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\Reactor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\graph\ReactorNodes.h">
-      <Filter>Header Files\graph</Filter>
+    <ClInclude Include="..\..\include\react\engine\ELMEngine.h">
+      <Filter>Header Files\engine</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\ReactiveDomain.h">
+    <ClInclude Include="..\..\include\react\engine\PulseCountEngine.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\engine\SourceSetEngine.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\engine\TopoSortEngine.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\ContinuationInput.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\Defs.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\EngineBase.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\IReactiveEngine.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\IReactiveNode.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\Options.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\ReactiveBase.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\ReactiveDomain.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\Traits.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\ConversionNodes.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\EventStreamNodes.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\ReactorNodes.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\SignalNodes.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\logging\EventLog.h">
+      <Filter>Header Files\logging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\logging\EventRecords.h">
+      <Filter>Header Files\logging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\logging\Logging.h">
+      <Filter>Header Files\logging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Algorithm.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\propagation\SubtreeEngine.h">
-      <Filter>Header Files\propagation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\react\common\Util.cpp">
-      <Filter>Source Files\common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\react\logging\EventLog.cpp">
+    <ClCompile Include="..\..\src\logging\EventLog.cpp">
       <Filter>Source Files\logging</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\react\logging\EventRecords.cpp">
+    <ClCompile Include="..\..\src\logging\EventRecords.cpp">
       <Filter>Source Files\logging</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\react\propagation\ELMEngine.cpp">
-      <Filter>Source Files\propagation</Filter>
+    <ClCompile Include="..\..\src\engine\ELMEngine.cpp">
+      <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\react\propagation\PulseCountEngine.cpp">
-      <Filter>Source Files\propagation</Filter>
+    <ClCompile Include="..\..\src\engine\PulseCountEngine.cpp">
+      <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\react\propagation\SourceSetEngine.cpp">
-      <Filter>Source Files\propagation</Filter>
+    <ClCompile Include="..\..\src\engine\SourceSetEngine.cpp">
+      <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\react\propagation\TopoSortEngine.cpp">
-      <Filter>Source Files\propagation</Filter>
+    <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp">
+      <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\react\propagation\SubtreeEngine.cpp">
-      <Filter>Source Files\propagation</Filter>
+    <ClCompile Include="..\..\src\engine\TopoSortEngine.cpp">
+      <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

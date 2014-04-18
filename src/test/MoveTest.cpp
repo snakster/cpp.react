@@ -6,7 +6,7 @@
 
 #include "MoveTest.h"
 
-#include "react/propagation/TopoSortEngine.h"
+#include "react/engine/TopoSortEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {

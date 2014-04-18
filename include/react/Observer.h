@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include "react/Defs.h"
+#include "react/detail/Defs.h"
 
 #include <memory>
 #include <unordered_map>
 
-#include "react/interface/IReactiveNode.h"
+#include "react/detail/IReactiveNode.h"
 
-#include "react/graph/ObserverNodes.h"
+#include "react/detail/graph/ObserverNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
