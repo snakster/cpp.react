@@ -324,10 +324,10 @@ private:
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 struct sequential;
-struct sequential_queuing;
+struct sequential_queue;
 struct parallel;
-struct parallel_queuing;
-struct parallel_pipelining;
+struct parallel_queue;
+struct parallel_pipeline;
 
 template <typename TMode>
 class TopoSortEngine;
@@ -335,16 +335,16 @@ class TopoSortEngine;
 template <> class TopoSortEngine<sequential> :
     public REACT_IMPL::toposort::BasicSeqEngine {};
 
-template <> class TopoSortEngine<sequential_queuing> :
+template <> class TopoSortEngine<sequential_queue> :
     public REACT_IMPL::toposort::QueuingSeqEngine {};
 
 template <> class TopoSortEngine<parallel> :
     public REACT_IMPL::toposort::BasicParEngine {};
 
-template <> class TopoSortEngine<parallel_queuing> :
+template <> class TopoSortEngine<parallel_queue> :
     public REACT_IMPL::toposort::QueuingParEngine {};
 
-template <> class TopoSortEngine<parallel_pipelining> :
+template <> class TopoSortEngine<parallel_pipeline> :
     public REACT_IMPL::toposort::PipeliningEngine {};
 
 /******************************************/ REACT_END /******************************************/
@@ -358,9 +358,9 @@ template <>
 struct EnableNodeUpdateTimer<TopoSortEngine<parallel>> : std::true_type {};
 
 template <>
-struct EnableNodeUpdateTimer<TopoSortEngine<parallel_queuing>> : std::true_type {};
+struct EnableNodeUpdateTimer<TopoSortEngine<parallel_queue>> : std::true_type {};
 
 template <>
-struct EnableNodeUpdateTimer<TopoSortEngine<parallel_pipelining>> : std::true_type {};
+struct EnableNodeUpdateTimer<TopoSortEngine<parallel_pipeline>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/

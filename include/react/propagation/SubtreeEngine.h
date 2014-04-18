@@ -170,7 +170,7 @@ class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 struct parallel;
-struct parallel_queuing;
+struct parallel_queue;
 
 template <typename TMode>
 class SubtreeEngine;
@@ -178,7 +178,7 @@ class SubtreeEngine;
 template <> class SubtreeEngine<parallel> :
     public REACT_IMPL::subtree::BasicEngine {};
 
-template <> class SubtreeEngine<parallel_queuing> :
+template <> class SubtreeEngine<parallel_queue> :
     public REACT_IMPL::subtree::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/
@@ -192,6 +192,6 @@ template <>
 struct EnableNodeUpdateTimer<SubtreeEngine<parallel>> : std::true_type {};
 
 template <>
-struct EnableNodeUpdateTimer<SubtreeEngine<parallel_queuing>> : std::true_type {};
+struct EnableNodeUpdateTimer<SubtreeEngine<parallel_queue>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/

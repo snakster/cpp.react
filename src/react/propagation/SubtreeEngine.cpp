@@ -338,9 +338,9 @@ void EngineBase<TTurn>::markSubtree(Node& root)
     root.SetMarkedFlag();
     root.WaitCount = 0;
 
-	for (auto* succ : root.Successors)
-	{
-		if (!succ->IsMarked())
+    for (auto* succ : root.Successors)
+    {
+        if (!succ->IsMarked())
             markSubtree(*succ);
 
         // Successor of another marked node? -> not a root anymore
@@ -348,7 +348,7 @@ void EngineBase<TTurn>::markSubtree(Node& root)
             succ->ClearRootFlag();
 
         ++succ->WaitCount;
-	}
+    }
 }
 
 template <typename TTurn>

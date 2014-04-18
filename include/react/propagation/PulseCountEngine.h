@@ -131,7 +131,7 @@ class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 struct parallel;
-struct parallel_queuing;
+struct parallel_queue;
 
 template <typename TMode>
 class PulseCountEngine;
@@ -139,7 +139,7 @@ class PulseCountEngine;
 template <> class PulseCountEngine<parallel> :
     public REACT_IMPL::pulsecount::BasicEngine {};
 
-template <> class PulseCountEngine<parallel_queuing> :
+template <> class PulseCountEngine<parallel_queue> :
     public REACT_IMPL::pulsecount::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/
@@ -153,6 +153,6 @@ template <>
 struct EnableNodeUpdateTimer<PulseCountEngine<parallel>> : std::true_type {};
 
 template <>
-struct EnableNodeUpdateTimer<PulseCountEngine<parallel_queuing>> : std::true_type {};
+struct EnableNodeUpdateTimer<PulseCountEngine<parallel_queue>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/

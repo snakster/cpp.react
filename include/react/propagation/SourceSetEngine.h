@@ -142,12 +142,12 @@ class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 struct parallel;
-struct parallel_queuing;
+struct parallel_queue;
 
 template <typename TMode>
 class SourceSetEngine;
 
 template <> class SourceSetEngine<parallel> : public REACT_IMPL::sourceset::BasicEngine {};
-template <> class SourceSetEngine<parallel_queuing> : public REACT_IMPL::sourceset::QueuingEngine {};
+template <> class SourceSetEngine<parallel_queue> : public REACT_IMPL::sourceset::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/

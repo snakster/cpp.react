@@ -97,12 +97,12 @@ class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 struct parallel;
-struct parallel_queuing;
+struct parallel_queue;
 
 template <typename TMode>
 class ELMEngine;
 
 template <> class ELMEngine<parallel> : public REACT_IMPL::elm::BasicEngine {};
-template <> class ELMEngine<parallel_queuing> : public REACT_IMPL::elm::QueuingEngine {};
+template <> class ELMEngine<parallel_queue> : public REACT_IMPL::elm::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/
