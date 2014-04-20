@@ -90,7 +90,7 @@ public:
     virtual bool IsDynamicNode() const override { return true; }
     virtual bool IsOutputNode() const override  { return true; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         turnPtr_ = static_cast<TurnT*>(turnPtr);
         REACT_SCOPE_EXIT{ turnPtr_ = nullptr; };
@@ -103,12 +103,10 @@ public:
             Engine::OnDynamicNodeAttach(*this, *depPtr, *turnPtr_);
             ++depCount_;
             
-            return EUpdateResult::invalidated;
+            return;
         }
 
         offsets_.clear();
-
-        return EUpdateResult::none;
     }
 
     virtual int DependencyCount() const override

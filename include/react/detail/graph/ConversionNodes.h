@@ -38,7 +38,7 @@ public:
     {
     }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -55,12 +55,10 @@ public:
         {
             value_ = newValue;
             Engine::OnNodePulse(*this, turn);
-            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return EUpdateResult::unchanged;
         }
     }
 
@@ -185,7 +183,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "HoldNode"; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -211,12 +209,10 @@ public:
         if (changed)
         {
             Engine::OnNodePulse(*this, turn);
-            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return EUpdateResult::unchanged;
         }
     }
 
@@ -257,7 +253,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "SnapshotNode"; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -285,12 +281,10 @@ public:
         if (changed)
         {
             Engine::OnNodePulse(*this, turn);
-            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return EUpdateResult::unchanged;
         }
     }
 
@@ -328,7 +322,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "MonitorNode"; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -346,12 +340,10 @@ public:
         if (events_.size() > 0)
         {
             Engine::OnNodePulse(*this, turn);
-            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return EUpdateResult::unchanged;
         }
     }
 
@@ -392,7 +384,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "PulseNode"; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         typedef typename D::Engine::TurnT TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -412,12 +404,10 @@ public:
         if (events_.size() > 0)
         {
             Engine::OnNodePulse(*this, turn);
-            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return EUpdateResult::unchanged;
         }
     }
 
@@ -461,7 +451,7 @@ public:
 
     virtual bool IsDynamicNode() const override    { return true; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         typedef typename D::Engine::TurnT TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -482,7 +472,7 @@ public:
             Engine::OnDynamicNodeDetach(*this, *oldInner, turn);
             Engine::OnDynamicNodeAttach(*this, *newInner, turn);
 
-            return EUpdateResult::invalidated;
+            return;
         }
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
@@ -496,12 +486,10 @@ public:
         if (events_.size() > 0)
         {
             Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
-            return EUpdateResult::unchanged;
         }
     }
 

@@ -13,6 +13,9 @@
 #include <tuple>
 #include <utility>
 
+
+#include <deque>
+
 #include "GraphBase.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
@@ -48,10 +51,9 @@ public:
 
     virtual const char* GetNodeType() const override { return "SignalNode"; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         REACT_ASSERT(false, "Don't tick SignalNode\n");
-        return EUpdateResult::none;
     }
 
     const S& ValueRef() const
@@ -97,10 +99,9 @@ public:
 
     virtual const char* GetNodeType() const override { return "VarNode"; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         REACT_ASSERT(false, "Don't tick the VarNode\n");
-        return EUpdateResult::none;
     }
 
     virtual bool IsInputNode() const override    { return true; }
@@ -223,7 +224,7 @@ public:
 
     virtual const char* GetNodeType() const override { return "SignalOpNode"; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -251,12 +252,10 @@ public:
         if (changed)
         {
             Engine::OnNodePulse(*this, turn);
-            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return EUpdateResult::unchanged;
         }
     }
 
@@ -311,7 +310,7 @@ public:
 
     virtual bool IsDynamicNode() const override    { return true; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -327,7 +326,7 @@ public:
             Engine::OnDynamicNodeDetach(*this, *oldInner, turn);
             Engine::OnDynamicNodeAttach(*this, *newInner, turn);
 
-            return EUpdateResult::invalidated;
+            return;
         }
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
@@ -342,12 +341,10 @@ public:
         {
             value_ = newValue;
             Engine::OnNodePulse(*this, turn);
-            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return EUpdateResult::unchanged;
         }
     }
 

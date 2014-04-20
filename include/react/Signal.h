@@ -40,8 +40,6 @@ public:
     Signal() :
         Reactive()
     {}
-
-//    Signal(const Signal& other) = delete;
     
     explicit Signal(const std::shared_ptr<NodeT>& ptr) :
         Reactive(ptr)
