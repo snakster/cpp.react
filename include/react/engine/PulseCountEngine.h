@@ -146,13 +146,12 @@ template <> class PulseCountEngine<parallel_queue> :
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename T>
-struct EnableNodeUpdateTimer;
+template <typename> struct EnableNodeUpdateTimer;
+template <> struct EnableNodeUpdateTimer<PulseCountEngine<parallel>> : std::true_type {};
+template <> struct EnableNodeUpdateTimer<PulseCountEngine<parallel_queue>> : std::true_type {};
 
-template <>
-struct EnableNodeUpdateTimer<PulseCountEngine<parallel>> : std::true_type {};
-
-template <>
-struct EnableNodeUpdateTimer<PulseCountEngine<parallel_queue>> : std::true_type {};
+template <typename> struct EnableParallelUpdating;
+template <> struct EnableParallelUpdating<PulseCountEngine<parallel>> : std::true_type {};
+template <> struct EnableParallelUpdating<PulseCountEngine<parallel_queue>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/

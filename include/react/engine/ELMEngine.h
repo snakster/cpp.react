@@ -106,3 +106,11 @@ template <> class ELMEngine<parallel> : public REACT_IMPL::elm::BasicEngine {};
 template <> class ELMEngine<parallel_queue> : public REACT_IMPL::elm::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/
+
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+template <typename> struct EnableParallelUpdating;
+template <> struct EnableParallelUpdating<ELMEngine<parallel>> : std::true_type {};
+template <> struct EnableParallelUpdating<ELMEngine<parallel_queue>> : std::true_type {};
+
+/****************************************/ REACT_IMPL_END /***************************************/

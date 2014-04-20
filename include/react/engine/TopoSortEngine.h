@@ -351,16 +351,14 @@ template <> class TopoSortEngine<parallel_pipeline> :
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename T>
-struct EnableNodeUpdateTimer;
+template <typename> struct EnableNodeUpdateTimer;
+template <> struct EnableNodeUpdateTimer<TopoSortEngine<parallel>> : std::true_type {};
+template <> struct EnableNodeUpdateTimer<TopoSortEngine<parallel_queue>> : std::true_type {};
+template <> struct EnableNodeUpdateTimer<TopoSortEngine<parallel_pipeline>> : std::true_type {};
 
-template <>
-struct EnableNodeUpdateTimer<TopoSortEngine<parallel>> : std::true_type {};
-
-template <>
-struct EnableNodeUpdateTimer<TopoSortEngine<parallel_queue>> : std::true_type {};
-
-template <>
-struct EnableNodeUpdateTimer<TopoSortEngine<parallel_pipeline>> : std::true_type {};
+template <typename> struct EnableParallelUpdating;
+template <> struct EnableParallelUpdating<TopoSortEngine<parallel>> : std::true_type {};
+template <> struct EnableParallelUpdating<TopoSortEngine<parallel_queue>> : std::true_type {};
+template <> struct EnableParallelUpdating<TopoSortEngine<parallel_pipeline>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/

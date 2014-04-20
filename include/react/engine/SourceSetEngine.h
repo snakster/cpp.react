@@ -151,3 +151,11 @@ template <> class SourceSetEngine<parallel> : public REACT_IMPL::sourceset::Basi
 template <> class SourceSetEngine<parallel_queue> : public REACT_IMPL::sourceset::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/
+
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+template <typename> struct EnableParallelUpdating;
+template <> struct EnableParallelUpdating<SourceSetEngine<parallel>> : std::true_type {};
+template <> struct EnableParallelUpdating<SourceSetEngine<parallel_queue>> : std::true_type {};
+
+/****************************************/ REACT_IMPL_END /***************************************/

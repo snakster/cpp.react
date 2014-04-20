@@ -185,13 +185,12 @@ template <> class SubtreeEngine<parallel_queue> :
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename T>
-struct EnableNodeUpdateTimer;
+template <typename> struct EnableNodeUpdateTimer;
+template <> struct EnableNodeUpdateTimer<SubtreeEngine<parallel>> : std::true_type {};
+template <> struct EnableNodeUpdateTimer<SubtreeEngine<parallel_queue>> : std::true_type {};
 
-template <>
-struct EnableNodeUpdateTimer<SubtreeEngine<parallel>> : std::true_type {};
-
-template <>
-struct EnableNodeUpdateTimer<SubtreeEngine<parallel_queue>> : std::true_type {};
+template <typename> struct EnableParallelUpdating;
+template <> struct EnableParallelUpdating<SubtreeEngine<parallel>> : std::true_type {};
+template <> struct EnableParallelUpdating<SubtreeEngine<parallel_queue>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
