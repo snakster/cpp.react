@@ -100,4 +100,33 @@ private:
 template <typename T>
 T*    ThreadLocalStaticPtr<T>::ptr_(nullptr);
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ConditionalCriticalSection
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename TMutex, bool is_enabled>
+class ConditionalCriticalSection;
+
+template <typename TMutex>
+class ConditionalCriticalSection<TMutex,false>
+{
+public:
+    template <typename F>
+    void Access(const F& f) { f(); }
+};
+
+template <typename TMutex>
+class ConditionalCriticalSection<TMutex,true>
+{
+public:
+    template <typename F>
+    void Access(const F& f)
+    {// mutex_
+        std::lock_guard<TMutex> lock(mutex_);
+
+        f();
+    }// ~mutex_
+private:
+    TMutex  mutex_;
+};
+
 /****************************************/ REACT_IMPL_END /***************************************/
