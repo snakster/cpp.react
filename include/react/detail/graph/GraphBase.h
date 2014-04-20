@@ -17,15 +17,13 @@
 
 #include "react/common/Util.h"
 #include "react/common/Types.h"
+#include "react/detail/IReactiveEngine.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeUpdateTimer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-struct EnableNodeUpdateTimer : std::false_type {};
-
 template <typename D, bool enabled>
 class NodeUpdateTimer;
 
@@ -126,9 +124,7 @@ class ReactiveNode :
 public:
     using PtrT = std::shared_ptr<ReactiveNode>;
 
-    ReactiveNode()
-    {
-    }
+    ReactiveNode() = default;
 
     ~ReactiveNode()
     {

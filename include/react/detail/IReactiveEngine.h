@@ -166,4 +166,10 @@ struct EngineInterface
 
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Engine traits
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename> struct EnableNodeUpdateTimer : std::false_type {};
+template <typename> struct EnableParallelUpdating : std::false_type {};
+
 /****************************************/ REACT_IMPL_END /***************************************/
