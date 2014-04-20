@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <algorithm>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <thread>
@@ -18,10 +19,21 @@
 #include "tbb/spin_mutex.h"
 
 #include "GraphBase.h"
+#include "react/common/Concurrency.h"
 #include "react/common/Types.h"
 
-
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+// Empty base class optimization
+template <typename D>
+struct EventStreamNodeAccessPolicy :
+    private ConditionalCriticalSection<
+        tbb::spin_mutex,
+        EnableNodeUpdateTimer<typename D::Policy::Engine>::value>
+{
+    template <typename F>
+    void AccessCriticalSection(const F& f) { Access(f); }
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventStreamNode
@@ -31,49 +43,38 @@ template
     typename D,
     typename E
 >
-class EventStreamNode : public ReactiveNode<D,E,void>
+class EventStreamNode :
+    public ReactiveNode<D,E,void>,
+    private EventStreamNodeAccessPolicy<D>
 {
 public:
-    using EventListT    = std::vector<E>;
-    using EventMutexT   = tbb::spin_mutex;
-
+    using DataT     = std::deque<E>;
     using PtrT      = std::shared_ptr<EventStreamNode>;
     using WeakPtrT  = std::weak_ptr<EventStreamNode>;
 
     using EngineT   = typename D::Engine;
     using TurnT     = typename EngineT::TurnT;
 
-    EventStreamNode() :
-        ReactiveNode()
-    {
-    }
+    EventStreamNode() = default;
 
     virtual const char* GetNodeType() const override    { return "EventStreamNode"; }
 
     void SetCurrentTurn(const TurnT& turn, bool forceUpdate = false, bool noClear = false)
-    {// eventMutex_
-        EventMutexT::scoped_lock lock(eventMutex_);
-
-        if (curTurnId_ != turn.Id() || forceUpdate)
-        {
-            curTurnId_ =  turn.Id();
-            if (!noClear)
-                events_.clear();
-        }
-    }// ~eventMutex_
-
-    void ClearEvents(const TurnT& turn)
     {
-        curTurnId_ =  turn.Id();
-        events_.clear();
+        AccessCriticalSection([&] {
+            if (curTurnId_ != turn.Id() || forceUpdate)
+            {
+                curTurnId_ =  turn.Id();
+                if (!noClear)
+                    events_.clear();
+            }
+        });
     }
 
-    EventListT&     Events()        { return events_; }
+    DataT&  Events() { return events_; }
 
 protected:
-    EventListT    events_;
-    EventMutexT   eventMutex_;
-
+    DataT   events_;
     uint    curTurnId_ = INT_MAX;
 };
 
@@ -109,10 +110,9 @@ public:
 
     virtual const char* GetNodeType() const override    { return "EventSourceNode"; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         REACT_ASSERT(false, "Don't tick the EventSourceNode\n");
-        return EUpdateResult::none;
     }
 
     virtual bool IsInputNode() const override    { return true; }
@@ -399,7 +399,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "EventOpNode"; }
 
-    virtual EUpdateResult Tick(void* turnPtr) override
+    virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
@@ -417,12 +417,10 @@ public:
         if (! events_.empty())
         {
             Engine::OnNodePulse(*this, turn);
-            return EUpdateResult::changed;
         }
         else
         {
             Engine::OnNodeIdlePulse(*this, turn);
-            return EUpdateResult::unchanged;
         }
     }
 
@@ -442,12 +440,12 @@ public:
 private:
     struct EventCollector
     {
-        EventCollector(EventListT& events) : MyEvents{ events }
+        EventCollector(DataT& events) : MyEvents{ events }
         {}
 
         void operator()(const E& e) const { MyEvents.push_back(e); }
 
-        EventListT& MyEvents;
+        DataT& MyEvents;
     };
 
     TOp     op_;
