@@ -24,8 +24,6 @@
 
 #include "react/engine/TopoSortEngine.h"
 #include "react/engine/PulseCountEngine.h"
-#include "react/engine/SourceSetEngine.h"
-#include "react/engine/ELMEngine.h"
 #include "react/engine/SubtreeEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -36,23 +34,21 @@ using namespace react;
 REACTIVE_DOMAIN(TopoSortSTDomain, TopoSortEngine<sequential>);
 REACTIVE_DOMAIN(TopoSortDomain, TopoSortEngine<parallel>);
 REACTIVE_DOMAIN(PulseCountDomain, PulseCountEngine<parallel>);
-REACTIVE_DOMAIN(SourceSetDomain, SourceSetEngine<parallel>);
-REACTIVE_DOMAIN(ELMDomain, ELMEngine<parallel>);
 REACTIVE_DOMAIN(SubtreeDomain, SubtreeEngine<parallel>);
 
 void runBenchmarkGrid(std::ostream& out)
 {
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(20, 10000),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(40, 10000),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(50, 10000),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 }
 
 void runBenchmarkRandom(std::ostream& out)
@@ -94,13 +90,13 @@ void runBenchmarkFanout(std::ostream& out)
     //    TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Fanout, BenchmarkParams_Fanout(10, 10, 10),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Fanout, BenchmarkParams_Fanout(100, 10, 10),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Fanout, BenchmarkParams_Fanout(1000, 10, 10),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 }
 
 void runBenchmarkSequence(std::ostream& out)
@@ -115,13 +111,13 @@ void runBenchmarkSequence(std::ostream& out)
     //    TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Sequence, BenchmarkParams_Sequence(10, 10, 10),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Sequence, BenchmarkParams_Sequence(100, 10, 10),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 
     RUN_BENCHMARK(out, 3, Benchmark_Sequence, BenchmarkParams_Sequence(1000, 10, 10),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 }
 
 void runBenchmarkLifeSim(std::ostream& out)
@@ -133,7 +129,7 @@ void runBenchmarkLifeSim(std::ostream& out)
     //    SourceSetDomain, PulseCountDomain);
 
     RUN_BENCHMARK(out, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
-        TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SourceSetDomain);
+        TopoSortSTDomain, TopoSortDomain, PulseCountDomain);
 
     //RUN_BENCHMARK(out, 3, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 50, 100),
     //    PulseCountDomain, PulseCountDomain);
@@ -225,7 +221,7 @@ void profileBenchmark()
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_Random, BenchmarkParams_Random(20, 11, 100, 0, 5, 80, 20, false, 41556, 21624),
         //SubtreeDomain);
-        //TopoSortSTDomain, TopoSortDomain, ELMDomain, PulseCountDomain, SubtreeDomain, SourceSetDomain);
+        //TopoSortSTDomain, TopoSortDomain, PulseCountDomain, SubtreeDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
      //   TopoSortDomain);

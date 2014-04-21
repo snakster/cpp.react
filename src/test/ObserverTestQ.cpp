@@ -8,8 +8,6 @@
 
 #include "react/engine/PulseCountEngine.h"
 #include "react/engine/TopoSortEngine.h"
-#include "react/engine/SourceSetEngine.h"
-#include "react/engine/ELMEngine.h"
 #include "react/engine/SubtreeEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,9 +17,7 @@ using namespace react;
 
 INSTANTIATE_TYPED_TEST_CASE_P(SeqTopoSortQ, ObserverTest, TopoSortEngine<sequential_queue>);
 INSTANTIATE_TYPED_TEST_CASE_P(ParTopoSortQ, ObserverTest, TopoSortEngine<parallel_queue>);
-INSTANTIATE_TYPED_TEST_CASE_P(ELMQ, ObserverTest, ELMEngine<parallel_queue>);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCountQ, ObserverTest, PulseCountEngine<parallel_queue>);
-INSTANTIATE_TYPED_TEST_CASE_P(SourceSetQ, ObserverTest, SourceSetEngine<parallel_queue>);
 INSTANTIATE_TYPED_TEST_CASE_P(ParTopoSortP, ObserverTest, TopoSortEngine<parallel_pipeline>);
 INSTANTIATE_TYPED_TEST_CASE_P(SubtreeQ, ObserverTest, SubtreeEngine<parallel_queue>);
 

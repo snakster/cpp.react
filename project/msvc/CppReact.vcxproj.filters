@@ -75,13 +75,7 @@
     <ClInclude Include="..\..\include\react\Reactor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\engine\ELMEngine.h">
-      <Filter>Header Files\engine</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\engine\PulseCountEngine.h">
-      <Filter>Header Files\engine</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\engine\SourceSetEngine.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h">
@@ -155,13 +149,7 @@
     <ClCompile Include="..\..\src\logging\EventRecords.cpp">
       <Filter>Source Files\logging</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\engine\ELMEngine.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\engine\PulseCountEngine.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\engine\SourceSetEngine.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp">

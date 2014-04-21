@@ -92,9 +92,7 @@
     <ClInclude Include="..\..\include\react\detail\ReactiveBase.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveDomain.h" />
     <ClInclude Include="..\..\include\react\detail\Traits.h" />
-    <ClInclude Include="..\..\include\react\engine\ELMEngine.h" />
     <ClInclude Include="..\..\include\react\engine\PulseCountEngine.h" />
-    <ClInclude Include="..\..\include\react\engine\SourceSetEngine.h" />
     <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h" />
     <ClInclude Include="..\..\include\react\engine\TopoSortEngine.h" />
     <ClInclude Include="..\..\include\react\common\Concurrency.h" />
@@ -116,9 +114,7 @@
     <ClInclude Include="..\..\include\react\Signal.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\engine\ELMEngine.cpp" />
     <ClCompile Include="..\..\src\engine\PulseCountEngine.cpp" />
-    <ClCompile Include="..\..\src\engine\SourceSetEngine.cpp" />
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp" />
     <ClCompile Include="..\..\src\engine\TopoSortEngine.cpp" />
     <ClCompile Include="..\..\src\logging\EventLog.cpp" />
