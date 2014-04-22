@@ -162,15 +162,16 @@ public:
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     template
     <
-        typename F,
-        typename ... TArgs
+        typename FIn,
+        typename ... TArgs,
+        typename F = std::decay<FIn>::type,
+        typename S = std::result_of<F(TArgs...)>::type,
+        typename TOp = REACT_IMPL::FunctionOp<S,F,REACT_IMPL::SignalNodePtr<D,TArgs> ...>
     >
-    static auto MakeSignal(F&& func, const SignalT<TArgs>& ... args)
-        -> SignalT<typename std::result_of<F(TArgs...)>::type>
+    static auto MakeSignal(FIn&& func, const SignalT<TArgs>& ... args)
+        -> TempSignal<D,S,TOp>
     {
-        using S = typename std::result_of<F(TArgs...)>::type;
-
-        return REACT::MakeSignal<D>(std::forward<F>(func), args ...);
+        return REACT::MakeSignal<D>(std::forward<FIn>(func), args ...);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -195,7 +196,7 @@ public:
     template <typename F>
     static void DoTransaction(F&& func)
     {
-        DoTransaction(turnFlags_, std::forward<F>(func));
+        DoTransaction(0, std::forward<F>(func));
     }
 
     template <typename F>
@@ -238,7 +239,7 @@ public:
     template <typename R, typename V>
     static void AddInput(R&& r, V&& v)
     {
-        if (! ContinuationHolder_::IsNull())
+        if (ContinuationHolder<D>::Get() != nullptr)
         {
             addContinuationInput(std::forward<R>(r), std::forward<V>(v));
         }
@@ -252,48 +253,7 @@ public:
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Set/Clear continuation
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    static void SetCurrentContinuation(TurnT& turn)
-    {
-        ContinuationHolder_::Set(&turn.continuation_);
-    }
-
-    static void ClearCurrentContinuation()
-    {
-        ContinuationHolder_::Reset();
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Options - TODO: This sucks
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    template <typename Opt>
-    static void Set(uint v)        { static_assert(false, "Set option not implemented."); }
-
-    template <typename Opt>
-    static bool IsSet(uint v)    { static_assert(false, "IsSet option not implemented."); }
-
-    template <typename Opt>
-    static void Unset(uint v)    { static_assert(false, "Unset option not implemented."); }    
-
-    template <typename Opt>
-    static void Reset()            { static_assert(false, "Reset option not implemented."); }
-
-    template <> static void Set<ETurnFlags>(uint v)        { turnFlags_ |= v; }
-    template <> static bool IsSet<ETurnFlags>(uint v)    { return (turnFlags_ & v) != 0; }
-    template <> static void Unset<ETurnFlags>(uint v)    { turnFlags_ &= ~v; }
-    template <> static void Reset<ETurnFlags>()            { turnFlags_ = 0; }
-
 private:
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Transaction input continuation
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    struct ContinuationHolder_ : public ThreadLocalStaticPtr<ContinuationInput> {};
-
-    static __declspec(thread) TurnFlagsT turnFlags_;
-
     static std::atomic<TurnIdT> nextTurnId_;
 
     static TurnIdT nextTurnId()
@@ -350,7 +310,7 @@ private:
     static void addContinuationInput(R&& r, V&& v)
     {
         // Copy v
-        ContinuationHolder_::Get()->Add(
+        ContinuationHolder<D>::Get()->Add(
             [&r,v] { addTransactionInput(r, std::move(v)); }
         );
     }
@@ -404,9 +364,6 @@ template <typename D, typename TPolicy>
 std::atomic<TurnIdT> DomainBase<D,TPolicy>::nextTurnId_( 0 );
 
 template <typename D, typename TPolicy>
-TurnFlagsT DomainBase<D,TPolicy>::turnFlags_( 0 );
-
-template <typename D, typename TPolicy>
 typename DomainBase<D,TPolicy>::TransactionState DomainBase<D,TPolicy>::transactionState_;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -425,6 +382,28 @@ public:
         typename D::Engine::Engine();
     }
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ContinuationHolder
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D>
+class ContinuationHolder
+{
+public:
+    using TurnT = typename D::TurnT;
+
+    ContinuationHolder() = delete;
+
+    static void                 SetTurn(TurnT& turn)    { ptr_ = &turn.continuation_; }
+    static void                 Clear()                 { ptr_ = nullptr; }
+    static ContinuationInput*   Get()                   { return ptr_; }
+
+private:
+    static __declspec(thread) ContinuationInput* ptr_;
+};
+
+template <typename D>
+ContinuationInput* ContinuationHolder<D>::ptr_(nullptr);
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

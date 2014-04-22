@@ -17,6 +17,7 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+// tbb tasks are non-preemptible, thread local flag for each worker
 namespace current_observer_state_
 {
     static __declspec(thread) bool    shouldDetach = false;
@@ -87,12 +88,12 @@ public:
 
         current_observer_state_::shouldDetach = false;
 
-        D::SetCurrentContinuation(turn);
+        ContinuationHolder<D>::SetTurn(turn);
 
         if (auto p = subject_.lock())
             func_(p->ValueRef());
 
-        D::ClearCurrentContinuation();
+        ContinuationHolder<D>::Clear();
 
         if (current_observer_state_::shouldDetach)
             turn.QueueForDetach(*this);
@@ -162,7 +163,7 @@ public:
         
         current_observer_state_::shouldDetach = false;
 
-        D::SetCurrentContinuation(turn);
+        ContinuationHolder<D>::SetTurn(turn);
 
         if (auto p = subject_.lock())
         {
@@ -170,7 +171,7 @@ public:
                 func_(e);
         }
 
-        D::ClearCurrentContinuation();
+        ContinuationHolder<D>::Clear();
 
         if (current_observer_state_::shouldDetach)
             turn.QueueForDetach(*this);

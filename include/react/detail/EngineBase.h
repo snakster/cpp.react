@@ -47,6 +47,9 @@ public:
     template <typename D, typename TPolicy>
     friend class DomainBase;
 
+    template <typename D>
+    friend class ContinuationHolder;
+
 private:
     using ObsVectT = tbb::concurrent_vector<IObserverNode*>;
 

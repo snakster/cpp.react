@@ -41,14 +41,12 @@ public:
     Observer() :
         ptr_{ nullptr },
         subject_{ nullptr }
-    {
-    }
+    {}
 
     Observer(ObserverNodeT* ptr, const std::shared_ptr<SubjectT>& subject) :
         ptr_{ ptr },
         subject_{ subject }
-    {
-    }
+    {}
 
     const ObserverNodeT* GetPtr() const
     {
@@ -92,14 +90,12 @@ private:
         Entry_(std::unique_ptr<IObserverNode>&& obs, SubjectT* aSubject) :
             obs_{ std::move(obs) },
             Subject{ aSubject }
-        {
-        }
+        {}
 
         Entry_(Entry_&& other) :
             obs_(std::move(other.obs_)),
             Subject(other.Subject)
-        {
-        }
+        {}
 
         SubjectT*    Subject;
 
