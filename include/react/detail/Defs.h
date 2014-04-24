@@ -32,6 +32,9 @@
     #define REACT_LOG(...)
 #endif
 
+// Thread local storage
+#define REACT_TLS   __declspec(thread)
+
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 // Type aliases

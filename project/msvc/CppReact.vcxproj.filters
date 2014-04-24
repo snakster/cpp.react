@@ -84,9 +84,6 @@
     <ClInclude Include="..\..\include\react\engine\TopoSortEngine.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\ContinuationInput.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\detail\Defs.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
@@ -140,6 +137,12 @@
     </ClInclude>
     <ClInclude Include="..\..\include\react\Algorithm.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\ReactiveInput.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\ObserverBase.h">
+      <Filter>Header Files\detail</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

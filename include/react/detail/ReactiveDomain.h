@@ -20,7 +20,7 @@
 
 #include "react/Observer.h"
 #include "react/common/Types.h"
-#include "react/detail/ContinuationInput.h"
+#include "react/detail/ReactiveInput.h"
 #include "react/detail/Options.h"
 #include "react/detail/Traits.h"
 
@@ -89,26 +89,6 @@ public:
     using ObserverT = Observer<D>;
 
     using ReactiveLoopT = ReactiveLoop<D>;
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// ObserverRegistry
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    static ObserverRegistry<D>& Observers()
-    {
-        static ObserverRegistry<D> registry;
-        return registry;
-    }
-
-#ifdef REACT_ENABLE_LOGGING
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Log
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    static EventLog& Log()
-    {
-        static EventLog log;
-        return log;
-    }
-#endif //REACT_ENABLE_LOGGING
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     /// MakeVar
@@ -196,187 +176,40 @@ public:
     template <typename F>
     static void DoTransaction(F&& func)
     {
-        DoTransaction(0, std::forward<F>(func));
+        InputManager<D>::DoTransaction(0, std::forward<F>(func));
     }
 
     template <typename F>
     static void DoTransaction(TurnFlagsT flags, F&& func)
     {
-        // Attempt to add input to another turn.
-        // If successful, blocks until other turn is done and returns.
-        if (Engine::TryMerge(std::forward<F>(func)))
-            return;
-
-        bool shouldPropagate = false;
-
-        auto turn = makeTurn(flags);
-
-        // Phase 1 - Input admission
-        transactionState_.Active = true;
-        Engine::OnTurnAdmissionStart(turn);
-        func();
-        Engine::OnTurnAdmissionEnd(turn);
-        transactionState_.Active = false;
-
-        // Phase 2 - Apply input node changes
-        for (auto* p : transactionState_.Inputs)
-            if (p->ApplyInput(&turn))
-                shouldPropagate = true;
-        transactionState_.Inputs.clear();
-
-        // Phase 3 - Propagate changes
-        if (shouldPropagate)
-            Engine::OnTurnPropagate(turn);
-
-        Engine::OnTurnEnd(turn);
-
-        postProcessTurn(turn);
+        InputManager<D>::DoTransaction(flags, std::forward<F>(func));
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// AddInput
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    template <typename R, typename V>
-    static void AddInput(R&& r, V&& v)
+#ifdef REACT_ENABLE_LOGGING
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    /// Log
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    static EventLog& Log()
     {
-        if (ContinuationHolder<D>::Get() != nullptr)
-        {
-            addContinuationInput(std::forward<R>(r), std::forward<V>(v));
-        }
-        else if (transactionState_.Active)
-        {
-            addTransactionInput(std::forward<R>(r), std::forward<V>(v));
-        }
-        else
-        {
-            addSimpleInput(std::forward<R>(r), std::forward<V>(v));
-        }
+        static ObserverRegistry<D> instance;
+        return instance;
     }
-
-private:
-    static std::atomic<TurnIdT> nextTurnId_;
-
-    static TurnIdT nextTurnId()
-    {
-        auto curId = nextTurnId_.fetch_add(1, std::memory_order_relaxed);
-
-        if (curId == INT_MAX)
-            nextTurnId_.fetch_sub(INT_MAX);
-
-        return curId;
-    }
-
-    struct TransactionState
-    {
-        bool    Active = false;
-        std::vector<IInputNode*>    Inputs;
-    };
-
-    static TransactionState transactionState_;
-
-    static TurnT makeTurn(TurnFlagsT flags)
-    {
-        return TurnT(nextTurnId(), flags);
-    }
-
-    // Create a turn with a single input
-    template <typename R, typename V>
-    static void addSimpleInput(R&& r, V&& v)
-    {
-        auto turn = makeTurn(0);
-
-        Engine::OnTurnAdmissionStart(turn);
-        r.AddInput(std::forward<V>(v));
-        Engine::OnTurnAdmissionEnd(turn);
-
-        if (r.ApplyInput(&turn))
-            Engine::OnTurnPropagate(turn);
-
-        Engine::OnTurnEnd(turn);
-
-        postProcessTurn(turn);
-    }
-
-    // This input is part of an active transaction
-    template <typename R, typename V>
-    static void addTransactionInput(R&& r, V&& v)
-    {
-        r.AddInput(std::forward<V>(v));
-        transactionState_.Inputs.push_back(&r);
-    }
-
-    // Input happened during a turn - buffer in continuation
-    template <typename R, typename V>
-    static void addContinuationInput(R&& r, V&& v)
-    {
-        // Copy v
-        ContinuationHolder<D>::Get()->Add(
-            [&r,v] { addTransactionInput(r, std::move(v)); }
-        );
-    }
-
-    static void postProcessTurn(TurnT& turn)
-    {
-        turn.detachObservers(Observers());
-
-        // Steal continuation from current turn
-        if (! turn.continuation_.IsEmpty())
-            processContinuations(std::move(turn.continuation_), 0);
-    }
-
-    static void processContinuations(ContinuationInput&& cont, TurnFlagsT flags)
-    {
-        // No merging for continuations
-        flags &= ~enable_input_merging;
-
-        while (true)
-        {
-            bool shouldPropagate = false;
-            auto turn = makeTurn(flags);
-
-            transactionState_.Active = true;
-            Engine::OnTurnAdmissionStart(turn);
-            cont.Execute();
-            Engine::OnTurnAdmissionEnd(turn);
-            transactionState_.Active = false;
-
-            for (auto* p : transactionState_.Inputs)
-                if (p->ApplyInput(&turn))
-                    shouldPropagate = true;
-            transactionState_.Inputs.clear();
-
-            if (shouldPropagate)
-                Engine::OnTurnPropagate(turn);
-
-            Engine::OnTurnEnd(turn);
-
-            turn.detachObservers(Observers());
-
-            if (turn.continuation_.IsEmpty())
-                break;
-
-            cont = std::move(turn.continuation_);
-        }
-    }
+#endif //REACT_ENABLE_LOGGING
 };
 
-template <typename D, typename TPolicy>
-std::atomic<TurnIdT> DomainBase<D,TPolicy>::nextTurnId_( 0 );
-
-template <typename D, typename TPolicy>
-typename DomainBase<D,TPolicy>::TransactionState DomainBase<D,TPolicy>::transactionState_;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Ensure singletons are created immediately after domain declaration (TODO hax)
-///////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+///// Ensure singletons are created immediately after domain declaration (TODO hax)
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
 class DomainInitializer
 {
 public:
     DomainInitializer()
     {
+        //DomainSpecificData<D>::Observers();
+
 #ifdef REACT_ENABLE_LOGGING
-        D::Log();
+        DomainSpecificData<D>::Log();
 #endif //REACT_ENABLE_LOGGING
 
         typename D::Engine::Engine();
@@ -399,7 +232,7 @@ public:
     static ContinuationInput*   Get()                   { return ptr_; }
 
 private:
-    static __declspec(thread) ContinuationInput* ptr_;
+    static REACT_TLS ContinuationInput* ptr_;
 };
 
 template <typename D>

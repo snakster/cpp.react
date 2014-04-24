@@ -95,7 +95,8 @@ public:
     template <typename V>
     void Set(V&& newValue) const
     {
-        D::AddInput(*std::static_pointer_cast<NodeT>(ptr_), std::forward<V>(newValue));
+        REACT_IMPL::InputManager<D>::AddInput(
+            *std::static_pointer_cast<NodeT>(ptr_), std::forward<V>(newValue));
     }
 
     template <typename V>

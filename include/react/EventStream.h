@@ -15,7 +15,7 @@
 
 #include "Observer.h"
 #include "react/detail/ReactiveBase.h"
-#include "react/detail/ReactiveDomain.h"
+#include "react/detail/ReactiveInput.h"
 #include "react/detail/graph/EventStreamNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -108,7 +108,8 @@ public:
     template <typename V>
     void Emit(V&& v) const
     {
-        D::AddInput(*std::static_pointer_cast<NodeT>(ptr_), std::forward<V>(v));
+        REACT_IMPL::InputManager<D>::AddInput(
+            *std::static_pointer_cast<NodeT>(ptr_), std::forward<V>(v));
     }
 
     template <typename = std::enable_if<std::is_same<E,EventToken>::value>::type>

@@ -77,7 +77,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\react\detail\ContinuationInput.h" />
+    <ClInclude Include="..\..\include\react\detail\ObserverBase.h" />
+    <ClInclude Include="..\..\include\react\detail\ReactiveInput.h" />
     <ClInclude Include="..\..\include\react\detail\Defs.h" />
     <ClInclude Include="..\..\include\react\detail\EngineBase.h" />
     <ClInclude Include="..\..\include\react\detail\graph\ConversionNodes.h" />

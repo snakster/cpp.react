@@ -15,7 +15,7 @@
 
 #include "react/common/Concurrency.h"
 #include "react/common/Types.h"
-#include "react/detail/ContinuationInput.h"
+#include "react/detail/ReactiveInput.h"
 #include "react/detail/IReactiveNode.h"
 #include "react/detail/IReactiveEngine.h"
 #include "react/detail/Options.h"
@@ -44,8 +44,8 @@ public:
         detachedObserversPtr_->push_back(&obs);
     }
 
-    template <typename D, typename TPolicy>
-    friend class DomainBase;
+    template <typename D>
+    friend class InputManager;
 
     template <typename D>
     friend class ContinuationHolder;

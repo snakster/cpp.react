@@ -201,7 +201,9 @@ template
     typename S,
     typename TOp
 >
-class SignalOpNode : public SignalNode<D,S>
+class SignalOpNode :
+    public SignalNode<D,S>,
+    public NodeUpdateTimer<D>
 {
 public:
     template <typename ... TArgs>

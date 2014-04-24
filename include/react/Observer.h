@@ -8,11 +8,7 @@
 
 #include "react/detail/Defs.h"
 
-#include <memory>
-#include <unordered_map>
-
 #include "react/detail/IReactiveNode.h"
-
 #include "react/detail/graph/ObserverNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -70,78 +66,6 @@ private:
     std::shared_ptr<SubjectT>    subject_;
 };
 
-/******************************************/ REACT_END /******************************************/
-
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ObserverRegistry
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D>
-class ObserverRegistry
-{
-public:
-    using SubjectT = NodeBase<D>;
-
-private:
-    class Entry_
-    {
-    public:
-        Entry_(std::unique_ptr<IObserverNode>&& obs, SubjectT* aSubject) :
-            obs_{ std::move(obs) },
-            Subject{ aSubject }
-        {}
-
-        Entry_(Entry_&& other) :
-            obs_(std::move(other.obs_)),
-            Subject(other.Subject)
-        {}
-
-        SubjectT*    Subject;
-
-    private:
-        // Manage lifetime
-        std::unique_ptr<IObserverNode>    obs_;
-    };
-
-public:
-    void Register(std::unique_ptr<IObserverNode>&& obs, SubjectT* subject)
-    {
-        auto* raw = obs.get();
-        observerMap_.emplace(raw, Entry_(std::move(obs),subject));
-    }
-
-    void Unregister(IObserverNode* obs)
-    {
-        obs->Detach();
-        observerMap_.erase(obs);
-    }
-
-    void UnregisterFrom(SubjectT* subject)
-    {
-        auto it = observerMap_.begin();
-        while (it != observerMap_.end())
-        {
-            if (it->second.Subject == subject)
-            {
-                it->first->Detach();
-                it = observerMap_.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-    }
-
-private:
-    std::unordered_map<IObserverNode*,Entry_>   observerMap_;
-};
-
-/****************************************/ REACT_IMPL_END /***************************************/
-
-/*****************************************/ REACT_BEGIN /*****************************************/
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Observe
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,7 +84,7 @@ auto Observe(const Signal<D,TArg>& subject, F&& func)
 
     auto* raw = pUnique.get();
 
-    D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
+    DomainSpecificData<D>::Observers().Register(std::move(pUnique), subject.GetPtr().get());
 
     return Observer<D>(raw, subject.GetPtr());
 }

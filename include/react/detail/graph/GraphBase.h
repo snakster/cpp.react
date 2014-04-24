@@ -25,11 +25,11 @@
 /// NodeUpdateTimer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D, bool enabled>
-class NodeUpdateTimer;
+class NodeUpdateTimerBase;
 
 // Defines guard that does nothing
 template <typename D>
-class NodeUpdateTimer<D,false>
+class NodeUpdateTimerBase<D,false>
 {
 public:
     template <typename T>
@@ -40,7 +40,7 @@ public:
 };
 
 template <typename D>
-class NodeUpdateTimer<D,true>
+class NodeUpdateTimerBase<D,true>
 {
 public:
     template <typename T>
@@ -76,6 +76,10 @@ public:
 private:
     bool shouldMeasure_ = true;
 };
+
+template <typename D>
+class NodeUpdateTimer :
+    public NodeUpdateTimerBase<D, EnableNodeUpdateTimer<typename D::Policy::Engine>::value> {};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeBase
@@ -118,28 +122,14 @@ template
     typename V
 >
 class ReactiveNode :
-    public NodeBase<D>,
-    public NodeUpdateTimer<D, EnableNodeUpdateTimer<typename D::Policy::Engine>::value>
+    public NodeBase<D>
 {
 public:
     using PtrT = std::shared_ptr<ReactiveNode>;
 
     ReactiveNode() = default;
 
-    ~ReactiveNode()
-    {
-        if (GetObsCount() > 0)
-            D::Observers().UnregisterFrom(this);
-    }
-
     virtual const char* GetNodeType() const override { return "ReactiveNode"; }
-
-    void    IncObsCount()       { obsCount_.fetch_add(1, std::memory_order_relaxed); }
-    void    DecObsCount()       { obsCount_.fetch_sub(1, std::memory_order_relaxed); }
-    uint    GetObsCount() const { return obsCount_.load(std::memory_order_relaxed); }
-
-private:
-    std::atomic<uint>   obsCount_   = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
