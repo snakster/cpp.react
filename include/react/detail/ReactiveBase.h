@@ -10,6 +10,7 @@
 
 #include <functional>
 #include <memory>
+#include <utility>
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 

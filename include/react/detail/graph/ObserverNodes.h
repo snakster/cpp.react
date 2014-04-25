@@ -35,7 +35,7 @@ public:
     using PtrT = std::shared_ptr<ObserverNode>;
 
     ObserverNode() :
-        ReactiveNode<D,void,void>()
+        ReactiveNode()
     {
     }
 

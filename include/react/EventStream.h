@@ -15,6 +15,7 @@
 
 #include "Observer.h"
 #include "react/detail/ReactiveBase.h"
+#include "react/detail/ReactiveDomain.h"
 #include "react/detail/ReactiveInput.h"
 #include "react/detail/graph/EventStreamNodes.h"
 

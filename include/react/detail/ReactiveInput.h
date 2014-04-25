@@ -185,7 +185,7 @@ private:
 
     static void postProcessTurn(TurnT& turn)
     {
-        turn.detachObservers(Observers());
+        turn.detachObservers(DomainSpecificObserverRegistry<D>::Instance());
 
         // Steal continuation from current turn
         if (! turn.continuation_.IsEmpty())
@@ -218,7 +218,7 @@ private:
 
             Engine::OnTurnEnd(turn);
 
-            turn.detachObservers(Observers());
+            turn.detachObservers(DomainSpecificObserverRegistry<D>::Instance());
 
             if (turn.continuation_.IsEmpty())
                 break;

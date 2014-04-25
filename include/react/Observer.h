@@ -9,6 +9,7 @@
 #include "react/detail/Defs.h"
 
 #include "react/detail/IReactiveNode.h"
+#include "react/detail/ObserverBase.h"
 #include "react/detail/graph/ObserverNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -32,7 +33,7 @@ class Observer
 {
 public:
     using SubjectT      = REACT_IMPL::NodeBase<D>;
-    using ObserverNodeT = REACT_IMPL::ObserverNode<D>;
+    using ObserverNodeT = REACT_IMPL::IObserverNode;
 
     Observer() :
         ptr_{ nullptr },
@@ -54,7 +55,7 @@ public:
         if (ptr_ == nullptr)
             return false;
 
-        D::Observers().Unregister(ptr_);
+        REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().Unregister(ptr_);
         return true;
     }
 
@@ -72,19 +73,17 @@ private:
 template
 <
     typename D,
-    typename F,
+    typename FIn,
     typename TArg
 >
-auto Observe(const Signal<D,TArg>& subject, F&& func)
+auto Observe(const Signal<D,TArg>& subject, FIn&& func)
     -> Observer<D>
 {
-    std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
-        new  REACT_IMPL::SignalObserverNode<D,TArg,F>(
-            subject.GetPtr(), std::forward<F>(func)));
+    using F = std::decay<FIn>::type;
+    using TNode = REACT_IMPL::SignalObserverNode<D,TArg,F>;
 
-    auto* raw = pUnique.get();
-
-    DomainSpecificData<D>::Observers().Register(std::move(pUnique), subject.GetPtr().get());
+    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
+        template Register<TNode>(subject, std::forward<FIn>(func));
 
     return Observer<D>(raw, subject.GetPtr());
 }
@@ -92,21 +91,19 @@ auto Observe(const Signal<D,TArg>& subject, F&& func)
 template
 <
     typename D,
-    typename F,
+    typename FIn,
     typename TArg,
     typename = std::enable_if<
         ! std::is_same<TArg,EventToken>::value>::type
 >
-auto Observe(const Events<D,TArg>& subject, F&& func)
+auto Observe(const Events<D,TArg>& subject, FIn&& func)
     -> Observer<D>
 {
-    std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
-        new  REACT_IMPL::EventObserverNode<D,TArg,F>(
-            subject.GetPtr(), std::forward<F>(func)));
+    using F = std::decay<FIn>::type;
+    using TNode = REACT_IMPL::EventObserverNode<D,TArg,F>;
 
-    auto* raw = pUnique.get();
-
-    D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
+    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
+        template Register<TNode>(subject, std::forward<FIn>(func));
 
     return Observer<D>(raw, subject.GetPtr());
 }
@@ -114,19 +111,17 @@ auto Observe(const Events<D,TArg>& subject, F&& func)
 template
 <
     typename D,
-    typename F
+    typename FIn
 >
-auto Observe(const Events<D,EventToken>& subject, F&& func)
+auto Observe(const Events<D,EventToken>& subject, FIn&& func)
     -> Observer<D>
 {
-    auto f = [func] (EventToken _) { func(); };
-    std::unique_ptr< REACT_IMPL::ObserverNode<D>> pUnique(
-        new  REACT_IMPL::EventObserverNode<D,EventToken,decltype(f)>(
-            subject.GetPtr(), std::move(f)));
+    auto wrapper = [func] (EventToken _) { func(); };
 
-    auto* raw = pUnique.get();
+    using TNode = REACT_IMPL::EventObserverNode<D,EventToken,decltype(wrapper)>;
 
-    D::Observers().Register(std::move(pUnique), subject.GetPtr().get());
+    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
+        template Register<TNode>(subject, std::move(wrapper));
 
     return Observer<D>(raw, subject.GetPtr());
 }
@@ -142,7 +137,8 @@ template
 >
 void DetachAllObservers(const Reactive<TNode<D,TArg>>& subject)
 {
-    D::Observers().UnregisterFrom(subject.GetPtr().get());
+    REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().UnregisterFrom(
+        subject.GetPtr().get());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

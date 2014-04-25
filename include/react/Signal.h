@@ -17,6 +17,7 @@
 #include "react/common/Util.h"
 #include "react/detail/ReactiveBase.h"
 #include "react/detail/ReactiveDomain.h"
+#include "react/detail/ReactiveInput.h"
 #include "react/detail/graph/SignalNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/

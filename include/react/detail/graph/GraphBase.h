@@ -18,6 +18,7 @@
 #include "react/common/Util.h"
 #include "react/common/Types.h"
 #include "react/detail/IReactiveEngine.h"
+#include "react/detail/ObserverBase.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -87,7 +88,8 @@ class NodeUpdateTimer :
 template <typename D>
 class NodeBase :
     public std::enable_shared_from_this<NodeBase<D>>,
-    public D::Policy::Engine::NodeT
+    public D::Policy::Engine::NodeT,
+    public Observable<D>
 {
 public:
     using PtrT = std::shared_ptr<NodeBase>;
