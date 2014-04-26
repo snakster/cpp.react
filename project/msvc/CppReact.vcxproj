@@ -98,8 +98,6 @@
     <ClInclude Include="..\..\include\react\engine\TopoSortEngine.h" />
     <ClInclude Include="..\..\include\react\common\Concurrency.h" />
     <ClInclude Include="..\..\include\react\common\Containers.h" />
-    <ClInclude Include="..\..\include\react\common\GraphData.h" />
-    <ClInclude Include="..\..\include\react\common\Singleton.h" />
     <ClInclude Include="..\..\include\react\common\SourceIdSet.h" />
     <ClInclude Include="..\..\include\react\common\TopoQueue.h" />
     <ClInclude Include="..\..\include\react\common\Types.h" />
