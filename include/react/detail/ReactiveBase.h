@@ -26,18 +26,15 @@ public:
 
     Reactive() :
         ptr_{ nullptr }
-    {
-    }
+    {}
 
     explicit Reactive(const std::shared_ptr<T>& ptr) :
         ptr_{ ptr }
-    {
-    }
+    {}
 
     explicit Reactive(std::shared_ptr<T>&& ptr) :
         ptr_{ std::move(ptr) }
-    {
-    }
+    {}
 
     const std::shared_ptr<T>& GetPtr() const
     {

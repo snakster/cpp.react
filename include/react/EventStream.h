@@ -41,13 +41,11 @@ public:
 
     Events() :
         Reactive()
-    {
-    }
+    {}
 
     explicit Events(const std::shared_ptr<NodeT>& ptr) :
         Reactive(ptr)
-    {
-    }
+    {}
 
     template <typename F>
     Events Filter(F&& f)
@@ -98,13 +96,11 @@ private:
 public:
     EventSource() :
         Events()
-    {
-    }
+    {}
 
     explicit EventSource(const std::shared_ptr<NodeT>& ptr) :
         Events(ptr)
-    {
-    }
+    {}
 
     template <typename V>
     void Emit(V&& v) const

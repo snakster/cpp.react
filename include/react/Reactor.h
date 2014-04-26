@@ -35,8 +35,7 @@ public:
     public:
         Context(NodeT& node) :
             node_{ node }
-        {
-        }
+        {}
 
         template <typename E>
         E& Await(const Events<D,E>& evn)

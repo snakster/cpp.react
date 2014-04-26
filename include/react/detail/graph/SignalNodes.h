@@ -39,15 +39,13 @@ public:
 
     SignalNode() :
         ReactiveNode()
-    {
-    }
+    {}
 
     template <typename T>
     SignalNode(T&& value) :
         ReactiveNode(),
         value_{ std::forward<T>(value) }
-    {
-    }
+    {}
 
     virtual const char* GetNodeType() const override { return "SignalNode"; }
 

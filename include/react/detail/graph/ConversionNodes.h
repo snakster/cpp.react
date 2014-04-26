@@ -35,8 +35,7 @@ public:
     FoldBaseNode(T&& init, const EventStreamNodePtr<D,E>& events) :
         SignalNode<D, S>(std::forward<T>(init)),
         events_{ events }
-    {
-    }
+    {}
 
     virtual void Tick(void* turnPtr) override
     {

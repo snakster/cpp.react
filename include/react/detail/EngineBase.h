@@ -31,8 +31,7 @@ class TurnBase
 public:
     inline TurnBase(TurnIdT id, TurnFlagsT flags) :
         id_{ id }
-    {
-    }
+    {}
 
     inline TurnIdT Id() const { return id_; }
 
@@ -79,8 +78,7 @@ public:
     public:
         explicit QueueEntry(TurnFlagsT flags) :
             isMergeable_{ (flags & enable_input_merging) != 0 }
-        {
-        }
+        {}
 
         inline void Append(QueueEntry& tr)
         {
@@ -198,8 +196,7 @@ public:
     DefaultQueueableTurn(TurnIdT id, TurnFlagsT flags) :
         TTurnBase(id, flags),
         TurnQueueManager::QueueEntry(flags)
-    {
-    }
+    {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

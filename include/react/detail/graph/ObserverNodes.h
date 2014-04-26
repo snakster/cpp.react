@@ -36,8 +36,7 @@ public:
 
     ObserverNode() :
         ReactiveNode()
-    {
-    }
+    {}
 
     virtual const char* GetNodeType() const     { return "ObserverNode"; }
     virtual bool        IsOutputNode() const    { return true; }
