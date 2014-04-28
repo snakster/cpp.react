@@ -8,20 +8,11 @@
 
 #include "react/detail/Defs.h"
 
-#include <memory>
-#include <functional>
+#include <utility>
 
-#include "EventStreamNodes.h"
 #include "GraphBase.h"
-#include "SignalNodes.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-// tbb tasks are non-preemptible, thread local flag for each worker
-namespace current_observer_state_
-{
-    static __declspec(thread) bool    shouldDetach = false;
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverNode
@@ -29,25 +20,20 @@ namespace current_observer_state_
 template <typename D>
 class ObserverNode :
     public ReactiveNode<D,void,void>,
-    public IObserverNode
+    public IObserver
 {
 public:
-    using PtrT = std::shared_ptr<ObserverNode>;
+    ObserverNode() = default;
 
-    ObserverNode() :
-        ReactiveNode()
-    {}
-
-    virtual const char* GetNodeType() const     { return "ObserverNode"; }
-    virtual bool        IsOutputNode() const    { return true; }
+    virtual bool IsOutputNode() const { return true; }
 };
-
-template <typename D>
-using ObserverNodePtr = typename ObserverNode<D>::PtrT;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename S>
+class SignalNode;
+
 template
 <
     typename D,
@@ -58,15 +44,13 @@ class SignalObserverNode : public ObserverNode<D>
 {
 public:
     template <typename F>
-    SignalObserverNode(const SignalNodePtr<D,TArg>& subject, F&& func) :
-        ObserverNode<D>(),
+    SignalObserverNode(const SharedPtrT<SignalNode<D,TArg>>& subject, F&& func) :
+        ObserverNode{ },
         subject_{ subject },
         func_{ std::forward<F>(func) }
     {
         Engine::OnNodeCreate(*this);
-
         subject->IncObsCount();
-
         Engine::OnNodeAttach(*this, *subject);
     }
 
@@ -75,7 +59,8 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override { return "SignalObserverNode"; }
+    virtual const char* GetNodeType() const override        { return "SignalObserverNode"; }
+    virtual int         DependencyCount() const override    { return 1; }
 
     virtual void Tick(void* turnPtr) override
     {
@@ -101,9 +86,8 @@ public:
             GetObjectId(*this), turn.Id()));
     }
 
-    virtual int DependencyCount() const    { return 1; }
-
-    virtual void Detach()
+private:
+    virtual void detachObserver() override
     {
         if (auto p = subject_.lock())
         {
@@ -114,15 +98,16 @@ public:
         }
     }
 
-private:
-    SignalNodeWeakPtr<D,TArg>   subject_;
-
-    TFunc   func_;
+    WeakPtrT<SignalNode<D,TArg>>    subject_;
+    TFunc                           func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename E>
+class EventStreamNode;
+
 template
 <
     typename D,
@@ -133,15 +118,13 @@ class EventObserverNode : public ObserverNode<D>
 {
 public:
     template <typename F>
-    EventObserverNode(const EventStreamNodePtr<D,TArg>& subject, F&& func) :
-        ObserverNode<D>(),
+    EventObserverNode(const SharedPtrT<EventStreamNode<D,TArg>>& subject, F&& func) :
+        ObserverNode{ },
         subject_{ subject },
         func_{ std::forward<F>(func) }
     {
         Engine::OnNodeCreate(*this);
-
         subject->IncObsCount();
-
         Engine::OnNodeAttach(*this, *subject);
     }
 
@@ -150,7 +133,8 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override { return "EventObserverNode"; }
+    virtual const char* GetNodeType() const override        { return "EventObserverNode"; }
+    virtual int         DependencyCount() const override    { return 1; }
 
     virtual void Tick(void* turnPtr) override
     {
@@ -179,9 +163,11 @@ public:
             GetObjectId(*this), turn.Id()));
     }
 
-    virtual int DependencyCount() const    { return 1; }
+private:
+    WeakPtrT<EventStreamNode<D,TArg>>   subject_;
+    TFunc                               func_;
 
-    virtual void Detach()
+    virtual void detachObserver()
     {
         if (auto p = subject_.lock())
         {
@@ -191,10 +177,6 @@ public:
             subject_.reset();
         }
     }
-
-private:
-    EventStreamNodeWeakPtr<D,TArg>      subject_;
-    TFunc   func_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

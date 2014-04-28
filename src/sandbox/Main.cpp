@@ -13,7 +13,7 @@
 //#define REACT_ENABLE_LOGGING
 
 #include "react/Signal.h"
-#include "react/EventStream.h"
+#include "react/Event.h"
 #include "react/Algorithm.h"
 #include "react/ReactiveObject.h"
 
@@ -215,7 +215,7 @@ class Manager : public ReactiveObject<D>
     ObserverT nameObs;
 
 public:
-    VarRefSignalT<Company>    CurrentCompany;
+    VarSignalT<Company&>    CurrentCompany;
 
     Manager(Company& c) :
         CurrentCompany{ MakeVar(std::ref(c)) }

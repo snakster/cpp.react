@@ -8,8 +8,8 @@
 
 #include "react/detail/Defs.h"
 
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -78,27 +78,6 @@ private:
 
     bool    blocked_ = false;
 };
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ThreadLocalPtr
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class ThreadLocalStaticPtr
-{
-public:
-    static T*       Get()           { return ptr_; }
-    static void     Set(T* ptr)     { ptr_ = ptr; }
-    static void     Reset()         { ptr_ = nullptr; }
-    static bool     IsNull()        { return ptr_ == nullptr; }
-
-    ThreadLocalStaticPtr() = delete;
-
-private:
-    static __declspec(thread) T*    ptr_;
-};
-
-template <typename T>
-T*    ThreadLocalStaticPtr<T>::ptr_(nullptr);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ConditionalCriticalSection

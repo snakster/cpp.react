@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <type_traits>
 #include <vector>
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/

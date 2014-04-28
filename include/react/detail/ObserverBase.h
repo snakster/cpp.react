@@ -20,34 +20,41 @@
 template <typename D>
 class Observable;
 
+class IObserver;
+
+// tbb tasks are non-preemptible, thread local flag for each worker
+namespace current_observer_state_
+{
+    static REACT_TLS bool    shouldDetach = false;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverRegistry
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
 class ObserverRegistry
 {
-public:
-    using SubjectT = Observable<D>;
-
 private:
     class Entry
     {
     public:
-        Entry(std::unique_ptr<IObserverNode>&& obs, const SubjectT* subject) :
+        Entry(std::unique_ptr<IObserver>&& obs, const Observable<D>* subject) :
             obs_{ std::move(obs) },
             Subject{ subject }
         {}
 
+        Entry(const Entry&) = delete;
+
         Entry(Entry&& other) :
-            obs_(std::move(other.obs_)),
-            Subject(other.Subject)
+            obs_{ std::move(other.obs_) },
+            Subject{ other.Subject }
         {}
 
-        const SubjectT* Subject;
+        const Observable<D>* Subject;
 
     private:
         // Manage lifetime
-        std::unique_ptr<IObserverNode> obs_;
+        std::unique_ptr<IObserver> obs_;
     };
 
 public:
@@ -57,33 +64,34 @@ public:
         typename TSubject,
         typename F
     >
-    IObserverNode* Register(const TSubject& subject, F&& func)
+    IObserver* Register(const TSubject& subject, F&& func)
     {
-        std::unique_ptr<IObserverNode> ptr
+        std::unique_ptr<IObserver> ptr
         {
             new TNode(subject.GetPtr(), std::forward<F>(func))
         };
 
-        auto* raw = ptr.get();
-        observerMap_.emplace(raw, Entry(std::move(ptr), subject.GetPtr().get() ));
+        auto* obsPtr = ptr.get();
 
-        return raw;
+        observerMap_.emplace(obsPtr, Entry(std::move(ptr), subject.GetPtr().get() ));
+
+        return obsPtr;
     }
 
-    void Unregister(IObserverNode* obs)
+    void Unregister(IObserver* obs)
     {
-        obs->Detach();
+        obs->detachObserver();
         observerMap_.erase(obs);
     }
 
-    void UnregisterFrom(const SubjectT* subject)
+    void UnregisterFrom(const Observable<D>* subject)
     {
         auto it = observerMap_.begin();
         while (it != observerMap_.end())
         {
             if (it->second.Subject == subject)
             {
-                it->first->Detach();
+                it->first->detachObserver();
                 it = observerMap_.erase(it);
             }
             else
@@ -94,7 +102,7 @@ public:
     }
 
 private:
-    std::unordered_map<IObserverNode*,Entry>   observerMap_;
+    std::unordered_map<IObserver*,Entry>   observerMap_;
 };
 
 template <typename D>
@@ -129,6 +137,21 @@ public:
 
 private:
     std::atomic<uint>   obsCount_   = 0;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// IObserver
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class IObserver
+{
+public:
+    virtual ~IObserver() = default;
+
+private:
+    virtual void detachObserver() = 0;
+
+    template <typename D>
+    friend class ObserverRegistry;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -10,7 +10,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <functional>
 #include <memory>
 
 #include "tbb/tick_count.h" // vc12 chrono clock too inaccurate
@@ -21,6 +20,12 @@
 #include "react/detail/ObserverBase.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+template <typename T>
+using SharedPtrT = std::shared_ptr<T>;
+
+template <typename T>
+using WeakPtrT = std::weak_ptr<T>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeUpdateTimer
@@ -92,27 +97,24 @@ class NodeBase :
     public Observable<D>
 {
 public:
-    using PtrT = std::shared_ptr<NodeBase>;
-
-    using Domain = D;
+    using DomainT = D;
     using Policy = typename D::Policy;
     using Engine = typename D::Engine;
     using NodeT = typename Engine::NodeT;
     using TurnT = typename Engine::TurnT;
-
-    virtual const char* GetNodeType() const override { return "NodeBase"; }
     
     virtual bool    IsInputNode() const override    { return false; }
     virtual bool    IsOutputNode() const override   { return false; }
     virtual bool    IsDynamicNode() const override  { return false; }
 
-    virtual int     DependencyCount() const         { return 0; }
-
-    PtrT GetSharedPtr() const
+    SharedPtrT<NodeBase> GetSharedPtr() const
     {
         return shared_from_this();
     }
 };
+
+template <typename D>
+using NodeBasePtrT = SharedPtrT<NodeBase<D>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ReactiveNode
@@ -123,15 +125,10 @@ template
     typename P,
     typename V
 >
-class ReactiveNode :
-    public NodeBase<D>
+class ReactiveNode : public NodeBase<D>
 {
 public:
-    using PtrT = std::shared_ptr<ReactiveNode>;
-
     ReactiveNode() = default;
-
-    virtual const char* GetNodeType() const override { return "ReactiveNode"; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,9 +178,6 @@ public:
     }
 
 protected:
-    template <typename T>
-    using NodeHolderT = std::shared_ptr<T>;
-
     // Attach
     template <typename D, typename TNode>
     struct AttachFunctor
@@ -203,7 +197,7 @@ protected:
         }
 
         template <typename T>
-        void attach(const NodeHolderT<T>& depPtr) const
+        void attach(const SharedPtrT<T>& depPtr) const
         {
             D::Engine::OnNodeAttach(MyNode, *depPtr);
         }
@@ -230,7 +224,7 @@ protected:
         }
 
         template <typename T>
-        void detach(const NodeHolderT<T>& depPtr) const
+        void detach(const SharedPtrT<T>& depPtr) const
         {
             D::Engine::OnNodeDetach(MyNode, *depPtr);
         }
@@ -243,7 +237,7 @@ protected:
     struct CountHelper { static const int value = T::dependency_count; };
 
     template <typename T>
-    struct CountHelper<NodeHolderT<T>> { static const int value = 1; };
+    struct CountHelper<SharedPtrT<T>> { static const int value = 1; };
 
     template <int N, typename... Args>
     struct DepCounter;

@@ -8,13 +8,7 @@
 
 #include "react/detail/Defs.h"
 
-#include <memory>
-#include <functional>
-#include <tuple>
 #include <utility>
-
-
-#include <deque>
 
 #include "GraphBase.h"
 
@@ -34,25 +28,13 @@ template
 class SignalNode : public ReactiveNode<D,S,S>
 {
 public:
-    using PtrT      = std::shared_ptr<SignalNode>;
-    using WeakPtrT  = std::weak_ptr<SignalNode>;
-
-    SignalNode() :
-        ReactiveNode()
-    {}
+    SignalNode() = default;
 
     template <typename T>
     SignalNode(T&& value) :
-        ReactiveNode(),
+        ReactiveNode{ },
         value_{ std::forward<T>(value) }
     {}
-
-    virtual const char* GetNodeType() const override { return "SignalNode"; }
-
-    virtual void Tick(void* turnPtr) override
-    {
-        REACT_ASSERT(false, "Don't tick SignalNode\n");
-    }
 
     const S& ValueRef() const
     {
@@ -64,10 +46,7 @@ protected:
 };
 
 template <typename D, typename S>
-using SignalNodePtr = typename SignalNode<D,S>::PtrT;
-
-template <typename D, typename S>
-using SignalNodeWeakPtr = typename SignalNode<D,S>::WeakPtrT;
+using SignalNodePtrT = SharedPtrT<SignalNode<D,S>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// VarNode
@@ -84,7 +63,7 @@ class VarNode :
 public:
     template <typename T>
     VarNode(T&& value) :
-        SignalNode<D,S>(std::forward<T>(value)),
+        SignalNode{ std::forward<T>(value) },
         newValue_{ value_ }
     {
         Engine::OnNodeCreate(*this);
@@ -95,14 +74,14 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override { return "VarNode"; }
+    virtual const char* GetNodeType() const override        { return "VarNode"; }
+    virtual bool        IsInputNode() const override        { return true; }
+    virtual int         DependencyCount() const override    { return 0; }
 
     virtual void Tick(void* turnPtr) override
     {
-        REACT_ASSERT(false, "Don't tick the VarNode\n");
+        REACT_ASSERT(false, "Ticked VarNode\n");
     }
-
-    virtual bool IsInputNode() const override    { return true; }
 
     template <typename V>
     void AddInput(V&& newValue)
@@ -145,12 +124,12 @@ class FunctionOp : public ReactiveOpBase<TDeps...>
 public:
     template <typename FIn, typename ... TDepsIn>
     FunctionOp(FIn&& func, TDepsIn&& ... deps) :
-        ReactiveOpBase(0u, std::forward<TDepsIn>(deps) ...),
+        ReactiveOpBase{ 0u, std::forward<TDepsIn>(deps) ... },
         func_{ std::forward<FIn>(func) }
     {}
 
     FunctionOp(FunctionOp&& other) :
-        ReactiveOpBase(std::move(other)),
+        ReactiveOpBase{ std::move(other) },
         func_{ std::move(other.func_) }
     {}
 
@@ -163,8 +142,7 @@ private:
     // Eval
     struct EvalFunctor
     {
-        EvalFunctor(const F& f) : MyFunc{ f }
-        {}
+        EvalFunctor(const F& f) : MyFunc{ f }   {}
 
         S operator()(const TDeps& ... args) const
         {
@@ -178,7 +156,7 @@ private:
         }
 
         template <typename T>
-        static auto eval(const NodeHolderT<T>& depPtr) -> decltype(depPtr->ValueRef())
+        static auto eval(const SharedPtrT<T>& depPtr) -> decltype(depPtr->ValueRef())
         {
             return depPtr->ValueRef();
         }
@@ -206,7 +184,7 @@ class SignalOpNode :
 public:
     template <typename ... TArgs>
     SignalOpNode(TArgs&& ... args) :
-        SignalNode<D, S>(),
+        SignalNode{ },
         op_{ std::forward<TArgs>(args) ... }
     {
         value_ = op_.Evaluate();
@@ -222,7 +200,8 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override { return "SignalOpNode"; }
+    virtual const char* GetNodeType() const override        { return "SignalOpNode"; }
+    virtual int         DependencyCount() const override    { return TOp::dependency_count; }
 
     virtual void Tick(void* turnPtr) override
     {
@@ -259,11 +238,6 @@ public:
         }
     }
 
-    virtual int DependencyCount() const override
-    {
-        return TOp::dependency_count;
-    }
-
     TOp StealOp()
     {
         REACT_ASSERT(wasOpStolen_ == false, "Op was already stolen.");
@@ -289,8 +263,9 @@ template
 class FlattenNode : public SignalNode<D,TInner>
 {
 public:
-    FlattenNode(const SignalNodePtr<D,TOuter>& outer, const SignalNodePtr<D,TInner>& inner) :
-        SignalNode<D, TInner>(inner->ValueRef()),
+    FlattenNode(const SharedPtrT<SignalNode<D,TOuter>>& outer,
+                const SharedPtrT<SignalNode<D,TInner>>& inner) :
+        SignalNode{ inner->ValueRef() },
         outer_{ outer },
         inner_{ inner }
     {
@@ -306,9 +281,9 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override { return "FlattenNode"; }
-
-    virtual bool IsDynamicNode() const override    { return true; }
+    virtual const char* GetNodeType() const override        { return "FlattenNode"; }
+    virtual bool        IsDynamicNode() const override      { return true; }
+    virtual int         DependencyCount() const override    { return 2; }
 
     virtual void Tick(void* turnPtr) override
     {
@@ -348,11 +323,9 @@ public:
         }
     }
 
-    virtual int DependencyCount() const override    { return 2; }
-
 private:
-    SignalNodePtr<D,TOuter>    outer_;
-    SignalNodePtr<D,TInner>    inner_;
+    SharedPtrT<SignalNode<D,TOuter>>    outer_;
+    SharedPtrT<SignalNode<D,TInner>>    inner_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

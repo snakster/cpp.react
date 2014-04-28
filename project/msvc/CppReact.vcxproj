@@ -77,21 +77,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\react\detail\EventBase.h" />
+    <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h" />
     <ClInclude Include="..\..\include\react\detail\ObserverBase.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveInput.h" />
     <ClInclude Include="..\..\include\react\detail\Defs.h" />
     <ClInclude Include="..\..\include\react\detail\EngineBase.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\ConversionNodes.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\EventStreamNodes.h" />
+    <ClInclude Include="..\..\include\react\detail\graph\AlgorithmNodes.h" />
+    <ClInclude Include="..\..\include\react\detail\graph\EventNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\ReactorNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\SignalNodes.h" />
     <ClInclude Include="..\..\include\react\detail\IReactiveEngine.h" />
     <ClInclude Include="..\..\include\react\detail\IReactiveNode.h" />
     <ClInclude Include="..\..\include\react\detail\Options.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveBase.h" />
-    <ClInclude Include="..\..\include\react\detail\ReactiveDomain.h" />
+    <ClInclude Include="..\..\include\react\detail\SignalBase.h" />
     <ClInclude Include="..\..\include\react\detail\Traits.h" />
     <ClInclude Include="..\..\include\react\engine\PulseCountEngine.h" />
     <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h" />
@@ -106,7 +107,7 @@
     <ClInclude Include="..\..\include\react\logging\EventRecords.h" />
     <ClInclude Include="..\..\include\react\logging\Logging.h" />
     <ClInclude Include="..\..\include\react\Algorithm.h" />
-    <ClInclude Include="..\..\include\react\EventStream.h" />
+    <ClInclude Include="..\..\include\react\Event.h" />
     <ClInclude Include="..\..\include\react\Observer.h" />
     <ClInclude Include="..\..\include\react\ReactiveObject.h" />
     <ClInclude Include="..\..\include\react\Reactor.h" />

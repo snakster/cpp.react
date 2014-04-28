@@ -9,6 +9,7 @@
 #include "react/detail/Defs.h"
 
 #include <atomic>
+#include <type_traits>
 #include <vector>
 
 #include "tbb/task_group.h"
@@ -18,7 +19,6 @@
 #include "react/common/Containers.h"
 #include "react/common/Types.h"
 #include "react/detail/EngineBase.h"
-#include "react/detail/ReactiveDomain.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 namespace pulsecount {

@@ -8,6 +8,7 @@
 
 #include "react/detail/Defs.h"
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>

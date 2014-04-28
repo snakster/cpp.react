@@ -15,9 +15,8 @@
 
 #include "react/common/Util.h"
 
-#include "react/EventStream.h"
+#include "react/Event.h"
 #include "react/detail/ReactiveBase.h"
-#include "react/detail/ReactiveDomain.h"
 #include "react/detail/graph/ReactorNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/

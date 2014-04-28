@@ -19,7 +19,7 @@
 #include <boost/coroutine/all.hpp>
 
 #include "GraphBase.h"
-#include "EventStreamNodes.h"
+#include "EventNodes.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -35,7 +35,7 @@ class ReactorNode :
     public ReactiveNode<D,void,void>
 {
 public:
-    using NodeBasePtrT = NodeBase<D>::PtrT;
+    using NodeBasePtrT = SharedPtrT<NodeBase<D>>;
 
     using CoroutineT = boost::coroutines::coroutine<const NodeBasePtrT*>;
     using LoopT = typename CoroutineT::pull_type;
@@ -115,7 +115,7 @@ public:
     }
 
     template <typename E>
-    E& Await(const EventStreamNodePtr<D,E>& events)
+    E& Await(const SharedPtrT<EventStreamNode<D,E>>& events)
     {
         // First attach to target event node
         (*curOutPtr_)(&std::static_pointer_cast<NodeBase<D>>(events));
@@ -132,7 +132,7 @@ public:
     }
 
     template <typename E, typename F>
-    void RepeatUntil(const EventStreamNodePtr<D,E>& events, F func)
+    void RepeatUntil(const SharedPtrT<EventStreamNode<D,E>>& events, F func)
     {
         // First attach to target event node
         if (turnPtr_ != nullptr)
@@ -189,7 +189,7 @@ public:
 
 private:
     template <typename E>
-    bool checkEvent(const EventStreamNodePtr<D,E>& events)
+    bool checkEvent(const SharedPtrT<EventStreamNode<D,E>>& events)
     {
         if (turnPtr_ == nullptr)
             return false;

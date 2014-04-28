@@ -9,12 +9,8 @@
 #include "react/detail/Defs.h"
 
 #include <atomic>
-#include <algorithm>
 #include <deque>
-#include <functional>
 #include <memory>
-#include <thread>
-#include <vector>
 
 #include "tbb/spin_mutex.h"
 
@@ -49,15 +45,10 @@ class EventStreamNode :
 {
 public:
     using DataT     = std::deque<E>;
-    using PtrT      = std::shared_ptr<EventStreamNode>;
-    using WeakPtrT  = std::weak_ptr<EventStreamNode>;
-
     using EngineT   = typename D::Engine;
     using TurnT     = typename EngineT::TurnT;
 
     EventStreamNode() = default;
-
-    virtual const char* GetNodeType() const override    { return "EventStreamNode"; }
 
     void SetCurrentTurn(const TurnT& turn, bool forceUpdate = false, bool noClear = false)
     {
@@ -79,10 +70,7 @@ protected:
 };
 
 template <typename D, typename E>
-using EventStreamNodePtr = typename EventStreamNode<D,E>::PtrT;
-
-template <typename D, typename E>
-using EventStreamNodeWeakPtr = typename EventStreamNode<D,E>::WeakPtrT;
+using EventStreamNodePtrT = SharedPtrT<EventStreamNode<D,E>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventSourceNode
@@ -98,7 +86,7 @@ class EventSourceNode :
 {
 public:
     EventSourceNode() :
-        EventStreamNode()
+        EventStreamNode{ }
     {
         Engine::OnNodeCreate(*this);
     }
@@ -108,14 +96,14 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override    { return "EventSourceNode"; }
+    virtual const char* GetNodeType() const override        { return "EventSourceNode"; }
+    virtual bool        IsInputNode() const override        { return true; }
+    virtual int         DependencyCount() const override    { return 0; }
 
     virtual void Tick(void* turnPtr) override
     {
-        REACT_ASSERT(false, "Don't tick the EventSourceNode\n");
+        REACT_ASSERT(false, "Ticked EventSourceNode\n");
     }
-
-    virtual bool IsInputNode() const override    { return true; }
 
     template <typename V>
     void AddInput(V&& v)
@@ -205,7 +193,7 @@ private:
         }
 
         template <typename T>
-        void collect(const NodeHolderT<T>& depPtr) const
+        void collect(const SharedPtrT<T>& depPtr) const
         {
             depPtr->SetCurrentTurn(MyTurn);
 
@@ -232,7 +220,7 @@ class EventFilterOp : public ReactiveOpBase<TDep>
 public:
     template <typename TFilterIn, typename TDepIn>
     EventFilterOp(TFilterIn&& filter, TDepIn&& dep) :
-        ReactiveOpBase(0u, std::forward<TDepIn>(dep)),
+        ReactiveOpBase{ 0u, std::forward<TDepIn>(dep) },
         filter_{ std::forward<TFilterIn>(filter) }
     {}
 
@@ -283,7 +271,7 @@ private:
     }
 
     template <typename TTurn, typename TCollector, typename T>
-    static void collectImpl(const TTurn& turn, const TCollector& collector, const NodeHolderT<T>& depPtr)
+    static void collectImpl(const TTurn& turn, const TCollector& collector, const SharedPtrT<T>& depPtr)
     {
         depPtr->SetCurrentTurn(turn);
 
@@ -309,7 +297,7 @@ class EventTransformOp : public ReactiveOpBase<TDep>
 public:
     template <typename TFuncIn, typename TDepIn>
     EventTransformOp(TFuncIn&& func, TDepIn&& dep) :
-        ReactiveOpBase(0u, std::forward<TDepIn>(dep)),
+        ReactiveOpBase{ 0u, std::forward<TDepIn>(dep) },
         func_{ std::forward<TFuncIn>(func) }
     {}
 
@@ -358,7 +346,7 @@ private:
     }
 
     template <typename TTurn, typename TCollector, typename T>
-    static void collectImpl(const TTurn& turn, const TCollector& collector, const NodeHolderT<T>& depPtr)
+    static void collectImpl(const TTurn& turn, const TCollector& collector, const SharedPtrT<T>& depPtr)
     {
         depPtr->SetCurrentTurn(turn);
 
@@ -383,7 +371,7 @@ class EventOpNode : public EventStreamNode<D,E>
 public:
     template <typename ... TArgs>
     EventOpNode(TArgs&& ... args) :
-        EventStreamNode<D,E>(),
+        EventStreamNode{ },
         op_{ std::forward<TArgs>(args) ... }
     {
         Engine::OnNodeCreate(*this);
@@ -397,7 +385,8 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override    { return "EventOpNode"; }
+    virtual const char* GetNodeType() const override        { return "EventOpNode"; }
+    virtual int         DependencyCount() const override    { return TOp::dependency_count; }
 
     virtual void Tick(void* turnPtr) override
     {
@@ -424,11 +413,6 @@ public:
         }
     }
 
-    virtual int DependencyCount() const override
-    {
-        return TOp::dependency_count;
-    }
-
     TOp StealOp()
     {
         REACT_ASSERT(wasOpStolen_ == false, "Op was already stolen.");
@@ -440,8 +424,7 @@ public:
 private:
     struct EventCollector
     {
-        EventCollector(DataT& events) : MyEvents{ events }
-        {}
+        EventCollector(DataT& events) : MyEvents{ events }  {}
 
         void operator()(const E& e) const { MyEvents.push_back(e); }
 
@@ -450,6 +433,94 @@ private:
 
     TOp     op_;
     bool    wasOpStolen_ = false;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventFlattenNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename S
+>
+class SignalNode;
+
+template
+<
+    typename D,
+    typename TOuter,
+    typename TInner
+>
+class EventFlattenNode : public EventStreamNode<D,TInner>
+{
+public:
+    EventFlattenNode(const SharedPtrT<SignalNode<D,TOuter>>& outer,
+                     const SharedPtrT<EventStreamNode<D,TInner>>& inner) :
+        EventStreamNode{ },
+        outer_{ outer },
+        inner_{ inner }
+    {
+        Engine::OnNodeCreate(*this);
+        Engine::OnNodeAttach(*this, *outer_);
+        Engine::OnNodeAttach(*this, *inner_);
+    }
+
+    ~EventFlattenNode()
+    {
+        Engine::OnNodeDetach(*this, *outer_);
+        Engine::OnNodeDetach(*this, *inner_);
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual const char* GetNodeType() const override        { return "EventFlattenNode"; }
+    virtual bool        IsDynamicNode() const override      { return true; }
+    virtual int         DependencyCount() const override    { return 2; }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        typedef typename D::Engine::TurnT TurnT;
+        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+
+        SetCurrentTurn(turn, true);
+        inner_->SetCurrentTurn(turn);
+
+        auto newInner = outer_->ValueRef().GetPtr();
+
+        if (newInner != inner_)
+        {
+            newInner->SetCurrentTurn(turn);
+
+            // Topology has been changed
+            auto oldInner = inner_;
+            inner_ = newInner;
+
+            Engine::OnDynamicNodeDetach(*this, *oldInner, turn);
+            Engine::OnDynamicNodeAttach(*this, *newInner, turn);
+
+            return;
+        }
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        events_.insert(events_.end(), inner_->Events().begin(), inner_->Events().end());
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        if (events_.size() > 0)
+        {
+            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
+        }
+        else
+        {
+            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
+        }
+    }
+
+private:
+    SharedPtrT<SignalNode<D,TOuter>>        outer_;
+    SharedPtrT<EventStreamNode<D,TInner>>   inner_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

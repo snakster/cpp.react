@@ -8,8 +8,9 @@
 
 #include "gtest/gtest.h"
 
-#include <vector>
 #include <algorithm>
+#include <thread>
+#include <vector>
 
 #include "react/Signal.h"
 

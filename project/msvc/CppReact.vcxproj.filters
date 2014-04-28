@@ -51,12 +51,6 @@
     <ClInclude Include="..\..\include\react\common\Util.h">
       <Filter>Header Files\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\EventStream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\Observer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\ReactiveObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -96,22 +90,10 @@
     <ClInclude Include="..\..\include\react\detail\ReactiveBase.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\ReactiveDomain.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\detail\Traits.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\ConversionNodes.h">
-      <Filter>Header Files\detail\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\EventStreamNodes.h">
-      <Filter>Header Files\detail\graph</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h">
-      <Filter>Header Files\detail\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h">
       <Filter>Header Files\detail\graph</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\detail\graph\ReactorNodes.h">
@@ -137,6 +119,27 @@
     </ClInclude>
     <ClInclude Include="..\..\include\react\detail\ObserverBase.h">
       <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\AlgorithmNodes.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\SignalBase.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Observer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\EventBase.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Event.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\EventNodes.h">
+      <Filter>Header Files\detail\graph</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

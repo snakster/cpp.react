@@ -8,15 +8,14 @@
 
 #include "react/detail/Defs.h"
 
-#include <functional>
 #include <memory>
-#include <thread>
 #include <type_traits>
 #include <utility>
 
+#include "Event.h"
 #include "Signal.h"
-#include "EventStream.h"
-#include "react/detail/graph/ConversionNodes.h"
+
+#include "react/detail/graph/AlgorithmNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -157,22 +156,6 @@ auto Pulse(const Signal<D,S>& target, const Events<D,E>& trigger)
     return Events<D,S>(
         std::make_shared<REACT_IMPL::PulseNode<D,S,E>>(
             target.GetPtr(), trigger.GetPtr()));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Flatten
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename TInnerValue
->
-auto Flatten(const Signal<D,Events<D,TInnerValue>>& node)
-    -> Events<D,TInnerValue>
-{
-    return Events<D,TInnerValue>(
-        std::make_shared<REACT_IMPL::EventFlattenNode<D, Events<D,TInnerValue>, TInnerValue>>(
-            node.GetPtr(), node().GetPtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include "react/detail/Defs.h"
 #include "react/common/Types.h"
 

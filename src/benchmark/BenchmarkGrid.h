@@ -8,8 +8,9 @@
 
 #include <functional>
 #include <iostream>
-#include <random>
 #include <vector>
+
+#include "tbb/tick_count.h"
 
 #include "BenchmarkBase.h"
 
@@ -26,10 +27,10 @@ class GridGraphGenerator
 public:
     typedef typename D::template SignalT<TValue>    MyHandle;
 
-    typedef std::function<TValue(TValue)>            Func1T;
+    typedef std::function<TValue(TValue)>           Func1T;
     typedef std::function<TValue(TValue,TValue)>    Func2T;
 
-    typedef std::vector<MyHandle>    HandleVect;
+    typedef std::vector<MyHandle>   HandleVect;
     typedef std::vector<int>        WidthVect;
 
     HandleVect    InputSignals;

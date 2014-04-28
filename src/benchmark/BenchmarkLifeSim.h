@@ -6,10 +6,12 @@
 
 #pragma once
 
+#include <atomic>
 #include <iostream>
 #include <fstream>
 #include <memory>
 #include <random>
+#include <utility>
 #include <type_traits>
 
 #include "BenchmarkBase.h"
@@ -18,8 +20,9 @@
 
 using namespace react;
 
-using std::vector;
 using std::atomic;
+using std::vector;
+
 using std::tuple;
 using std::unique_ptr;
 using std::move;

@@ -7,8 +7,9 @@
 #pragma once
 
 #include "react/detail/Defs.h"
-#include <cstdint>
+
 #include <chrono>
+#include <cstdint>
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 

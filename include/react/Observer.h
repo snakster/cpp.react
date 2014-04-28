@@ -14,17 +14,6 @@
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
-template <typename T>
-class Reactive;
-
-template <typename D, typename S>
-class Signal;
-
-template <typename D, typename E>
-class Events;
-
-enum class EventToken;
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Observer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,111 +21,44 @@ template <typename D>
 class Observer
 {
 public:
-    using SubjectT      = REACT_IMPL::NodeBase<D>;
-    using ObserverNodeT = REACT_IMPL::IObserverNode;
+    using SubjectT  = REACT_IMPL::NodeBasePtrT<D>;
+    using NodeT     = REACT_IMPL::IObserver;
 
-    Observer() :
-        ptr_{ nullptr },
-        subject_{ nullptr }
+    Observer() = default;
+    Observer(const Observer&) = delete;
+
+    Observer(Observer&& other) :
+        nodePtr_{ std::move(other.nodePtr_) },
+        subject_{ std::move(other.subject_) }
     {}
 
-    Observer(ObserverNodeT* ptr, const std::shared_ptr<SubjectT>& subject) :
-        ptr_{ ptr },
+    Observer(NodeT* nodePtr, const SubjectT& subject) :
+        nodePtr_{ nodePtr },
         subject_{ subject }
     {}
 
-    const ObserverNodeT* GetPtr() const
-    {
-        return ptr_;
-    }
+    bool IsValid() const { return nodePtr_ != nullptr; }
 
-    bool Detach()
+    void Detach()
     {
-        if (ptr_ == nullptr)
-            return false;
-
-        REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().Unregister(ptr_);
-        return true;
+        REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().Unregister(nodePtr_);
     }
 
 private:
     // Ownership managed by registry
-    ObserverNodeT*  ptr_;
+    NodeT*      nodePtr_;
 
     // While the observer handle exists, the subject is not destroyed
-    std::shared_ptr<SubjectT>    subject_;
+    SubjectT    subject_;    
 };
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Observe
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename FIn,
-    typename TArg
->
-auto Observe(const Signal<D,TArg>& subject, FIn&& func)
-    -> Observer<D>
-{
-    using F = std::decay<FIn>::type;
-    using TNode = REACT_IMPL::SignalObserverNode<D,TArg,F>;
-
-    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::forward<FIn>(func));
-
-    return Observer<D>(raw, subject.GetPtr());
-}
-
-template
-<
-    typename D,
-    typename FIn,
-    typename TArg,
-    typename = std::enable_if<
-        ! std::is_same<TArg,EventToken>::value>::type
->
-auto Observe(const Events<D,TArg>& subject, FIn&& func)
-    -> Observer<D>
-{
-    using F = std::decay<FIn>::type;
-    using TNode = REACT_IMPL::EventObserverNode<D,TArg,F>;
-
-    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::forward<FIn>(func));
-
-    return Observer<D>(raw, subject.GetPtr());
-}
-
-template
-<
-    typename D,
-    typename FIn
->
-auto Observe(const Events<D,EventToken>& subject, FIn&& func)
-    -> Observer<D>
-{
-    auto wrapper = [func] (EventToken _) { func(); };
-
-    using TNode = REACT_IMPL::EventObserverNode<D,EventToken,decltype(wrapper)>;
-
-    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::move(wrapper));
-
-    return Observer<D>(raw, subject.GetPtr());
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DetachAllObservers
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    template <typename Domain_, typename Val_> class TNode,
-    typename TArg
->
-void DetachAllObservers(const Reactive<TNode<D,TArg>>& subject)
+template <typename TSubject>
+void DetachAllObservers(const TSubject& subject)
 {
+    using D = typename TSubject::DomainT;
     REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().UnregisterFrom(
         subject.GetPtr().get());
 }

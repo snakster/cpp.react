@@ -19,12 +19,6 @@ class VarSignal;
 template <typename D, typename S, typename TOp>
 class TempSignal;
 
-template <typename D, typename S>
-using RefSignal = Signal<D,std::reference_wrapper<S>>;
-
-template <typename D, typename S>
-using VarRefSignal = VarSignal<D,std::reference_wrapper<S>>;
-
 template <typename D, typename E>
 class Events;
 
@@ -33,20 +27,6 @@ class EventSource;
 
 template <typename D, typename E, typename TOp>
 class TempEvents;
-
-enum class EventToken;
-
-template
-<
-    typename D,
-    typename FIn,
-    typename ... TArgs,
-    typename F = std::decay<FIn>::type,
-    typename S = std::result_of<F(TArgs...)>::type,
-    typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtr<D,TArgs> ...>
->
-auto MakeSignal(FIn&& func, const Signal<D,TArgs>& ... args)
-    -> TempSignal<D,S,TOp>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsSignal

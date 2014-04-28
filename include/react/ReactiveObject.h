@@ -8,7 +8,10 @@
 
 #include "react/detail/Defs.h"
 
-#include "react/detail/ReactiveDomain.h"
+#include <utility>
+#include <type_traits>
+
+#include "react/detail/ReactiveBase.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -29,12 +32,6 @@ public:
 
     template <typename S>
     using VarSignalT = VarSignal<D,S>;
-
-    template <typename S>
-    using RefSignalT = RefSignal<D,S>;
-
-    template <typename S>
-    using VarRefSignalT = VarRefSignal<D,S>;
 
     template <typename E = EventToken>
     using EventsT = Events<D,E>;

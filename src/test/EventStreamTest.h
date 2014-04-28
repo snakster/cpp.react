@@ -11,7 +11,7 @@
 
 #include "gtest/gtest.h"
 
-#include "react/EventStream.h"
+#include "react/Event.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {
@@ -193,22 +193,24 @@ TYPED_TEST_P(EventStreamTest, EventMerge3)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(EventStreamTest, EventFilter)
 {
-    std::queue<std::string> results;
+    using std::string;
 
-    auto in = MyDomain::MakeEventSource<std::string>();
+    std::queue<string> results;
 
-    auto filtered = Filter(in, [] (const std::string& s)
+    auto in = MyDomain::MakeEventSource<string>();
+
+    auto filtered = Filter(in, [] (const string& s)
     {
         return s == "Hello World";
     });
 
 
-    Observe(filtered, [&] (const std::string& s)
+    Observe(filtered, [&] (const string& s)
     {
         results.push(s);
     });
 
-    in << "Hello Worlt" << "Hello World" << "Hello Vorld";
+    in << string("Hello Worlt") << string("Hello World") << string("Hello Vorld");
 
     ASSERT_FALSE(results.empty());
     ASSERT_EQ(results.front(), "Hello World");
@@ -222,27 +224,29 @@ TYPED_TEST_P(EventStreamTest, EventFilter)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(EventStreamTest, EventTransform)
 {
-    std::vector<std::string> results;
+    using std::string;
 
-    auto in1 = MyDomain::MakeEventSource<std::string>();
-    auto in2 = MyDomain::MakeEventSource<std::string>();
+    std::vector<string> results;
+
+    auto in1 = MyDomain::MakeEventSource<string>();
+    auto in2 = MyDomain::MakeEventSource<string>();
 
     auto merged = Merge(in1, in2);
 
-    auto transformed = Transform(merged, [] (std::string s) -> std::string
+    auto transformed = Transform(merged, [] (string s) -> string
     {
         std::transform(s.begin(), s.end(), s.begin(), ::toupper);
         return s;
     });
 
 
-    Observe(transformed, [&] (const std::string& s)
+    Observe(transformed, [&] (const string& s)
     {
         results.push_back(s);
     });
 
-    in1 << "Hello Worlt" << "Hello World";
-    in2 << "Hello Vorld";
+    in1 << string("Hello Worlt") << string("Hello World");
+    in2 << string("Hello Vorld");
 
     ASSERT_EQ(results.size(), 3);
     ASSERT_TRUE(std::find(results.begin(), results.end(), "HELLO WORLT") != results.end());

@@ -8,13 +8,8 @@
 
 #include "react/detail/Defs.h"
 
-#include <assert.h>
-#include <cstddef>
 #include <ctime>
 #include <functional>
-#include <iostream>
-#include <random>
-#include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -91,28 +86,6 @@ inline auto applyMemberFn(O obj, F f, T&& t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename... TArgs>
 inline void pass(TArgs&& ...) {}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Format print bits
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//assumes little endian
-inline void PrintBits(size_t const size, void const* const p)
-{
-    unsigned char *b = (unsigned char*) p;
-    unsigned char byte;
-
-    for (int i=size-1; i>=0; i--)
-    {
-        for (int j=7; j>=0; j--)
-        {
-            byte = b[i] & (1<<j);
-            byte >>= j;
-            printf("%u", byte);
-            if (!(j & 0x1))
-                printf(" ");
-        }
-    }
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Identity (workaround to enable enable decltype()::X)

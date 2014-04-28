@@ -8,7 +8,10 @@
 
 #include "react/detail/Defs.h"
 
+#include <functional>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "tbb/concurrent_vector.h"
 #include "tbb/queuing_mutex.h"
@@ -25,6 +28,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TurnBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+class IObserver;
 
 class TurnBase
 {
@@ -35,7 +39,7 @@ public:
 
     inline TurnIdT Id() const { return id_; }
 
-    inline void QueueForDetach(IObserverNode& obs)
+    inline void QueueForDetach(IObserver& obs)
     {
         if (detachedObserversPtr_ == nullptr)
             detachedObserversPtr_ = std::unique_ptr<ObsVectT>(new ObsVectT());
@@ -50,7 +54,7 @@ public:
     friend class ContinuationHolder;
 
 private:
-    using ObsVectT = tbb::concurrent_vector<IObserverNode*>;
+    using ObsVectT = tbb::concurrent_vector<IObserver*>;
 
     TurnIdT    id_;
 
@@ -194,8 +198,8 @@ class DefaultQueueableTurn :
 {
 public:
     DefaultQueueableTurn(TurnIdT id, TurnFlagsT flags) :
-        TTurnBase(id, flags),
-        TurnQueueManager::QueueEntry(flags)
+        TTurnBase{ id, flags },
+        TurnQueueManager::QueueEntry{ flags }
     {}
 };
 
