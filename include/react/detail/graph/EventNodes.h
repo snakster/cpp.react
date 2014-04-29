@@ -484,7 +484,7 @@ public:
         SetCurrentTurn(turn, true);
         inner_->SetCurrentTurn(turn);
 
-        auto newInner = outer_->ValueRef().GetPtr();
+        auto newInner = outer_->ValueRef().NodePtr();
 
         if (newInner != inner_)
         {

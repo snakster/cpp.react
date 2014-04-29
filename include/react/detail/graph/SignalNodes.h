@@ -290,7 +290,7 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *static_cast<TurnT*>(turnPtr);
 
-        auto newInner = outer_->ValueRef().GetPtr();
+        auto newInner = outer_->ValueRef().NodePtr();
 
         if (newInner != inner_)
         {

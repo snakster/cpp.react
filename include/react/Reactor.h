@@ -6,7 +6,7 @@
 
 #pragma once
 
-#ifndef REACT_DISABLE_REACTORS
+#ifdef REACT_ENABLE_REACTORS
 
 #include "react/detail/Defs.h"
 
@@ -39,13 +39,13 @@ public:
         template <typename E>
         E& Await(const Events<D,E>& evn)
         {
-            return node_.Await<E>(evn.GetPtr());
+            return node_.Await<E>(evn.NodePtr());
         }
 
         template <typename E, typename F>
         void RepeatUntil(const Events<D,E>& evn, F func)
         {
-            node_.RepeatUntil<E>(evn.GetPtr(), func);
+            node_.RepeatUntil<E>(evn.NodePtr(), func);
         }
 
     private:
@@ -65,4 +65,4 @@ private:
 
 /******************************************/ REACT_END /******************************************/
 
-#endif //REACT_DISABLE_REACTORS
+#endif //REACT_ENABLE_REACTORS

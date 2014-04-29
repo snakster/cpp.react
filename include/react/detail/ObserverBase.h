@@ -68,12 +68,12 @@ public:
     {
         std::unique_ptr<IObserver> ptr
         {
-            new TNode(subject.GetPtr(), std::forward<F>(func))
+            new TNode(subject.NodePtr(), std::forward<F>(func))
         };
 
         auto* obsPtr = ptr.get();
 
-        observerMap_.emplace(obsPtr, Entry(std::move(ptr), subject.GetPtr().get() ));
+        observerMap_.emplace(obsPtr, Entry(std::move(ptr), subject.NodePtr().get() ));
 
         return obsPtr;
     }

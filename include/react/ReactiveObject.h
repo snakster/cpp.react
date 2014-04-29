@@ -59,6 +59,16 @@ public:
         return REACT::MakeVar<D>(std::forward<V>(value));
     }
 
+    template
+    <
+        typename S
+    >
+    static auto MakeVar(std::reference_wrapper<S> value)
+        -> VarSignalT<S&>
+    {
+        return REACT::MakeVar<D>(value);
+    }
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     // MakeVar (higher order)
     //////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -36,7 +36,7 @@ auto Fold(V&& init, const Events<D,E>& events, FIn&& func)
 {
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::FoldNode<D,S,E,F>>(
-            std::forward<V>(init), events.GetPtr(), std::forward<FIn>(func)));
+            std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,7 +56,7 @@ auto Iterate(V&& init, const Events<D,E>& events, FIn&& func)
 {
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::IterateNode<D,S,E,F>>(
-            std::forward<V>(init), events.GetPtr(), std::forward<FIn>(func)));
+            std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,7 +73,7 @@ auto Hold(V&& init, const Events<D,T>& events)
 {
     return Signal<D,T>(
         std::make_shared<REACT_IMPL::HoldNode<D,T>>(
-            std::forward<V>(init), events.GetPtr()));
+            std::forward<V>(init), events.NodePtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -90,7 +90,7 @@ auto Snapshot(const Signal<D,S>& target, const Events<D,E>& trigger)
 {
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::SnapshotNode<D,S,E>>(
-            target.GetPtr(), trigger.GetPtr()));
+            target.NodePtr(), trigger.NodePtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -106,7 +106,7 @@ auto Monitor(const Signal<D,S>& target)
 {
     return Events<D,S>(
         std::make_shared<REACT_IMPL::MonitorNode<D, S>>(
-            target.GetPtr()));
+            target.NodePtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -155,14 +155,14 @@ auto Pulse(const Signal<D,S>& target, const Events<D,E>& trigger)
 {
     return Events<D,S>(
         std::make_shared<REACT_IMPL::PulseNode<D,S,E>>(
-            target.GetPtr(), trigger.GetPtr()));
+            target.NodePtr(), trigger.NodePtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Incrementer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-struct Incrementer : public std::unary_function<T,T>
+struct Incrementer
 {
     T operator() (T v) const { return v+1; }
 };
@@ -171,7 +171,7 @@ struct Incrementer : public std::unary_function<T,T>
 /// Decrementer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-struct Decrementer : public std::unary_function<T,T>
+struct Decrementer
 {
     T operator() (T v) const { return v-1; }
 };

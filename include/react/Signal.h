@@ -36,9 +36,14 @@ private:
     using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
 
 public:
-    using ValueT    = S;
+    using ValueT = S;
 
     Signal() = default;
+    Signal(const Signal&) = default;
+
+    Signal(Signal&& other) :
+        SignalBase{ std::move(other) }
+    {}
 
     explicit Signal(NodePtrT&& nodePtr) :
         SignalBase{ std::move(nodePtr) }
@@ -61,13 +66,51 @@ public:
     }
 };
 
+// Specialize for references
 template
 <
     typename D,
     typename S
 >
 class Signal<D,S&> : public REACT_IMPL::SignalBase<D,std::reference_wrapper<S>>
-{};
+{
+protected:
+    using BaseT     = REACT_IMPL::SignalBase<D,std::reference_wrapper<S>>;
+
+private:
+    using NodeT     = REACT_IMPL::SignalNode<D,std::reference_wrapper<S>>;
+    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+
+public:
+    using ValueT = std::reference_wrapper<S>;
+
+    Signal() = default;
+    Signal(const Signal&) = default;
+
+    Signal(Signal&& other) :
+        SignalBase{ std::move(other) }
+    {}
+
+    explicit Signal(NodePtrT&& nodePtr) :
+        SignalBase{ std::move(nodePtr) }
+    {}
+
+    const S& Value() const
+    {
+        return BaseT::getValue();
+    }
+
+    const S& operator()() const
+    {
+        return BaseT::getValue();
+    }
+
+    template <typename F>
+    Observer<D> Observe(F&& f)
+    {
+        return REACT::Observe(*this, std::forward<F>(f));
+    }
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// VarSignal
@@ -85,9 +128,14 @@ private:
 
 public:    
     VarSignal() = default;
+    VarSignal(const VarSignal&) = default;
 
-    explicit VarSignal(NodePtrT&& ptr) :
-        Signal{ std::move(ptr) }
+    VarSignal(VarSignal&& other) :
+        Signal{ std::move(other) }
+    {}
+
+    explicit VarSignal(NodePtrT&& nodePtr) :
+        Signal{ std::move(nodePtr) }
     {}
 
     template <typename T>
@@ -104,9 +152,41 @@ public:
     }
 };
 
-template <typename D, typename S>
-class VarSignal<D,S&> : public VarSignal<D,std::reference_wrapper<S>>
-{};
+// Specialize for references
+template
+<
+    typename D,
+    typename S
+>
+class VarSignal<D,S&> : public Signal<D,std::reference_wrapper<S>>
+{
+private:
+    using NodeT     = REACT_IMPL::VarNode<D,std::reference_wrapper<S>>;
+    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+
+public:    
+    VarSignal() = default;
+    VarSignal(const VarSignal&) = default;
+
+    VarSignal(VarSignal&& other) :
+        Signal{ std::move(other) }
+    {}
+
+    explicit VarSignal(NodePtrT&& nodePtr) :
+        Signal{ std::move(nodePtr) }
+    {}
+
+    void Set(std::reference_wrapper<S> newValue) const
+    {
+        BaseT::setValue(newValue);
+    }
+
+    const VarSignal& operator<<=(std::reference_wrapper<S> newValue) const
+    {
+        BaseT::setValue(newValue);
+        return *this;
+    }
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TempSignal
@@ -125,6 +205,11 @@ private:
 
 public:    
     TempSignal() = default;
+    TempSignal(const TempSignal&) = default;
+
+    TempSignal(TempSignal&& other) :
+        Signal{ std::move(other) }
+    {}
 
     explicit TempSignal(NodePtrT&& ptr) :
         Signal{ std::move(ptr) }
@@ -142,12 +227,6 @@ public:
 
 template <typename D, typename L, typename R>
 bool Equals(const Signal<D,L>& lhs, const Signal<D,R>& rhs)
-{
-    return lhs.Equals(rhs);
-}
-
-template <typename D, typename L, typename R>
-bool Equals(const VarSignal<D,L>& lhs, const VarSignal<D,R>& rhs)
 {
     return lhs.Equals(rhs);
 }
@@ -173,6 +252,18 @@ auto MakeVar(V&& value)
     return VarSignal<D,S>(
         std::make_shared<REACT_IMPL::VarNode<D,S>>(
             std::forward<V>(value)));
+}
+
+template
+<
+    typename D,
+    typename S
+>
+auto MakeVar(std::reference_wrapper<S> value)
+    -> VarSignal<D,S&>
+{
+    return VarSignal<D,S&>(
+        std::make_shared<REACT_IMPL::VarNode<D,std::reference_wrapper<S>>>(value));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -232,7 +323,7 @@ auto MakeSignal(FIn&& func, const Signal<D,TArgs>& ... args)
 
     return TempSignal<D,S,TOp>(
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(
-            std::forward<FIn>(func), args.GetPtr() ...  ));
+            std::forward<FIn>(func), args.NodePtr() ...  ));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -261,7 +352,7 @@ auto operator ## op(const TSignal& arg)                                         
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(), arg.GetPtr()));                                                    \
+            F(), arg.NodePtr()));                                                   \
 }
 
 DECLARE_OP(+, UnaryPlus);
@@ -354,7 +445,7 @@ auto operator ## op(const TLeftSignal& lhs, const TRightSignal& rhs)            
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(), lhs.GetPtr(), rhs.GetPtr()));                                      \
+            F(), lhs.NodePtr(), rhs.NodePtr()));                                    \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -378,7 +469,7 @@ auto operator ## op(const TLeftSignal& lhs, TRightValIn&& rhs)                  
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(std::forward<TRightValIn>(rhs)), lhs.GetPtr()));                      \
+            F(std::forward<TRightValIn>(rhs)), lhs.NodePtr()));                     \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -402,7 +493,7 @@ auto operator ## op(TLeftValIn&& lhs, const TRightSignal& rhs)                  
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(std::forward<TLeftValIn>(lhs)), rhs.GetPtr()));                       \
+            F(std::forward<TLeftValIn>(lhs)), rhs.NodePtr()));                      \
 }                                                                                   \
 template                                                                            \
 <                                                                                   \
@@ -445,7 +536,7 @@ template                                                                        
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(), lhs.StealOp(), rhs.GetPtr()));                                     \
+            F(), lhs.StealOp(), rhs.NodePtr()));                                    \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -468,7 +559,7 @@ auto operator ## op(const TLeftSignal& lhs, TempSignal<D,TRightVal,TRightOp>&& r
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(), lhs.GetPtr(), rhs.StealOp()));                                     \
+            F(), lhs.NodePtr(), rhs.StealOp()));                                    \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -656,7 +747,7 @@ auto Flatten(const Signal<D,Signal<D,TInnerValue>>& node)
 {
     return Signal<D,TInnerValue>(
         std::make_shared<REACT_IMPL::FlattenNode<D, Signal<D,TInnerValue>, TInnerValue>>(
-            node.GetPtr(), node.Value().GetPtr()));
+            node.NodePtr(), node.Value().NodePtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -677,7 +768,7 @@ auto Observe(const Signal<D,S>& subject, FIn&& func)
     auto* obs = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
         template Register<TNode>(subject, std::forward<FIn>(func));
 
-    return Observer<D>{ obs, subject.GetPtr() };
+    return Observer<D>{ obs, subject.NodePtr() };
 }
 
 /******************************************/ REACT_END /******************************************/

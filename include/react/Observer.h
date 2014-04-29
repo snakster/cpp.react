@@ -60,7 +60,7 @@ void DetachAllObservers(const TSubject& subject)
 {
     using D = typename TSubject::DomainT;
     REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().UnregisterFrom(
-        subject.GetPtr().get());
+        subject.NodePtr().get());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

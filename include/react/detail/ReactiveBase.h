@@ -46,17 +46,25 @@ template <typename TNode>
 class ReactiveBase
 {
 public:
-    using DomainT  = typename TNode::DomainT;
+    using DomainT   = typename TNode::DomainT;
+    using NodePtrT  = SharedPtrT<TNode>;
 
     ReactiveBase() = default;
     ReactiveBase(const ReactiveBase&) = default;
 
-    template <typename T>
-    explicit ReactiveBase(T&& ptr) :
-        ptr_{ std::forward<T>(ptr) }
+    ReactiveBase(ReactiveBase&& other) :
+        ptr_{ std::move(other.ptr_) }
     {}
 
-    const SharedPtrT<TNode>& GetPtr() const
+    explicit ReactiveBase(const NodePtrT& ptr) :
+        ptr_{ ptr }
+    {}
+
+    explicit ReactiveBase(NodePtrT&& ptr) :
+        ptr_{ std::move(ptr) }
+    {}
+
+    const SharedPtrT<TNode>& NodePtr() const
     {
         return ptr_;
     }
@@ -64,6 +72,11 @@ public:
     bool Equals(const ReactiveBase& other) const
     {
         return ptr_ == other.ptr_;
+    }
+
+    bool IsValid() const
+    {
+        return ptr_ != nullptr;
     }
 
 protected:
@@ -165,7 +178,7 @@ public:
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // MakeVar (higher order signal)
+    // MakeVar (higher order)
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     template
     <
@@ -179,20 +192,6 @@ public:
         -> VarSignalT<SignalT<TInner>>
     {
         return REACT::MakeVar<D>(std::forward<V>(value));
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// MakeVal
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    template
-    <
-        typename V,
-        typename S = std::decay<V>::type
-    >
-    static auto MakeVal(V&& value)
-        -> SignalT<S>
-    {
-        return REACT::MakeVal<D>(std::forward<V>(value));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -264,8 +263,6 @@ class DomainInitializer
 public:
     DomainInitializer()
     {
-        //DomainSpecificData<D>::Observers();
-
 #ifdef REACT_ENABLE_LOGGING
         DomainSpecificData<D>::Log();
 #endif //REACT_ENABLE_LOGGING

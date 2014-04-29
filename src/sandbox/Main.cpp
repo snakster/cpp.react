@@ -12,13 +12,15 @@
 
 //#define REACT_ENABLE_LOGGING
 
+// Experimental. Requires boost::coroutine.
+//#define REACT_ENABLE_REACTORS
+
 #include "react/Signal.h"
 #include "react/Event.h"
 #include "react/Algorithm.h"
 #include "react/ReactiveObject.h"
 
-//#include "react/engine/SubtreeEngine.h"
-//#include "react/engine/PulseCountEngine.h"
+
 
 using namespace std;
 using namespace react;
@@ -27,6 +29,11 @@ using namespace react;
 // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
 // Reactives of different domains can not be combined.
 REACTIVE_DOMAIN(D);
+
+// Explicit engine:
+//#include "react/engine/SubtreeEngine.h"
+//#include "react/engine/PulseCountEngine.h"
+
 //REACTIVE_DOMAIN(D, PulseCountEngine<parallel>);
 
 void SignalExample1()
@@ -148,14 +155,12 @@ void EventExample2()
 class Person : public ReactiveObject<D>
 {
 public:
-    VarSignalT<int>  Age     = MakeVar(1);
-    SignalT<int>     Health  = 100 - Age;
-    SignalT<int>     Wisdom  = Age * Age / 100;
+    VarSignalT<int> Age     = MakeVar(1);
+    SignalT<int>    Health  = 100 - Age;
+    SignalT<int>    Wisdom  = Age * Age / 100;
 
-    // Note ICC compiler bug:
-    // Initializing them directly uses the same lambda for both signals
-    ObserverT    wisdomObs;
-    ObserverT    weaknessObs;
+    ObserverT       wisdomObs;
+    ObserverT       weaknessObs;
 
     Person()
     {
@@ -201,8 +206,7 @@ public:
 
     Company(const char* name) :
         Name{ MakeVar(string(name)) }
-    {
-    }
+    {}
 
     inline bool operator==(const Company& other) const
     {
@@ -218,7 +222,7 @@ public:
     VarSignalT<Company&>    CurrentCompany;
 
     Manager(Company& c) :
-        CurrentCompany{ MakeVar(std::ref(c)) }
+        CurrentCompany{ MakeVar(ref(c)) }
     {
         nameObs = REACTIVE_REF(CurrentCompany, Name).Observe([] (string name) {
             cout << "Manager: Now managing " << name << endl;
@@ -238,7 +242,7 @@ void ObjectExample2()
     company1.Name <<= string("BT Cellnet");
     company2.Name <<= string("Inprise");
 
-    manager.CurrentCompany <<= std::ref(company2);
+    manager.CurrentCompany <<= ref(company2);
 
     company1.Name <<= string("O2");
     company2.Name <<= string("Borland");
@@ -261,7 +265,7 @@ void FoldExample1()
     cout << fold1() << endl;
 
     auto charSrc = D::MakeEventSource<char>();
-    auto strFold = Fold(std::string(""), charSrc, [] (std::string s, char c) {
+    auto strFold = Fold(string(""), charSrc, [] (string s, char c) {
         return s + c;
     });
 
@@ -269,55 +273,8 @@ void FoldExample1()
 
     cout << "Str: " << strFold() << endl;
 }
-//
-//#include "tbb/tick_count.h"
-//
-//void Debug()
-//{
-//    cout << "A" << endl;
-//    {
-//        int x = 0;
-//
-//        auto t0 = tbb::tick_count::now();
-//
-//        for (int i=0; i<10000000; i++)
-//        {
-//            x += i;
-//        }
-//
-//        auto t1 = tbb::tick_count::now();
-//
-//        auto d = (t1 - t0).seconds();
-//
-//        //cout << x << endl;
-//        cout << d << endl;
-//    }
-//
-//    cout << "B" << endl;
-//    {
-//        auto a = D::MakeVar(0);
-//        auto b = D::MakeVar(1);
-//        auto c = D::MakeVar(2);
-//        auto d = D::MakeVar(4);
-//        auto e = D::MakeVar(5);
-//
-//        auto x = a + b + c + d + e;
-//
-//        auto t0 = tbb::tick_count::now();
-//
-//        for (int i=0; i<10000000; i++)
-//            a <<= i;
-//
-//        auto t1 = tbb::tick_count::now();
-//
-//        auto td = (t1 - t0).seconds();
-//
-//        cout << x() << endl;
-//        cout << td << endl;
-//    }
-//}
 
-#ifndef REACT_DISABLE_REACTORS
+#ifdef REACT_ENABLE_REACTORS
 #include "react/Reactor.h"
 
 void LoopTest()
@@ -369,7 +326,7 @@ void LoopTest()
         cout << endl;
     }
 }
-#endif //REACT_DISABLE_REACTORS
+#endif //REACT_ENABLE_REACTORS
 
 int main()
 {
@@ -385,7 +342,7 @@ int main()
 
     FoldExample1();
 
-#ifndef REACT_DISABLE_REACTORS
+#ifdef REACT_ENABLE_REACTORS
     LoopTest();
 #endif
 

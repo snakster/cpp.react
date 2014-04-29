@@ -38,8 +38,14 @@ private:
     using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
 
 public:
+    using ValueT = E;
+
     Events() = default;
     Events(const Events&) = default;
+
+    Events(Events&& other) :
+        EventStreamBase{ std::move(other) }
+    {}
 
     explicit Events(NodePtrT&& nodePtr) :
         EventStreamBase{ std::move(nodePtr) }
@@ -64,19 +70,53 @@ public:
     }
 };
 
-/******************************************/ REACT_END /******************************************/
-
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-template <typename D, typename L, typename R>
-bool Equals(const Events<D,L>& lhs, const Events<D,R>& rhs)
+// Specialize for references
+template
+<
+    typename D,
+    typename E
+>
+class Events<D,E&> : public REACT_IMPL::EventStreamBase<D,std::reference_wrapper<E>>
 {
-    return lhs.Equals(rhs);
-}
+protected:
+    using BaseT     = REACT_IMPL::EventStreamBase<D,std::reference_wrapper<E>>;
 
-/****************************************/ REACT_IMPL_END /***************************************/
+private:
+    using NodeT     = REACT_IMPL::EventStreamNode<D,std::reference_wrapper<E>>;
+    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
 
-/*****************************************/ REACT_BEGIN /*****************************************/
+public:
+    using ValueT = std::reference_wrapper<E>;
+
+    Events() = default;
+    Events(const Events&) = default;
+
+    Events(Events&& other) :
+        EventStreamBase{ std::move(other) }
+    {}
+
+    explicit Events(NodePtrT&& nodePtr) :
+        EventStreamBase{ std::move(nodePtr) }
+    {}
+
+    template <typename F>
+    Events Filter(F&& f)
+    {
+        return REACT::Filter(*this, std::forward<F>(f));
+    }
+
+    template <typename F>
+    Events Transform(F&& f)
+    {
+        return REACT::Transform(*this, std::forward<F>(f));
+    }
+
+    template <typename F>
+    Observer<D> Observe(F&& f)
+    {
+        return REACT::Observe(*this, std::forward<F>(f));
+    }
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventSource
@@ -93,10 +133,12 @@ private:
     using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
 
 public:
-    using ValueT    = E;
-
     EventSource() = default;
     EventSource(const EventSource&) = default;
+
+    EventSource(EventSource&& other) :
+        Events{ std::move(other) }
+    {}
 
     explicit EventSource(NodePtrT&& nodePtr) :
         Events{ std::move(nodePtr) }
@@ -122,6 +164,43 @@ public:
     }
 };
 
+// Specialize for references
+template
+<
+    typename D,
+    typename E
+>
+class EventSource<D,E&> : public Events<D,std::reference_wrapper<E>>
+{
+private:
+    using NodeT     = REACT_IMPL::EventSourceNode<D,std::reference_wrapper<E>>;
+    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+
+public:
+    EventSource() = default;
+    EventSource(const EventSource&) = default;
+
+    EventSource(EventSource&& other) :
+        Events{ std::move(other) }
+    {}
+
+    explicit EventSource(NodePtrT&& nodePtr) :
+        Events{ std::move(nodePtr) }
+    {}
+
+    void Emit(std::reference_wrapper<E> e) const
+    {
+        BaseT::emit(e);
+    }
+
+    template <typename T>
+    const EventSource& operator<<(std::reference_wrapper<E> e) const
+    {
+        BaseT::emit(e);
+        return *this;
+    }
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TempEvents
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -141,6 +220,10 @@ public:
     TempEvents() = default;
     TempEvents(const TempEvents&) = default;
 
+    TempEvents(TempEvents&& other) :
+        Events{ std::move(other) }
+    {}
+
     explicit TempEvents(NodePtrT&& nodePtr) :
         Events{ std::move(nodePtr) }
     {}
@@ -150,6 +233,20 @@ public:
         return std::move(std::static_pointer_cast<NodeT>(ptr_)->StealOp());
     }
 };
+
+/******************************************/ REACT_END /******************************************/
+
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+template <typename D, typename L, typename R>
+bool Equals(const Events<D,L>& lhs, const Events<D,R>& rhs)
+{
+    return lhs.Equals(rhs);
+}
+
+/****************************************/ REACT_IMPL_END /***************************************/
+
+/*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MakeEventSource
@@ -191,7 +288,7 @@ auto Merge(const Events<D,TArg1>& arg1, const Events<D,TArgs>& ... args)
 
     return TempEvents<D,E,TOp>(
         std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
-            arg1.GetPtr(), args.GetPtr() ...));
+            arg1.NodePtr(), args.NodePtr() ...));
 }
 
 template
@@ -215,7 +312,7 @@ auto operator|(const TLeftEvents& lhs, const TRightEvents& rhs)
 {
     return TempEvents<D,E,TOp>(
         std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
-            lhs.GetPtr(), rhs.GetPtr()));
+            lhs.NodePtr(), rhs.NodePtr()));
 }
 
 template
@@ -255,7 +352,7 @@ auto operator|(TempEvents<D,TLeftVal,TLeftOp>&& lhs, const TRightEvents& rhs)
 {
     return TempEvents<D,E,TOp>(
         std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
-            lhs.StealOp(), rhs.GetPtr()));
+            lhs.StealOp(), rhs.NodePtr()));
 }
 
 template
@@ -277,7 +374,7 @@ auto operator|(const TLeftEvents& lhs, TempEvents<D,TRightVal,TRightOp>&& rhs)
 {
     return TempEvents<D,E,TOp>(
         std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
-            lhs.GetPtr(), rhs.StealOp()));
+            lhs.NodePtr(), rhs.StealOp()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -297,7 +394,7 @@ auto Filter(const Events<D,E>& src, FIn&& filter)
 {
     return TempEvents<D,E,TOp>(
         std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
-            std::forward<FIn>(filter), src.GetPtr()));
+            std::forward<FIn>(filter), src.NodePtr()));
 }
 
 template
@@ -347,7 +444,7 @@ auto Transform(const Events<D,E>& src, FIn&& func)
 {
     return TempEvents<D,E,TOp>(
         std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
-            std::forward<FIn>(func), src.GetPtr()));
+            std::forward<FIn>(func), src.NodePtr()));
 }
 
 template
@@ -393,7 +490,7 @@ auto Flatten(const Signal<D,Events<D,TInnerValue>>& node)
 {
     return Events<D,TInnerValue>(
         std::make_shared<REACT_IMPL::EventFlattenNode<D, Events<D,TInnerValue>, TInnerValue>>(
-            node.GetPtr(), node().GetPtr()));
+            node.NodePtr(), node().NodePtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -416,7 +513,7 @@ auto Observe(const Events<D,TArg>& subject, FIn&& func)
     auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
         template Register<TNode>(subject, std::forward<FIn>(func));
 
-    return Observer<D>(raw, subject.GetPtr());
+    return Observer<D>(raw, subject.NodePtr());
 }
 
 template
@@ -434,7 +531,7 @@ auto Observe(const Events<D,EventToken>& subject, FIn&& func)
     auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
         template Register<TNode>(subject, std::move(wrapper));
 
-    return Observer<D>(raw, subject.GetPtr());
+    return Observer<D>(raw, subject.NodePtr());
 }
 
 /******************************************/ REACT_END /******************************************/
