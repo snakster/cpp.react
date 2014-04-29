@@ -45,7 +45,7 @@ cout << "area: " << area() << endl; // => area: 20
 
 For more information, see the [Signal guide](SignalGuide)
 
-#### Event streams
+#### Events
 
 Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer Pattern](http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf).
 
@@ -94,6 +94,7 @@ REACTIVE_DOMAIN(MyDomain, TopoSortEngine<parallel_pipelining>);
 ```C++
 #include "react/Reactor.h"
 //...
+using namespace std;
 using namespace react;
 
 REACTIVE_DOMAIN(D);
@@ -144,9 +145,10 @@ mouseUp   << PointT(30,30);
 ```C++
 #include "react/ReactiveObject.h"
 //...
-REACTIVE_DOMAIN(D);
-
+using namespace std;
 using namespace react;
+
+REACTIVE_DOMAIN(D);
 
 class Company : public ReactiveObject<D>
 {
@@ -155,8 +157,7 @@ public:
 
     Company(const char* name) :
         Name{ MakeVar(string(name)) }
-    {
-    }
+    {}
 
     inline bool operator==(const Company& other) const { /* ... */ }
 };
@@ -166,16 +167,32 @@ class Manager : public ReactiveObject<D>
     ObserverT nameObs;
 
 public:
-    VarRefSignalT<Company>    CurrentCompany;
+    VarSignalT<Company&>    CurrentCompany;
 
     Manager(initialCompany& company) :
-        CurrentCompany{ MakeVar(std::ref(company)) }
+        CurrentCompany{ MakeVar(ref(company)) }
     {
         nameObs = REACTIVE_REF(CurrentCompany, Name).Observe([] (string name) {
             cout << "Manager: Now managing " << name << endl;
         });
     }
 };
+
+void main()
+{
+    Company company1{ "Cellnet" };
+    Company company2{ "Borland" };
+
+    Manager manager{ company1 };
+
+    company1.Name <<= string("BT Cellnet");
+    company2.Name <<= string("Inprise");
+
+    manager.CurrentCompany <<= ref(company2);
+
+    company1.Name <<= string("O2");
+    company2.Name <<= string("Borland");
+}
 ```
 
 ### More examples
