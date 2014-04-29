@@ -178,21 +178,18 @@ public:
     }
 };
 
-void main()
-{
-    Company company1{ "Cellnet" };
-    Company company2{ "Borland" };
+Company company1{ "Cellnet" };
+Company company2{ "Borland" };
 
-    Manager manager{ company1 };
+Manager manager{ company1 };
 
-    company1.Name <<= string("BT Cellnet");
-    company2.Name <<= string("Inprise");
+company1.Name <<= string("BT Cellnet");
+company2.Name <<= string("Inprise");
 
-    manager.CurrentCompany <<= ref(company2);
+manager.CurrentCompany <<= ref(company2);
 
-    company1.Name <<= string("O2");
-    company2.Name <<= string("Borland");
-}
+company1.Name <<= string("O2");
+company2.Name <<= string("Borland");
 ```
 
 ### More examples
