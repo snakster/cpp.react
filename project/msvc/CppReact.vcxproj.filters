@@ -155,7 +155,7 @@
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\engine\TopoSortEngine.cpp">
+    <ClCompile Include="..\..\src\engine\ToposortEngine.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>

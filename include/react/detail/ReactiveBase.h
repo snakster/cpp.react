@@ -23,7 +23,7 @@
     #include "react/detail/logging/EventRecords.h"
 #endif //REACT_ENABLE_LOGGING
 
-#include "react/engine/TopoSortEngine.h"
+#include "react/engine/ToposortEngine.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -124,7 +124,7 @@ class TempEvents;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename TEngine = TopoSortEngine<sequential>
+    typename TEngine = ToposortEngine<sequential>
 >
 struct DomainPolicy
 {

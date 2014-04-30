@@ -6,13 +6,13 @@
 
 #include "MoveTest.h"
 
-#include "react/engine/TopoSortEngine.h"
+#include "react/engine/ToposortEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {
 
 using namespace react;
 
-INSTANTIATE_TYPED_TEST_CASE_P(SeqTopoSort, MoveTest, TopoSortEngine<sequential>);
+INSTANTIATE_TYPED_TEST_CASE_P(SeqToposort, MoveTest, ToposortEngine<sequential>);
 
 } // ~namespace

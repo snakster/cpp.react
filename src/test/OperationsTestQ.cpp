@@ -7,7 +7,7 @@
 #include "OperationsTest.h"
 
 #include "react/engine/PulseCountEngine.h"
-#include "react/engine/TopoSortEngine.h"
+#include "react/engine/ToposortEngine.h"
 #include "react/engine/SubtreeEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -15,10 +15,10 @@ namespace {
 
 using namespace react;
 
-INSTANTIATE_TYPED_TEST_CASE_P(SeqTopoSortQ, OperationsTest, TopoSortEngine<sequential_queue>);
-INSTANTIATE_TYPED_TEST_CASE_P(ParTopoSortQ, OperationsTest, TopoSortEngine<parallel_queue>);
+INSTANTIATE_TYPED_TEST_CASE_P(SeqToposortQ, OperationsTest, ToposortEngine<sequential_queue>);
+INSTANTIATE_TYPED_TEST_CASE_P(ParToposortQ, OperationsTest, ToposortEngine<parallel_queue>);
 INSTANTIATE_TYPED_TEST_CASE_P(PulseCountQ, OperationsTest, PulseCountEngine<parallel_queue>);
-INSTANTIATE_TYPED_TEST_CASE_P(ParTopoSortP, OperationsTest, TopoSortEngine<parallel_pipeline>);
+INSTANTIATE_TYPED_TEST_CASE_P(ParToposortP, OperationsTest, ToposortEngine<parallel_pipeline>);
 INSTANTIATE_TYPED_TEST_CASE_P(SubtreeQ, OperationsTest, SubtreeEngine<parallel_queue>);
 
 } // ~namespace

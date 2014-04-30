@@ -13,7 +13,7 @@
 //#define REACT_ENABLE_LOGGING
 
 // Experimental. Requires boost::coroutine.
-//#define REACT_ENABLE_REACTORS
+#define REACT_ENABLE_REACTORS
 
 #include "react/Signal.h"
 #include "react/Event.h"

@@ -116,7 +116,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\engine\PulseCountEngine.cpp" />
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp" />
-    <ClCompile Include="..\..\src\engine\TopoSortEngine.cpp" />
+    <ClCompile Include="..\..\src\engine\ToposortEngine.cpp" />
     <ClCompile Include="..\..\src\logging\EventLog.cpp" />
     <ClCompile Include="..\..\src\logging\EventRecords.cpp" />
   </ItemGroup>

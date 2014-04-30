@@ -330,21 +330,21 @@ struct parallel_queue;
 struct parallel_pipeline;
 
 template <typename TMode>
-class TopoSortEngine;
+class ToposortEngine;
 
-template <> class TopoSortEngine<sequential> :
+template <> class ToposortEngine<sequential> :
     public REACT_IMPL::toposort::BasicSeqEngine {};
 
-template <> class TopoSortEngine<sequential_queue> :
+template <> class ToposortEngine<sequential_queue> :
     public REACT_IMPL::toposort::QueuingSeqEngine {};
 
-template <> class TopoSortEngine<parallel> :
+template <> class ToposortEngine<parallel> :
     public REACT_IMPL::toposort::BasicParEngine {};
 
-template <> class TopoSortEngine<parallel_queue> :
+template <> class ToposortEngine<parallel_queue> :
     public REACT_IMPL::toposort::QueuingParEngine {};
 
-template <> class TopoSortEngine<parallel_pipeline> :
+template <> class ToposortEngine<parallel_pipeline> :
     public REACT_IMPL::toposort::PipeliningEngine {};
 
 /******************************************/ REACT_END /******************************************/
@@ -352,13 +352,13 @@ template <> class TopoSortEngine<parallel_pipeline> :
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 template <typename> struct EnableNodeUpdateTimer;
-template <> struct EnableNodeUpdateTimer<TopoSortEngine<parallel>> : std::true_type {};
-template <> struct EnableNodeUpdateTimer<TopoSortEngine<parallel_queue>> : std::true_type {};
-template <> struct EnableNodeUpdateTimer<TopoSortEngine<parallel_pipeline>> : std::true_type {};
+template <> struct EnableNodeUpdateTimer<ToposortEngine<parallel>> : std::true_type {};
+template <> struct EnableNodeUpdateTimer<ToposortEngine<parallel_queue>> : std::true_type {};
+template <> struct EnableNodeUpdateTimer<ToposortEngine<parallel_pipeline>> : std::true_type {};
 
 template <typename> struct EnableParallelUpdating;
-template <> struct EnableParallelUpdating<TopoSortEngine<parallel>> : std::true_type {};
-template <> struct EnableParallelUpdating<TopoSortEngine<parallel_queue>> : std::true_type {};
-template <> struct EnableParallelUpdating<TopoSortEngine<parallel_pipeline>> : std::true_type {};
+template <> struct EnableParallelUpdating<ToposortEngine<parallel>> : std::true_type {};
+template <> struct EnableParallelUpdating<ToposortEngine<parallel_queue>> : std::true_type {};
+template <> struct EnableParallelUpdating<ToposortEngine<parallel_pipeline>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
