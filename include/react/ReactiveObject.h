@@ -121,7 +121,7 @@ public:
     #define REACTIVE_REF(obj, name)                                                             \
         Flatten(                                                                                \
             MakeSignal(                                                                         \
-                [] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT::type r)                  \
+                [] (const REACT_IMPL::Identity<decltype(obj)>::Type::ValueT& r)                 \
                 {                                                                               \
                     return static_cast<RemoveInput<DomainT, decltype(r.name)>::Type>(r.name);   \
                 },                                                                              \

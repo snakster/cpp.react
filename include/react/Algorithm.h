@@ -118,9 +118,10 @@ template
     typename S
 >
 auto Changed(const Signal<D,S>& target)
-    -> Events<D,bool>
+    -> Events<D,EventToken>
 {
-    return Transform(Monitor(target), [] (const S& v) { return true; });
+    return Monitor(target)
+        .Transform([] (const S& v) { return EventToken::token; });
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -133,12 +134,12 @@ template
     typename S = std::decay<V>::type
 >
 auto ChangedTo(const Signal<D,S>& target, V&& value)
-    -> Events<D,bool>
+    -> Events<D,EventToken>
 {
-    auto transformFunc  = [=] (const S& v)    { return v == value; };
-    auto filterFunc     = [=] (bool v)        { return v == true; };
-
-    return Filter(Transform(Monitor(target), transformFunc), filterFunc);
+    return Monitor(target)
+        .Transform([=] (const S& v) { return v == value; })
+        .Filter([] (bool v) { return v == true; })
+        .Transform([=] (const S& v) { return EventToken::token; })
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -164,7 +165,7 @@ auto Pulse(const Signal<D,S>& target, const Events<D,E>& trigger)
 template <typename T>
 struct Incrementer
 {
-    T operator() (T v) const { return v+1; }
+    T operator()(T v) const { return v+1; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -173,7 +174,7 @@ struct Incrementer
 template <typename T>
 struct Decrementer
 {
-    T operator() (T v) const { return v-1; }
+    T operator()(T v) const { return v-1; }
 };
 
 /******************************************/ REACT_END /******************************************/

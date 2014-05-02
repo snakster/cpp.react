@@ -14,6 +14,7 @@
 #include <utility>
 
 #include "react/Observer.h"
+#include "react/Traits.h"
 #include "react/detail/SignalBase.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -39,7 +40,7 @@ public:
     using ValueT = S;
 
     Signal() = default;
-    Signal(const Signal&) = default;
+    Signal(const Signal& other) = default;
 
     Signal(Signal&& other) :
         SignalBase{ std::move(other) }
@@ -49,20 +50,19 @@ public:
         SignalBase{ std::move(nodePtr) }
     {}
 
-    const S& Value() const
-    {
-        return BaseT::getValue();
-    }
-
-    const S& operator()() const
-    {
-        return BaseT::getValue();
-    }
+    const S& Value() const      { return BaseT::getValue(); }
+    const S& operator()() const { return BaseT::getValue(); }
 
     template <typename F>
-    Observer<D> Observe(F&& f)
+    Observer<D> Observe(F&& f) const
     {
         return REACT::Observe(*this, std::forward<F>(f));
+    }
+
+    template <class = std::enable_if<IsSignal<S>::value>::type>
+    S Flatten() const
+    {
+        return REACT::Flatten(*this);
     }
 };
 
@@ -82,7 +82,7 @@ private:
     using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
 
 public:
-    using ValueT = std::reference_wrapper<S>;
+    using ValueT = S;
 
     Signal() = default;
     Signal(const Signal&) = default;
@@ -95,18 +95,11 @@ public:
         SignalBase{ std::move(nodePtr) }
     {}
 
-    const S& Value() const
-    {
-        return BaseT::getValue();
-    }
-
-    const S& operator()() const
-    {
-        return BaseT::getValue();
-    }
+    const S& Value() const      { return BaseT::getValue(); }
+    const S& operator()() const { return BaseT::getValue(); }
 
     template <typename F>
-    Observer<D> Observe(F&& f)
+    Observer<D> Observe(F&& f) const
     {
         return REACT::Observe(*this, std::forward<F>(f));
     }
@@ -126,7 +119,7 @@ private:
     using NodeT     = REACT_IMPL::VarNode<D,S>;
     using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
 
-public:    
+public:
     VarSignal() = default;
     VarSignal(const VarSignal&) = default;
 
@@ -164,7 +157,9 @@ private:
     using NodeT     = REACT_IMPL::VarNode<D,std::reference_wrapper<S>>;
     using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
 
-public:    
+public:
+    using ValueT = S;
+
     VarSignal() = default;
     VarSignal(const VarSignal&) = default;
 
@@ -637,18 +632,16 @@ struct InputPack
     template <typename TFirstValue, typename TSecondValue>
     InputPack(const Signal<D,TFirstValue>& first, const Signal<D,TSecondValue>& second) :
         Data{ std::tie(first, second) }
-    {
-    }
+    {}
 
     template <typename ... TCurValues, typename TAppendValue>
     InputPack(const InputPack<D, TCurValues ...>& curArgs, const Signal<D,TAppendValue>& newArg) :
         Data{ std::tuple_cat(curArgs.Data, std::tie(newArg)) }
-    {
-    }
+    {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Comma operator overload to create input pack from 2 nodes.
+/// Comma operator overload to create input pack from 2 signals.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <

@@ -12,10 +12,10 @@
 #include <memory>
 #include <utility>
 
+#include "react/Traits.h"
 #include "react/common/Types.h"
 #include "react/detail/ReactiveInput.h"
 #include "react/detail/Options.h"
-#include "react/detail/Traits.h"
 #include "react/detail/graph/GraphBase.h"
 
 #ifdef REACT_ENABLE_LOGGING
