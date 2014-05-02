@@ -36,7 +36,7 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
@@ -181,7 +181,7 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
@@ -253,7 +253,7 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         trigger_->SetCurrentTurn(turn);
 
@@ -321,7 +321,7 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
 
@@ -383,7 +383,7 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         typedef typename D::Engine::TurnT TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
         trigger_->SetCurrentTurn(turn);

@@ -65,7 +65,7 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
@@ -139,7 +139,7 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));

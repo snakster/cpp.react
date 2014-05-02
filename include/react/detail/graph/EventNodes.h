@@ -123,7 +123,7 @@ public:
         if (events_.size() > 0 && !changedFlag_)
         {
             using TurnT = typename D::Engine::TurnT;
-            TurnT& turn = *static_cast<TurnT*>(turnPtr);
+            TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
             SetCurrentTurn(turn, true, true);
             changedFlag_ = true;
@@ -391,7 +391,7 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
 
@@ -479,7 +479,7 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         typedef typename D::Engine::TurnT TurnT;
-        TurnT& turn = *static_cast<TurnT*>(turnPtr);
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
         inner_->SetCurrentTurn(turn);
@@ -510,11 +510,11 @@ public:
 
         if (events_.size() > 0)
         {
-            Engine::OnNodePulse(*this, *static_cast<TurnT*>(turnPtr));
+            Engine::OnNodePulse(*this, turn);
         }
         else
         {
-            Engine::OnNodeIdlePulse(*this, *static_cast<TurnT*>(turnPtr));
+            Engine::OnNodeIdlePulse(*this, turn);
         }
     }
 

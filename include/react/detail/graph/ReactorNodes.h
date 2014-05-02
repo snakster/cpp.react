@@ -92,7 +92,7 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
-        turnPtr_ = static_cast<TurnT*>(turnPtr);
+        turnPtr_ = reinterpret_cast<TurnT*>(turnPtr);
         REACT_SCOPE_EXIT{ turnPtr_ = nullptr; };
 
         mainLoop_();
