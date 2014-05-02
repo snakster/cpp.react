@@ -93,10 +93,9 @@
     <ClInclude Include="..\..\include\react\detail\Options.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveBase.h" />
     <ClInclude Include="..\..\include\react\detail\SignalBase.h" />
-    <ClInclude Include="..\..\include\react\detail\Traits.h" />
     <ClInclude Include="..\..\include\react\engine\PulseCountEngine.h" />
     <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h" />
-    <ClInclude Include="..\..\include\react\engine\TopoSortEngine.h" />
+    <ClInclude Include="..\..\include\react\engine\ToposortEngine.h" />
     <ClInclude Include="..\..\include\react\common\Concurrency.h" />
     <ClInclude Include="..\..\include\react\common\Containers.h" />
     <ClInclude Include="..\..\include\react\common\SourceIdSet.h" />
@@ -112,6 +111,7 @@
     <ClInclude Include="..\..\include\react\ReactiveObject.h" />
     <ClInclude Include="..\..\include\react\Reactor.h" />
     <ClInclude Include="..\..\include\react\Signal.h" />
+    <ClInclude Include="..\..\include\react\Traits.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\engine\PulseCountEngine.cpp" />
