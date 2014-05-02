@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "react/Observer.h"
+#include "react/Traits.h"
 #include "react/detail/EventBase.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -52,21 +53,23 @@ public:
     {}
 
     template <typename F>
-    Events Filter(F&& f)
+    Observer<D> Observe(F&& f) const
+    {
+        return REACT::Observe(*this, std::forward<F>(f));
+    }
+
+    template <typename F>
+    auto Filter(F&& f) const
+        -> decltype(REACT::Filter(std::declval<Events>(), std::forward<F>(f)))
     {
         return REACT::Filter(*this, std::forward<F>(f));
     }
 
     template <typename F>
-    Events Transform(F&& f)
+    auto Transform(F&& f) const
+        -> decltype(REACT::Transform(std::declval<Events>(), std::forward<F>(f)))
     {
         return REACT::Transform(*this, std::forward<F>(f));
-    }
-
-    template <typename F>
-    Observer<D> Observe(F&& f)
-    {
-        return REACT::Observe(*this, std::forward<F>(f));
     }
 };
 
@@ -86,7 +89,7 @@ private:
     using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
 
 public:
-    using ValueT = std::reference_wrapper<E>;
+    using ValueT = E;
 
     Events() = default;
     Events(const Events&) = default;
@@ -100,19 +103,21 @@ public:
     {}
 
     template <typename F>
-    Events Filter(F&& f)
+    auto Filter(F&& f) const
+        -> decltype(REACT::Filter(std::declval<Events>(), std::forward<F>(f)))
     {
         return REACT::Filter(*this, std::forward<F>(f));
     }
 
     template <typename F>
-    Events Transform(F&& f)
+    auto Transform(F&& f) const
+        -> decltype(REACT::Transform(std::declval<Events>(), std::forward<F>(f)))
     {
         return REACT::Transform(*this, std::forward<F>(f));
     }
 
     template <typename F>
-    Observer<D> Observe(F&& f)
+    Observer<D> Observe(F&& f) const
     {
         return REACT::Observe(*this, std::forward<F>(f));
     }
@@ -231,6 +236,20 @@ public:
     TOp StealOp()
     {
         return std::move(std::static_pointer_cast<NodeT>(ptr_)->StealOp());
+    }
+
+    template <typename F>
+    auto Filter(F&& f) const
+        -> decltype(REACT::Filter(std::declval<TempEvents>(), std::forward<F>(f)))
+    {
+        return REACT::Filter(*this, std::forward<F>(f));
+    }
+
+    template <typename F>
+    auto Transform(F&& f) const
+        -> decltype(REACT::Transform(std::declval<TempEvents>(), std::forward<F>(f)))
+    {
+        return REACT::Transform(*this, std::forward<F>(f));
     }
 };
 
