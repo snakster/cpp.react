@@ -42,8 +42,6 @@ width <<= 10;
 cout << "area: " << area() << endl; // => area: 20
 ```
 
-For more information, see the [Signal guide](SignalGuide)
-
 #### Events
 
 Event streams represent flows of discrete values as first-class objects.
