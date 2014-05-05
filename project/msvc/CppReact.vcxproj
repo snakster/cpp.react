@@ -115,7 +115,7 @@
     <ClInclude Include="..\..\include\react\TypeTraits.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\engine\PulseCountEngine.cpp" />
+    <ClCompile Include="..\..\src\engine\PulsecountEngine.cpp" />
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp" />
     <ClCompile Include="..\..\src\engine\ToposortEngine.cpp" />
     <ClCompile Include="..\..\src\logging\EventLog.cpp" />

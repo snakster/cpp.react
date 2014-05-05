@@ -32,13 +32,11 @@ public:
     template <typename TInput>
     MarkerTask(TInput srcBegin, TInput srcEnd) :
         nodes_{ srcBegin, srcEnd }
-    {
-    }
+    {}
 
     MarkerTask(MarkerTask& other, SplitTag) :
         nodes_{ other.nodes_, SplitTag{} }
-    {
-    }
+    {}
 
     task* execute()
     {
@@ -178,8 +176,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
     TurnBase(id, flags)
-{
-}
+{}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PulsecountEngine

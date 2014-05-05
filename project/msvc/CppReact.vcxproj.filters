@@ -152,13 +152,13 @@
     <ClCompile Include="..\..\src\logging\EventRecords.cpp">
       <Filter>Source Files\logging</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\engine\PulseCountEngine.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\engine\ToposortEngine.cpp">
+      <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\PulsecountEngine.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>
