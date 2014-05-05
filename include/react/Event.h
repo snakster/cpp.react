@@ -102,6 +102,13 @@ public:
         EventStreamBase{ std::move(nodePtr) }
     {}
 
+    template <typename ... TArgs>
+    auto Merge(const Events<D,TArgs>& ... args)
+        -> decltype(REACT::Merge(std::declval<Events>(), std::forward<TArgs>(args) ...))
+    {
+        return REACT::Merge(*this, std::forward<TArgs>(args) ...);
+    }
+
     template <typename F>
     auto Filter(F&& f) const
         -> decltype(REACT::Filter(std::declval<Events>(), std::forward<F>(f)))
@@ -149,10 +156,14 @@ public:
         Events{ std::move(nodePtr) }
     {}
 
-    template <typename T>
-    void Emit(T&& e) const
+    void Emit(const E& e) const
     {
-        BaseT::emit(std::forward<T>(e));
+        BaseT::emit(e);
+    }
+
+    void Emit(E&& e) const
+    {
+        BaseT::emit(std::move(e));
     }
 
     template <class = std::enable_if<std::is_same<E,EventToken>::value>::type>
@@ -161,10 +172,15 @@ public:
         BaseT::emit(EventToken::token);
     }
 
-    template <typename T>
-    const EventSource& operator<<(T&& e) const
+    const EventSource& operator<<(const E& e) const
     {
-        BaseT::emit(std::forward<T>(e));
+        BaseT::emit(e);
+        return *this;
+    }
+
+    const EventSource& operator<<(E&& e) const
+    {
+        BaseT::emit(std::move(e));
         return *this;
     }
 };
@@ -198,7 +214,6 @@ public:
         BaseT::emit(e);
     }
 
-    template <typename T>
     const EventSource& operator<<(std::reference_wrapper<E> e) const
     {
         BaseT::emit(e);
@@ -236,6 +251,13 @@ public:
     TOp StealOp()
     {
         return std::move(std::static_pointer_cast<NodeT>(ptr_)->StealOp());
+    }
+
+    template <typename ... TArgs>
+    auto Merge(const Events<D,TArgs>& ... args)
+        -> decltype(REACT::Merge(std::declval<TempEvents>(), std::forward<TArgs>(args) ...))
+    {
+        return REACT::Merge(*this, std::forward<TArgs>(args) ...);
     }
 
     template <typename F>
@@ -521,15 +543,15 @@ template
 <
     typename D,
     typename FIn,
-    typename TArg,
+    typename E,
     class = std::enable_if<
-        ! std::is_same<TArg,EventToken>::value>::type
+        ! std::is_same<E,EventToken>::value>::type
 >
-auto Observe(const Events<D,TArg>& subject, FIn&& func)
+auto Observe(const Events<D,E>& subject, FIn&& func)
     -> Observer<D>
 {
     using F = std::decay<FIn>::type;
-    using TNode = REACT_IMPL::EventObserverNode<D,TArg,F>;
+    using TNode = REACT_IMPL::EventObserverNode<D,E,F>;
 
     auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
         template Register<TNode>(subject, std::forward<FIn>(func));
@@ -545,7 +567,7 @@ template
 auto Observe(const Events<D,EventToken>& subject, FIn&& func)
     -> Observer<D>
 {
-    auto wrapper = [func] (EventToken _) { func(); };
+    auto wrapper = [func] (EventToken) { func(); };
 
     using TNode = REACT_IMPL::EventObserverNode<D,EventToken,decltype(wrapper)>;
 

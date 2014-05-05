@@ -40,7 +40,7 @@ public:
     using ValueT = S;
 
     Signal() = default;
-    Signal(const Signal& other) = default;
+    Signal(const Signal&) = default;
 
     Signal(Signal&& other) :
         SignalBase{ std::move(other) }
@@ -59,7 +59,7 @@ public:
         return REACT::Observe(*this, std::forward<F>(f));
     }
 
-    template <class = std::enable_if<IsSignal<S>::value>::type>
+    template <class = std::enable_if<IsReactive<S>::value>::type>
     S Flatten() const
     {
         return REACT::Flatten(*this);
@@ -131,16 +131,25 @@ public:
         Signal{ std::move(nodePtr) }
     {}
 
-    template <typename T>
-    void Set(T&& newValue) const
+    void Set(const S& newValue) const
     {
-        BaseT::setValue(std::forward<T>(newValue));
+        BaseT::setValue(newValue);
     }
 
-    template <typename T>
-    const VarSignal& operator<<=(T&& newValue) const
+    void Set(S&& newValue) const
     {
-        BaseT::setValue(std::forward<T>(newValue));
+        BaseT::setValue(std::move(newValue));
+    }
+
+    const VarSignal& operator<<=(const S& newValue) const
+    {
+        BaseT::setValue(newValue);
+        return *this;
+    }
+
+    const VarSignal& operator<<=(S&& newValue) const
+    {
+        BaseT::setValue(std::move(newValue));
         return *this;
     }
 };
@@ -305,15 +314,15 @@ template
 <
     typename D,
     typename FIn,
-    typename ... TArgs,
+    typename ... TValues,
     typename F = std::decay<FIn>::type,
-    typename S = std::result_of<F(TArgs...)>::type,
-    typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtrT<D,TArgs> ...>
+    typename S = std::result_of<F(TValues...)>::type,
+    typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtrT<D,TValues> ...>
 >
-auto MakeSignal(FIn&& func, const Signal<D,TArgs>& ... args)
+auto MakeSignal(FIn&& func, const Signal<D,TValues>& ... args)
     -> TempSignal<D,S,TOp>
 {
-    static_assert(sizeof...(TArgs) > 0,
+    static_assert(sizeof...(TValues) > 0,
         "react::MakeSignal requires at least 1 signal dependency.");
 
     return TempSignal<D,S,TOp>(
