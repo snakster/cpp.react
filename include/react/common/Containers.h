@@ -75,7 +75,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct SplitTag {};
 
-template <typename T, int N>
+template <typename T, uint N>
 class NodeBuffer
 {
 public:
@@ -83,7 +83,7 @@ public:
     using iterator = typename DataT::iterator;
     using const_iterator = typename DataT::const_iterator;
 
-    static const int split_size = N / 2;
+    static const uint split_size = N / 2;
 
     NodeBuffer() :
         size_{ 0 },
@@ -167,7 +167,7 @@ private:
     }
 
     DataT       nodes_;
-    int         size_;
+    uint        size_;
     iterator    front_;
     iterator    back_;
 };

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <limits>
 #include <vector>
 
 #include "tbb/enumerable_thread_specific.h"
@@ -48,7 +49,7 @@ public:
     {
         next_.clear();
 
-        minLevel_ = INT_MAX;
+        minLevel_ = std::numeric_limits<int>::max();
         for (const auto& e : data_)
         {
             auto l = LevelFunctorT{}(e);
@@ -76,7 +77,7 @@ private:
 
     DataT   next_;
     DataT   data_;
-    int     minLevel_ = INT_MAX;
+    int     minLevel_ = std::numeric_limits<int>::max();
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,14 +108,13 @@ public:
     using WeightFunctorT = NodeWeightHelper<ValueT>;
 
     WeightedRange() = default;
-    WeightedRange(const WeightedRange& other) = default;
+    WeightedRange(const WeightedRange&) = default;
 
     WeightedRange(const TIt& a, const TIt& b, uint weight) :
         begin_{ a },
         end_{ b },
         weight_{ weight }
-    {
-    }
+    {}
 
     WeightedRange(WeightedRange& source, tbb::split)
     {
@@ -188,7 +188,7 @@ public:
         uint totalWeight = 0;
 
         // Determine current min level
-        minLevel_ = INT_MAX;
+        minLevel_ = std::numeric_limits<int>::max();
         for (const auto& buf : collectBuffer_)
             if (minLevel_ > buf.MinLevel)
                 minLevel_ = buf.MinLevel;
@@ -208,7 +208,7 @@ public:
             v.resize(std::distance(v.begin(), p));
 
             // Calc new min level and weight for this buffer
-            buf.MinLevel = INT_MAX;
+            buf.MinLevel = std::numeric_limits<int>::max();
             int oldWeight = buf.Weight;
             buf.Weight = 0;
             for (const T& x : v)
@@ -245,11 +245,11 @@ private:
     struct ThreadLocalBuffer
     {
         DataT   Data;
-        int     MinLevel = INT_MAX;
+        int     MinLevel = std::numeric_limits<int>::max();
         uint    Weight = 0;
     };
 
-    int                 minLevel_ = INT_MAX;
+    int                 minLevel_ = std::numeric_limits<int>::max();
     DataT               nodes_;
     RangeT              range_;
 

@@ -113,8 +113,8 @@ public:
     }
 
 private:
-    MutexT    mutex_;
-    DataT    data_;
+    MutexT  mutex_;
+    DataT   data_;
     bool    isSorted_ = false;
 
     void sort()

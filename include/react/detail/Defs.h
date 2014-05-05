@@ -6,6 +6,16 @@
 
 #pragma once
 
+#define WINDOWS_LEAN_AND_MEAN
+#define NOMINMAX
+
+#ifdef max
+    #undef max
+#endif
+#ifdef min
+    #undef min
+#endif
+
 #include <cassert>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
