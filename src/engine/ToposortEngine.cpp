@@ -331,7 +331,7 @@ void PipeliningTurn::Remove()
     }
     else if (successor_)
     {
-        successor_->SetMaxLevel(INT_MAX);
+        successor_->SetMaxLevel(numeric_limits<int>::max());
         successor_->predecessor_ = nullptr;
     }
 
@@ -492,7 +492,7 @@ void PipeliningEngine::OnDynamicNodeDetach(ParNode& node, ParNode& parent, Pipel
 
 void PipeliningEngine::applyDynamicAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn)
 {
-    turn.WaitForMaxLevel(INT_MAX);
+    turn.WaitForMaxLevel(numeric_limits<int>::max());
 
     OnNodeAttach(node, parent);
     

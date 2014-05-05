@@ -11,6 +11,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <functional>
+#include <limits>
 #include <mutex>
 #include <set>
 #include <utility>
@@ -37,6 +38,7 @@ using std::atomic;
 using std::condition_variable;
 using std::function;
 using std::mutex;
+using std::numeric_limits;
 using std::pair;
 using std::set;
 using std::vector;
@@ -245,8 +247,8 @@ private:
     PipeliningTurn*     successor_ = nullptr;
 
     int     currentLevel_ = -1;
-    int     maxLevel_ = INT_MAX;        /// This turn may only advance up to maxLevel
-    int     minLevel_ = -1;             /// successor.maxLevel = this.minLevel - 1
+    int     maxLevel_ = numeric_limits<int>::max(); /// This turn may only advance up to maxLevel
+    int     minLevel_ = -1;                         /// successor.maxLevel = this.minLevel - 1
 
     int     curUpperBound_ = -1;
 
