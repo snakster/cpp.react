@@ -9,10 +9,8 @@ The general idea is that dependency relations between data/actions are expressed
 
 #### Compiling
 
-I mainly tested the build on Windows with Visual Studio 2013.
+Currently, the build has only been tested in Visual Studio 2013.
 The Intel C++ Compiler 14.0 with Visual Studio 2012/13 is theoretically supported as well, but it doesn't compile the current codebase anymore due to [some bugs]() with C++11 support.
-
-Cpp.React uses standard C++11 and the dependencies are portable, so other compilers/platforms should work, too.
 
 ###### Dependencies
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
@@ -48,7 +46,7 @@ For more information, see the [Signal guide](SignalGuide)
 
 #### Events
 
-Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer Pattern](http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf).
+Event streams represent flows of discrete values as first-class objects.
 
 ```C++
 #include "react/Domain.h"
@@ -68,9 +66,8 @@ Observe(clicked, [] { cout << "button clicked!" << endl; });
 
 #### Implicit parallelism
 
-The change propagation is handled implicitly by a so called propagation engine.
+The change propagation is handled implicitly by a _propagation engine_.
 Depending on the selected engine, independent propagation paths are automatically parallelized.
-For more details, see Propagation Engines.
 
 ```C++
 #include "react/propagation/ToposortEngine.h"
