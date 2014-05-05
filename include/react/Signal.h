@@ -14,7 +14,7 @@
 #include <utility>
 
 #include "react/Observer.h"
-#include "react/Traits.h"
+#include "react/TypeTraits.h"
 #include "react/detail/SignalBase.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -306,8 +306,8 @@ template
     typename D,
     typename FIn,
     typename ... TArgs,
-    typename F  = std::decay<FIn>::type,
-    typename S  = std::result_of<F(TArgs...)>::type,
+    typename F = std::decay<FIn>::type,
+    typename S = std::result_of<F(TArgs...)>::type,
     typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtrT<D,TArgs> ...>
 >
 auto MakeSignal(FIn&& func, const Signal<D,TArgs>& ... args)
@@ -453,7 +453,7 @@ template                                                                        
     typename F = name ## OpLFunctor<TLeftVal,TRightVal>,                            \
     typename S = std::result_of<F(TLeftVal)>::type,                                 \
     typename TOp = REACT_IMPL::FunctionOp<S,F,                                      \
-                   REACT_IMPL::SignalNodePtrT<D,TLeftVal>>,                         \
+        REACT_IMPL::SignalNodePtrT<D,TLeftVal>>,                                    \
     class = std::enable_if<                                                         \
         IsSignal<TLeftSignal>::value>::type,                                        \
     class = std::enable_if<                                                         \

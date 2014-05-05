@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <mutex>
 
@@ -18,6 +19,9 @@
 #include "react/detail/IReactiveNode.h."
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+using TurnIdT = uint;
+using TurnFlagsT = uint;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ContinuationInput
@@ -60,6 +64,28 @@ private:
     std::once_flag                  bufferedInputsInit_;
     std::unique_ptr<InputVectT>     bufferedInputsPtr_ = nullptr;
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ContinuationHolder
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D>
+class ContinuationHolder
+{
+public:
+    using TurnT = typename D::TurnT;
+
+    ContinuationHolder() = delete;
+
+    static void                 SetTurn(TurnT& turn)    { ptr_ = &turn.continuation_; }
+    static void                 Clear()                 { ptr_ = nullptr; }
+    static ContinuationInput*   Get()                   { return ptr_; }
+
+private:
+    static REACT_TLS ContinuationInput* ptr_;
+};
+
+template <typename D>
+ContinuationInput* ContinuationHolder<D>::ptr_(nullptr);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// InputManager
@@ -129,8 +155,8 @@ private:
     {
         auto curId = nextTurnId_.fetch_add(1, std::memory_order_relaxed);
 
-        if (curId == INT_MAX)
-            nextTurnId_.fetch_sub(INT_MAX);
+        if (curId == std::numeric_limits<int>::max())
+            nextTurnId_.fetch_sub(std::numeric_limits<int>::max());
 
         return curId;
     }

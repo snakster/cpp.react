@@ -138,7 +138,10 @@
     <ClInclude Include="..\..\include\react\engine\ToposortEngine.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\Traits.h">
+    <ClInclude Include="..\..\include\react\TypeTraits.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Domain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

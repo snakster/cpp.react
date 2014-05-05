@@ -21,8 +21,6 @@ ObjectId GetObjectId(const O& obj)
 	return (ObjectId)&obj;
 }
 
-using TurnIdT = uint;
-using TurnFlagsT = uint;
 using UpdateDurationT = std::chrono::duration<uint, std::micro>;
 
 /****************************************/ REACT_IMPL_END /***************************************/

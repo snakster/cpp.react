@@ -14,7 +14,7 @@
 #include <vector>
 
 #include "react/Observer.h"
-#include "react/Traits.h"
+#include "react/TypeTraits.h"
 #include "react/detail/EventBase.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/

@@ -12,12 +12,26 @@
 #include <type_traits>
 #include <utility>
 
-#include "Event.h"
-#include "Signal.h"
-
 #include "react/detail/graph/AlgorithmNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Forward declarations
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename S>
+class Signal;
+
+template <typename D, typename S>
+class VarSignal;
+
+template <typename D, typename E>
+class Events;
+
+template <typename D, typename E>
+class EventSource;
+
+enum class EventToken;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Fold
@@ -28,12 +42,13 @@ template
     typename V,
     typename E,
     typename FIn,
-    typename S = std::decay<V>::type,
-    typename F = std::decay<FIn>::type
+    typename S = std::decay<V>::type
 >
 auto Fold(V&& init, const Events<D,E>& events, FIn&& func)
     -> Signal<D,S>
 {
+    using F = std::decay<FIn>::type;
+
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::FoldNode<D,S,E,F>>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
@@ -48,12 +63,13 @@ template
     typename V,
     typename E,
     typename FIn,
-    typename S = std::decay<V>::type,
-    typename F = std::decay<FIn>::type
+    typename S = std::decay<V>::type
 >
 auto Iterate(V&& init, const Events<D,E>& events, FIn&& func)
     -> Signal<D,S>
 {
+    using F = std::decay<FIn>::type;
+
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::IterateNode<D,S,E,F>>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
@@ -110,6 +126,23 @@ auto Monitor(const Signal<D,S>& target)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Pulse
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename S,
+    typename E
+>
+auto Pulse(const Signal<D,S>& target, const Events<D,E>& trigger)
+    -> Events<D,S>
+{
+    return Events<D,S>(
+        std::make_shared<REACT_IMPL::PulseNode<D,S,E>>(
+            target.NodePtr(), trigger.NodePtr()));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Changed
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -140,23 +173,6 @@ auto ChangedTo(const Signal<D,S>& target, V&& value)
         .Transform([=] (const S& v) { return v == value; })
         .Filter([] (bool v) { return v == true; })
         .Transform([=] (const S& v) { return EventToken::token; })
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Pulse
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E
->
-auto Pulse(const Signal<D,S>& target, const Events<D,E>& trigger)
-    -> Events<D,S>
-{
-    return Events<D,S>(
-        std::make_shared<REACT_IMPL::PulseNode<D,S,E>>(
-            target.NodePtr(), trigger.NodePtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
