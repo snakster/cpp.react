@@ -144,7 +144,6 @@ mouseUp   << PointT(30,30);
 ```C++
 #include "react/Domain.h"
 #include "react/Signal.h"
-#include "react/Event.h"
 #include "react/ReactiveObject.h"
 //...
 using namespace std;
