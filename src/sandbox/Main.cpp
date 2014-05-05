@@ -15,12 +15,11 @@
 // Experimental. Requires boost::coroutine.
 #define REACT_ENABLE_REACTORS
 
+#include "react/Domain.h"
 #include "react/Signal.h"
 #include "react/Event.h"
 #include "react/Algorithm.h"
 #include "react/ReactiveObject.h"
-
-
 
 using namespace std;
 using namespace react;
@@ -35,6 +34,66 @@ REACTIVE_DOMAIN(D);
 //#include "react/engine/PulseCountEngine.h"
 
 //REACTIVE_DOMAIN(D, PulseCountEngine<parallel>);
+
+void SignalExample0()
+{
+    // Sequential
+    {
+        REACTIVE_DOMAIN(D, ToposortEngine<sequential>);
+
+        auto a = D::MakeVar(1);
+        auto b = D::MakeVar(2);
+        auto c = D::MakeVar(3);
+
+        auto x = (a + b) * c;
+
+        b <<= 20;
+    }
+
+    // Parallel
+    {
+        REACTIVE_DOMAIN(D, ToposortEngine<parallel>);
+
+        auto in = D::MakeVar(0);
+
+        auto op1 = in ->* [] (int in)
+        {
+            int result = in /* Costly operation #1 */;
+            return result;
+        };
+
+        auto op2 = in ->* [] (int in)
+        {
+            int result = in /* Costly operation #2 */;
+            return result;
+        };
+
+        auto out = op1 + op2;
+
+        in <<= 123456789;
+    }
+
+    // Queuing
+    {
+        REACTIVE_DOMAIN(D, ToposortEngine<sequential_queue>);
+
+        auto a = D::MakeVar(1);
+        auto b = D::MakeVar(2);
+        auto c = D::MakeVar(3);
+
+        auto x = (a + b) * c;
+
+        std::thread t1{ [&] { a <<= 10; } };
+        std::thread t2{ [&] { b <<= 100; } };
+        std::thread t3{ [&] { c <<= 1000; } };
+        std::thread t4{ [&] { a <<= 10000; } };
+
+        t1.join();
+        t2.join();
+        t3.join();
+        t4.join();
+    }
+}
 
 void SignalExample1()
 {
@@ -330,6 +389,8 @@ void LoopTest()
 
 int main()
 {
+    SignalExample0();
+
     SignalExample1();
     SignalExample2();
     SignalExample3();

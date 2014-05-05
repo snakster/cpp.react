@@ -15,6 +15,9 @@
 #include <type_traits>
 
 #include "BenchmarkBase.h"
+
+#include "react/Signal.h"
+#include "react/Event.h"
 #include "react/ReactiveObject.h"
 #include "react/logging/EventLog.h"
 

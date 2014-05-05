@@ -11,6 +11,9 @@
 #include <queue>
 #include <string>
 
+#include "react/Domain.h"
+#include "react/Signal.h"
+#include "react/Event.h"
 #include "react/Algorithm.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
