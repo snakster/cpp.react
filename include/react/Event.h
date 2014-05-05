@@ -452,34 +452,36 @@ auto operator&(TEvents&& src, F&& filter)
 template
 <
     typename D,
-    typename E,
+    typename EIn,
     typename FIn,
     typename F = std::decay<FIn>::type,
-    typename TOp = REACT_IMPL::EventTransformOp<E,F,
-        REACT_IMPL::EventStreamNodePtrT<D,E>>
+    typename EOut = std::result_of<F(EIn)>::type,
+    typename TOp = REACT_IMPL::EventTransformOp<EIn,F,
+        REACT_IMPL::EventStreamNodePtrT<D,EIn>>
 >
-auto Transform(const Events<D,E>& src, FIn&& func)
-    -> TempEvents<D,E,TOp>
+auto Transform(const Events<D,EIn>& src, FIn&& func)
+    -> TempEvents<D,EOut,TOp>
 {
-    return TempEvents<D,E,TOp>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+    return TempEvents<D,EOut,TOp>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,EOut,TOp>>(
             std::forward<FIn>(func), src.NodePtr()));
 }
 
 template
 <
     typename D,
-    typename E,
+    typename EIn,
     typename TOpIn,
     typename FIn,
     typename F = std::decay<FIn>::type,
-    typename TOpOut = REACT_IMPL::EventTransformOp<E,F,TOpIn>
+    typename EOut = std::result_of<F(EIn)>::type,
+    typename TOpOut = REACT_IMPL::EventTransformOp<EIn,F,TOpIn>
 >
-auto Transform(TempEvents<D,E,TOpIn>&& src, FIn&& func)
-    -> TempEvents<D,E,TOpOut>
+auto Transform(TempEvents<D,EIn,TOpIn>&& src, FIn&& func)
+    -> TempEvents<D,EOut,TOpOut>
 {
-    return TempEvents<D,E,TOpOut>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOpOut>>(
+    return TempEvents<D,EOut,TOpOut>(
+        std::make_shared<REACT_IMPL::EventOpNode<D,EOut,TOpOut>>(
             std::forward<FIn>(func), src.StealOp()));
 }
 
