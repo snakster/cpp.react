@@ -27,11 +27,12 @@ Signals are time-varying reactive values, that can be combined to create reactiv
 These expressions are automatically recalculated whenever one of their dependent values changes.
 
 ```C++
+#include "react/Domain.h"
 #include "react/Signal.h"
 ///...
 using namespace react;
 
-REACTIVE_DOMAIN(MyDomain);
+REACTIVE_DOMAIN(D);
 
 auto width  = MyDomain::MakeVar(1);
 auto height = MyDomain::MakeVar(2);
@@ -50,7 +51,8 @@ For more information, see the [Signal guide](SignalGuide)
 Event streams represent flows of discrete values as first-class objects, based on ideas found in [Deprecating the Observer Pattern](http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf).
 
 ```C++
-#include "react/EventStream.h"
+#include "react/Domain.h"
+#include "react/Event.h"
 //...
 using namespace react;
 
@@ -71,27 +73,29 @@ Depending on the selected engine, independent propagation paths are automaticall
 For more details, see Propagation Engines.
 
 ```C++
-#include "react/propagation/TopoSortEngine.h"
+#include "react/propagation/ToposortEngine.h"
 //...
 using namespace react;
 
 // Single-threaded updating
-REACTIVE_DOMAIN(MyDomain, TopoSortEngine<sequential>);
+REACTIVE_DOMAIN(MyDomain, ToposortEngine<sequential>);
 
 // Parallel updating
-REACTIVE_DOMAIN(MyDomain, TopoSortEngine<parallel>);
+REACTIVE_DOMAIN(MyDomain, ToposortEngine<parallel>);
 
 // Input from multiple threads
-REACTIVE_DOMAIN(MyDomain, TopoSortEngine<sequential_queuing>);
-REACTIVE_DOMAIN(MyDomain, TopoSortEngine<parallel_queuing>);
+REACTIVE_DOMAIN(MyDomain, ToposortEngine<sequential_queuing>);
+REACTIVE_DOMAIN(MyDomain, ToposortEngine<parallel_queuing>);
 
 // Parallel updating + input from multiple threads + pipelining
-REACTIVE_DOMAIN(MyDomain, TopoSortEngine<parallel_pipelining>);
+REACTIVE_DOMAIN(MyDomain, ToposortEngine<parallel_pipelining>);
 ```
 
 #### Reactive loops
 
 ```C++
+#include "react/Domain.h"
+#include "react/Event.h"
 #include "react/Reactor.h"
 //...
 using namespace std;
@@ -143,6 +147,9 @@ mouseUp   << PointT(30,30);
 #### Reactive objects and dynamic reactives
 
 ```C++
+#include "react/Domain.h"
+#include "react/Signal.h"
+#include "react/Event.h"
 #include "react/ReactiveObject.h"
 //...
 using namespace std;
