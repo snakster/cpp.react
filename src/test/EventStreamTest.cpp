@@ -6,7 +6,7 @@
 
 #include "EventStreamTest.h"
 
-#include "react/engine/PulseCountEngine.h"
+#include "react/engine/PulsecountEngine.h"
 #include "react/engine/ToposortEngine.h"
 #include "react/engine/SubtreeEngine.h"
 
@@ -17,7 +17,7 @@ using namespace react;
 
 INSTANTIATE_TYPED_TEST_CASE_P(SeqToposort, EventStreamTest, ToposortEngine<sequential>);
 INSTANTIATE_TYPED_TEST_CASE_P(ParToposort, EventStreamTest, ToposortEngine<parallel>);
-INSTANTIATE_TYPED_TEST_CASE_P(PulseCount, EventStreamTest, PulseCountEngine<parallel>);
+INSTANTIATE_TYPED_TEST_CASE_P(Pulsecount, EventStreamTest, PulsecountEngine<parallel>);
 INSTANTIATE_TYPED_TEST_CASE_P(Subtree, EventStreamTest, SubtreeEngine<parallel>);
 
 } // ~namespace

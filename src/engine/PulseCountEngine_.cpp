@@ -4,7 +4,7 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include "react/engine/PulseCountEngine.h"
+#include "react/engine/PulsecountEngine.h"
 
 #include <cstdint>
 #include <utility>
@@ -182,7 +182,7 @@ Turn::Turn(TurnIdT id, TurnFlagsT flags) :
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// PulseCountEngine
+/// PulsecountEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename TTurn>

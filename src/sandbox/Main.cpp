@@ -31,9 +31,9 @@ REACTIVE_DOMAIN(D);
 
 // Explicit engine:
 //#include "react/engine/SubtreeEngine.h"
-//#include "react/engine/PulseCountEngine.h"
+//#include "react/engine/PulsecountEngine.h"
 
-//REACTIVE_DOMAIN(D, PulseCountEngine<parallel>);
+//REACTIVE_DOMAIN(D, PulsecountEngine<parallel>);
 
 void SignalExample0()
 {
