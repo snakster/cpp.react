@@ -31,6 +31,9 @@ class ReactiveLoop;
 template <typename D>
 class Observer;
 
+template <typename D>
+class ScopedObserver;
+
 template <typename D, typename S>
 class Signal;
 
@@ -83,6 +86,8 @@ public:
     using EventSourceT = EventSource<D,E>;
 
     using ObserverT = Observer<D>;
+
+    using ScopedObserverT = ScopedObserver<D>;
 
     using ReactiveLoopT = ReactiveLoop<D>;
 

@@ -8,8 +8,11 @@
 
 #include "gtest/gtest.h"
 
+#include <vector>
+
 #include "react/Domain.h"
 #include "react/Signal.h"
+#include "react/Observer.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {
@@ -102,10 +105,35 @@ TYPED_TEST_P(ObserverTest, Detach)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Detach test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(ObserverTest, ScopedObserverTest)
+{
+    std::vector<int> results;
+
+    auto in = MyDomain::MakeVar(1);
+
+    {
+        MyDomain::ScopedObserverT obs = in.Observe([&] (int v) {
+            results.push_back(v);
+
+        });
+
+        in <<=2;
+    }
+
+    in <<=3;
+
+    ASSERT_EQ(results.size(),1);
+    ASSERT_EQ(results[0], 2);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     ObserverTest,
-    Detach
+    Detach,
+    ScopedObserverTest
 );
 
 } // ~namespace

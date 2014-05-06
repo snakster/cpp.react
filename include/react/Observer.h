@@ -20,11 +20,15 @@
 template <typename D>
 class Observer
 {
-public:
+private:
     using SubjectT  = REACT_IMPL::NodeBasePtrT<D>;
     using NodeT     = REACT_IMPL::IObserver;
 
-    Observer() = default;
+public:
+    Observer() :
+        nodePtr_{ nullptr }
+    {}
+
     Observer(const Observer&) = delete;
 
     Observer(Observer&& other) :
@@ -37,10 +41,14 @@ public:
         subject_{ subject }
     {}
 
-    bool IsValid() const { return nodePtr_ != nullptr; }
+    bool IsValid() const
+    {
+        return nodePtr_ != nullptr;
+    }
 
     void Detach()
     {
+        REACT_ASSERT(IsValid(), "Trying to detach an invalid Observer");
         REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().Unregister(nodePtr_);
     }
 
@@ -53,12 +61,34 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ScopedObserver
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D>
+class ScopedObserver
+{
+public:
+    ScopedObserver(Observer<D>&& obs) :
+        obs_{ std::move(obs) }
+    {}
+
+    ~ScopedObserver()
+    {
+        if (obs_.IsValid())
+            obs_.Detach();
+    }
+
+private:
+    Observer<D>     obs_;    
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DetachAllObservers
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TSubject>
 void DetachAllObservers(const TSubject& subject)
 {
     using D = typename TSubject::DomainT;
+
     REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().UnregisterFrom(
         subject.NodePtr().get());
 }
