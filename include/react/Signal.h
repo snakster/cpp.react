@@ -53,6 +53,16 @@ public:
     const S& Value() const      { return BaseT::getValue(); }
     const S& operator()() const { return BaseT::getValue(); }
 
+    bool Equals(const Signal& other) const
+    {
+        return BaseT::Equals(other);
+    }
+
+    bool IsValid() const
+    {
+        return BaseT::IsValid();
+    }
+
     template <typename F>
     Observer<D> Observe(F&& f) const
     {

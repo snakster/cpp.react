@@ -19,6 +19,9 @@
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventToken
+///////////////////////////////////////////////////////////////////////////////////////////////////
 enum class EventToken { token };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -51,6 +54,16 @@ public:
     explicit Events(NodePtrT&& nodePtr) :
         EventStreamBase{ std::move(nodePtr) }
     {}
+
+    bool Equals(const Events& other) const
+    {
+        return BaseT::Equals(other);
+    }
+
+    bool IsValid() const
+    {
+        return BaseT::IsValid();
+    }
 
     template <typename F>
     Observer<D> Observe(F&& f) const

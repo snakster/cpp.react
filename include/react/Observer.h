@@ -48,7 +48,7 @@ public:
 
     void Detach()
     {
-        REACT_ASSERT(IsValid(), "Trying to detach an invalid Observer");
+        REACT_ASSERT(IsValid(), "Detach on invalid Observer.");
         REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().Unregister(nodePtr_);
     }
 

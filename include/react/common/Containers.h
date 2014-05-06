@@ -151,14 +151,12 @@ public:
     bool IsEmpty() const    { return size_ == 0; }
 
 private:
-    //! Increment the pointer.
     inline void increment(iterator& it)
     {
         if (++it == nodes_.end())
             it = nodes_.begin();
     }
 
-    //! Decrement the pointer.
     inline void decrement(iterator& it)
     {
         if (it == nodes_.begin())

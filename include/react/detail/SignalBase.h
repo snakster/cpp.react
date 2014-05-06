@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "react/detail/ReactiveBase.h"
+#include "react/detail/ReactiveInput.h"
 #include "react/detail/graph/SignalNodes.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
