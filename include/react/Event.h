@@ -65,10 +65,17 @@ public:
         return BaseT::IsValid();
     }
 
-    template <typename F>
-    Observer<D> Observe(F&& f) const
+    auto Forward() const
+        -> decltype(REACT::Forward(std::declval<Events>()))
     {
-        return REACT::Observe(*this, std::forward<F>(f));
+        return REACT::Forward(*this);
+    }
+
+    template <typename ... TArgs>
+    auto Merge(const Events<D,TArgs>& ... args) const
+        -> decltype(REACT::Merge(std::declval<Events>(), std::forward<TArgs>(args) ...))
+    {
+        return REACT::Merge(*this, std::forward<TArgs>(args) ...);
     }
 
     template <typename F>
@@ -83,6 +90,12 @@ public:
         -> decltype(REACT::Transform(std::declval<Events>(), std::forward<F>(f)))
     {
         return REACT::Transform(*this, std::forward<F>(f));
+    }
+
+    template <typename F>
+    Observer<D> Observe(F&& f) const
+    {
+        return REACT::Observe(*this, std::forward<F>(f));
     }
 };
 
@@ -114,6 +127,22 @@ public:
     explicit Events(NodePtrT&& nodePtr) :
         EventStreamBase{ std::move(nodePtr) }
     {}
+
+    bool Equals(const Events& other) const
+    {
+        return BaseT::Equals(other);
+    }
+
+    bool IsValid() const
+    {
+        return BaseT::IsValid();
+    }
+
+    auto Forward() const
+        -> decltype(REACT::Forward(std::declval<Events>()))
+    {
+        return REACT::Forward(*this);
+    }
 
     template <typename ... TArgs>
     auto Merge(const Events<D,TArgs>& ... args)

@@ -63,16 +63,16 @@ public:
         return BaseT::IsValid();
     }
 
-    template <typename F>
-    Observer<D> Observe(F&& f) const
-    {
-        return REACT::Observe(*this, std::forward<F>(f));
-    }
-
     template <class = std::enable_if<IsReactive<S>::value>::type>
     S Flatten() const
     {
         return REACT::Flatten(*this);
+    }
+
+    template <typename F>
+    Observer<D> Observe(F&& f) const
+    {
+        return REACT::Observe(*this, std::forward<F>(f));
     }
 };
 
@@ -107,6 +107,16 @@ public:
 
     const S& Value() const      { return BaseT::getValue(); }
     const S& operator()() const { return BaseT::getValue(); }
+
+    bool Equals(const Signal& other) const
+    {
+        return BaseT::Equals(other);
+    }
+
+    bool IsValid() const
+    {
+        return BaseT::IsValid();
+    }
 
     template <typename F>
     Observer<D> Observe(F&& f) const
