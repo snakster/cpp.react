@@ -1,16 +1,20 @@
 ## Introduction
 
-Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) framework for C++11. Its purpose is to provide abstractions that simplify the implementation of reactive behaviour.
+Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) framework for C++11.
 
-The general idea is that dependency relations between data/actions are expressed declarively, while the actual propagation of changes is handled automatically. The benefits:
-* Reduction of boilerplate code.
-* Updating is always consistent and glitch-free.
-* Support for implicit parallelization of updates.
+It provides abstractions to simplify the implementation of reactive behaviour required by modern applications.
+
+As an alternative to callbacks, it offers the following benefits:
+* Less boilerplate code;
+* consistent updating without redundant calculations or glitches;
+* implicit parallelization.
 
 #### Compiling
 
-Currently, the build has only been tested in Visual Studio 2013.
-The Intel C++ Compiler 14.0 with Visual Studio 2012/13 is theoretically supported as well, but it doesn't compile the current codebase anymore due to [some bugs]() with C++11 support.
+So far, the build has only been tested in Visual Studio 2013 as it's the development environment I'm using.
+The Intel C++ Compiler 14.0 with Visual Studio 2012/13 is theoretically supported as well, but last I checked, it did not compile anymore due to [some bugs]() with C++11 support.
+
+You are encouraged to try compiling it with other C++11 compilers and tell me why it didn't work :)
 
 ###### Dependencies
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
@@ -21,8 +25,9 @@ The Intel C++ Compiler 14.0 with Visual Studio 2012/13 is theoretically supporte
 
 #### Signals
 
-Signals are time-varying reactive values, that can be combined to create reactive expressions.
-These expressions are automatically recalculated whenever one of their dependent values changes.
+Signals are time-varying reactive values.
+They can be combined to expressions to create new signals, which are automatically recalculated whenever one of their data dependencies changes.
+As such, they can be seen as self-updating variables.
 
 ```C++
 #include "react/Domain.h"
@@ -32,8 +37,8 @@ using namespace react;
 
 REACTIVE_DOMAIN(D);
 
-auto width  = MyDomain::MakeVar(1);
-auto height = MyDomain::MakeVar(2);
+auto width  = D::MakeVar(1);
+auto height = D::MakeVar(2);
 
 auto area   = width * height;
 
@@ -44,7 +49,8 @@ cout << "area: " << area() << endl; // => area: 20
 
 #### Events
 
-Event streams represent flows of discrete values as first-class objects.
+Event streams represent flows of discrete values.
+They are first-class objects, so they can be merged, filtered, transformed or composed to more complex types.
 
 ```C++
 #include "react/Domain.h"
@@ -52,10 +58,10 @@ Event streams represent flows of discrete values as first-class objects.
 //...
 using namespace react;
 
-REACTIVE_DOMAIN(MyDomain);
+REACTIVE_DOMAIN(D);
 
-auto leftClicked  = MyDomain::MakeEventSource();
-auto rightClicked = MyDomain::MakeEventSource();
+auto leftClicked  = D::MakeEventSource();
+auto rightClicked = D::MakeEventSource();
 
 auto clicked = leftClicked | rightClicked;
 
@@ -68,25 +74,74 @@ The change propagation is handled implicitly by a _propagation engine_.
 Depending on the selected engine, independent propagation paths are automatically parallelized.
 
 ```C++
-#include "react/propagation/ToposortEngine.h"
-//...
+#include "react/Domain.h"
+#include "react/Signal.h"
+#include "react/engine/ToposortEngine.h"
+
 using namespace react;
 
-// Single-threaded updating
-REACTIVE_DOMAIN(MyDomain, ToposortEngine<sequential>);
+int main()
+{
+    // Sequential
+    {
+        REACTIVE_DOMAIN(D, ToposortEngine<sequential>);
 
-// Parallel updating
-REACTIVE_DOMAIN(MyDomain, ToposortEngine<parallel>);
+        auto a = D::MakeVar(1);
+        auto b = D::MakeVar(2);
+        auto c = D::MakeVar(3);
 
-// Input from multiple threads
-REACTIVE_DOMAIN(MyDomain, ToposortEngine<sequential_queuing>);
-REACTIVE_DOMAIN(MyDomain, ToposortEngine<parallel_queuing>);
+        auto x = (a + b) * c;
 
-// Parallel updating + input from multiple threads + pipelining
-REACTIVE_DOMAIN(MyDomain, ToposortEngine<parallel_pipelining>);
+        b <<= 20;
+    }
+
+    // Parallel
+    {
+        REACTIVE_DOMAIN(D, ToposortEngine<parallel>);
+
+        auto in = D::MakeVar(0);
+
+        auto op1 = in ->* [] (int in)
+        {
+            int result = in /* Costly operation #1 */;
+            return result;
+        };
+
+        auto op2 = in ->* [] (int in)
+        {
+            int result = in /* Costly operation #2 */;
+            return result;
+        };
+
+        auto out = op1 + op2;
+
+        // op1 and op2 can be re-calculated in parallel
+        in <<= 123456789;
+    }
+
+    // Queued input
+    {
+        REACTIVE_DOMAIN(D, ToposortEngine<sequential_queue>);
+
+        auto a = D::MakeVar(1);
+        auto b = D::MakeVar(2);
+        auto c = D::MakeVar(3);
+
+        auto x = (a + b) * c;
+
+        // Thread-safe input from multiple-threads (Note: unspecified order)
+        std::thread t1{ [&] { a <<= 10; } };
+        std::thread t2{ [&] { b <<= 100; } };
+        std::thread t3{ [&] { a <<= 1000; } };
+        std::thread t4{ [&] { b <<= 10000; } };
+
+        t1.join(); t2.join(); t3.join(); t4.join();
+    }
+}
 ```
 
 #### Reactive loops
+(Note: Experimental)
 
 ```C++
 #include "react/Domain.h"
