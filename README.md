@@ -35,13 +35,17 @@ using namespace react;
 
 REACTIVE_DOMAIN(D);
 
+// Two variable that can be manipulated imperatively
 auto width  = D::MakeVar(1);
 auto height = D::MakeVar(2);
 
 auto area   = width * height;
 
 cout << "area: " << area() << endl; // => area: 2
+
+// Width changed, so area is re-calculated automatically
 width <<= 10;
+
 cout << "area: " << area() << endl; // => area: 20
 ```
 
@@ -53,17 +57,20 @@ They are first-class objects and can be merged, filtered, transformed or compose
 ```C++
 #include "react/Domain.h"
 #include "react/Event.h"
+#include "react/Observer.h"
 //...
+using namespace std;
 using namespace react;
 
 REACTIVE_DOMAIN(D);
 
+// Two event sources
 auto leftClicked  = D::MakeEventSource();
 auto rightClicked = D::MakeEventSource();
 
-auto clicked = leftClicked | rightClicked;
-
-Observe(clicked, [] { cout << "button clicked!" << endl; });
+// Merge both event streams and register an observer
+auto clickObserver = (leftClicked | rightClicked)
+    .Observe([] { cout << "button clicked!" << endl; });
 ```
 
 #### Implicit parallelism
@@ -78,63 +85,61 @@ Depending on the selected engine, independent propagation paths are automaticall
 
 using namespace react;
 
-int main()
+
+// Sequential
 {
-    // Sequential
+    REACTIVE_DOMAIN(D, ToposortEngine<sequential>);
+
+    auto a = D::MakeVar(1);
+    auto b = D::MakeVar(2);
+    auto c = D::MakeVar(3);
+
+    auto x = (a + b) * c;
+
+    b <<= 20;
+}
+
+// Parallel
+{
+    REACTIVE_DOMAIN(D, ToposortEngine<parallel>);
+
+    auto in = D::MakeVar(0);
+
+    auto op1 = in ->* [] (int in)
     {
-        REACTIVE_DOMAIN(D, ToposortEngine<sequential>);
+        int result = in /* Costly operation #1 */;
+        return result;
+    };
 
-        auto a = D::MakeVar(1);
-        auto b = D::MakeVar(2);
-        auto c = D::MakeVar(3);
-
-        auto x = (a + b) * c;
-
-        b <<= 20;
-    }
-
-    // Parallel
+    auto op2 = in ->* [] (int in)
     {
-        REACTIVE_DOMAIN(D, ToposortEngine<parallel>);
+        int result = in /* Costly operation #2 */;
+        return result;
+    };
 
-        auto in = D::MakeVar(0);
+    auto out = op1 + op2;
 
-        auto op1 = in ->* [] (int in)
-        {
-            int result = in /* Costly operation #1 */;
-            return result;
-        };
+    // op1 and op2 can be re-calculated in parallel
+    in <<= 123456789;
+}
 
-        auto op2 = in ->* [] (int in)
-        {
-            int result = in /* Costly operation #2 */;
-            return result;
-        };
+// Queued input
+{
+    REACTIVE_DOMAIN(D, ToposortEngine<sequential_queue>);
 
-        auto out = op1 + op2;
+    auto a = D::MakeVar(1);
+    auto b = D::MakeVar(2);
+    auto c = D::MakeVar(3);
 
-        // op1 and op2 can be re-calculated in parallel
-        in <<= 123456789;
-    }
+    auto x = (a + b) * c;
 
-    // Queued input
-    {
-        REACTIVE_DOMAIN(D, ToposortEngine<sequential_queue>);
+    // Thread-safe input from multiple-threads (Note: unspecified order)
+    std::thread t1{ [&] { a <<= 10; } };
+    std::thread t2{ [&] { b <<= 100; } };
+    std::thread t3{ [&] { a <<= 1000; } };
+    std::thread t4{ [&] { b <<= 10000; } };
 
-        auto a = D::MakeVar(1);
-        auto b = D::MakeVar(2);
-        auto c = D::MakeVar(3);
-
-        auto x = (a + b) * c;
-
-        // Thread-safe input from multiple-threads (Note: unspecified order)
-        std::thread t1{ [&] { a <<= 10; } };
-        std::thread t2{ [&] { b <<= 100; } };
-        std::thread t3{ [&] { a <<= 1000; } };
-        std::thread t4{ [&] { b <<= 10000; } };
-
-        t1.join(); t2.join(); t3.join(); t4.join();
-    }
+    t1.join(); t2.join(); t3.join(); t4.join();
 }
 ```
 
