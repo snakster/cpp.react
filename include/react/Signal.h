@@ -382,6 +382,7 @@ auto operator ## op(const TSignal& arg)                                         
 DECLARE_OP(+, UnaryPlus);
 DECLARE_OP(-, UnaryMinus);
 DECLARE_OP(!, LogicalNegation);
+DECLARE_OP(~, BitwiseComplement);
 DECLARE_OP(++, Increment);
 DECLARE_OP(--, Decrement);
 
@@ -643,6 +644,12 @@ DECLARE_OP(>=, GreaterEqual);
 
 DECLARE_OP(&&, LogicalAnd);
 DECLARE_OP(||, LogicalOr);
+
+//DECLARE_OP(&, BitwiseAnd);
+//DECLARE_OP(|, BitwiseOr);
+//DECLARE_OP(^, BitwiseXor);
+//DECLARE_OP(<<, BitwiseLeftShift); // MSVC: Internal compiler error
+//DECLARE_OP(>>, BitwiseRightShift);
 
 #undef DECLARE_OP
 
