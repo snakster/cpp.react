@@ -3,8 +3,7 @@
 Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) framework for C++11.
 
 It provides abstractions to simplify the implementation of reactive behaviour required by modern applications.
-
-As an alternative to callbacks, it offers the following benefits:
+As an alternative to raw callbacks, it offers the following benefits:
 * Less boilerplate code;
 * consistent updating without redundant calculations or glitches;
 * implicit parallelization.
@@ -220,17 +219,17 @@ public:
 
 class Manager : public ReactiveObject<D>
 {
-    ObserverT nameObs;
-
 public:
     VarSignalT<Company&>    CurrentCompany;
 
     Manager(initialCompany& company) :
         CurrentCompany{ MakeVar(ref(company)) }
     {
-        nameObs = REACTIVE_REF(CurrentCompany, Name).Observe([] (string name) {
-            cout << "Manager: Now managing " << name << endl;
-        });
+        // Reactive reference to inner event stream of signal
+        REACTIVE_REF(CurrentCompany, Name)
+            .Observe([] (string name) {
+                cout << "Manager: Now managing " << name << endl;
+            });
     }
 };
 
