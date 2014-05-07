@@ -1,8 +1,8 @@
 ## Introduction
 
-Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) framework for C++11.
+Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) library for C++11.
 
-It provides abstractions to simplify the implementation of reactive behaviour required by modern applications.
+It provides abstractions to simplify the implementation of reactive behaviour
 As an alternative to raw callbacks, it offers the following benefits:
 * Less boilerplate code;
 * consistent updating without redundant calculations or glitches;
@@ -13,7 +13,7 @@ As an alternative to raw callbacks, it offers the following benefits:
 So far, the build has only been tested in Visual Studio 2013 as it's the development environment I'm using.
 The Intel C++ Compiler 14.0 with Visual Studio 2012/13 is theoretically supported as well, but last I checked, it did not compile anymore due to [some bugs]() with C++11 support.
 
-You are encouraged to try compiling it with other C++11 compilers and tell me why it didn't work :)
+You are encouraged to try compiling it with other C++11 compilers and tell me why it doesn't work :)
 
 ###### Dependencies
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
