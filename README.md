@@ -2,7 +2,7 @@
 
 Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) library for C++11.
 
-It provides abstractions to simplify the implementation of reactive behaviour
+It provides abstractions to simplify the implementation of reactive behaviour in programs.
 As an alternative to raw callbacks, it offers the following benefits:
 * Less boilerplate code;
 * consistent updating without redundant calculations or glitches;
