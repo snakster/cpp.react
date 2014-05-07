@@ -2,7 +2,7 @@
 
 Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) library for C++11.
 
-It provides abstractions to simplify the implementation of reactive behaviour in programs.
+It provides abstractions to simplify the implementation of reactive behaviour.
 As an alternative to raw callbacks, it offers the following benefits:
 * Less boilerplate code;
 * consistent updating without redundant calculations or glitches;
@@ -24,9 +24,8 @@ You are encouraged to try compiling it with other C++11 compilers and tell me wh
 
 #### Signals
 
-Signals are time-varying reactive values.
+Signals self-updating reactive variables.
 They can be combined to expressions to create new signals, which are automatically recalculated whenever one of their data dependencies changes.
-As such, they can be seen as self-updating variables.
 
 ```C++
 #include "react/Domain.h"
@@ -49,7 +48,7 @@ cout << "area: " << area() << endl; // => area: 20
 #### Events
 
 Event streams represent flows of discrete values.
-They are first-class objects, so they can be merged, filtered, transformed or composed to more complex types.
+They are first-class objects and can be merged, filtered, transformed or composed to more complex types.
 
 ```C++
 #include "react/Domain.h"
