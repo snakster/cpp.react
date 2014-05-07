@@ -377,6 +377,23 @@ auto operator ## op(const TSignal& arg)                                         
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
             F(), arg.NodePtr()));                                                   \
+}                                                                                   \
+                                                                                    \
+template                                                                            \
+<                                                                                   \
+    typename D,                                                                     \
+    typename TVal,                                                                  \
+    typename TOpIn,                                                                 \
+    typename F = name ## OpFunctor<TVal>,                                           \
+    typename S = std::result_of<F(TVal)>::type,                                     \
+    typename TOp = REACT_IMPL::FunctionOp<S,F,TOpIn>                                \
+>                                                                                   \
+auto operator ## op(TempSignal<D,TVal,TOpIn>&& arg)                                 \
+    -> TempSignal<D,S,TOp>                                                          \
+{                                                                                   \
+    return TempSignal<D,S,TOp>(                                                     \
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
+            F(), arg.StealOp()));                                                   \
 }
 
 DECLARE_OP(+, UnaryPlus);
