@@ -82,7 +82,7 @@ Depending on the selected engine, independent propagation paths are automaticall
 #include "react/Domain.h"
 #include "react/Signal.h"
 #include "react/engine/ToposortEngine.h"
-
+//...
 using namespace react;
 
 
@@ -133,7 +133,7 @@ using namespace react;
 
     auto x = (a + b) * c;
 
-    // Thread-safe input from multiple-threads (Note: unspecified order)
+    // Thread-safe input (Note: unspecified order)
     std::thread t1{ [&] { a <<= 10; } };
     std::thread t2{ [&] { b <<= 100; } };
     std::thread t3{ [&] { a <<= 1000; } };
@@ -167,20 +167,20 @@ auto mouseMove = D::MakeEventSource<PointT>();
 
 D::ReactiveLoopT loop
 {
-	[&] (D::ReactiveLoopT::Context& ctx)
-	{
-		PathT points;
+    [&] (D::ReactiveLoopT::Context& ctx)
+    {
+        PathT points;
 
-		points.emplace_back(ctx.Await(mouseDown));
+        points.emplace_back(ctx.Await(mouseDown));
 
-		ctx.RepeatUntil(mouseUp, [&] {
-			points.emplace_back(ctx.Await(mouseMove));
-		});
+        ctx.RepeatUntil(mouseUp, [&] {
+            points.emplace_back(ctx.Await(mouseMove));
+        });
 
-		points.emplace_back(ctx.Await(mouseUp));
+        points.emplace_back(ctx.Await(mouseUp));
 
-		paths.push_back(points);
-	}
+        paths.push_back(points);
+    }
 };
 
 mouseDown << PointT(1,1);
@@ -218,23 +218,26 @@ public:
         Name{ MakeVar(string(name)) }
     {}
 
-    inline bool operator==(const Company& other) const { /* ... */ }
+    bool operator==(const Company&) const;
 };
 
 class Manager : public ReactiveObject<D>
 {
 public:
     VarSignalT<Company&>    CurrentCompany;
+    ObserverT               NameObserver;
 
     Manager(initialCompany& company) :
-        CurrentCompany{ MakeVar(ref(company)) }
-    {
-        // Reactive reference to inner event stream of signal
-        REACTIVE_REF(CurrentCompany, Name)
-            .Observe([] (string name) {
-                cout << "Manager: Now managing " << name << endl;
-            });
-    }
+        CurrentCompany{ MakeVar(ref(company)) },
+        NameObserver
+        {
+            // Reactive reference to inner event stream of signal
+            REACTIVE_REF(CurrentCompany, Name)
+                .Observe([] (const string& name) {
+                    cout << "Manager: Now managing " << name << endl;
+                });
+        }
+    {}
 };
 
 Company company1{ "Cellnet" };
@@ -245,6 +248,7 @@ Manager manager{ company1 };
 company1.Name <<= string("BT Cellnet");
 company2.Name <<= string("Inprise");
 
+// Observer moves from company1.Name to company2.Name
 manager.CurrentCompany <<= ref(company2);
 
 company1.Name <<= string("O2");
