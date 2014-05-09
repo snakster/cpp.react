@@ -8,7 +8,6 @@
 
 #include "react/detail/Defs.h"
 
-#include <memory>
 #include <utility>
 
 #include "react/detail/ReactiveBase.h"
@@ -40,7 +39,8 @@ protected:
     void emit(T&& e) const
     {
         InputManager<D>::AddInput(
-            *std::static_pointer_cast<EventSourceNode<D,E>>(ptr_), std::forward<T>(e));
+            *reinterpret_cast<EventSourceNode<D,E>*>(ptr_.get()),
+            std::forward<T>(e));
     }
 };
 

@@ -8,7 +8,6 @@
 
 #include "react/detail/Defs.h"
 
-#include <memory>
 #include <utility>
 
 #include "react/detail/ReactiveBase.h"
@@ -46,7 +45,8 @@ protected:
     void setValue(T&& newValue) const
     {
         InputManager<D>::AddInput(
-            *std::static_pointer_cast<VarNode<D,S>>(ptr_), std::forward<T>(newValue));
+            *reinterpret_cast<VarNode<D,S>*>(ptr_.get()),
+            std::forward<T>(newValue));
     }
 };
 

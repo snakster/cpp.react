@@ -241,7 +241,7 @@ public:
 
     TOp StealOp()
     {
-        return std::move(std::static_pointer_cast<NodeT>(ptr_)->StealOp());
+        return std::move(reinterpret_cast<NodeT*>(ptr_.get())->StealOp());
     }
 };
 

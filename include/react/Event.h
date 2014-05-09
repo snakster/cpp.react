@@ -8,10 +8,9 @@
 
 #include "react/detail/Defs.h"
 
-#include <thread>
+#include <memory>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include "react/Observer.h"
 #include "react/TypeTraits.h"
@@ -292,7 +291,7 @@ public:
 
     TOp StealOp()
     {
-        return std::move(std::static_pointer_cast<NodeT>(ptr_)->StealOp());
+        return std::move(reinterpret_cast<NodeT*>(ptr_.get())->StealOp());
     }
 
     template <typename ... TArgs>
