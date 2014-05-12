@@ -85,7 +85,7 @@ public:
         auto edgeNodeIt = edgeNodes.begin();
         auto slowNodeIt = slowNodes.begin();
 
-        uint cur = 0;
+        auto cur = 0;
         HandleVect nodes(nodeCount);
 
         for (int w=0; w<Width; w++)

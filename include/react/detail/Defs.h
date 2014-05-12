@@ -16,6 +16,7 @@
 #endif
 
 #include <cassert>
+#include <cstddef>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #define REACT_BEGIN     namespace react {
@@ -46,10 +47,11 @@
 // Thread local storage
 #define REACT_TLS   __declspec(thread)
 
-/*****************************************/ REACT_BEGIN /*****************************************/
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 // Type aliases
 using uint = unsigned int;
 using uchar = unsigned char;
+using std::size_t;
 
-/******************************************/ REACT_END /******************************************/
+/****************************************/ REACT_IMPL_END /***************************************/
