@@ -133,7 +133,7 @@ public:
         func_{ std::move(other.func_) }
     {}
 
-    S Evaluate() const
+    S Evaluate() 
     {
         return apply(EvalFunctor{ func_ }, deps_);
     }
@@ -142,15 +142,16 @@ private:
     // Eval
     struct EvalFunctor
     {
-        EvalFunctor(const F& f) : MyFunc{ f }   {}
+        EvalFunctor(F& f) : MyFunc{ f }   {}
 
-        S operator()(const TDeps& ... args) const
+        template <typename ... T>
+        S operator()(T&& ... args)
         {
             return MyFunc(eval(args) ...);
         }
 
         template <typename T>
-        static auto eval(const T& op) -> decltype(op.Evaluate())
+        static auto eval(T& op) -> decltype(op.Evaluate())
         {
             return op.Evaluate();
         }
@@ -161,7 +162,7 @@ private:
             return depPtr->ValueRef();
         }
 
-        const F& MyFunc;
+        F& MyFunc;
     };
 
 private:
