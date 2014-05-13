@@ -56,9 +56,9 @@ template <typename D>
 class ReactiveObject
 {
 public:
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     /// Aliases
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     using DomainT = D;
 
     template <typename S>
@@ -79,9 +79,9 @@ public:
 
     using ReactiveLoopT = ReactiveLoop<D>;
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     /// MakeVar
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     template
     <
         typename V,
@@ -105,9 +105,9 @@ public:
         return REACT::MakeVar<D>(value);
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     // MakeVar (higher order)
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     template
     <
         typename V,
@@ -122,9 +122,9 @@ public:
         return REACT::MakeVar<D>(std::forward<V>(value));
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     /// MakeSignal
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     template
     <
         typename FIn,
@@ -138,40 +138,41 @@ public:
         return REACT::MakeSignal<D>(std::forward<FIn>(func), args ...);
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     /// MakeEventSource
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     template <typename E>
     static auto MakeEventSource()
         -> EventSourceT<E>
     {
         return REACT::MakeEventSource<D,E>();
     }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Flatten macros
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    // Todo: Add safety wrapper + static assert to check for this for ReactiveObject
-    // Note: Using static_cast rather than -> return type, because when using lambda for inline class
-    // initialization, decltype did not recognize the parameter r
-    #define REACTIVE_REF(obj, name)                                                             \
-        Flatten(                                                                                \
-            MakeSignal(                                                                         \
-                [] (const REACT_IMPL::Identity<decltype(obj)>::Type::ValueT& r)                 \
-                {                                                                               \
-                    return static_cast<RemoveInput<DomainT, decltype(r.name)>::Type>(r.name);   \
-                },                                                                              \
-                obj))
-
-    #define REACTIVE_PTR(obj, name)                                                             \
-        Flatten(                                                                                \
-            MakeSignal(                                                                         \
-                [] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)                        \
-                {                                                                               \
-                    REACT_ASSERT(r != nullptr);                                                 \
-                    return static_cast<RemoveInput<DomainT, decltype(r->name)>::Type>(r->name); \
-                },                                                                              \
-                obj))
 };
 
 /******************************************/ REACT_END /******************************************/
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Flatten macros
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Note: Using static_cast rather than -> return type, because when using lambda for inline
+// class initialization, decltype did not recognize the parameter r
+#define REACTIVE_REF(obj, name)                                                             \
+    Flatten(                                                                                \
+        MakeSignal(                                                                         \
+            [] (const REACT_IMPL::Identity<decltype(obj)>::Type::ValueT& r)                 \
+            {                                                                               \
+                using T = decltype(r.name);                                                 \
+                return static_cast<RemoveInput<typename T::DomainT, T>::Type>(r.name);      \
+            },                                                                              \
+            obj))
+
+#define REACTIVE_PTR(obj, name)                                                             \
+    Flatten(                                                                                \
+        MakeSignal(                                                                         \
+            [] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)                        \
+            {                                                                               \
+                REACT_ASSERT(r != nullptr);                                                 \
+                using T = decltype(r->name);                                                \
+                return static_cast<RemoveInput<typename T::DomainT, T>::Type>(r->name);     \
+            },                                                                              \
+            obj))
