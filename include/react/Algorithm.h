@@ -55,6 +55,27 @@ auto Fold(V&& init, const Events<D,E>& events, FIn&& func)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FoldByRef - Pass current value as reference
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename V,
+    typename E,
+    typename FIn,
+    typename S = std::decay<V>::type
+>
+auto FoldByRef(V&& init, const Events<D,E>& events, FIn&& func)
+    -> Signal<D,S>
+{
+    using F = std::decay<FIn>::type;
+
+    return Signal<D,S>(
+        std::make_shared<REACT_IMPL::FoldByRefNode<D,S,E,F>>(
+            std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterate
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -72,6 +93,27 @@ auto Iterate(V&& init, const Events<D,E>& events, FIn&& func)
 
     return Signal<D,S>(
         std::make_shared<REACT_IMPL::IterateNode<D,S,E,F>>(
+            std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// IterateByRef
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename V,
+    typename E,
+    typename FIn,
+    typename S = std::decay<V>::type
+>
+auto IterateByRef(V&& init, const Events<D,E>& events, FIn&& func)
+    -> Signal<D,S>
+{
+    using F = std::decay<FIn>::type;
+
+    return Signal<D,S>(
+        std::make_shared<REACT_IMPL::IterateByRefNode<D,S,E,F>>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
 }
 

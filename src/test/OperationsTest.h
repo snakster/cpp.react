@@ -214,6 +214,54 @@ TYPED_TEST_P(OperationsTest, Snapshot1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FoldByRef1 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, FoldByRef1)
+{
+    auto src = MyDomain::MakeEventSource<int>();
+    auto f = FoldByRef(
+        std::vector<int>(),
+        src,
+        [] (std::vector<int>& v, int d) {
+            v.push_back(d);
+        });
+
+    // Push
+    for (auto i=1; i<=100; i++)
+        src << i;
+
+    ASSERT_EQ(f().size(), 100);
+
+    // Check
+    for (auto i=1; i<=100; i++)
+        ASSERT_EQ(f()[i-1], i);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// IterateByRef1 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, IterateByRef1)
+{
+    auto src = MyDomain::MakeEventSource();
+    auto x = IterateByRef(
+        std::vector<int>(),
+        src,
+        [] (std::vector<int>& v) {
+            v.push_back(123);
+        });
+
+    // Push
+    for (auto i=0; i<100; i++)
+        src.Emit();
+
+    ASSERT_EQ(x().size(), 100);
+
+    // Check
+    for (auto i=0; i<100; i++)
+        ASSERT_EQ(x()[i], 123);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     OperationsTest,
@@ -223,7 +271,9 @@ REGISTER_TYPED_TEST_CASE_P
     Monitor1,
     Hold1,
     Pulse1,
-    Snapshot1
+    Snapshot1,
+    FoldByRef1,
+    IterateByRef1
 );
 
 } // ~namespace
