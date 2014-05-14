@@ -62,13 +62,14 @@ public:
     <
         typename TNode,
         typename TSubject,
-        typename F
+        typename F,
+        typename ... TDeps
     >
-    IObserver* Register(const TSubject& subject, F&& func)
+    IObserver* Register(const TSubject& subject, F&& func, const TDeps& ... deps)
     {
         std::unique_ptr<IObserver> ptr
         {
-            new TNode(subject.NodePtr(), std::forward<F>(func))
+            new TNode(subject.NodePtr(), std::forward<F>(func), deps.NodePtr() ...)
         };
 
         auto* obsPtr = ptr.get();
