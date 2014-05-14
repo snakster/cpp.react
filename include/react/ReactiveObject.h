@@ -147,6 +147,12 @@ public:
     {
         return REACT::MakeEventSource<D,E>();
     }
+
+    static auto MakeEventSource()
+        -> EventSource<D,EventToken>
+    {
+        return REACT::MakeEventSource<D>();
+    }
 };
 
 /******************************************/ REACT_END /******************************************/
