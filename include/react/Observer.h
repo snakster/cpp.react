@@ -168,6 +168,70 @@ auto Observe(const Events<D,EventToken>& subject, FIn&& func)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Observe - Synced
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename FIn,
+    typename E,
+    typename TDepValue1,
+    typename ... TDepValues,
+    class = std::enable_if<
+        ! std::is_same<E,EventToken>::value>::type
+>
+auto Observe(const Events<D,E>& subject, FIn&& func,
+             const Signal<D,TDepValue1>& dep1, const Signal<D,TDepValues>& ... deps)
+    -> Observer<D>
+{
+    using F = std::decay<FIn>::type;
+    using TNode = REACT_IMPL::SyncedObserverNode<D,E,F,TDepValue1,TDepValues ...>;
+
+    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
+        template Register<TNode>(subject, std::forward<FIn>(func), dep1, deps ...);
+
+    return Observer<D>(raw, subject.NodePtr());
+}
+
+// Synced
+template
+<
+    typename D,
+    typename FIn,
+    typename TDepValue1,
+    typename ... TDepValues
+>
+auto Observe(const Events<D,EventToken>& subject, FIn&& func,
+             const Signal<D,TDepValue1>& dep1, const Signal<D,TDepValues>& ... deps)
+    -> Observer<D>
+{
+    using F = std::decay<FIn>::type;
+
+    struct Wrapper_
+    {
+        Wrapper_(FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
+        Wrapper_(const Wrapper_& other) = default;
+        Wrapper_(Wrapper_&& other) : MyFunc{ std::move(other.MyFunc) } {}
+
+        void operator()(EventToken, const TDepValue1& arg1, const TDepValues& ... args)
+        {
+            MyFunc(arg1, args ...);
+        }
+
+        F MyFunc;
+    };
+
+    using TNode = REACT_IMPL::SyncedObserverNode<D,EventToken,Wrapper_,TDepValue1,TDepValues ...>;
+
+    Wrapper_ wrapper{ std::forward<FIn>(func) };
+
+    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
+        template Register<TNode>(subject, std::move(wrapper), dep1, deps ...);
+
+    return Observer<D>(raw, subject.NodePtr());
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DetachAllObservers
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TSubject>

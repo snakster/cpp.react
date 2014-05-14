@@ -691,7 +691,7 @@ public:
     {}
 
     template <typename TEvent, typename F>
-    Observer<D> SyncedObserve(const TEvent& evn, F&& f) const
+    Observer<D> Observe(const TEvent& evn, F&& f) const
     {
         struct Wrapper_
         {
@@ -702,7 +702,7 @@ public:
 
             Observer<D> operator()(const Signal<D,TValues>& ... deps)
             {
-                return REACT::SyncedObserve(MyEvent, std::forward<F>(MyFunc), deps ...);
+                return REACT::Observe(MyEvent, std::forward<F>(MyFunc), deps ...);
             }
 
             const TEvent& MyEvent;

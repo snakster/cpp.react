@@ -12,6 +12,7 @@
 
 #include "react/Domain.h"
 #include "react/Signal.h"
+#include "react/Event.h"
 #include "react/Observer.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -129,11 +130,61 @@ TYPED_TEST_P(ObserverTest, ScopedObserverTest)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Detach test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(ObserverTest, SyncedObserveTest)
+{
+    auto in1 = MyDomain::MakeVar(1);
+    auto in2 = MyDomain::MakeVar(1);
+
+    auto sum  = in1 + in2;
+    auto prod = in1 * in2;
+    auto diff = in1 - in2;
+
+    auto src1 = MyDomain::MakeEventSource();
+    auto src2 = MyDomain::MakeEventSource<int>();
+
+    (sum,prod,diff).Observe(src1, [] (int sum, int prod, int diff) {
+        ASSERT_EQ(sum, 33);
+        ASSERT_EQ(prod, 242);
+        ASSERT_EQ(diff, 11);
+    });
+
+    (sum,prod,diff).Observe(src2, [] (int e, int sum, int prod, int diff) {
+        ASSERT_EQ(e, 42);
+        ASSERT_EQ(sum, 33);
+        ASSERT_EQ(prod, 242);
+        ASSERT_EQ(diff, 11);
+    });
+
+    Observe(src1, [] (int sum, int prod, int diff) {
+        ASSERT_EQ(sum, 33);
+        ASSERT_EQ(prod, 242);
+        ASSERT_EQ(diff, 11);
+    }, sum,prod,diff);
+
+    Observe(src2, [] (int e, int sum, int prod, int diff) {
+        ASSERT_EQ(e, 42);
+        ASSERT_EQ(sum, 33);
+        ASSERT_EQ(prod, 242);
+        ASSERT_EQ(diff, 11);
+    }, sum,prod,diff);
+
+    in1 <<= 22;
+    in2 <<= 11;
+
+    src1.Emit();
+    src2.Emit(42);
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     ObserverTest,
     Detach,
-    ScopedObserverTest
+    ScopedObserverTest,
+    SyncedObserveTest
 );
 
 } // ~namespace
