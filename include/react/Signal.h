@@ -671,26 +671,58 @@ DECLARE_OP(||, LogicalOr);
 #undef DECLARE_OP
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// InputPack - Wraps several nodes in a tuple. Create with comma operator.
+/// SignalList - Wraps several nodes in a tuple. Create with comma operator.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
     typename D,
     typename ... TValues
 >
-struct InputPack
+class SignalList
 {
-    std::tuple<const Signal<D, TValues>& ...> Data;
-
-    template <typename TFirstValue, typename TSecondValue>
-    InputPack(const Signal<D,TFirstValue>& first, const Signal<D,TSecondValue>& second) :
-        Data{ std::tie(first, second) }
+public:
+    SignalList(const Signal<D,TValues>&  ... deps) :
+        data_{ std::tie(deps ...) }
     {}
 
     template <typename ... TCurValues, typename TAppendValue>
-    InputPack(const InputPack<D, TCurValues ...>& curArgs, const Signal<D,TAppendValue>& newArg) :
-        Data{ std::tuple_cat(curArgs.Data, std::tie(newArg)) }
+    SignalList(const SignalList<D, TCurValues ...>& curArgs, const Signal<D,TAppendValue>& newArg) :
+        data_{ std::tuple_cat(curArgs.data_, std::tie(newArg)) }
     {}
+
+    template <typename TEvent, typename F>
+    Observer<D> SyncedObserve(const TEvent& evn, F&& f) const
+    {
+        struct Wrapper_
+        {
+            Wrapper_(const TEvent& evn, F&& func) :
+                MyEvent{ evn },
+                MyFunc{ std::forward<F>(func) }
+            {}
+
+            Observer<D> operator()(const Signal<D,TValues>& ... deps)
+            {
+                return REACT::SyncedObserve(MyEvent, std::forward<F>(MyFunc), deps ...);
+            }
+
+            const TEvent& MyEvent;
+
+            // Stored as universal ref
+            F MyFunc;
+        };
+
+        return REACT_IMPL::apply(Wrapper_{ evn, std::forward<F>(f) }, data_);
+    }
+
+private:
+    std::tuple<const Signal<D, TValues>& ...> data_;
+
+    template <typename D, typename ... TValues>
+    friend class SignalList;
+
+    template <typename D, typename F, typename ... TSignals>
+    friend auto operator->*(const SignalList<D,TSignals ...>&, F&&)
+        -> Signal<D, typename std::result_of<F(TSignals ...)>::type>;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -703,9 +735,9 @@ template
     typename TRightVal
 >
 auto operator,(const Signal<D,TLeftVal>& a, const Signal<D,TRightVal>& b)
-    -> InputPack<D,TLeftVal, TRightVal>
+    -> SignalList<D,TLeftVal, TRightVal>
 {
-    return InputPack<D, TLeftVal, TRightVal>(a, b);
+    return SignalList<D, TLeftVal, TRightVal>(a, b);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -717,10 +749,10 @@ template
     typename ... TCurValues,
     typename TAppendValue
 >
-auto operator,(const InputPack<D, TCurValues ...>& cur, const Signal<D,TAppendValue>& append)
-    -> InputPack<D,TCurValues ... , TAppendValue>
+auto operator,(const SignalList<D, TCurValues ...>& cur, const Signal<D,TAppendValue>& append)
+    -> SignalList<D,TCurValues ... , TAppendValue>
 {
-    return InputPack<D, TCurValues ... , TAppendValue>(cur, append);
+    return SignalList<D, TCurValues ... , TAppendValue>(cur, append);
 }
 
 /******************************************/ REACT_END /******************************************/
@@ -772,12 +804,12 @@ template
     typename F,
     typename ... TSignals
 >
-auto operator->*(const InputPack<D,TSignals ...>& inputPack, F&& func)
+auto operator->*(const SignalList<D,TSignals ...>& inputPack, F&& func)
     -> Signal<D, typename std::result_of<F(TSignals ...)>::type>
 {
     return apply(
         REACT_IMPL::ApplyHelper<D, F&&, TSignals ...>::MakeSignal,
-        std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.Data));
+        std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.data_));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -794,27 +826,6 @@ auto Flatten(const Signal<D,Signal<D,TInnerValue>>& node)
     return Signal<D,TInnerValue>(
         std::make_shared<REACT_IMPL::FlattenNode<D, Signal<D,TInnerValue>, TInnerValue>>(
             node.NodePtr(), node.Value().NodePtr()));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Observe
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename FIn,
-    typename S
->
-auto Observe(const Signal<D,S>& subject, FIn&& func)
-    -> Observer<D>
-{
-    using F = std::decay<FIn>::type;
-    using TNode = REACT_IMPL::SignalObserverNode<D,S,F>;
-
-    auto* obs = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::forward<FIn>(func));
-
-    return Observer<D>{ obs, subject.NodePtr() };
 }
 
 /******************************************/ REACT_END /******************************************/

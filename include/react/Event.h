@@ -592,45 +592,4 @@ auto Flatten(const Signal<D,Events<D,TInnerValue>>& node)
             node.NodePtr(), node().NodePtr()));
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Observe
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename FIn,
-    typename E,
-    class = std::enable_if<
-        ! std::is_same<E,EventToken>::value>::type
->
-auto Observe(const Events<D,E>& subject, FIn&& func)
-    -> Observer<D>
-{
-    using F = std::decay<FIn>::type;
-    using TNode = REACT_IMPL::EventObserverNode<D,E,F>;
-
-    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::forward<FIn>(func));
-
-    return Observer<D>(raw, subject.NodePtr());
-}
-
-template
-<
-    typename D,
-    typename FIn
->
-auto Observe(const Events<D,EventToken>& subject, FIn&& func)
-    -> Observer<D>
-{
-    auto wrapper = [func] (EventToken) { func(); };
-
-    using TNode = REACT_IMPL::EventObserverNode<D,EventToken,decltype(wrapper)>;
-
-    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::move(wrapper));
-
-    return Observer<D>(raw, subject.NodePtr());
-}
-
 /******************************************/ REACT_END /******************************************/

@@ -15,6 +15,17 @@
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Forward declarations
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename S>
+class Signal;
+
+template <typename D, typename E>
+class Events;
+
+enum class EventToken;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Observer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
@@ -80,6 +91,81 @@ public:
 private:
     Observer<D>     obs_;    
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Observe - Signals
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename FIn,
+    typename S
+>
+auto Observe(const Signal<D,S>& subject, FIn&& func)
+    -> Observer<D>
+{
+    using F = std::decay<FIn>::type;
+    using TNode = REACT_IMPL::SignalObserverNode<D,S,F>;
+
+    auto* obs = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
+        template Register<TNode>(subject, std::forward<FIn>(func));
+
+    return Observer<D>{ obs, subject.NodePtr() };
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Observe - Events
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename FIn,
+    typename E,
+    class = std::enable_if<
+        ! std::is_same<E,EventToken>::value>::type
+>
+auto Observe(const Events<D,E>& subject, FIn&& func)
+    -> Observer<D>
+{
+    using F = std::decay<FIn>::type;
+    using TNode = REACT_IMPL::EventObserverNode<D,E,F>;
+
+    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
+        template Register<TNode>(subject, std::forward<FIn>(func));
+
+    return Observer<D>(raw, subject.NodePtr());
+}
+
+template
+<
+    typename D,
+    typename FIn
+>
+auto Observe(const Events<D,EventToken>& subject, FIn&& func)
+    -> Observer<D>
+{
+    using F = std::decay<FIn>::type;
+
+    struct Wrapper_
+    {
+        Wrapper_(FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
+        Wrapper_(const Wrapper_& other) = default;
+        Wrapper_(Wrapper_&& other) : MyFunc{ std::move(other.MyFunc) } {}
+
+        void operator()(EventToken) { MyFunc(); }
+
+        F MyFunc;
+    };
+
+    Wrapper_ wrapper{ std::forward<FIn>(func) };
+
+    using TNode = REACT_IMPL::EventObserverNode<D,EventToken,Wrapper_>;
+
+    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
+        template Register<TNode>(subject, std::move(wrapper));
+
+    return Observer<D>(raw, subject.NodePtr());
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DetachAllObservers
