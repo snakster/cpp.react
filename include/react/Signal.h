@@ -690,30 +690,6 @@ public:
         data_{ std::tuple_cat(curArgs.data_, std::tie(newArg)) }
     {}
 
-    template <typename TEvent, typename F>
-    Observer<D> Observe(const TEvent& evn, F&& f) const
-    {
-        struct Wrapper_
-        {
-            Wrapper_(const TEvent& evn, F&& func) :
-                MyEvent{ evn },
-                MyFunc{ std::forward<F>(func) }
-            {}
-
-            Observer<D> operator()(const Signal<D,TValues>& ... deps)
-            {
-                return REACT::Observe(MyEvent, std::forward<F>(MyFunc), deps ...);
-            }
-
-            const TEvent& MyEvent;
-
-            // Stored as universal ref
-            F MyFunc;
-        };
-
-        return REACT_IMPL::apply(Wrapper_{ evn, std::forward<F>(f) }, data_);
-    }
-
 private:
     std::tuple<const Signal<D, TValues>& ...> data_;
 

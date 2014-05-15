@@ -144,19 +144,6 @@ TYPED_TEST_P(ObserverTest, SyncedObserveTest)
     auto src1 = MyDomain::MakeEventSource();
     auto src2 = MyDomain::MakeEventSource<int>();
 
-    (sum,prod,diff).Observe(src1, [] (int sum, int prod, int diff) {
-        ASSERT_EQ(sum, 33);
-        ASSERT_EQ(prod, 242);
-        ASSERT_EQ(diff, 11);
-    });
-
-    (sum,prod,diff).Observe(src2, [] (int e, int sum, int prod, int diff) {
-        ASSERT_EQ(e, 42);
-        ASSERT_EQ(sum, 33);
-        ASSERT_EQ(prod, 242);
-        ASSERT_EQ(diff, 11);
-    });
-
     Observe(src1, [] (int sum, int prod, int diff) {
         ASSERT_EQ(sum, 33);
         ASSERT_EQ(prod, 242);
