@@ -157,6 +157,19 @@ TYPED_TEST_P(ObserverTest, SyncedObserveTest)
         ASSERT_EQ(diff, 11);
     }, sum,prod,diff);
 
+    src1.Observe([] (int sum, int prod, int diff) {
+        ASSERT_EQ(sum, 33);
+        ASSERT_EQ(prod, 242);
+        ASSERT_EQ(diff, 11);
+    }, sum,prod,diff);
+
+    src2.Observe([] (int e, int sum, int prod, int diff) {
+        ASSERT_EQ(e, 42);
+        ASSERT_EQ(sum, 33);
+        ASSERT_EQ(prod, 242);
+        ASSERT_EQ(diff, 11);
+    }, sum,prod,diff);
+
     in1 <<= 22;
     in2 <<= 11;
 
