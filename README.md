@@ -28,7 +28,7 @@ That being said, I've been working on it for about 6 months and it's in a usable
 ## Documentation
 
 The documentation is still incomplete, but it already contains plenty of useful information and examples.
-It can be found in the [wiki](/wiki).
+It can be found in the [wiki](https://github.com/schlangster/cpp.react/wiki).
 
 ## Features by example
 
