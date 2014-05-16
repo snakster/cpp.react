@@ -15,22 +15,27 @@ The Intel C++ Compiler 14.0 with Visual Studio 2012/13 is theoretically supporte
 
 You are welcome to try compiling it with other C++11 compilers/on other platforms and report any issues you encounter.
 
-#### Status
+#### Dependencies
+* [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
+* [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the tests)
+* [Boost C++ Libraries](http://www.boost.org/) (optional, to use ReactiveLoop, which requires boost::coroutine)
+
+## Status
 
 This library is still under development and should not be considered release quality yet.
 That being said, I've been working on it for about 6 months and it's in a usable state.
 
-###### Dependencies
-* [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
-* [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the tests)
-* [Boost C++ Libraries](http://www.boost.org/) (optional, to use ReactiveLoop, which requires boost::coroutine)
+## Documentation
+
+The documentation is still incomplete, but it already contains plenty of useful information and examples.
+It can be found in the [wiki](/wiki).
 
 ## Features by example
 
 #### Signals
 
 Signals are self-updating reactive variables.
-They can be combined to expressions to create new signals, which are automatically rec-alculated whenever one of their data dependencies changes.
+They can be combined to expressions to create new signals, which are automatically re-calculated whenever one of their data dependencies changes.
 
 ```C++
 #include "react/Domain.h"
@@ -41,10 +46,12 @@ using namespace react;
 REACTIVE_DOMAIN(D);
 
 // Two variable that can be manipulated imperatively
-auto width  = D::MakeVar(1);
-auto height = D::MakeVar(2);
+D::VarSignalT<int> width  = D::MakeVar(1);
+D::VarSignalT<int> height = D::MakeVar(2);
 
-auto area   = width * height;
+// Arithmetic operators are overloaded to lift expressions
+// with signal operands and build new signals from them
+D::SignalT<int>    area   = width * height;
 
 cout << "area: " << area.Value() << endl; // => area: 2
 
@@ -70,8 +77,8 @@ using namespace react;
 REACTIVE_DOMAIN(D);
 
 // Two event sources
-auto leftClicked  = D::MakeEventSource();
-auto rightClicked = D::MakeEventSource();
+D::EventSource<> leftClicked  = D::MakeEventSource();
+D::EventSource<> rightClicked = D::MakeEventSource();
 
 // Merge both event streams and register an observer
 auto clickObserver = (leftClicked | rightClicked)
@@ -109,6 +116,8 @@ using namespace react;
     REACTIVE_DOMAIN(D, ToposortEngine<parallel>);
 
     auto in = D::MakeVar(0);
+
+    // The ->* operator is overloaded for a DSL
 
     auto op1 = in ->* [] (int in)
     {
