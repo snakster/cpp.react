@@ -784,7 +784,7 @@ auto operator->*(const SignalList<D,TSignals ...>& inputPack, F&& func)
     -> Signal<D, typename std::result_of<F(TSignals ...)>::type>
 {
     return apply(
-        REACT_IMPL::ApplyHelper<D, F&&, TSignals ...>::MakeSignal,
+        REACT_IMPL::ApplyHelper<D,F,TSignals ...>::MakeSignal,
         std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.data_));
 }
 
