@@ -6,14 +6,19 @@ It provides abstractions to simplify the implementation of reactive behaviour.
 As an alternative to raw callbacks, it offers the following benefits:
 * Less boilerplate code;
 * consistent updating without redundant calculations or glitches;
-* implicit parallelization.
+* implicit parallelism.
 
 #### Compiling
 
 So far, the build has only been tested in Visual Studio 2013 as it's the development environment I'm using.
 The Intel C++ Compiler 14.0 with Visual Studio 2012/13 is theoretically supported as well, but last I checked, it did not compile anymore due to [some bugs]() with C++11 support.
 
-You are encouraged to try compiling it with other C++11 compilers and tell me why it doesn't work :)
+You are welcome to try compiling it with other C++11 compilers/on other platforms and report any issues you encounter.
+
+#### Status
+
+This library is still under development and should not be considered release quality yet.
+That being said, I've been working on it for about 6 months and it's in a usable state.
 
 ###### Dependencies
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
@@ -24,8 +29,8 @@ You are encouraged to try compiling it with other C++11 compilers and tell me wh
 
 #### Signals
 
-Signals self-updating reactive variables.
-They can be combined to expressions to create new signals, which are automatically recalculated whenever one of their data dependencies changes.
+Signals are self-updating reactive variables.
+They can be combined to expressions to create new signals, which are automatically rec-alculated whenever one of their data dependencies changes.
 
 ```C++
 #include "react/Domain.h"
@@ -41,12 +46,12 @@ auto height = D::MakeVar(2);
 
 auto area   = width * height;
 
-cout << "area: " << area() << endl; // => area: 2
+cout << "area: " << area.Value() << endl; // => area: 2
 
 // Width changed, so area is re-calculated automatically
 width <<= 10;
 
-cout << "area: " << area() << endl; // => area: 20
+cout << "area: " << area.Value() << endl; // => area: 20
 ```
 
 #### Events
