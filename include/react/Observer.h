@@ -8,6 +8,9 @@
 
 #include "react/detail/Defs.h"
 
+#include <memory>
+#include <utility>
+
 #include "react/detail/IReactiveNode.h"
 #include "react/detail/ObserverBase.h"
 #include "react/detail/graph/ObserverNodes.h"
@@ -104,13 +107,20 @@ template
 auto Observe(const Signal<D,S>& subject, FIn&& func)
     -> Observer<D>
 {
+    using REACT_IMPL::IObserver;
+    using REACT_IMPL::SignalObserverNode;
+    using REACT_IMPL::DomainSpecificObserverRegistry;
+
     using F = std::decay<FIn>::type;
-    using TNode = REACT_IMPL::SignalObserverNode<D,S,F>;
 
-    auto* obs = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::forward<FIn>(func));
+    std::unique_ptr<IObserver> obsPtr{
+        new SignalObserverNode<D,S,F>{
+            subject.NodePtr(), std::forward<FIn>(func)}};
 
-    return Observer<D>{ obs, subject.NodePtr() };
+    auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
+        .Register(std::move(obsPtr), subject.NodePtr().get());
+
+    return Observer<D>{ rawObsPtr, subject.NodePtr() };
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -127,13 +137,20 @@ template
 auto Observe(const Events<D,E>& subject, FIn&& func)
     -> Observer<D>
 {
+    using REACT_IMPL::IObserver;
+    using REACT_IMPL::EventObserverNode;
+    using REACT_IMPL::DomainSpecificObserverRegistry;
+
     using F = std::decay<FIn>::type;
-    using TNode = REACT_IMPL::EventObserverNode<D,E,F>;
 
-    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::forward<FIn>(func));
+    std::unique_ptr<IObserver> obsPtr{
+        new EventObserverNode<D,E,F>{
+            subject.NodePtr(), std::forward<FIn>(func)}};
 
-    return Observer<D>(raw, subject.NodePtr());
+    auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
+        .Register(std::move(obsPtr), subject.NodePtr().get());
+
+    return Observer<D>(rawObsPtr, subject.NodePtr());
 }
 
 template
@@ -144,6 +161,10 @@ template
 auto Observe(const Events<D,EventToken>& subject, FIn&& func)
     -> Observer<D>
 {
+    using REACT_IMPL::IObserver;
+    using REACT_IMPL::EventObserverNode;
+    using REACT_IMPL::DomainSpecificObserverRegistry;
+
     using F = std::decay<FIn>::type;
 
     struct Wrapper_
@@ -159,12 +180,14 @@ auto Observe(const Events<D,EventToken>& subject, FIn&& func)
 
     Wrapper_ wrapper{ std::forward<FIn>(func) };
 
-    using TNode = REACT_IMPL::EventObserverNode<D,EventToken,Wrapper_>;
+    std::unique_ptr<IObserver> obsPtr{
+        new EventObserverNode<D,EventToken,Wrapper_>{
+            subject.NodePtr(), std::move(wrapper)}};
 
-    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::move(wrapper));
+    auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
+        .Register(std::move(obsPtr), subject.NodePtr().get());
 
-    return Observer<D>(raw, subject.NodePtr());
+    return Observer<D>(rawObsPtr, subject.NodePtr());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,16 +207,22 @@ auto Observe(const Events<D,E>& subject, FIn&& func,
              const Signal<D,TDepValue1>& dep1, const Signal<D,TDepValues>& ... deps)
     -> Observer<D>
 {
+    using REACT_IMPL::IObserver;
+    using REACT_IMPL::SyncedObserverNode;
+    using REACT_IMPL::DomainSpecificObserverRegistry;
+
     using F = std::decay<FIn>::type;
-    using TNode = REACT_IMPL::SyncedObserverNode<D,E,F,TDepValue1,TDepValues ...>;
 
-    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::forward<FIn>(func), dep1, deps ...);
+    std::unique_ptr<IObserver> obsPtr{
+        new SyncedObserverNode<D,E,F,TDepValue1,TDepValues ...>{
+            subject.NodePtr(), std::forward<FIn>(func), dep1.NodePtr(), deps.NodePtr() ...}};
 
-    return Observer<D>(raw, subject.NodePtr());
+    auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
+        .Register(std::move(obsPtr), subject.NodePtr().get());
+
+    return Observer<D>(rawObsPtr, subject.NodePtr());
 }
 
-// Synced
 template
 <
     typename D,
@@ -205,6 +234,10 @@ auto Observe(const Events<D,EventToken>& subject, FIn&& func,
              const Signal<D,TDepValue1>& dep1, const Signal<D,TDepValues>& ... deps)
     -> Observer<D>
 {
+    using REACT_IMPL::IObserver;
+    using REACT_IMPL::SyncedObserverNode;
+    using REACT_IMPL::DomainSpecificObserverRegistry;
+
     using F = std::decay<FIn>::type;
 
     struct Wrapper_
@@ -221,14 +254,16 @@ auto Observe(const Events<D,EventToken>& subject, FIn&& func,
         F MyFunc;
     };
 
-    using TNode = REACT_IMPL::SyncedObserverNode<D,EventToken,Wrapper_,TDepValue1,TDepValues ...>;
-
     Wrapper_ wrapper{ std::forward<FIn>(func) };
 
-    auto* raw = REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().
-        template Register<TNode>(subject, std::move(wrapper), dep1, deps ...);
+    std::unique_ptr<IObserver> obsPtr{
+        new SyncedObserverNode<D,EventToken,Wrapper_,TDepValue1,TDepValues ...>{
+            subject.NodePtr(), std::move(wrapper), dep1.NodePtr(), deps.NodePtr() ...}};
 
-    return Observer<D>(raw, subject.NodePtr());
+    auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
+        .Register(std::move(obsPtr), subject.NodePtr().get());
+
+    return Observer<D>(rawObsPtr, subject.NodePtr());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

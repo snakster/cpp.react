@@ -31,6 +31,7 @@ namespace current_observer_state_
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverRegistry
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// Todo: still ugly, needs more refactoring
 template <typename D>
 class ObserverRegistry
 {
@@ -38,59 +39,49 @@ private:
     class Entry
     {
     public:
-        Entry(std::unique_ptr<IObserver>&& obs, const Observable<D>* subject) :
-            obs_{ std::move(obs) },
-            Subject{ subject }
+        Entry(std::unique_ptr<IObserver>&& nodePtr, const Observable<D>* subjectPtr) :
+            nodePtr_{ std::move(nodePtr) },
+            SubjectPtr{ subjectPtr }
         {}
 
         Entry(const Entry&) = delete;
 
         Entry(Entry&& other) :
-            obs_{ std::move(other.obs_) },
-            Subject{ other.Subject }
+            nodePtr_{ std::move(other.nodePtr_) },
+            SubjectPtr{ other.SubjectPtr }
         {}
 
-        const Observable<D>* Subject;
+        const Observable<D>* SubjectPtr;
 
     private:
         // Manage lifetime
-        std::unique_ptr<IObserver> obs_;
+        std::unique_ptr<IObserver> nodePtr_;
     };
 
 public:
-    template
-    <
-        typename TNode,
-        typename TSubject,
-        typename F,
-        typename ... TDeps
-    >
-    IObserver* Register(const TSubject& subject, F&& func, const TDeps& ... deps)
+    // Pass ownership of obs node to registry
+    IObserver* Register(std::unique_ptr<IObserver>&& obsPtr, const Observable<D>* subjectPtr)
     {
-        std::unique_ptr<IObserver> ptr
-        {
-            new TNode(subject.NodePtr(), std::forward<F>(func), deps.NodePtr() ...)
-        };
+        // Use raw ptr copy as index to find owned version of itself
+        auto* rawObsPtr = obsPtr.get();
+        
+        observerMap_.emplace(rawObsPtr, Entry{ std::move(obsPtr), subjectPtr });
 
-        auto* obsPtr = ptr.get();
-
-        observerMap_.emplace(obsPtr, Entry(std::move(ptr), subject.NodePtr().get() ));
-
-        return obsPtr;
+        return rawObsPtr;
     }
 
-    void Unregister(IObserver* obs)
+    void Unregister(IObserver* obsPtr)
     {
-        obs->detachObserver();
-        observerMap_.erase(obs);
+        obsPtr->detachObserver();
+        observerMap_.erase(obsPtr);
     }
 
-    void UnregisterFrom(const Observable<D>* subject)
+    void UnregisterFrom(const Observable<D>* subjectPtr)
     {
         auto it = observerMap_.begin();
         while (it != observerMap_.end())
         {
-            if (it->second.Subject == subject)
+            if (it->second.SubjectPtr == subjectPtr)
             {
                 it->first->detachObserver();
                 it = observerMap_.erase(it);

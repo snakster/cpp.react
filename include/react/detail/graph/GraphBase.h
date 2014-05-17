@@ -132,6 +132,59 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Attach/detach helper functors
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename TNode, typename ... TDeps>
+struct AttachFunctor
+{
+    AttachFunctor(TNode& node) : MyNode{ node } {}
+
+    void operator()(const TDeps& ...deps) const
+    {
+        REACT_EXPAND_PACK(attach(deps));
+    }
+
+    template <typename T>
+    void attach(const T& op) const
+    {
+        op.AttachRec<D,TNode>(*this);
+    }
+
+    template <typename T>
+    void attach(const SharedPtrT<T>& depPtr) const
+    {
+        D::Engine::OnNodeAttach(MyNode, *depPtr);
+    }
+
+    TNode& MyNode;
+};
+
+template <typename D, typename TNode, typename ... TDeps>
+struct DetachFunctor
+{
+    DetachFunctor(TNode& node) : MyNode{ node } {}
+
+    void operator()(const TDeps& ... deps) const
+    {
+        REACT_EXPAND_PACK(detach(deps));
+    }
+
+    template <typename T>
+    void detach(const T& op) const
+    {
+        op.DetachRec<D,TNode>(*this);
+    }
+
+    template <typename T>
+    void detach(const SharedPtrT<T>& depPtr) const
+    {
+        D::Engine::OnNodeDetach(MyNode, *depPtr);
+    }
+
+    TNode& MyNode;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ReactiveOpBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename ... TDeps>
@@ -155,82 +208,27 @@ public:
     template <typename D, typename TNode>
     void Attach(TNode& node) const
     {
-        apply(AttachFunctor<D,TNode>{ node }, deps_);
+        apply(AttachFunctor<D,TNode,TDeps...>{ node }, deps_);
     }
 
     template <typename D, typename TNode>
     void Detach(TNode& node) const
     {
-        apply(DetachFunctor<D,TNode>{ node }, deps_);
+        apply(DetachFunctor<D,TNode,TDeps...>{ node }, deps_);
     }
 
     template <typename D, typename TNode, typename TFunctor>
     void AttachRec(const TFunctor& functor) const
     {
         // Same memory layout, different func
-        apply(reinterpret_cast<const AttachFunctor<D,TNode>&>(functor), deps_);
+        apply(reinterpret_cast<const AttachFunctor<D,TNode,TDeps...>&>(functor), deps_);
     }
 
     template <typename D, typename TNode, typename TFunctor>
     void DetachRec(const TFunctor& functor) const
     {
-        apply(reinterpret_cast<const DetachFunctor<D,TNode>&>(functor), deps_);
+        apply(reinterpret_cast<const DetachFunctor<D,TNode,TDeps...>&>(functor), deps_);
     }
-
-protected:
-    // Attach
-    template <typename D, typename TNode>
-    struct AttachFunctor
-    {
-        AttachFunctor(TNode& node) : MyNode{ node }
-        {}
-
-        void operator()(const TDeps& ...deps) const
-        {
-            REACT_EXPAND_PACK(attach(deps));
-        }
-
-        template <typename T>
-        void attach(const T& op) const
-        {
-            op.AttachRec<D,TNode>(*this);
-        }
-
-        template <typename T>
-        void attach(const SharedPtrT<T>& depPtr) const
-        {
-            D::Engine::OnNodeAttach(MyNode, *depPtr);
-        }
-
-        TNode& MyNode;
-    };
-
-    // Detach
-    template <typename D, typename TNode>
-    struct DetachFunctor
-    {
-        DetachFunctor(TNode& node) : MyNode{ node }
-        {}
-
-        void operator()(const TDeps& ... deps) const
-        {
-            REACT_EXPAND_PACK(detach(deps));
-        }
-
-        template <typename T>
-        void detach(const T& op) const
-        {
-            op.DetachRec<D,TNode>(*this);
-        }
-
-        template <typename T>
-        void detach(const SharedPtrT<T>& depPtr) const
-        {
-            D::Engine::OnNodeDetach(MyNode, *depPtr);
-        }
-
-        TNode& MyNode;
-    };
 
     // Dependency counting
     template <typename T>

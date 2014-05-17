@@ -8,6 +8,7 @@
 
 #include "react/detail/Defs.h"
 
+#include <memory>
 #include <utility>
 
 #include "GraphBase.h"
@@ -43,14 +44,14 @@ public:
 template
 <
     typename D,
-    typename TArg,
+    typename S,
     typename TFunc
 >
 class SignalObserverNode : public ObserverNode<D>
 {
 public:
     template <typename F>
-    SignalObserverNode(const SharedPtrT<SignalNode<D,TArg>>& subject, F&& func) :
+    SignalObserverNode(const SharedPtrT<SignalNode<D,S>>& subject, F&& func) :
         ObserverNode{ },
         subject_{ subject },
         func_{ std::forward<F>(func) }
@@ -104,8 +105,8 @@ private:
         }
     }
 
-    WeakPtrT<SignalNode<D,TArg>>    subject_;
-    TFunc                           func_;
+    WeakPtrT<SignalNode<D,S>>   subject_;
+    TFunc                       func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -114,14 +115,14 @@ private:
 template
 <
     typename D,
-    typename TArg,
+    typename E,
     typename TFunc
 >
 class EventObserverNode : public ObserverNode<D>
 {
 public:
     template <typename F>
-    EventObserverNode(const SharedPtrT<EventStreamNode<D,TArg>>& subject, F&& func) :
+    EventObserverNode(const SharedPtrT<EventStreamNode<D,E>>& subject, F&& func) :
         ObserverNode{ },
         subject_{ subject },
         func_{ std::forward<F>(func) }
@@ -167,8 +168,8 @@ public:
     }
 
 private:
-    WeakPtrT<EventStreamNode<D,TArg>>   subject_;
-    TFunc                               func_;
+    WeakPtrT<EventStreamNode<D,E>>  subject_;
+    TFunc                           func_;
 
     virtual void detachObserver()
     {
@@ -188,16 +189,17 @@ private:
 template
 <
     typename D,
-    typename TValue,
+    typename E,
     typename TFunc,
     typename ... TDepValues
 >
 class SyncedObserverNode : public ObserverNode<D>
 {
 public:
+    // NOTE: After upgrading to VS2013 Udpate2, using SharedPtrT here crashes the compiler
     template <typename F>
-    SyncedObserverNode(const SharedPtrT<EventStreamNode<D,TValue>>& subject, F&& func, 
-                       const SharedPtrT<SignalNode<D,TDepValues>>& ... deps) :
+    SyncedObserverNode(const std::shared_ptr<EventStreamNode<D,E>>& subject, F&& func, 
+                       const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
         ObserverNode{ },
         subject_{ subject },
         func_{ std::forward<F>(func) },
@@ -220,6 +222,22 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
+        struct EvalFunctor_
+        {
+            EvalFunctor_(const E& e, TFunc& f) :
+                MyEvent{ e },
+                MyFunc{ f }
+            {}
+
+            void operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
+            {
+                MyFunc(MyEvent, args->ValueRef() ...);
+            }
+
+            const E&    MyEvent;
+            TFunc&      MyFunc;
+        };
+
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
@@ -233,7 +251,7 @@ public:
         if (auto p = subject_.lock())
         {
             for (const auto& e : p->Events())
-                apply(EvalFunctor{ e, func_ }, deps_);
+                apply(EvalFunctor_{ e, func_ }, deps_);
         }
 
         ContinuationHolder<D>::Clear();
@@ -246,38 +264,9 @@ public:
     }
 
 private:
-    struct EvalFunctor
-    {
-        EvalFunctor(const TValue& e, TFunc& f) :
-            MyEvent{ e },
-            MyFunc{ f }
-        {}
-
-        void operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
-        {
-            MyFunc(MyEvent, args->ValueRef() ...);
-        }
-
-        const TValue&   MyEvent;
-        TFunc&          MyFunc;
-    };
-
-    struct DetachFunctor
-    {
-        DetachFunctor(SyncedObserverNode& node) : MyNode{ node }
-        {}
-
-        void operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... deps)
-        {
-            REACT_EXPAND_PACK(D::Engine::OnNodeDetach(MyNode, *deps));
-        }
-
-        SyncedObserverNode& MyNode;
-    };
-
     using DepHolderT = std::tuple<SharedPtrT<SignalNode<D,TDepValues>>...>;
 
-    WeakPtrT<EventStreamNode<D,TValue>>   subject_;
+    WeakPtrT<EventStreamNode<D,E>>   subject_;
     
     DepHolderT  deps_;
     TFunc       func_;
@@ -289,7 +278,11 @@ private:
             p->DecObsCount();
 
             Engine::OnNodeDetach(*this, *p);
-            apply(DetachFunctor{ *this }, deps_);
+
+            apply(
+                DetachFunctor<D,SyncedObserverNode,
+                    SharedPtrT<SignalNode<D,TDepValues>>...>{ *this },
+                deps_);
 
             subject_.reset();
         }
