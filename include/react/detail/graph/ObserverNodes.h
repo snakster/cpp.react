@@ -197,17 +197,17 @@ class SyncedObserverNode : public ObserverNode<D>
 public:
     template <typename F>
     SyncedObserverNode(const SharedPtrT<EventStreamNode<D,TValue>>& subject, F&& func, 
-                       const SharedPtrT<SignalNode<D,TDepValues>>& ... depArgs) :
+                       const SharedPtrT<SignalNode<D,TDepValues>>& ... deps) :
         ObserverNode{ },
         subject_{ subject },
         func_{ std::forward<F>(func) },
-        deps_{ depArgs ... }
+        deps_{ deps ... }
     {
         Engine::OnNodeCreate(*this);
         subject->IncObsCount();
         Engine::OnNodeAttach(*this, *subject);
 
-        REACT_EXPAND_PACK(D::Engine::OnNodeAttach(*this, *depArgs));
+        REACT_EXPAND_PACK(D::Engine::OnNodeAttach(*this, *deps));
     }
 
     ~SyncedObserverNode()
@@ -215,8 +215,8 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override        { return "SyncedEventObserverNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
+    virtual const char* GetNodeType() const override        { return "SyncedObserverNode"; }
+    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
 
     virtual void Tick(void* turnPtr) override
     {
