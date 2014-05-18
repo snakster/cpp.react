@@ -47,10 +47,12 @@ template
 auto Fold(V&& init, const Events<D,E>& events, FIn&& func)
     -> Signal<D,S>
 {
+    using REACT_IMPL::FoldNode;
+
     using F = std::decay<FIn>::type;
 
     return Signal<D,S>(
-        std::make_shared<REACT_IMPL::FoldNode<D,S,E,F>>(
+        std::make_shared<FoldNode<D,S,E,F>>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
 }
 
@@ -68,10 +70,12 @@ template
 auto FoldByRef(V&& init, const Events<D,E>& events, FIn&& func)
     -> Signal<D,S>
 {
+    using REACT_IMPL::FoldByRefNode;
+
     using F = std::decay<FIn>::type;
 
     return Signal<D,S>(
-        std::make_shared<REACT_IMPL::FoldByRefNode<D,S,E,F>>(
+        std::make_shared<FoldByRefNode<D,S,E,F>>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
 }
 
@@ -89,10 +93,12 @@ template
 auto Iterate(V&& init, const Events<D,E>& events, FIn&& func)
     -> Signal<D,S>
 {
+    using REACT_IMPL::IterateNode;
+
     using F = std::decay<FIn>::type;
 
     return Signal<D,S>(
-        std::make_shared<REACT_IMPL::IterateNode<D,S,E,F>>(
+        std::make_shared<IterateNode<D,S,E,F>>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
 }
 
@@ -110,10 +116,12 @@ template
 auto IterateByRef(V&& init, const Events<D,E>& events, FIn&& func)
     -> Signal<D,S>
 {
+    using REACT_IMPL::IterateByRefNode;
+
     using F = std::decay<FIn>::type;
 
     return Signal<D,S>(
-        std::make_shared<REACT_IMPL::IterateByRefNode<D,S,E,F>>(
+        std::make_shared<IterateByRefNode<D,S,E,F>>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
 }
 
@@ -129,8 +137,10 @@ template
 auto Hold(V&& init, const Events<D,T>& events)
     -> Signal<D,T>
 {
+    using REACT_IMPL::HoldNode;
+
     return Signal<D,T>(
-        std::make_shared<REACT_IMPL::HoldNode<D,T>>(
+        std::make_shared<HoldNode<D,T>>(
             std::forward<V>(init), events.NodePtr()));
 }
 
@@ -143,11 +153,13 @@ template
     typename S,
     typename E
 >
-auto Snapshot(const Signal<D,S>& target, const Events<D,E>& trigger)
+auto Snapshot(const Events<D,E>& trigger, const Signal<D,S>& target)
     -> Signal<D,S>
 {
+    using REACT_IMPL::SnapshotNode;
+
     return Signal<D,S>(
-        std::make_shared<REACT_IMPL::SnapshotNode<D,S,E>>(
+        std::make_shared<SnapshotNode<D,S,E>>(
             target.NodePtr(), trigger.NodePtr()));
 }
 
@@ -162,8 +174,10 @@ template
 auto Monitor(const Signal<D,S>& target)
     -> Events<D,S>
 {
+    using REACT_IMPL::MonitorNode;
+
     return Events<D,S>(
-        std::make_shared<REACT_IMPL::MonitorNode<D, S>>(
+        std::make_shared<MonitorNode<D, S>>(
             target.NodePtr()));
 }
 
@@ -176,12 +190,77 @@ template
     typename S,
     typename E
 >
-auto Pulse(const Signal<D,S>& target, const Events<D,E>& trigger)
+auto Pulse(const Events<D,E>& trigger, const Signal<D,S>& target)
     -> Events<D,S>
 {
+    using REACT_IMPL::PulseNode;
+
     return Events<D,S>(
-        std::make_shared<REACT_IMPL::PulseNode<D,S,E>>(
+        std::make_shared<PulseNode<D,S,E>>(
             target.NodePtr(), trigger.NodePtr()));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// GenerateEvents
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename E,
+    typename FIn,
+    typename ... TDepValues,
+    typename TOut = std::result_of<FIn(E,TDepValues ...)>::type,
+    class = std::enable_if<
+        ! std::is_same<E,EventToken>::value>::type
+>
+auto GenerateEvents(const Events<D,E>& trigger, FIn&& func,
+                    const Signal<D,TDepValues>& ... deps)
+    -> Events<D,TOut>
+{
+    using REACT_IMPL::EventGeneratorNode;
+
+    using F = std::decay<FIn>::type;
+
+    return Events<D,TOut>(
+        std::make_shared<EventGeneratorNode<D,E,TOut,F,TDepValues ...>>(
+            trigger.NodePtr(), std::forward<FIn>(func), deps.NodePtr() ...));
+}
+
+// Token stream version
+template
+<
+    typename D,
+    typename FIn,
+    typename ... TDepValues,
+    typename TOut = std::result_of<FIn(TDepValues ...)>::type
+>
+auto GenerateEvents(const Events<D,EventToken>& trigger, FIn&& func,
+                    const Signal<D,TDepValues>& ... deps)
+    -> Events<D,TOut>
+{
+    using REACT_IMPL::EventGeneratorNode;
+
+    using F = std::decay<FIn>::type;
+
+    struct Wrapper_
+    {
+        Wrapper_(FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
+        Wrapper_(const Wrapper_& other) = default;
+        Wrapper_(Wrapper_&& other) : MyFunc{ std::move(other.MyFunc) } {}
+
+        void operator()(EventToken, const TDepValues& ... args)
+        {
+            MyFunc(args ...);
+        }
+
+        F MyFunc;
+    };
+
+    Wrapper_ wrapper{ std::forward<FIn>(func) };
+
+    return Events<D,TOut>(
+        std::make_shared<EventGeneratorNode<D,EventToken,TOut,Wrapper_,TDepValues ...>>(
+            trigger.NodePtr(), std::move(wrapper), deps.NodePtr() ...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -216,23 +295,5 @@ auto ChangedTo(const Signal<D,S>& target, V&& value)
         .Filter([] (bool v) { return v == true; })
         .Transform([=] (const S& v) { return EventToken::token; })
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Incrementer
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-struct Incrementer
-{
-    T operator()(T v) const { return v+1; }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Decrementer
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-struct Decrementer
-{
-    T operator()(T v) const { return v-1; }
-};
 
 /******************************************/ REACT_END /******************************************/
