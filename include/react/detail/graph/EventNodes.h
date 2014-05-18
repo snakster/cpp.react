@@ -44,7 +44,7 @@ class EventStreamNode :
     private EventStreamNodeAccessPolicy<D>
 {
 public:
-    using DataT     = std::deque<E>;
+    using DataT     = std::vector<E>;
     using EngineT   = typename D::Engine;
     using TurnT     = typename EngineT::TurnT;
 
