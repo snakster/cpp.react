@@ -91,10 +91,10 @@ public:
         return REACT::Transform(*this, std::forward<F>(f));
     }
 
-    template <typename F, typename ... TDeps>
-    Observer<D> Observe(F&& f, const TDeps& ... deps) const
+    template <typename F>
+    Observer<D> Observe(F&& f) const
     {
-        return REACT::Observe(*this, std::forward<F>(f), deps ...);
+        return REACT::Observe(*this, std::forward<F>(f));
     }
 };
 
@@ -164,10 +164,10 @@ public:
         return REACT::Transform(*this, std::forward<F>(f));
     }
 
-    template <typename F, typename ... TDeps>
-    Observer<D> Observe(F&& f, const TDeps& ... deps) const
+    template <typename F>
+    Observer<D> Observe(F&& f) const
     {
-        return REACT::Observe(*this, std::forward<F>(f), deps ...);
+        return REACT::Observe(*this, std::forward<F>(f));
     }
 };
 

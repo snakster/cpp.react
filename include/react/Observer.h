@@ -23,6 +23,9 @@
 template <typename D, typename S>
 class Signal;
 
+template <typename D, typename ... TValues>
+class SignalPack;
+
 template <typename D, typename E>
 class Events;
 
@@ -153,6 +156,7 @@ auto Observe(const Events<D,E>& subject, FIn&& func)
     return Observer<D>(rawObsPtr, subject.NodePtr());
 }
 
+// Token stream version
 template
 <
     typename D,
@@ -198,13 +202,12 @@ template
     typename D,
     typename FIn,
     typename E,
-    typename TDepValue1,
     typename ... TDepValues,
     class = std::enable_if<
         ! std::is_same<E,EventToken>::value>::type
 >
-auto Observe(const Events<D,E>& subject, FIn&& func,
-             const Signal<D,TDepValue1>& dep1, const Signal<D,TDepValues>& ... deps)
+auto Observe(const Events<D,E>& subject,
+             SignalPack<D,TDepValues...> depPack, FIn&& func)
     -> Observer<D>
 {
     using REACT_IMPL::IObserver;
@@ -213,9 +216,28 @@ auto Observe(const Events<D,E>& subject, FIn&& func,
 
     using F = std::decay<FIn>::type;
 
-    std::unique_ptr<IObserver> obsPtr{
-        new SyncedObserverNode<D,E,F,TDepValue1,TDepValues ...>{
-            subject.NodePtr(), std::forward<FIn>(func), dep1.NodePtr(), deps.NodePtr() ...}};
+    struct NodeBuilder_
+    {
+        NodeBuilder_(const Events<D,E>& subject, FIn&& func) :
+            MySubject{ subject },
+            MyFunc{ std::forward<FIn>(func) }
+        {}
+
+        auto operator()(const Signal<D,TDepValues>& ... deps)
+            -> std::unique_ptr<IObserver>
+        {
+            return std::unique_ptr<IObserver> {
+                new SyncedObserverNode<D,E,F,TDepValues ...> {
+                    MySubject.NodePtr(), std::forward<FIn>(MyFunc), deps.NodePtr() ...}};
+        }
+
+        const Events<D,E>& MySubject;
+        FIn MyFunc;
+    };
+
+    auto obsPtr = REACT_IMPL::apply(
+        NodeBuilder_{ subject, std::forward<FIn>(func) },
+        depPack.Data);
 
     auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
         .Register(std::move(obsPtr), subject.NodePtr().get());
@@ -223,15 +245,15 @@ auto Observe(const Events<D,E>& subject, FIn&& func,
     return Observer<D>(rawObsPtr, subject.NodePtr());
 }
 
+// Token stream version
 template
 <
     typename D,
     typename FIn,
-    typename TDepValue1,
     typename ... TDepValues
 >
-auto Observe(const Events<D,EventToken>& subject, FIn&& func,
-             const Signal<D,TDepValue1>& dep1, const Signal<D,TDepValues>& ... deps)
+auto Observe(const Events<D,EventToken>& subject,
+             SignalPack<D,TDepValues...> depPack, FIn&& func)
     -> Observer<D>
 {
     using REACT_IMPL::IObserver;
@@ -246,19 +268,36 @@ auto Observe(const Events<D,EventToken>& subject, FIn&& func,
         Wrapper_(const Wrapper_& other) = default;
         Wrapper_(Wrapper_&& other) : MyFunc{ std::move(other.MyFunc) } {}
 
-        void operator()(EventToken, const TDepValue1& arg1, const TDepValues& ... args)
+        void operator()(EventToken, const TDepValues& ... args)
         {
-            MyFunc(arg1, args ...);
+            MyFunc(args ...);
         }
 
         F MyFunc;
     };
 
-    Wrapper_ wrapper{ std::forward<FIn>(func) };
+    struct NodeBuilder_
+    {
+        NodeBuilder_(const Events<D,EventToken>& subject, Wrapper_&& wrapper) :
+            MySubject{ subject },
+            MyWrapper{ std::move(wrapper) }
+        {}
 
-    std::unique_ptr<IObserver> obsPtr{
-        new SyncedObserverNode<D,EventToken,Wrapper_,TDepValue1,TDepValues ...>{
-            subject.NodePtr(), std::move(wrapper), dep1.NodePtr(), deps.NodePtr() ...}};
+        auto operator()(const Signal<D,TDepValues>& ... deps)
+            -> std::unique_ptr<IObserver>
+        {
+            return std::unique_ptr<IObserver> {
+                new SyncedObserverNode<D,EventToken,Wrapper_,TDepValues ...> {
+                    MySubject.NodePtr(), std::move(MyWrapper), deps.NodePtr() ...}};
+        }
+
+        const Events<D,EventToken>&     MySubject;
+        Wrapper_&&                      MyWrapper;
+    };
+
+    auto obsPtr = REACT_IMPL::apply(
+        NodeBuilder_{ subject, Wrapper_{ std::forward<FIn>(func) } },
+        depPack.Data);
 
     auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
         .Register(std::move(obsPtr), subject.NodePtr().get());

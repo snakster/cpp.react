@@ -671,35 +671,41 @@ DECLARE_OP(||, LogicalOr);
 #undef DECLARE_OP
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalList - Wraps several nodes in a tuple. Create with comma operator.
+/// SignalPack - Wraps several nodes in a tuple. Create with comma operator.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
     typename D,
     typename ... TValues
 >
-class SignalList
+class SignalPack
 {
 public:
-    SignalList(const Signal<D,TValues>&  ... deps) :
-        data_{ std::tie(deps ...) }
+    SignalPack(const Signal<D,TValues>&  ... deps) :
+        Data{ std::tie(deps ...) }
     {}
 
     template <typename ... TCurValues, typename TAppendValue>
-    SignalList(const SignalList<D, TCurValues ...>& curArgs, const Signal<D,TAppendValue>& newArg) :
-        data_{ std::tuple_cat(curArgs.data_, std::tie(newArg)) }
+    SignalPack(const SignalPack<D, TCurValues ...>& curArgs, const Signal<D,TAppendValue>& newArg) :
+        Data{ std::tuple_cat(curArgs.Data, std::tie(newArg)) }
     {}
 
-private:
-    std::tuple<const Signal<D, TValues>& ...> data_;
-
-    template <typename D, typename ... TValues>
-    friend class SignalList;
-
-    template <typename D, typename F, typename ... TSignals>
-    friend auto operator->*(const SignalList<D,TSignals ...>&, F&&)
-        -> Signal<D, typename std::result_of<F(TSignals ...)>::type>;
+    std::tuple<const Signal<D,TValues>& ...> Data;
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// With - Utility function to create a SignalPack
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename ... TValues
+>
+auto With(const Signal<D,TValues>&  ... deps)
+    -> SignalPack<D,TValues ...>
+{
+    return SignalPack<D,TValues...>(deps ...);
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Comma operator overload to create input pack from 2 signals.
@@ -711,9 +717,9 @@ template
     typename TRightVal
 >
 auto operator,(const Signal<D,TLeftVal>& a, const Signal<D,TRightVal>& b)
-    -> SignalList<D,TLeftVal, TRightVal>
+    -> SignalPack<D,TLeftVal, TRightVal>
 {
-    return SignalList<D, TLeftVal, TRightVal>(a, b);
+    return SignalPack<D, TLeftVal, TRightVal>(a, b);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -725,10 +731,10 @@ template
     typename ... TCurValues,
     typename TAppendValue
 >
-auto operator,(const SignalList<D, TCurValues ...>& cur, const Signal<D,TAppendValue>& append)
-    -> SignalList<D,TCurValues ... , TAppendValue>
+auto operator,(const SignalPack<D, TCurValues ...>& cur, const Signal<D,TAppendValue>& append)
+    -> SignalPack<D,TCurValues ... , TAppendValue>
 {
-    return SignalList<D, TCurValues ... , TAppendValue>(cur, append);
+    return SignalPack<D, TCurValues ... , TAppendValue>(cur, append);
 }
 
 /******************************************/ REACT_END /******************************************/
@@ -778,14 +784,14 @@ template
 <
     typename D,
     typename F,
-    typename ... TSignals
+    typename ... TValues
 >
-auto operator->*(const SignalList<D,TSignals ...>& inputPack, F&& func)
-    -> Signal<D, typename std::result_of<F(TSignals ...)>::type>
+auto operator->*(const SignalPack<D,TValues ...>& inputPack, F&& func)
+    -> Signal<D, typename std::result_of<F(TValues ...)>::type>
 {
     return apply(
-        REACT_IMPL::ApplyHelper<D,F,TSignals ...>::MakeSignal,
-        std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.data_));
+        REACT_IMPL::ApplyHelper<D,F,TValues ...>::MakeSignal,
+        std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.Data));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
