@@ -511,19 +511,6 @@ auto Filter(TempEvents<D,E,TOpIn>&& src, FIn&& filter)
             std::forward<FIn>(filter), src.StealOp()));
 }
 
-template
-<
-    typename TEvents,
-    typename F,
-    class = std::enable_if<
-        IsEvent<TEvents>::value>::type
->
-auto operator&(TEvents&& src, F&& filter)
-    -> decltype(Filter(std::forward<TEvents>(src), std::forward<F>(filter)))
-{
-    return Filter(std::forward<TEvents>(src), std::forward<F>(filter));
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Transform
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -561,19 +548,6 @@ auto Transform(TempEvents<D,EIn,TOpIn>&& src, FIn&& func)
     return TempEvents<D,EOut,TOpOut>(
         std::make_shared<REACT_IMPL::EventOpNode<D,EOut,TOpOut>>(
             std::forward<FIn>(func), src.StealOp()));
-}
-
-template
-<
-    typename TEvents,
-    typename F,
-    class = std::enable_if<
-        IsEvent<TEvents>::value>::type
->
-auto operator->*(TEvents&& src, F&& func)
-    -> decltype(Transform(std::forward<TEvents>(src), std::forward<F>(func)))
-{
-    return Transform(std::forward<TEvents>(src), std::forward<F>(func));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
