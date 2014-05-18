@@ -17,7 +17,7 @@ struct IReactiveNode
 {
     virtual ~IReactiveNode() = default;
 
-    // Unique type identifier
+    /// Returns unique type identifier
     virtual const char* GetNodeType() const = 0;
 
     // Note: Could get rid of this ugly ptr by adding a template parameter to the interface
@@ -30,9 +30,12 @@ struct IReactiveNode
     /// Output nodes can't have any successors.
     virtual bool    IsOutputNode() const = 0;
 
-    /// May change in topology as a result of tick.
+    /// Dynamic nodes may change in topology as a result of tick.
     virtual bool    IsDynamicNode() const = 0;
 
+    // Number of predecessors.
+    // This information is statically available at compile time on the graph layer,
+    // so the engine does not have to calculate it again.
     virtual int     DependencyCount() const = 0;
 };
 
