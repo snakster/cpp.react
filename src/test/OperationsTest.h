@@ -10,10 +10,12 @@
 
 #include <queue>
 #include <string>
+#include <tuple>
 
 #include "react/Domain.h"
 #include "react/Signal.h"
 #include "react/Event.h"
+#include "react/Observer.h"
 #include "react/Algorithm.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -21,6 +23,12 @@ namespace {
 
 using namespace react;
 using namespace std;
+
+template <typename T>
+struct Incrementer { T operator()(T v) const { return v+1; } };
+
+template <typename T>
+struct Decrementer { T operator()(T v) const { return v-1; } };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventStreamTest fixture
@@ -173,7 +181,7 @@ TYPED_TEST_P(OperationsTest, Pulse1)
 
     vector<int> results;
 
-    auto p = Pulse(target, trigger);
+    auto p = Pulse(trigger, target);
 
     Observe(p, [&] (int v) {
         results.push_back(v);
@@ -198,7 +206,7 @@ TYPED_TEST_P(OperationsTest, Snapshot1)
     auto trigger = MyDomain::MakeEventSource();
     auto target = MyDomain::MakeVar(10);
 
-    auto snap = Snapshot(target, trigger);
+    auto snap = Snapshot(trigger, target);
 
     target <<= 10;
     trigger.Emit();
@@ -262,6 +270,76 @@ TYPED_TEST_P(OperationsTest, IterateByRef1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// GenerateEvents test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, GenerateEvents1)
+{
+    auto in1 = MyDomain::MakeVar(1);
+    auto in2 = MyDomain::MakeVar(1);
+
+    auto sum  = in1 + in2;
+    auto prod = in1 * in2;
+    auto diff = in1 - in2;
+
+    auto src1 = MyDomain::MakeEventSource();
+    auto src2 = MyDomain::MakeEventSource<int>();
+
+    auto out1 = GenerateEvents(src1, [] (int sum, int prod, int diff) {
+        return make_tuple(sum, prod, diff);
+    }, sum, prod, diff);
+
+    auto out2 = GenerateEvents(src2, [] (int e, int sum, int prod, int diff) {
+        return make_tuple(e, sum, prod, diff);
+    }, sum, prod, diff);
+
+    Observe(out1, [] (const tuple<int,int,int>& t) {
+        ASSERT_EQ(get<0>(t), 33);
+        ASSERT_EQ(get<1>(t), 242);
+        ASSERT_EQ(get<2>(t), 11);
+
+        DetachThisObserver();
+    });
+
+    Observe(out2, [] (const tuple<int,int,int,int>& t) {
+        ASSERT_EQ(get<0>(t), 42);
+        ASSERT_EQ(get<1>(t), 33);
+        ASSERT_EQ(get<2>(t), 242);
+        ASSERT_EQ(get<3>(t), 11);
+
+        DetachThisObserver();
+    });
+
+    in1 <<= 22;
+    in2 <<= 11;
+
+    src1.Emit();
+    src2.Emit(42);
+
+    Observe(out1, [] (const tuple<int,int,int>& t) {
+        ASSERT_EQ(get<0>(t), 3300);
+        ASSERT_EQ(get<1>(t), 24200);
+        ASSERT_EQ(get<2>(t), 1100);
+
+        DetachThisObserver();
+    });
+
+    Observe(out2, [] (const tuple<int,int,int,int>& t) {
+        ASSERT_EQ(get<0>(t), 420);
+        ASSERT_EQ(get<1>(t), 3300);
+        ASSERT_EQ(get<2>(t), 24200);
+        ASSERT_EQ(get<3>(t), 1100);
+
+        DetachThisObserver();
+    });
+
+    in1 <<= 220;
+    in2 <<= 110;
+
+    src1.Emit();
+    src2.Emit(420);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     OperationsTest,
@@ -273,7 +351,8 @@ REGISTER_TYPED_TEST_CASE_P
     Pulse1,
     Snapshot1,
     FoldByRef1,
-    IterateByRef1
+    IterateByRef1,
+    GenerateEvents1
 );
 
 } // ~namespace
