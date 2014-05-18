@@ -39,6 +39,9 @@ using std::get;
 enum class Seasons      { summer,  winter };
 enum class Migration    { enter,  leave };
 
+template <typename T>
+struct Incrementer { T operator()(T v) const { return v+1; } };
+
 typedef pair<int,int> PositionT;
 
 template <typename D>
@@ -80,7 +83,7 @@ public:
             return count > 0 ? food/count : 0;
     };
 
-    EventsT<int> FoodOutput = Pulse(FoodOutputPerDay, theTime.NewDay);
+    EventsT<int> FoodOutput = Pulse(theTime.NewDay, FoodOutputPerDay);
 
     Region(Time<D>& time, int x, int y):
         theTime { time },
@@ -211,7 +214,7 @@ public:
     //Event<bool>   Migrating = EventSource<bool>();
 
     SignalT<bool>   ShouldMigrate = Hold(0, FoodReceived) < 10;
-    EventsT<bool>   Moving = Pulse(ShouldMigrate, theTime.NewDay);
+    EventsT<bool>   Moving = Pulse(theTime.NewDay, ShouldMigrate);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
