@@ -80,8 +80,14 @@ public:
         return REACT::Forward(*this);
     }
 
+    auto Tokenize() const
+        -> decltype(REACT::Tokenize(std::declval<Events>()))
+    {
+        return REACT::Tokenize(*this);
+    }
+
     template <typename ... TArgs>
-    auto Merge(const Events<D,TArgs>& ... args) const
+    auto Merge(TArgs&& ... args) const
         -> decltype(REACT::Merge(std::declval<Events>(), std::forward<TArgs>(args) ...))
     {
         return REACT::Merge(*this, std::forward<TArgs>(args) ...);
@@ -147,8 +153,14 @@ public:
         return REACT::Forward(*this);
     }
 
+    auto Tokenize() const
+        -> decltype(REACT::Tokenize(std::declval<Events>()))
+    {
+        return REACT::Tokenize(*this);
+    }
+
     template <typename ... TArgs>
-    auto Merge(const Events<D,TArgs>& ... args)
+    auto Merge(TArgs&& ... args)
         -> decltype(REACT::Merge(std::declval<Events>(), std::forward<TArgs>(args) ...))
     {
         return REACT::Merge(*this, std::forward<TArgs>(args) ...);
@@ -293,7 +305,7 @@ public:
     }
 
     template <typename ... TArgs>
-    auto Merge(const Events<D,TArgs>& ... args)
+    auto Merge(TArgs&& ... args)
         -> decltype(REACT::Merge(std::declval<TempEvents>(), std::forward<TArgs>(args) ...))
     {
         return REACT::Merge(*this, std::forward<TArgs>(args) ...);
@@ -669,6 +681,22 @@ auto Flatten(const Signal<D,Events<D,TInnerValue>>& node)
     return Events<D,TInnerValue>(
         std::make_shared<REACT_IMPL::EventFlattenNode<D, Events<D,TInnerValue>, TInnerValue>>(
             node.NodePtr(), node().NodePtr()));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Tokenize
+///////////////////////////////////////////////////////////////////////////////////////////////////
+struct Tokenizer
+{
+    template <typename T>
+    Token operator()(const T&) const { return Token::value; }
+};
+
+template <typename TEvents>
+auto Tokenize(TEvents&& source)
+    -> decltype(Transform(source, Tokenizer{}))
+{
+    return Transform(source, Tokenizer{});
 }
 
 /******************************************/ REACT_END /******************************************/

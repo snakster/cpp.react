@@ -193,22 +193,21 @@ auto Pulse(const Events<D,E>& trigger, const Signal<D,S>& target)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Changed
+/// OnChanged
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
     typename D,
     typename S
 >
-auto Changed(const Signal<D,S>& target)
+auto OnChanged(const Signal<D,S>& target)
     -> Events<D,Token>
 {
-    return Monitor(target)
-        .Transform([] (const S& v) { return Token::value; });
+    return Monitor(target).Tokenize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ChangedTo
+/// OnChangedTo
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -216,13 +215,12 @@ template
     typename V,
     typename S = std::decay<V>::type
 >
-auto ChangedTo(const Signal<D,S>& target, V&& value)
+auto OnChangedTo(const Signal<D,S>& target, V&& value)
     -> Events<D,Token>
 {
     return Monitor(target)
-        .Transform([=] (const S& v) { return v == value; })
-        .Filter([] (bool v) { return v == true; })
-        .Transform([=] (const S& v) { return Token::value; })
+        .Filter([=] (const S& v) { return v == value; })
+        .Tokenize();
 }
 
 /******************************************/ REACT_END /******************************************/
