@@ -254,7 +254,7 @@ auto Observe(const Events<D,EventToken>& subject,
     using REACT_IMPL::AddDummyArgWrapper;
 
     using F = std::decay<FIn>::type;
-    using WrapperT = AddDummyArgWrapper<EventToken,F,void,TDepValues...>;
+    using WrapperT = AddDummyArgWrapper<EventToken,F,void,const TDepValues...>;
 
     struct NodeBuilder_
     {

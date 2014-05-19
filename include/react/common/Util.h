@@ -165,9 +165,27 @@ struct AddDummyArgWrapper
     AddDummyArgWrapper(const AddDummyArgWrapper& other) = default;
     AddDummyArgWrapper(AddDummyArgWrapper&& other) : MyFunc{ std::move(other.MyFunc) } {}
 
-    TRet operator()(TArg, const TDepValues& ... args)
+    TRet operator()(TArg, TDepValues& ... args)
     {
         return MyFunc(args ...);
+    }
+
+    F MyFunc;
+};
+
+template <typename TArg, typename F, typename ... TDepValues>
+struct AddDummyArgWrapper<TArg,F,void,TDepValues...>
+{
+    // Dummy int to make sure it calls the right ctor
+    template <typename FIn>
+    AddDummyArgWrapper(int, FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
+
+    AddDummyArgWrapper(const AddDummyArgWrapper& other) = default;
+    AddDummyArgWrapper(AddDummyArgWrapper&& other) : MyFunc{ std::move(other.MyFunc) } {}
+
+    void operator()(TArg, TDepValues& ... args)
+    {
+        MyFunc(args ...);
     }
 
     F MyFunc;

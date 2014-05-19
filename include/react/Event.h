@@ -586,7 +586,7 @@ auto Filter(const Events<D,EventToken>& source, SignalPack<D,TDepValues...> depP
     using REACT_IMPL::AddDummyArgWrapper;
 
     using F = std::decay<FIn>::type;
-    using WrapperT = AddDummyArgWrapper<EventToken,F,bool,TDepValues...>;
+    using WrapperT = AddDummyArgWrapper<EventToken,F,bool,const TDepValues...>;
 
     struct NodeBuilder_
     {
@@ -714,7 +714,7 @@ auto Transform(const Events<D,EventToken>& source, SignalPack<D,TDepValues...> d
     using REACT_IMPL::AddDummyArgWrapper;
 
     using F = std::decay<FIn>::type;
-    using WrapperT = AddDummyArgWrapper<EventToken,F,TOut,TDepValues...>;
+    using WrapperT = AddDummyArgWrapper<EventToken,F,TOut,const TDepValues...>;
 
     struct NodeBuilder_
     {
