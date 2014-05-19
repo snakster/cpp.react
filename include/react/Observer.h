@@ -11,6 +11,7 @@
 #include <memory>
 #include <utility>
 
+#include "react/common/Util.h"
 #include "react/detail/IReactiveNode.h"
 #include "react/detail/ObserverBase.h"
 #include "react/detail/graph/ObserverNodes.h"
@@ -168,24 +169,15 @@ auto Observe(const Events<D,EventToken>& subject, FIn&& func)
     using REACT_IMPL::IObserver;
     using REACT_IMPL::EventObserverNode;
     using REACT_IMPL::DomainSpecificObserverRegistry;
+    using REACT_IMPL::AddDummyArgWrapper;
 
     using F = std::decay<FIn>::type;
+    using WrapperT = AddDummyArgWrapper<EventToken,F,void>;
 
-    struct Wrapper_
-    {
-        Wrapper_(FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
-        Wrapper_(const Wrapper_& other) = default;
-        Wrapper_(Wrapper_&& other) : MyFunc{ std::move(other.MyFunc) } {}
-
-        void operator()(EventToken) { MyFunc(); }
-
-        F MyFunc;
-    };
-
-    Wrapper_ wrapper{ std::forward<FIn>(func) };
+    WrapperT wrapper{ 0, std::forward<FIn>(func) };
 
     std::unique_ptr<IObserver> obsPtr{
-        new EventObserverNode<D,EventToken,Wrapper_>{
+        new EventObserverNode<D,EventToken,WrapperT>{
             subject.NodePtr(), std::move(wrapper)}};
 
     auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
@@ -259,26 +251,14 @@ auto Observe(const Events<D,EventToken>& subject,
     using REACT_IMPL::IObserver;
     using REACT_IMPL::SyncedObserverNode;
     using REACT_IMPL::DomainSpecificObserverRegistry;
+    using REACT_IMPL::AddDummyArgWrapper;
 
     using F = std::decay<FIn>::type;
-
-    struct Wrapper_
-    {
-        Wrapper_(FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
-        Wrapper_(const Wrapper_& other) = default;
-        Wrapper_(Wrapper_&& other) : MyFunc{ std::move(other.MyFunc) } {}
-
-        void operator()(EventToken, const TDepValues& ... args)
-        {
-            MyFunc(args ...);
-        }
-
-        F MyFunc;
-    };
+    using WrapperT = AddDummyArgWrapper<EventToken,F,void,TDepValues...>;
 
     struct NodeBuilder_
     {
-        NodeBuilder_(const Events<D,EventToken>& subject, Wrapper_&& wrapper) :
+        NodeBuilder_(const Events<D,EventToken>& subject, WrapperT&& wrapper) :
             MySubject{ subject },
             MyWrapper{ std::move(wrapper) }
         {}
@@ -287,16 +267,16 @@ auto Observe(const Events<D,EventToken>& subject,
             -> std::unique_ptr<IObserver>
         {
             return std::unique_ptr<IObserver> {
-                new SyncedObserverNode<D,EventToken,Wrapper_,TDepValues ...> {
+                new SyncedObserverNode<D,EventToken,WrapperT,TDepValues ...> {
                     MySubject.NodePtr(), std::move(MyWrapper), deps.NodePtr() ...}};
         }
 
         const Events<D,EventToken>&     MySubject;
-        Wrapper_&&                      MyWrapper;
+        WrapperT&&                      MyWrapper;
     };
 
     auto obsPtr = REACT_IMPL::apply(
-        NodeBuilder_{ subject, Wrapper_{ std::forward<FIn>(func) } },
+        NodeBuilder_{ subject, WrapperT{ 0, std::forward<FIn>(func) } },
         depPack.Data);
 
     auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
