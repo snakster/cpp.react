@@ -642,6 +642,9 @@ public:
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
+        // Update of this node could be triggered from deps,
+        // so make sure source doesnt contain events from last turn
+        source_->SetCurrentTurn(turn);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
@@ -730,6 +733,9 @@ public:
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
         SetCurrentTurn(turn, true);
+        // Update of this node could be triggered from deps,
+        // so make sure source doesnt contain events from last turn
+        source_->SetCurrentTurn(turn);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));

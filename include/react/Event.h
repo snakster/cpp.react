@@ -549,7 +549,9 @@ template
     typename D,
     typename E,
     typename FIn,
-    typename ... TDepValues
+    typename ... TDepValues,
+    class = std::enable_if<
+        ! std::is_same<E,EventToken>::value>::type
 >
 auto Filter(const Events<D,E>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
     -> Events<D,E>
@@ -674,7 +676,9 @@ template
     typename TIn,
     typename FIn,
     typename ... TDepValues,
-    typename TOut = std::result_of<FIn(TIn,TDepValues...)>::type
+    typename TOut = std::result_of<FIn(TIn,TDepValues...)>::type,
+    class = std::enable_if<
+        ! std::is_same<TIn,EventToken>::value>::type
 >
 auto Transform(const Events<D,TIn>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
     -> Events<D,TOut>
