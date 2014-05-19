@@ -136,6 +136,187 @@ protected:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SyncedIterateNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename S,
+    typename E,
+    typename TFunc,
+    typename ... TDepValues
+>
+class SyncedIterateNode : public SignalNode<D,S>
+{
+public:
+    template <typename T, typename F>
+    SyncedIterateNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func,
+                      const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
+        SignalNode{ std::forward<T>(init) },
+        events_{ events },
+        func_{ std::forward<F>(func) }
+
+    {
+        Engine::OnNodeCreate(*this);
+        Engine::OnNodeAttach(*this, *events);
+        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
+    }
+
+    ~SyncedIterateNode()
+    {
+        Engine::OnNodeDetach(*this, *events_);
+
+        apply(
+            DetachFunctor<D,SyncedIterateNode,
+                SharedPtrT<SignalNode<D,TDepValues>>...>{ *this },
+            deps_);
+
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        struct EvalFunctor_
+        {
+            EvalFunctor_(const E& e, const S& v, TFunc& f) :
+                MyEvent{ e },
+                MyValue{ v },
+                MyFunc{ f }
+            {}
+
+            S operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
+            {
+                return MyFunc(MyEvent, MyValue, args->ValueRef() ...);
+            }
+
+            const E&    MyEvent;
+            const S&    MyValue;
+            TFunc&      MyFunc;
+        };
+
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        S newValue = value_;
+        for (const auto& e : events_->Events())
+            newValue = apply(EvalFunctor_{ e, newValue, func_ }, deps_);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        if (! impl::Equals(newValue, value_))
+        {
+            value_ = std::move(newValue);
+            Engine::OnNodePulse(*this, turn);
+        }
+        else
+        {
+            Engine::OnNodeIdlePulse(*this, turn);
+        }
+    }
+
+    virtual const char* GetNodeType() const override        { return "SyncedIterateNode"; }
+    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+
+private:
+    using DepHolderT = std::tuple<SharedPtrT<SignalNode<D,TDepValues>>...>;
+
+    SharedPtrT<EventStreamNode<D,E>> events_;
+    
+    DepHolderT  deps_;
+    TFunc       func_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SyncedIterateByRefNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename S,
+    typename E,
+    typename TFunc,
+    typename ... TDepValues
+>
+class SyncedIterateByRefNode : public SignalNode<D,S>
+{
+public:
+    template <typename T, typename F>
+    SyncedIterateByRefNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func,
+                           const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
+        SignalNode{ std::forward<T>(init) },
+        events_{ events },
+        func_{ std::forward<F>(func) }
+
+    {
+        Engine::OnNodeCreate(*this);
+        Engine::OnNodeAttach(*this, *events);
+        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
+    }
+
+    ~SyncedIterateByRefNode()
+    {
+        Engine::OnNodeDetach(*this, *events_);
+
+        apply(
+            DetachFunctor<D,SyncedIterateByRefNode,
+                SharedPtrT<SignalNode<D,TDepValues>>...>{ *this },
+            deps_);
+
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        struct EvalFunctor_
+        {
+            EvalFunctor_(const E& e, const S& v, TFunc& f) :
+                MyEvent{ e },
+                MyValue{ v },
+                MyFunc{ f }
+            {}
+
+            void operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
+            {
+                MyFunc(MyEvent, MyValue, args->ValueRef() ...);
+            }
+
+            const E&    MyEvent;
+            S&          MyValue;
+            TFunc&      MyFunc;
+        };
+
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        for (const auto& e : events_->Events())
+            apply(EvalFunctor_{ e, newValue, func_ }, deps_);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        Engine::OnNodePulse(*this, turn);
+    }
+
+    virtual const char* GetNodeType() const override        { return "SyncedIterateByRefNode"; }
+    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+
+private:
+    using DepHolderT = std::tuple<SharedPtrT<SignalNode<D,TDepValues>>...>;
+
+    SharedPtrT<EventStreamNode<D,E>> events_;
+    
+    DepHolderT  deps_;
+    TFunc       func_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// HoldNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template

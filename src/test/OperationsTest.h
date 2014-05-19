@@ -227,7 +227,7 @@ TYPED_TEST_P(OperationsTest, Snapshot1)
 TYPED_TEST_P(OperationsTest, IterateByRef1)
 {
     auto src = MyDomain::MakeEventSource<int>();
-    auto f = IterateByRef(
+    auto f = Iterate(
         src,
         std::vector<int>(),
         [] (int d, std::vector<int>& v) {
@@ -251,7 +251,7 @@ TYPED_TEST_P(OperationsTest, IterateByRef1)
 TYPED_TEST_P(OperationsTest, IterateByRef2)
 {
     auto src = MyDomain::MakeEventSource();
-    auto x = IterateByRef(
+    auto x = Iterate(
         src,
         std::vector<int>(),
         [] (Token, std::vector<int>& v) {

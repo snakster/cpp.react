@@ -33,6 +33,9 @@ class EventSource;
 
 enum class Token;
 
+template <typename D, typename ... TValues>
+class SignalPack;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterate
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,16 +51,22 @@ auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
     -> Signal<D,S>
 {
     using REACT_IMPL::IterateNode;
+    using REACT_IMPL::IterateByRefNode;
 
     using F = std::decay<FIn>::type;
+    using TNode = std::conditional<
+        std::is_same<void,std::result_of<F(E,S)>::type>::value,
+        IterateByRefNode<D,S,E,F>,
+        IterateNode<D,S,E,F>
+        >::type;
 
     return Signal<D,S>(
-        std::make_shared<IterateNode<D,S,E,F>>(
+        std::make_shared<TNode>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// IterateByRef - Pass current value as reference
+/// Iterate - Synced
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -65,18 +74,47 @@ template
     typename E,
     typename V,
     typename FIn,
+    typename ... TDepValues,
     typename S = std::decay<V>::type
 >
-auto IterateByRef(const Events<D,E>& events, V&& init, FIn&& func)
+auto Iterate(const Events<D,E>& events, V&& init, SignalPack<D,TDepValues...> depPack, FIn&& func)
     -> Signal<D,S>
 {
-    using REACT_IMPL::IterateByRefNode;
+    using REACT_IMPL::SyncedIterateNode;
+    using REACT_IMPL::SyncedIterateByRefNode;
 
     using F = std::decay<FIn>::type;
+    using TNode = std::conditional<
+        std::is_same<void,std::result_of<F(E,S,TDepValues...)>::type>::value,
+        SyncedIterateByRefNode<D,S,E,F,TDepValues ...>,
+        SyncedIterateNode<D,S,E,F,TDepValues ...>
+        >::type;
 
-    return Signal<D,S>(
-        std::make_shared<IterateByRefNode<D,S,E,F>>(
-            std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
+    struct NodeBuilder_
+    {
+        NodeBuilder_(const Events<D,E>& source, V&& init, FIn&& func) :
+            MySource{ source },
+            MyInit{ std::forward<V>(init) },
+            MyFunc{ std::forward<FIn>(func) }
+        {}
+
+        auto operator()(const Signal<D,TDepValues>& ... deps)
+            -> Signal<D,S>
+        {
+            return Signal<D,S>(
+                std::make_shared<TNode>(
+                    std::forward<V>(MyInit), MySource.NodePtr(),
+                    std::forward<FIn>(MyFunc), deps.NodePtr() ...));
+        }
+
+        const Events<D,E>&  MySource;
+        V                   MyInit;
+        FIn                 MyFunc;
+    };
+
+    return REACT_IMPL::apply(
+        NodeBuilder_{ events, std::forward<V>(init), std::forward<FIn>(func) },
+        depPack.Data);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -166,7 +204,7 @@ auto Changed(const Signal<D,S>& target)
     -> Events<D,Token>
 {
     return Monitor(target)
-        .Transform([] (const S& v) { return Token::token; });
+        .Transform([] (const S& v) { return Token::value; });
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,7 +222,7 @@ auto ChangedTo(const Signal<D,S>& target, V&& value)
     return Monitor(target)
         .Transform([=] (const S& v) { return v == value; })
         .Filter([] (bool v) { return v == true; })
-        .Transform([=] (const S& v) { return Token::token; })
+        .Transform([=] (const S& v) { return Token::value; })
 }
 
 /******************************************/ REACT_END /******************************************/
