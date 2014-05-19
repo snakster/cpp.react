@@ -209,7 +209,7 @@ public:
         subject->IncObsCount();
         Engine::OnNodeAttach(*this, *subject);
 
-        REACT_EXPAND_PACK(D::Engine::OnNodeAttach(*this, *deps));
+        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
     }
 
     ~SyncedObserverNode()

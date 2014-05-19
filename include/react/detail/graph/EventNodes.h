@@ -602,7 +602,7 @@ public:
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *source);
-        REACT_EXPAND_PACK(D::Engine::OnNodeAttach(*this, *deps));
+        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
     }
 
     ~SyncedEventTransformNode()
@@ -693,7 +693,7 @@ public:
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *source);
-        REACT_EXPAND_PACK(D::Engine::OnNodeAttach(*this, *deps));
+        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
     }
 
     ~SyncedEventFilterNode()
