@@ -16,155 +16,6 @@
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// FoldBaseNode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E
->
-class FoldBaseNode : public SignalNode<D,S>
-{
-public:
-    template <typename T>
-    FoldBaseNode(T&& init, const SharedPtrT<EventStreamNode<D,E>>& events) :
-        SignalNode(std::forward<T>(init)),
-        events_{ events }
-    {}
-
-    virtual void Tick(void* turnPtr) override
-    {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        S newValue = calcNewValue();
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! impl::Equals(newValue, value_))
-        {
-            value_ = newValue;
-            Engine::OnNodePulse(*this, turn);
-        }
-        else
-        {
-            Engine::OnNodeIdlePulse(*this, turn);
-        }
-    }
-
-    virtual int DependencyCount() const    override    { return 1; }
-
-protected:
-    SharedPtrT<EventStreamNode<D,E>> events_;
-
-    virtual S calcNewValue() const = 0;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// FoldNode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E,
-    typename TFunc
->
-class FoldNode : public FoldBaseNode<D,S,E>
-{
-public:
-    template <typename T, typename F>
-    FoldNode(T&& init, const SharedPtrT<EventStreamNode<D,E>>& events, F&& func) :
-        FoldBaseNode(std::forward<T>(init), events),
-        func_{ std::forward<F>(func) }
-    {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *events);
-    }
-
-    ~FoldNode()
-    {
-        Engine::OnNodeDetach(*this, *events_);
-        Engine::OnNodeDestroy(*this);
-    }
-
-    virtual const char* GetNodeType() const override    { return "FoldNode"; }
-
-protected:
-    TFunc   func_;
-
-    virtual S calcNewValue() const override
-    {
-        S newValue = value_;
-        for (const auto& e : events_->Events())
-            newValue = func_(newValue,e);
-            
-        return newValue;
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// FoldByRefNode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E,
-    typename TFunc
->
-class FoldByRefNode : public SignalNode<D,S>
-{
-public:
-    template <typename T, typename F>
-    FoldByRefNode(T&& init, const SharedPtrT<EventStreamNode<D,E>>& events, F&& func) :
-        SignalNode(std::forward<T>(init)),
-        func_{ std::forward<F>(func) },
-        events_{ events }
-    {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *events);
-    }
-
-    ~FoldByRefNode()
-    {
-        Engine::OnNodeDetach(*this, *events_);
-        Engine::OnNodeDestroy(*this);
-    }
-
-    virtual void Tick(void* turnPtr) override
-    {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        for (const auto& e : events_->Events())
-            func_(value_,e);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        // Always assume change
-        Engine::OnNodePulse(*this, turn);
-    }
-
-    virtual const char* GetNodeType() const override        { return "FoldByRefNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
-
-protected:
-    TFunc   func_;
-
-    SharedPtrT<EventStreamNode<D,E>> events_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IterateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -174,12 +25,13 @@ template
     typename E,
     typename TFunc
 >
-class IterateNode : public FoldBaseNode<D,S,E>
+class IterateNode : public SignalNode<D,S>
 {
 public:
     template <typename T, typename F>
-    IterateNode(T&& init, const SharedPtrT<EventStreamNode<D,E>>& events, F&& func) :
-        FoldBaseNode(std::forward<T>(init), events),
+    IterateNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func) :
+        SignalNode{ std::forward<T>(init) },
+        events_{ events },
         func_{ std::forward<F>(func) }
     {
         Engine::OnNodeCreate(*this);
@@ -192,18 +44,39 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override    { return "IterateNode"; }
-
-protected:
-    TFunc   func_;
-
-    virtual S calcNewValue() const override
+    virtual void Tick(void* turnPtr) override
     {
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
         S newValue = value_;
         for (const auto& e : events_->Events())
-            newValue = func_(newValue);
-        return newValue;
+            newValue = func_(e, newValue);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        if (! impl::Equals(newValue, value_))
+        {
+            value_ = std::move(newValue);
+            Engine::OnNodePulse(*this, turn);
+        }
+        else
+        {
+            Engine::OnNodeIdlePulse(*this, turn);
+        }
     }
+
+    virtual const char* GetNodeType() const override    { return "IterateNode"; }
+    virtual int DependencyCount() const    override     { return 1; }
+
+private:
+    SharedPtrT<EventStreamNode<D,E>> events_;
+    
+    TFunc   func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,7 +94,7 @@ class IterateByRefNode : public SignalNode<D,S>
 public:
     template <typename T, typename F>
     IterateByRefNode(T&& init, const SharedPtrT<EventStreamNode<D,E>>& events, F&& func) :
-        SignalNode(std::forward<T>(init)),
+        SignalNode{ std::forward<T>(init) },
         func_{ std::forward<F>(func) },
         events_{ events }
     {
@@ -244,7 +117,7 @@ public:
             GetObjectId(*this), turn.Id()));
 
         for (const auto& e : events_->Events())
-            func_(value_);
+            func_(e, value_);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));

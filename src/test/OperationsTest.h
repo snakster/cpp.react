@@ -43,12 +43,12 @@ public:
 TYPED_TEST_CASE_P(OperationsTest);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Fold1 test
+/// Iterate1 test
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(OperationsTest, Fold1)
+TYPED_TEST_P(OperationsTest, Iterate1)
 {
     auto numSrc = MyDomain::MakeEventSource<int>();
-    auto numFold = Fold(0, numSrc, [] (int v, int d) {
+    auto numFold = Iterate(numSrc, 0, [] (int d, int v) {
         return v + d;
     });
 
@@ -60,7 +60,7 @@ TYPED_TEST_P(OperationsTest, Fold1)
     ASSERT_EQ(numFold(), 5050);
 
     auto charSrc = MyDomain::MakeEventSource<char>();
-    auto strFold = Fold(string(""), charSrc, [] (string s, char c) {
+    auto strFold = Iterate(charSrc, string(""), [] (char c, string s) {
         return s + c;
     });
 
@@ -70,40 +70,40 @@ TYPED_TEST_P(OperationsTest, Fold1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Fold2 test
+/// Iterate2 test
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(OperationsTest, Fold2)
+TYPED_TEST_P(OperationsTest, Iterate2)
 {
-    auto src = MyDomain::MakeEventSource<int>();
-    auto f = Fold(0, src, [] (int v, int d) {
+    auto numSrc = MyDomain::MakeEventSource<int>();
+    auto numFold = Iterate(numSrc, 0, [] (int d, int v) {
         return v + d;
     });
 
     int c = 0;
 
-    Observe(f, [&] (int v) {
+    Observe(numFold, [&] (int v) {
         c++;
         ASSERT_EQ(v, 5050);
     });
 
     MyDomain::DoTransaction([&] {
         for (auto i=1; i<=100; i++)
-            src << i;
+            numSrc << i;
     });
 
-    ASSERT_EQ(f(), 5050);
+    ASSERT_EQ(numFold(), 5050);
     ASSERT_EQ(c, 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Iterate1 test
+/// Iterate3 test
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(OperationsTest, Iterate1)
+TYPED_TEST_P(OperationsTest, Iterate3)
 {
     auto trigger = MyDomain::MakeEventSource();
 
     {
-        auto inc = Iterate(0, trigger, Incrementer<int>{});
+        auto inc = Iterate(trigger, 0, Incrementer<int>{});
         for (auto i=1; i<=100; i++)
             trigger.Emit();
 
@@ -111,7 +111,7 @@ TYPED_TEST_P(OperationsTest, Iterate1)
     }
 
     {
-        auto dec = Iterate(100, trigger, Decrementer<int>{});
+        auto dec = Iterate(trigger, 100, Decrementer<int>{});
         for (auto i=1; i<=100; i++)
             trigger.Emit();
 
@@ -158,7 +158,7 @@ TYPED_TEST_P(OperationsTest, Hold1)
 {
     auto src = MyDomain::MakeEventSource<int>();
 
-    auto h = Hold(0, src);
+    auto h = Hold(src, 0);
 
     ASSERT_EQ(h(), 0);
 
@@ -222,15 +222,15 @@ TYPED_TEST_P(OperationsTest, Snapshot1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// FoldByRef1 test
+/// IterateByRef1 test
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(OperationsTest, FoldByRef1)
+TYPED_TEST_P(OperationsTest, IterateByRef1)
 {
     auto src = MyDomain::MakeEventSource<int>();
-    auto f = FoldByRef(
-        std::vector<int>(),
+    auto f = IterateByRef(
         src,
-        [] (std::vector<int>& v, int d) {
+        std::vector<int>(),
+        [] (int d, std::vector<int>& v) {
             v.push_back(d);
         });
 
@@ -246,14 +246,14 @@ TYPED_TEST_P(OperationsTest, FoldByRef1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// IterateByRef1 test
+/// IterateByRef2 test
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(OperationsTest, IterateByRef1)
+TYPED_TEST_P(OperationsTest, IterateByRef2)
 {
     auto src = MyDomain::MakeEventSource();
     auto x = IterateByRef(
-        std::vector<int>(),
         src,
+        std::vector<int>(),
         [] (std::vector<int>& v) {
             v.push_back(123);
         });
@@ -360,15 +360,15 @@ TYPED_TEST_P(OperationsTest, SyncedTransform1)
 REGISTER_TYPED_TEST_CASE_P
 (
     OperationsTest,
-    Fold1,
-    Fold2,
     Iterate1,
+    Iterate2,
+    Iterate3,
     Monitor1,
     Hold1,
     Pulse1,
     Snapshot1,
-    FoldByRef1,
     IterateByRef1,
+    IterateByRef2,
     SyncedTransform1
 );
 

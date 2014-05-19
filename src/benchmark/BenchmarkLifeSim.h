@@ -48,9 +48,9 @@ template <typename D>
 class Time : public ReactiveObject<D>
 {
 public:
-    EventSourceT<bool>    NewDay    = MakeEventSource<bool>();
+    EventSourceT<>      NewDay    = MakeEventSource();
 
-    SignalT<int>        TotalDays    = Iterate(0, NewDay, Incrementer<int>());
+    SignalT<int>        TotalDays    = Iterate(NewDay, 0, Incrementer<int>());
     SignalT<int>        DayOfYear    = TotalDays % 365;
 
     SignalT<Seasons>    Season = DayOfYear ->* [] (int day) {
@@ -70,7 +70,7 @@ public:
 
     EventSourceT<Migration>    EnterOrLeave = MakeEventSource<Migration>();
 
-    SignalT<int>    AnimalCount = Fold(0, EnterOrLeave, [] (int count, Migration m) {
+    SignalT<int>    AnimalCount = Iterate(EnterOrLeave, 0, [] (Migration m, int count) {
         return m == Migration::enter ? count + 1 : count - 1;
     });
 
@@ -167,7 +167,7 @@ public:
         CurrentRegion( MakeVar(initRegion) ),
         generator( seed )
     {
-        Position = Fold(initRegion->Center(), Moving, [this] (PositionT position, bool shouldMigrate) {
+        Position = Iterate(Moving, initRegion->Center(), [this] (bool shouldMigrate, PositionT position) {
             std::uniform_int_distribution<int> dist(-1,1);
 
             // Wander randomly
@@ -202,9 +202,9 @@ public:
         
     EventsT<int>    FoodReceived = REACTIVE_PTR(CurrentRegion, FoodOutput);
 
-    SignalT<int>    Age = Iterate(0, theTime.NewDay, Incrementer<int>());
+    SignalT<int>    Age = Iterate(theTime.NewDay, 0, Incrementer<int>());
 
-    SignalT<int>    Health = Fold(100, FoodReceived, [] (int health, int food) {
+    SignalT<int>    Health = Iterate(FoodReceived, 100, [] (int food, int health) {
         auto newHealth = health + food - 10;
         return newHealth < 0 ? 0 : newHealth > 10000 ? 10000 : newHealth;
     });
@@ -213,7 +213,7 @@ public:
     
     //Event<bool>   Migrating = EventSource<bool>();
 
-    SignalT<bool>   ShouldMigrate = Hold(0, FoodReceived) < 10;
+    SignalT<bool>   ShouldMigrate = Hold(FoodReceived, 0) < 10;
     EventsT<bool>   Moving = Pulse(theTime.NewDay, ShouldMigrate);
 };
 
@@ -282,7 +282,7 @@ struct Benchmark_LifeSim : public BenchmarkBase<D>
         auto t0 = tbb::tick_count::now();
         for (int i=0; i<params.K; i++)
         {
-            theTime.NewDay << true;
+            theTime.NewDay.Emit();
             
             
             //s = s + c;

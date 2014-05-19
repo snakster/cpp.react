@@ -136,7 +136,7 @@ void EventExample2()
     // stream just indicates that it has fired, i.e. it behaves like a token stream.
     auto emitter = D::MakeEventSource();
 
-    auto counter = Iterate(0, emitter, [] (int v) { return v+1; });
+    auto counter = Iterate(emitter, 0, [] (int v) { return v+1; });
 
     // In this case, the observer func must not declare a parameter for token streams.
     Observe(emitter, [] {
@@ -249,28 +249,28 @@ void ObjectExample2()
     cout << endl;
 }
 
-void FoldExample1()
+void IterateExample1()
 {
-    cout << "Fold Example 1" << endl;
+    cout << "Iterate Example 1" << endl;
 
     auto src = D::MakeEventSource<int>();
-    auto fold1 = Fold(0, src, [] (int v, int d) {
+    auto it = Iterate(src, 0, [] (int d, int v) {
         return v + d;
     });
 
     for (auto i=1; i<=100; i++)
         src << i;
 
-    cout << fold1() << endl;
+    cout << it() << endl;
 
     auto charSrc = D::MakeEventSource<char>();
-    auto strFold = Fold(string(""), charSrc, [] (string s, char c) {
+    auto str = Iterate(charSrc, string(""), [] (char c, string s) {
         return s + c;
     });
 
     charSrc << 'T' << 'e' << 's' << 't';
 
-    cout << "Str: " << strFold() << endl;
+    cout << "Str: " << str() << endl;
 }
 
 #ifdef REACT_ENABLE_REACTORS
@@ -339,7 +339,7 @@ int main()
     ObjectExample1();
     ObjectExample2();
 
-    FoldExample1();
+    IterateExample1();
 
 #ifdef REACT_ENABLE_REACTORS
     LoopTest();
