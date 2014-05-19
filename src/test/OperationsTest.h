@@ -270,9 +270,9 @@ TYPED_TEST_P(OperationsTest, IterateByRef1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// GenerateEvents test
+/// SyncedTransform1 test
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(OperationsTest, GenerateEvents1)
+TYPED_TEST_P(OperationsTest, SyncedTransform1)
 {
     auto in1 = MyDomain::MakeVar(1);
     auto in2 = MyDomain::MakeVar(1);
@@ -284,15 +284,20 @@ TYPED_TEST_P(OperationsTest, GenerateEvents1)
     auto src1 = MyDomain::MakeEventSource();
     auto src2 = MyDomain::MakeEventSource<int>();
 
-    auto out1 = GenerateEvents(src1, [] (int sum, int prod, int diff) {
+    auto out1 = Transform(src1, With(sum,prod,diff), [] (int sum, int prod, int diff) {
         return make_tuple(sum, prod, diff);
-    }, sum, prod, diff);
+    });
 
-    auto out2 = GenerateEvents(src2, [] (int e, int sum, int prod, int diff) {
+    auto out2 = Transform(src2, With(sum,prod,diff), [] (int e, int sum, int prod, int diff) {
         return make_tuple(e, sum, prod, diff);
-    }, sum, prod, diff);
+    });
 
-    Observe(out1, [] (const tuple<int,int,int>& t) {
+    int obsCount1 = 0;
+    int obsCount2 = 0;
+
+    Observe(out1, [&] (const tuple<int,int,int>& t) {
+        ++obsCount1;
+
         ASSERT_EQ(get<0>(t), 33);
         ASSERT_EQ(get<1>(t), 242);
         ASSERT_EQ(get<2>(t), 11);
@@ -300,7 +305,9 @@ TYPED_TEST_P(OperationsTest, GenerateEvents1)
         DetachThisObserver();
     });
 
-    Observe(out2, [] (const tuple<int,int,int,int>& t) {
+    Observe(out2, [&] (const tuple<int,int,int,int>& t) {
+        ++obsCount2;
+
         ASSERT_EQ(get<0>(t), 42);
         ASSERT_EQ(get<1>(t), 33);
         ASSERT_EQ(get<2>(t), 242);
@@ -315,19 +322,26 @@ TYPED_TEST_P(OperationsTest, GenerateEvents1)
     src1.Emit();
     src2.Emit(42);
 
-    Observe(out1, [] (const tuple<int,int,int>& t) {
-        ASSERT_EQ(get<0>(t), 3300);
+    ASSERT_EQ(obsCount1, 1);
+    ASSERT_EQ(obsCount2, 1);
+
+    Observe(out1, [&] (const tuple<int,int,int>& t) {
+        ++obsCount1;
+
+        ASSERT_EQ(get<0>(t), 330);
         ASSERT_EQ(get<1>(t), 24200);
-        ASSERT_EQ(get<2>(t), 1100);
+        ASSERT_EQ(get<2>(t), 110);
 
         DetachThisObserver();
     });
 
-    Observe(out2, [] (const tuple<int,int,int,int>& t) {
+    Observe(out2, [&] (const tuple<int,int,int,int>& t) {
+        ++obsCount2;
+
         ASSERT_EQ(get<0>(t), 420);
-        ASSERT_EQ(get<1>(t), 3300);
+        ASSERT_EQ(get<1>(t), 330);
         ASSERT_EQ(get<2>(t), 24200);
-        ASSERT_EQ(get<3>(t), 1100);
+        ASSERT_EQ(get<3>(t), 110);
 
         DetachThisObserver();
     });
@@ -337,6 +351,9 @@ TYPED_TEST_P(OperationsTest, GenerateEvents1)
 
     src1.Emit();
     src2.Emit(420);
+
+    ASSERT_EQ(obsCount1, 2);
+    ASSERT_EQ(obsCount2, 2);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -352,7 +369,7 @@ REGISTER_TYPED_TEST_CASE_P
     Snapshot1,
     FoldByRef1,
     IterateByRef1,
-    GenerateEvents1
+    SyncedTransform1
 );
 
 } // ~namespace
