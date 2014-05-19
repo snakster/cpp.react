@@ -201,69 +201,6 @@ auto Pulse(const Events<D,E>& trigger, const Signal<D,S>& target)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// GenerateEvents
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename E,
-    typename FIn,
-    typename ... TDepValues,
-    typename TOut = std::result_of<FIn(E,TDepValues ...)>::type,
-    class = std::enable_if<
-        ! std::is_same<E,EventToken>::value>::type
->
-auto GenerateEvents(const Events<D,E>& trigger, FIn&& func,
-                    const Signal<D,TDepValues>& ... deps)
-    -> Events<D,TOut>
-{
-    using REACT_IMPL::EventGeneratorNode;
-
-    using F = std::decay<FIn>::type;
-
-    return Events<D,TOut>(
-        std::make_shared<EventGeneratorNode<D,E,TOut,F,TDepValues ...>>(
-            trigger.NodePtr(), std::forward<FIn>(func), deps.NodePtr() ...));
-}
-
-// Token stream version
-template
-<
-    typename D,
-    typename FIn,
-    typename ... TDepValues,
-    typename TOut = std::result_of<FIn(TDepValues ...)>::type
->
-auto GenerateEvents(const Events<D,EventToken>& trigger, FIn&& func,
-                    const Signal<D,TDepValues>& ... deps)
-    -> Events<D,TOut>
-{
-    using REACT_IMPL::EventGeneratorNode;
-
-    using F = std::decay<FIn>::type;
-
-    struct Wrapper_
-    {
-        Wrapper_(FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
-        Wrapper_(const Wrapper_& other) = default;
-        Wrapper_(Wrapper_&& other) : MyFunc{ std::move(other.MyFunc) } {}
-
-        void operator()(EventToken, const TDepValues& ... args)
-        {
-            MyFunc(args ...);
-        }
-
-        F MyFunc;
-    };
-
-    Wrapper_ wrapper{ std::forward<FIn>(func) };
-
-    return Events<D,TOut>(
-        std::make_shared<EventGeneratorNode<D,EventToken,TOut,Wrapper_,TDepValues ...>>(
-            trigger.NodePtr(), std::move(wrapper), deps.NodePtr() ...));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Changed
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
