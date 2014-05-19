@@ -77,7 +77,7 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        current_observer_state_::shouldDetach = false;
+        GlobalObserverState<>::ShouldDetach = false;
 
         ContinuationHolder<D>::SetTurn(turn);
 
@@ -86,7 +86,7 @@ public:
 
         ContinuationHolder<D>::Clear();
 
-        if (current_observer_state_::shouldDetach)
+        if (GlobalObserverState<>::ShouldDetach)
             turn.QueueForDetach(*this);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
@@ -148,7 +148,7 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
         
-        current_observer_state_::shouldDetach = false;
+        GlobalObserverState<>::ShouldDetach = false;
 
         ContinuationHolder<D>::SetTurn(turn);
 
@@ -160,7 +160,7 @@ public:
 
         ContinuationHolder<D>::Clear();
 
-        if (current_observer_state_::shouldDetach)
+        if (GlobalObserverState<>::ShouldDetach)
             turn.QueueForDetach(*this);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
@@ -244,19 +244,23 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
         
-        current_observer_state_::shouldDetach = false;
+        GlobalObserverState<>::ShouldDetach = false;
 
         ContinuationHolder<D>::SetTurn(turn);
 
         if (auto p = subject_.lock())
         {
+            // Update of this node could be triggered from deps,
+            // so make sure source doesnt contain events from last turn
+            p->SetCurrentTurn(turn);
+
             for (const auto& e : p->Events())
                 apply(EvalFunctor_{ e, func_ }, deps_);
         }
 
         ContinuationHolder<D>::Clear();
 
-        if (current_observer_state_::shouldDetach)
+        if (GlobalObserverState<>::ShouldDetach)
             turn.QueueForDetach(*this);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(

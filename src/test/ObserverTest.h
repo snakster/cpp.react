@@ -115,9 +115,8 @@ TYPED_TEST_P(ObserverTest, ScopedObserverTest)
     auto in = MyDomain::MakeVar(1);
 
     {
-        MyDomain::ScopedObserverT obs = in.Observe([&] (int v) {
+        MyDomain::ScopedObserverT obs = Observe(in, [&] (int v) {
             results.push_back(v);
-
         });
 
         in <<=2;
@@ -165,12 +164,65 @@ TYPED_TEST_P(ObserverTest, SyncedObserveTest)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// DetachThisObserver1 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(ObserverTest, DetachThisObserver1)
+{
+    auto src = MyDomain::MakeEventSource();
+
+    int count = 0;
+
+    Observe(src, [&] {
+        ++count;
+        DetachThisObserver();
+    });
+
+    src.Emit();
+    src.Emit();
+
+    printf("Count %d\n", count);
+    ASSERT_EQ(count, 1);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// DetachThisObserver2 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(ObserverTest, DetachThisObserver2)
+{
+    auto in1 = MyDomain::MakeVar(1);
+    auto in2 = MyDomain::MakeVar(1);
+
+    auto sum  = in1 + in2;
+    auto prod = in1 * in2;
+    auto diff = in1 - in2;
+
+    auto src = MyDomain::MakeEventSource();
+
+    int count = 0;
+
+    Observe(src, With(sum,prod,diff), [&] (int sum, int prod, int diff) {
+        ++count;
+        DetachThisObserver();
+    });
+
+    in1 <<= 22;
+    in2 <<= 11;
+
+    src.Emit();
+    src.Emit();
+
+    ASSERT_EQ(count, 1);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     ObserverTest,
     Detach,
     ScopedObserverTest,
-    SyncedObserveTest
+    SyncedObserveTest,
+    DetachThisObserver1,
+    DetachThisObserver2
 );
 
 } // ~namespace

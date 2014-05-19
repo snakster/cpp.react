@@ -302,7 +302,7 @@ void DetachAllObservers(const TSubject& subject)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 inline void DetachThisObserver()
 {
-    REACT_IMPL::current_observer_state_::shouldDetach = true;
+    REACT_IMPL::GlobalObserverState<>::ShouldDetach = true;
 }
 
 /******************************************/ REACT_END /******************************************/

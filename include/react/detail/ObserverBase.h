@@ -23,10 +23,14 @@ class Observable;
 class IObserver;
 
 // tbb tasks are non-preemptible, thread local flag for each worker
-namespace current_observer_state_
+template <typename = void>
+struct GlobalObserverState
 {
-    static REACT_TLS bool    shouldDetach = false;
-}
+    static REACT_TLS bool    ShouldDetach;
+};
+
+template <>
+bool GlobalObserverState<void>::ShouldDetach = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverRegistry
