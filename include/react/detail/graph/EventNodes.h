@@ -20,6 +20,15 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Forward declarations
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename S>
+class SignalNode;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventStreamNodeAccessPolicy
+///////////////////////////////////////////////////////////////////////////////////////////////////
 // Empty base class optimization
 template <typename D>
 struct EventStreamNodeAccessPolicy :
@@ -298,23 +307,23 @@ public:
 private:
     const TDep& getDep() const { return std::get<0>(deps_); }
 
-    template <typename TFiltered>
+    template <typename TCollector>
     struct FilteredEventCollector
     {
-        FilteredEventCollector(const TFilter& filter, const TFiltered& filtered) :
+        FilteredEventCollector(const TFilter& filter, const TCollector& collector) :
             MyFilter{ filter },
-            MyFiltered{ filtered }
+            MyCollector{ collector }
         {}
 
         void operator()(const E& e) const
         {
             // Accepted?
             if (MyFilter(e))
-                MyFiltered(e);
+                MyCollector(e);
         }
 
         const TFilter&      MyFilter;
-        const TFiltered&    MyFiltered;
+        const TCollector&   MyCollector;    // The wrapped collector
     };
 
     template <typename TTurn, typename TCollector, typename T>
@@ -494,13 +503,6 @@ private:
 template
 <
     typename D,
-    typename S
->
-class SignalNode;
-
-template
-<
-    typename D,
     typename TOuter,
     typename TInner
 >
@@ -574,6 +576,184 @@ public:
 private:
     SharedPtrT<SignalNode<D,TOuter>>        outer_;
     SharedPtrT<EventStreamNode<D,TInner>>   inner_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SycnedEventTransformNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename TIn,
+    typename TOut,
+    typename TFunc,
+    typename ... TDepValues
+>
+class SyncedEventTransformNode : public EventStreamNode<D,TOut>
+{
+public:
+    template <typename F>
+    SyncedEventTransformNode(const std::shared_ptr<EventStreamNode<D,TIn>>& source, F&& func, 
+                             const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
+        EventStreamNode{ },
+        source_{ source },
+        func_{ std::forward<F>(func) },
+        deps_{ deps ... }
+    {
+        Engine::OnNodeCreate(*this);
+        Engine::OnNodeAttach(*this, *source);
+        REACT_EXPAND_PACK(D::Engine::OnNodeAttach(*this, *deps));
+    }
+
+    ~SyncedEventTransformNode()
+    {
+        Engine::OnNodeDetach(*this, *source_);
+
+        apply(
+            DetachFunctor<D,SyncedEventTransformNode,
+                SharedPtrT<SignalNode<D,TDepValues>>...>{ *this },
+            deps_);
+
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual const char* GetNodeType() const override        { return "SyncedEventTransformNode"; }
+    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        struct EvalFunctor_
+        {
+            EvalFunctor_(const TIn& e, TFunc& f) :
+                MyEvent{ e },
+                MyFunc{ f }
+            {}
+
+            TOut operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
+            {
+                return MyFunc(MyEvent, args->ValueRef() ...);
+            }
+
+            const TIn&  MyEvent;
+            TFunc&      MyFunc;
+        };
+
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+
+        SetCurrentTurn(turn, true);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        for (const auto& e : source_->Events())
+            events_.push_back(apply(EvalFunctor_{ e, func_ }, deps_));
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        if (! events_.empty())
+            Engine::OnNodePulse(*this, turn);
+        else
+            Engine::OnNodeIdlePulse(*this, turn);
+    }
+
+private:
+    using DepHolderT = std::tuple<SharedPtrT<SignalNode<D,TDepValues>>...>;
+
+    SharedPtrT<EventStreamNode<D,TIn>>   source_;
+
+    DepHolderT  deps_;
+    TFunc       func_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SycnedEventFilterNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename E,
+    typename TFunc,
+    typename ... TDepValues
+>
+class SyncedEventFilterNode : public EventStreamNode<D,E>
+{
+public:
+    template <typename F>
+    SyncedEventFilterNode(const std::shared_ptr<EventStreamNode<D,E>>& source, F&& filter, 
+                          const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
+        EventStreamNode{ },
+        source_{ source },
+        filter_{ std::forward<F>(filter) },
+        deps_{ deps ... }
+    {
+        Engine::OnNodeCreate(*this);
+        Engine::OnNodeAttach(*this, *source);
+        REACT_EXPAND_PACK(D::Engine::OnNodeAttach(*this, *deps));
+    }
+
+    ~SyncedEventFilterNode()
+    {
+        Engine::OnNodeDetach(*this, *source_);
+
+        apply(
+            DetachFunctor<D,SyncedEventFilterNode,
+                SharedPtrT<SignalNode<D,TDepValues>>...>{ *this },
+            deps_);
+
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual const char* GetNodeType() const override        { return "SyncedEventFilterNode"; }
+    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        struct EvalFunctor_
+        {
+            EvalFunctor_(const E& e, TFunc& f) :
+                MyEvent{ e },
+                MyFilter{ f }
+            {}
+
+            bool operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
+            {
+                return MyFilter(MyEvent, args->ValueRef() ...);
+            }
+
+            const E&    MyEvent;
+            TFunc&      MyFilter;
+        };
+
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+
+        SetCurrentTurn(turn, true);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        for (const auto& e : source_->Events())
+            if (apply(EvalFunctor_{ e, filter_ }, deps_))
+                events_.push_back(e);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        if (! events_.empty())
+            Engine::OnNodePulse(*this, turn);
+        else
+            Engine::OnNodeIdlePulse(*this, turn);
+    }
+
+private:
+    using DepHolderT = std::tuple<SharedPtrT<SignalNode<D,TDepValues>>...>;
+
+    SharedPtrT<EventStreamNode<D,E>>   source_;
+
+    DepHolderT  deps_;
+    TFunc       filter_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

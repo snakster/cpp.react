@@ -14,9 +14,19 @@
 
 #include "react/Observer.h"
 #include "react/TypeTraits.h"
+#include "react/common/Util.h"
 #include "react/detail/EventBase.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Forward declarations
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename S>
+class Signal;
+
+template <typename D, typename ... TValues>
+class SignalPack;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventToken
@@ -337,20 +347,24 @@ template <typename D, typename E>
 auto MakeEventSource()
     -> EventSource<D,E>
 {
+    using REACT_IMPL::EventSourceNode;
+
     return EventSource<D,E>(
-        std::make_shared<REACT_IMPL::EventSourceNode<D,E>>());
+        std::make_shared<EventSourceNode<D,E>>());
 }
 
 template <typename D>
 auto MakeEventSource()
     -> EventSource<D,EventToken>
 {
+    using REACT_IMPL::EventSourceNode;
+
     return EventSource<D,EventToken>(
-        std::make_shared<REACT_IMPL::EventSourceNode<D,EventToken>>());
+        std::make_shared<EventSourceNode<D,EventToken>>());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Forward
+/// Forward - Why would anyone ever need this
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -360,8 +374,10 @@ template
 auto Forward(const Events<D,E>& other)
     -> Events<D,E>
 {
+    using REACT_IMPL::EventForwardNode;
+
     return Events<D,E>(
-        std::make_shared<REACT_IMPL::EventForwardNode<D,E>>(other.NodePtr()));
+        std::make_shared<EventForwardNode<D,E>>(other.NodePtr()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -380,11 +396,13 @@ template
 auto Merge(const Events<D,TArg1>& arg1, const Events<D,TArgs>& ... args)
     -> TempEvents<D,E,TOp>
 {
+    using REACT_IMPL::EventOpNode;
+
     static_assert(sizeof...(TArgs) > 0,
         "react::Merge requires at least 2 arguments.");
 
     return TempEvents<D,E,TOp>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+        std::make_shared<EventOpNode<D,E,TOp>>(
             arg1.NodePtr(), args.NodePtr() ...));
 }
 
@@ -407,8 +425,10 @@ template
 auto operator|(const TLeftEvents& lhs, const TRightEvents& rhs)
     -> TempEvents<D,E,TOp>
 {
+    using REACT_IMPL::EventOpNode;
+
     return TempEvents<D,E,TOp>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+        std::make_shared<EventOpNode<D,E,TOp>>(
             lhs.NodePtr(), rhs.NodePtr()));
 }
 
@@ -425,8 +445,10 @@ template
 auto operator|(TempEvents<D,TLeftVal,TLeftOp>&& lhs, TempEvents<D,TRightVal,TRightOp>&& rhs)
     -> TempEvents<D,E,TOp>
 {
+    using REACT_IMPL::EventOpNode;
+
     return TempEvents<D,E,TOp>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+        std::make_shared<EventOpNode<D,E,TOp>>(
             lhs.StealOp(), rhs.StealOp()));
 }
 
@@ -447,8 +469,10 @@ template
 auto operator|(TempEvents<D,TLeftVal,TLeftOp>&& lhs, const TRightEvents& rhs)
     -> TempEvents<D,E,TOp>
 {
+    using REACT_IMPL::EventOpNode;
+
     return TempEvents<D,E,TOp>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+        std::make_shared<EventOpNode<D,E,TOp>>(
             lhs.StealOp(), rhs.NodePtr()));
 }
 
@@ -469,8 +493,10 @@ template
 auto operator|(const TLeftEvents& lhs, TempEvents<D,TRightVal,TRightOp>&& rhs)
     -> TempEvents<D,E,TOp>
 {
+    using REACT_IMPL::EventOpNode;
+
     return TempEvents<D,E,TOp>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+        std::make_shared<EventOpNode<D,E,TOp>>(
             lhs.NodePtr(), rhs.StealOp()));
 }
 
@@ -489,8 +515,10 @@ template
 auto Filter(const Events<D,E>& src, FIn&& filter)
     -> TempEvents<D,E,TOp>
 {
+    using REACT_IMPL::EventOpNode;
+
     return TempEvents<D,E,TOp>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOp>>(
+        std::make_shared<EventOpNode<D,E,TOp>>(
             std::forward<FIn>(filter), src.NodePtr()));
 }
 
@@ -506,9 +534,92 @@ template
 auto Filter(TempEvents<D,E,TOpIn>&& src, FIn&& filter)
     -> TempEvents<D,E,TOpOut>
 {
+    using REACT_IMPL::EventOpNode;
+
     return TempEvents<D,E,TOpOut>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,E,TOpOut>>(
+        std::make_shared<EventOpNode<D,E,TOpOut>>(
             std::forward<FIn>(filter), src.StealOp()));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Filter - Synced
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename E,
+    typename FIn,
+    typename ... TDepValues
+>
+auto Filter(const Events<D,E>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
+    -> Events<D,E>
+{
+    using REACT_IMPL::SyncedEventFilterNode;
+
+    using F = std::decay<FIn>::type;
+
+    struct NodeBuilder_
+    {
+        NodeBuilder_(const Events<D,E>& source, FIn&& func) :
+            MySource{ source },
+            MyFunc{ std::forward<FIn>(func) }
+        {}
+
+        auto operator()(const Signal<D,TDepValues>& ... deps)
+            -> Events<D,E>
+        {
+            return Events<D,E>(
+                std::make_shared<SyncedEventFilterNode<D,E,F,TDepValues ...>>(
+                     MySource.NodePtr(), std::forward<FIn>(MyFunc), deps.NodePtr() ...));
+        }
+
+        const Events<D,E>&      MySource;
+        FIn                     MyFunc;
+    };
+
+    return REACT_IMPL::apply(
+        NodeBuilder_{ source, std::forward<FIn>(func) },
+        depPack.Data);
+}
+
+// Token stream version
+template
+<
+    typename D,
+    typename FIn,
+    typename ... TDepValues
+>
+auto Filter(const Events<D,EventToken>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
+    -> Events<D,EventToken>
+{
+    using REACT_IMPL::SyncedEventFilterNode;
+    using REACT_IMPL::AddDummyArgWrapper;
+
+    using F = std::decay<FIn>::type;
+    using WrapperT = AddDummyArgWrapper<EventToken,F,bool,TDepValues...>;
+
+    struct NodeBuilder_
+    {
+        NodeBuilder_(const Events<D,EventToken>& source, WrapperT&& wrapper) :
+            MySource{ source },
+            MyWrapper{ std::move(wrapper) }
+        {}
+
+        auto operator()(const Signal<D,TDepValues>& ... deps)
+            -> Events<D,EventToken>
+        {
+            return Events<D,EventToken>(
+                std::make_shared<SyncedEventFilterNode<D,EventToken,WrapperT,TDepValues ...>>(
+                     MySource.NodePtr(), std::move(MyWrapper), deps.NodePtr() ...));
+        }
+
+        const Events<D,EventToken>&     MySource;
+        WrapperT&&                      MyWrapper;
+    };
+
+    return REACT_IMPL::apply(
+        NodeBuilder_{ source, WrapperT{ 0, std::forward<FIn>(func) } },
+        depPack.Data);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -517,37 +628,126 @@ auto Filter(TempEvents<D,E,TOpIn>&& src, FIn&& filter)
 template
 <
     typename D,
-    typename EIn,
+    typename TIn,
     typename FIn,
     typename F = std::decay<FIn>::type,
-    typename EOut = std::result_of<F(EIn)>::type,
-    typename TOp = REACT_IMPL::EventTransformOp<EIn,F,
-        REACT_IMPL::EventStreamNodePtrT<D,EIn>>
+    typename TOut = std::result_of<F(TIn)>::type,
+    typename TOp = REACT_IMPL::EventTransformOp<TIn,F,
+        REACT_IMPL::EventStreamNodePtrT<D,TIn>>
 >
-auto Transform(const Events<D,EIn>& src, FIn&& func)
-    -> TempEvents<D,EOut,TOp>
+auto Transform(const Events<D,TIn>& src, FIn&& func)
+    -> TempEvents<D,TOut,TOp>
 {
-    return TempEvents<D,EOut,TOp>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,EOut,TOp>>(
+    using REACT_IMPL::EventOpNode;
+
+    return TempEvents<D,TOut,TOp>(
+        std::make_shared<EventOpNode<D,TOut,TOp>>(
             std::forward<FIn>(func), src.NodePtr()));
 }
 
 template
 <
     typename D,
-    typename EIn,
+    typename TIn,
     typename TOpIn,
     typename FIn,
     typename F = std::decay<FIn>::type,
-    typename EOut = std::result_of<F(EIn)>::type,
-    typename TOpOut = REACT_IMPL::EventTransformOp<EIn,F,TOpIn>
+    typename TOut = std::result_of<F(TIn)>::type,
+    typename TOpOut = REACT_IMPL::EventTransformOp<TIn,F,TOpIn>
 >
-auto Transform(TempEvents<D,EIn,TOpIn>&& src, FIn&& func)
-    -> TempEvents<D,EOut,TOpOut>
+auto Transform(TempEvents<D,TIn,TOpIn>&& src, FIn&& func)
+    -> TempEvents<D,TOut,TOpOut>
 {
-    return TempEvents<D,EOut,TOpOut>(
-        std::make_shared<REACT_IMPL::EventOpNode<D,EOut,TOpOut>>(
+    using REACT_IMPL::EventOpNode;
+
+    return TempEvents<D,TOut,TOpOut>(
+        std::make_shared<EventOpNode<D,TOut,TOpOut>>(
             std::forward<FIn>(func), src.StealOp()));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Transform - Synced
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename TIn,
+    typename FIn,
+    typename ... TDepValues,
+    typename TOut = std::result_of<FIn(TIn,TDepValues...)>::type
+>
+auto Transform(const Events<D,TIn>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
+    -> Events<D,TOut>
+{
+    using REACT_IMPL::SyncedEventTransformNode;
+
+    using F = std::decay<FIn>::type;
+
+    struct NodeBuilder_
+    {
+        NodeBuilder_(const Events<D,TIn>& source, FIn&& func) :
+            MySource{ source },
+            MyFunc{ std::forward<FIn>(func) }
+        {}
+
+        auto operator()(const Signal<D,TDepValues>& ... deps)
+            -> Events<D,TOut>
+        {
+            return Events<D,TOut>(
+                std::make_shared<SyncedEventTransformNode<D,TIn,TOut,F,TDepValues ...>>(
+                     MySource.NodePtr(), std::forward<FIn>(MyFunc), deps.NodePtr() ...));
+        }
+
+        const Events<D,TIn>&    MySource;
+        FIn                     MyFunc;
+    };
+
+    return REACT_IMPL::apply(
+        NodeBuilder_{ source, std::forward<FIn>(func) },
+        depPack.Data);
+}
+
+// Token stream version
+template
+<
+    typename D,
+    typename FIn,
+    typename ... TDepValues,
+    typename TOut = std::result_of<FIn(TDepValues...)>::type
+>
+auto Transform(const Events<D,EventToken>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
+    -> Events<D,TOut>
+{
+    using REACT_IMPL::SyncedEventTransformNode;
+    using REACT_IMPL::AddDummyArgWrapper;
+
+    using F = std::decay<FIn>::type;
+    using WrapperT = AddDummyArgWrapper<EventToken,F,TOut,TDepValues...>;
+
+    struct NodeBuilder_
+    {
+        NodeBuilder_(const Events<D,EventToken>& source, WrapperT&& wrapper) :
+            MySource{ source },
+            MyWrapper{ std::move(wrapper) }
+        {}
+
+        auto operator()(const Signal<D,TDepValues>& ... deps)
+            -> Events<D,TOut>
+        {
+            return Events<D,TOut>(
+                std::make_shared<
+                    SyncedEventTransformNode<D,EventToken,TOut,WrapperT,TDepValues ...>>(
+                         MySource.NodePtr(), std::move(MyWrapper), deps.NodePtr() ...));
+        }
+
+        const Events<D,EventToken>&     MySource;
+        WrapperT&&                      MyWrapper;
+    };
+
+    return REACT_IMPL::apply(
+        NodeBuilder_{
+            source, WrapperT{ 0, std::forward<FIn>(func) } },
+        depPack.Data);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
