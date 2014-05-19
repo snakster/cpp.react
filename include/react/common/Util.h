@@ -152,6 +152,27 @@ MoveBindWrapper<T> MoveIntoBind(T&& t)
     return MoveBindWrapper<T>{std::forward<T>(t)}; 
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// AddDummyArgWrapper
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename TArg, typename F, typename TRet, typename ... TDepValues>
+struct AddDummyArgWrapper
+{
+    // Dummy int to make sure it calls the right ctor
+    template <typename FIn>
+    AddDummyArgWrapper(int, FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
+
+    AddDummyArgWrapper(const AddDummyArgWrapper& other) = default;
+    AddDummyArgWrapper(AddDummyArgWrapper&& other) : MyFunc{ std::move(other.MyFunc) } {}
+
+    TRet operator()(TArg, const TDepValues& ... args)
+    {
+        return MyFunc(args ...);
+    }
+
+    F MyFunc;
+};
+
 /****************************************/ REACT_IMPL_END /***************************************/
 
 namespace std
