@@ -662,9 +662,9 @@ DECLARE_OP(>=, GreaterEqual);
 DECLARE_OP(&&, LogicalAnd);
 DECLARE_OP(||, LogicalOr);
 
-//DECLARE_OP(&, BitwiseAnd);
-//DECLARE_OP(|, BitwiseOr);
-//DECLARE_OP(^, BitwiseXor);
+DECLARE_OP(&, BitwiseAnd);
+DECLARE_OP(|, BitwiseOr);
+DECLARE_OP(^, BitwiseXor);
 //DECLARE_OP(<<, BitwiseLeftShift); // MSVC: Internal compiler error
 //DECLARE_OP(>>, BitwiseRightShift);
 
