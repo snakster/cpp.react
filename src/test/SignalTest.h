@@ -66,23 +66,13 @@ TYPED_TEST_P(SignalTest, Signals1)
     auto v3 = MyDomain::MakeVar(3);
     auto v4 = MyDomain::MakeVar(4);
 
-    auto s1 = MyDomain::MakeSignal
-    (
-        [] (int a, int b)
-        {
-            return a + b;
-        },
-        v1, v2
-    );
+    auto s1 = MakeSignal(With(v1,v2), [] (int a, int b) {
+        return a + b;
+    });
 
-    auto s2 = MyDomain::MakeSignal
-    (
-        [] (int a, int b)
-        {
-            return a + b;
-        },
-        v3, v4
-    );
+    auto s2 = MakeSignal(With(v3,v4), [] (int a, int b) {
+        return a + b;
+    });
 
     auto s3 = s1 + s2;
 

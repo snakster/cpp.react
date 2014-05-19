@@ -248,6 +248,43 @@ bool Equals(const Signal<D,L>& lhs, const Signal<D,R>& rhs)
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SignalPack - Wraps several nodes in a tuple. Create with comma operator.
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename ... TValues
+>
+class SignalPack
+{
+public:
+    SignalPack(const Signal<D,TValues>&  ... deps) :
+        Data{ std::tie(deps ...) }
+    {}
+
+    template <typename ... TCurValues, typename TAppendValue>
+    SignalPack(const SignalPack<D, TCurValues ...>& curArgs, const Signal<D,TAppendValue>& newArg) :
+        Data{ std::tuple_cat(curArgs.Data, std::tie(newArg)) }
+    {}
+
+    std::tuple<const Signal<D,TValues>& ...> Data;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// With - Utility function to create a SignalPack
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename ... TValues
+>
+auto With(const Signal<D,TValues>&  ... deps)
+    -> SignalPack<D,TValues ...>
+{
+    return SignalPack<D,TValues...>(deps ...);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MakeVar
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -318,24 +355,61 @@ auto MakeVar(V&& value)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MakeSignal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// Single arg
 template
 <
     typename D,
+    typename TValue,
     typename FIn,
+    typename F = std::decay<FIn>::type,
+    typename S = std::result_of<F(TValue)>::type,
+    typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtrT<D,TValue>>
+>
+auto MakeSignal(const Signal<D,TValue>& arg, FIn&& func)
+    -> TempSignal<D,S,TOp>
+{
+    return TempSignal<D,S,TOp>(
+        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(
+            std::forward<FIn>(func), arg.NodePtr()));
+}
+
+// Multiple args
+template
+<
+    typename D,
     typename ... TValues,
+    typename FIn,
     typename F = std::decay<FIn>::type,
     typename S = std::result_of<F(TValues...)>::type,
     typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtrT<D,TValues> ...>
 >
-auto MakeSignal(FIn&& func, const Signal<D,TValues>& ... args)
+auto MakeSignal(const SignalPack<D,TValues...>& argPack, FIn&& func)
     -> TempSignal<D,S,TOp>
 {
-    static_assert(sizeof...(TValues) > 0,
-        "react::MakeSignal requires at least 1 signal dependency.");
+    using REACT_IMPL::SignalOpNode;
 
-    return TempSignal<D,S,TOp>(
-        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(
-            std::forward<FIn>(func), args.NodePtr() ...  ));
+    using F = std::decay<FIn>::type;
+
+    struct NodeBuilder_
+    {
+        NodeBuilder_(FIn&& func) :
+            MyFunc{ std::forward<FIn>(func) }
+        {}
+
+        auto operator()(const Signal<D,TValues>& ... args)
+            -> TempSignal<D,S,TOp>
+        {
+            return TempSignal<D,S,TOp>(
+                std::make_shared<SignalOpNode<D,S,TOp>>(
+                    std::forward<FIn>(MyFunc), args.NodePtr() ...));
+        }
+
+        FIn     MyFunc;
+    };
+
+    return REACT_IMPL::apply(
+        NodeBuilder_{ std::forward<FIn>(func) },
+        argPack.Data);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -659,44 +733,7 @@ DECLARE_OP(^, BitwiseXor);
 #undef DECLARE_OP
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalPack - Wraps several nodes in a tuple. Create with comma operator.
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename ... TValues
->
-class SignalPack
-{
-public:
-    SignalPack(const Signal<D,TValues>&  ... deps) :
-        Data{ std::tie(deps ...) }
-    {}
-
-    template <typename ... TCurValues, typename TAppendValue>
-    SignalPack(const SignalPack<D, TCurValues ...>& curArgs, const Signal<D,TAppendValue>& newArg) :
-        Data{ std::tuple_cat(curArgs.Data, std::tie(newArg)) }
-    {}
-
-    std::tuple<const Signal<D,TValues>& ...> Data;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// With - Utility function to create a SignalPack
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename ... TValues
->
-auto With(const Signal<D,TValues>&  ... deps)
-    -> SignalPack<D,TValues ...>
-{
-    return SignalPack<D,TValues...>(deps ...);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Comma operator overload to create input pack from 2 signals.
+/// Comma operator overload to create signal pack from 2 signals.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -711,7 +748,7 @@ auto operator,(const Signal<D,TLeftVal>& a, const Signal<D,TRightVal>& b)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Comma operator overload to append node to existing input pack.
+/// Comma operator overload to append node to existing signal pack.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -725,33 +762,10 @@ auto operator,(const SignalPack<D, TCurValues ...>& cur, const Signal<D,TAppendV
     return SignalPack<D, TCurValues ... , TAppendValue>(cur, append);
 }
 
-/******************************************/ REACT_END /******************************************/
-
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-template
-<
-    typename D,
-    typename F,
-    typename ... TValues
->
-struct ApplyHelper
-{
-    static inline auto MakeSignal(F&& func, const Signal<D,TValues>& ... args)
-        -> Signal<D, typename std::result_of<F(TValues ...)>::type>
-    {
-        return D::MakeSignal(std::forward<F>(func), args ...);
-    }
-};
-
-/****************************************/ REACT_IMPL_END /***************************************/
-
-/*****************************************/ REACT_BEGIN /*****************************************/
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// operator->* overload to connect inputs to a function and return the resulting node.
+/// operator->* overload to connect signals to a function and return the resulting signal.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// Single input
+// Single arg
 template
 <
     typename D,
@@ -761,25 +775,23 @@ template
     class = std::enable_if<
         IsSignal<TSignal<D,TValue>>::value>::type
 >
-auto operator->*(const TSignal<D,TValue>& inputNode, F&& func)
+auto operator->*(const TSignal<D,TValue>& arg, F&& func)
     -> Signal<D, typename std::result_of<F(TValue)>::type>
 {
-    return D::MakeSignal(std::forward<F>(func), inputNode);
+    return REACT::MakeSignal(arg, std::forward<F>(func));
 }
 
-// Multiple inputs
+// Multiple args
 template
 <
     typename D,
     typename F,
     typename ... TValues
 >
-auto operator->*(const SignalPack<D,TValues ...>& inputPack, F&& func)
+auto operator->*(const SignalPack<D,TValues ...>& argPack, F&& func)
     -> Signal<D, typename std::result_of<F(TValues ...)>::type>
 {
-    return apply(
-        REACT_IMPL::ApplyHelper<D,F,TValues ...>::MakeSignal,
-        std::tuple_cat(std::forward_as_tuple(std::forward<F>(func)), inputPack.Data));
+    return REACT::MakeSignal(argPack, std::forward<F>(func));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

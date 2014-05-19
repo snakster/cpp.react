@@ -125,23 +125,6 @@ public:
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// MakeSignal
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    template
-    <
-        typename FIn,
-        typename ... TArgs,
-        typename F = std::decay<FIn>::type,
-        typename S = std::result_of<F(TArgs...)>::type,
-        typename TOp = REACT_IMPL::FunctionOp<S,F,REACT_IMPL::SignalNodePtrT<D,TArgs> ...>
-    >
-    static auto MakeSignal(FIn&& func, const SignalT<TArgs>& ... args)
-        -> TempSignal<D,S,TOp>
-    {
-        return REACT::MakeSignal<D>(std::forward<FIn>(func), args ...);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
     /// MakeEventSource
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename E>

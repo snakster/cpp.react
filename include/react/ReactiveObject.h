@@ -123,22 +123,6 @@ public:
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    /// MakeSignal
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    template
-    <
-        typename FIn,
-        typename ... TArgs,
-        typename F = std::decay<FIn>::type,
-        typename S = std::result_of<F(TArgs...)>::type
-    >
-    static auto MakeSignal(FIn&& func, const SignalT<TArgs>& ... args)
-        -> SignalT<S>
-    {
-        return REACT::MakeSignal<D>(std::forward<FIn>(func), args ...);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
     /// MakeEventSource
     ///////////////////////////////////////////////////////////////////////////////////////////////
     template <typename E>
@@ -165,20 +149,20 @@ public:
 #define REACTIVE_REF(obj, name)                                                             \
     Flatten(                                                                                \
         MakeSignal(                                                                         \
+            obj,                                                                            \
             [] (const REACT_IMPL::Identity<decltype(obj)>::Type::ValueT& r)                 \
             {                                                                               \
                 using T = decltype(r.name);                                                 \
                 return static_cast<RemoveInput<typename T::DomainT, T>::Type>(r.name);      \
-            },                                                                              \
-            obj))
+            }))
 
 #define REACTIVE_PTR(obj, name)                                                             \
     Flatten(                                                                                \
         MakeSignal(                                                                         \
+            obj,                                                                            \
             [] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)                        \
             {                                                                               \
                 REACT_ASSERT(r != nullptr);                                                 \
                 using T = decltype(r->name);                                                \
                 return static_cast<RemoveInput<typename T::DomainT, T>::Type>(r->name);     \
-            },                                                                              \
-            obj))
+            }))
