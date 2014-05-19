@@ -136,7 +136,7 @@ void EventExample2()
     // stream just indicates that it has fired, i.e. it behaves like a token stream.
     auto emitter = D::MakeEventSource();
 
-    auto counter = Iterate(0, emitter, Incrementer<int>());
+    auto counter = Iterate(0, emitter, [] (int v) { return v+1; });
 
     // In this case, the observer func must not declare a parameter for token streams.
     Observe(emitter, [] {
@@ -223,7 +223,7 @@ public:
     Manager(Company& c) :
         CurrentCompany{ MakeVar(ref(c)) }
     {
-        nameObs = REACTIVE_REF(CurrentCompany, Name).Observe([] (string name) {
+        nameObs = Observe(REACTIVE_REF(CurrentCompany, Name), [] (string name) {
             cout << "Manager: Now managing " << name << endl;
         });
     }
@@ -344,8 +344,6 @@ int main()
 #ifdef REACT_ENABLE_REACTORS
     LoopTest();
 #endif
-
-    //Debug();
 
 #ifdef REACT_ENABLE_LOGGING
     std::ofstream logfile;
