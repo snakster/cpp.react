@@ -25,10 +25,10 @@ using namespace react;
 using namespace std;
 
 template <typename T>
-struct Incrementer { T operator()(T v) const { return v+1; } };
+struct Incrementer { T operator()(Token, T v) const { return v+1; } };
 
 template <typename T>
-struct Decrementer { T operator()(T v) const { return v-1; } };
+struct Decrementer { T operator()(Token, T v) const { return v-1; } };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventStreamTest fixture
@@ -254,7 +254,7 @@ TYPED_TEST_P(OperationsTest, IterateByRef2)
     auto x = IterateByRef(
         src,
         std::vector<int>(),
-        [] (std::vector<int>& v) {
+        [] (Token, std::vector<int>& v) {
             v.push_back(123);
         });
 
@@ -284,7 +284,7 @@ TYPED_TEST_P(OperationsTest, SyncedTransform1)
     auto src1 = MyDomain::MakeEventSource();
     auto src2 = MyDomain::MakeEventSource<int>();
 
-    auto out1 = Transform(src1, With(sum,prod,diff), [] (int sum, int prod, int diff) {
+    auto out1 = Transform(src1, With(sum,prod,diff), [] (Token, int sum, int prod, int diff) {
         return make_tuple(sum, prod, diff);
     });
 

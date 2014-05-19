@@ -40,7 +40,7 @@ enum class Seasons      { summer,  winter };
 enum class Migration    { enter,  leave };
 
 template <typename T>
-struct Incrementer { T operator()(T v) const { return v+1; } };
+struct Incrementer { T operator()(Token,T v) const { return v+1; } };
 
 typedef pair<int,int> PositionT;
 

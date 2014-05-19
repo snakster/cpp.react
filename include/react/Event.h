@@ -29,9 +29,9 @@ template <typename D, typename ... TValues>
 class SignalPack;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventToken
+/// Token
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-enum class EventToken { token };
+enum class Token { value };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Events
@@ -39,7 +39,7 @@ enum class EventToken { token };
 template
 <
     typename D,
-    typename E = EventToken
+    typename E = Token
 >
 class Events : public REACT_IMPL::EventStreamBase<D,E>
 {
@@ -175,7 +175,7 @@ public:
 template
 <
     typename D,
-    typename E = EventToken
+    typename E = Token
 >
 class EventSource : public Events<D,E>
 {
@@ -205,10 +205,10 @@ public:
         BaseT::emit(std::move(e));
     }
 
-    template <class = std::enable_if<std::is_same<E,EventToken>::value>::type>
+    template <class = std::enable_if<std::is_same<E,Token>::value>::type>
     void Emit() const
     {
-        BaseT::emit(EventToken::token);
+        BaseT::emit(Token::value);
     }
 
     const EventSource& operator<<(const E& e) const
@@ -343,12 +343,12 @@ auto MakeEventSource()
 
 template <typename D>
 auto MakeEventSource()
-    -> EventSource<D,EventToken>
+    -> EventSource<D,Token>
 {
     using REACT_IMPL::EventSourceNode;
 
-    return EventSource<D,EventToken>(
-        std::make_shared<EventSourceNode<D,EventToken>>());
+    return EventSource<D,Token>(
+        std::make_shared<EventSourceNode<D,Token>>());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -537,9 +537,7 @@ template
     typename D,
     typename E,
     typename FIn,
-    typename ... TDepValues,
-    class = std::enable_if<
-        ! std::is_same<E,EventToken>::value>::type
+    typename ... TDepValues
 >
 auto Filter(const Events<D,E>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
     -> Events<D,E>
@@ -569,46 +567,6 @@ auto Filter(const Events<D,E>& source, SignalPack<D,TDepValues...> depPack, FIn&
 
     return REACT_IMPL::apply(
         NodeBuilder_{ source, std::forward<FIn>(func) },
-        depPack.Data);
-}
-
-// Token stream version
-template
-<
-    typename D,
-    typename FIn,
-    typename ... TDepValues
->
-auto Filter(const Events<D,EventToken>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
-    -> Events<D,EventToken>
-{
-    using REACT_IMPL::SyncedEventFilterNode;
-    using REACT_IMPL::AddDummyArgWrapper;
-
-    using F = std::decay<FIn>::type;
-    using WrapperT = AddDummyArgWrapper<EventToken,F,bool,const TDepValues...>;
-
-    struct NodeBuilder_
-    {
-        NodeBuilder_(const Events<D,EventToken>& source, WrapperT&& wrapper) :
-            MySource{ source },
-            MyWrapper{ std::move(wrapper) }
-        {}
-
-        auto operator()(const Signal<D,TDepValues>& ... deps)
-            -> Events<D,EventToken>
-        {
-            return Events<D,EventToken>(
-                std::make_shared<SyncedEventFilterNode<D,EventToken,WrapperT,TDepValues ...>>(
-                     MySource.NodePtr(), std::move(MyWrapper), deps.NodePtr() ...));
-        }
-
-        const Events<D,EventToken>&     MySource;
-        WrapperT&&                      MyWrapper;
-    };
-
-    return REACT_IMPL::apply(
-        NodeBuilder_{ source, WrapperT{ 0, std::forward<FIn>(func) } },
         depPack.Data);
 }
 
@@ -664,9 +622,7 @@ template
     typename TIn,
     typename FIn,
     typename ... TDepValues,
-    typename TOut = std::result_of<FIn(TIn,TDepValues...)>::type,
-    class = std::enable_if<
-        ! std::is_same<TIn,EventToken>::value>::type
+    typename TOut = std::result_of<FIn(TIn,TDepValues...)>::type
 >
 auto Transform(const Events<D,TIn>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
     -> Events<D,TOut>
@@ -696,49 +652,6 @@ auto Transform(const Events<D,TIn>& source, SignalPack<D,TDepValues...> depPack,
 
     return REACT_IMPL::apply(
         NodeBuilder_{ source, std::forward<FIn>(func) },
-        depPack.Data);
-}
-
-// Token stream version
-template
-<
-    typename D,
-    typename FIn,
-    typename ... TDepValues,
-    typename TOut = std::result_of<FIn(TDepValues...)>::type
->
-auto Transform(const Events<D,EventToken>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
-    -> Events<D,TOut>
-{
-    using REACT_IMPL::SyncedEventTransformNode;
-    using REACT_IMPL::AddDummyArgWrapper;
-
-    using F = std::decay<FIn>::type;
-    using WrapperT = AddDummyArgWrapper<EventToken,F,TOut,const TDepValues...>;
-
-    struct NodeBuilder_
-    {
-        NodeBuilder_(const Events<D,EventToken>& source, WrapperT&& wrapper) :
-            MySource{ source },
-            MyWrapper{ std::move(wrapper) }
-        {}
-
-        auto operator()(const Signal<D,TDepValues>& ... deps)
-            -> Events<D,TOut>
-        {
-            return Events<D,TOut>(
-                std::make_shared<
-                    SyncedEventTransformNode<D,EventToken,TOut,WrapperT,TDepValues ...>>(
-                         MySource.NodePtr(), std::move(MyWrapper), deps.NodePtr() ...));
-        }
-
-        const Events<D,EventToken>&     MySource;
-        WrapperT&&                      MyWrapper;
-    };
-
-    return REACT_IMPL::apply(
-        NodeBuilder_{
-            source, WrapperT{ 0, std::forward<FIn>(func) } },
         depPack.Data);
 }
 

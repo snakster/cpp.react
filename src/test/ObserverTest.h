@@ -143,7 +143,7 @@ TYPED_TEST_P(ObserverTest, SyncedObserveTest)
     auto src1 = MyDomain::MakeEventSource();
     auto src2 = MyDomain::MakeEventSource<int>();
 
-    Observe(src1, With(sum,prod,diff), [] (int sum, int prod, int diff) {
+    Observe(src1, With(sum,prod,diff), [] (Token, int sum, int prod, int diff) {
         ASSERT_EQ(sum, 33);
         ASSERT_EQ(prod, 242);
         ASSERT_EQ(diff, 11);
@@ -172,7 +172,7 @@ TYPED_TEST_P(ObserverTest, DetachThisObserver1)
 
     int count = 0;
 
-    Observe(src, [&] {
+    Observe(src, [&] (Token) {
         ++count;
         DetachThisObserver();
     });
@@ -200,7 +200,7 @@ TYPED_TEST_P(ObserverTest, DetachThisObserver2)
 
     int count = 0;
 
-    Observe(src, With(sum,prod,diff), [&] (int sum, int prod, int diff) {
+    Observe(src, With(sum,prod,diff), [&] (Token, int sum, int prod, int diff) {
         ++count;
         DetachThisObserver();
     });

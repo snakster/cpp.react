@@ -47,7 +47,7 @@ class Observer;
 template <typename D>
 class ScopedObserver;
 
-enum class EventToken;
+enum class Token;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ReactiveObject
@@ -67,10 +67,10 @@ public:
     template <typename S>
     using VarSignalT = VarSignal<D,S>;
 
-    template <typename E = EventToken>
+    template <typename E = Token>
     using EventsT = Events<D,E>;
 
-    template <typename E = EventToken>
+    template <typename E = Token>
     using EventSourceT = EventSource<D,E>;
 
     using ObserverT = Observer<D>;
@@ -149,7 +149,7 @@ public:
     }
 
     static auto MakeEventSource()
-        -> EventSource<D,EventToken>
+        -> EventSource<D,Token>
     {
         return REACT::MakeEventSource<D>();
     }

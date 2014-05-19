@@ -52,7 +52,7 @@ class EventSource;
 template <typename D, typename E, typename TOp>
 class TempEvents;
 
-enum class EventToken;
+enum class Token;
 
 using REACT_IMPL::TurnFlagsT;
 
@@ -79,10 +79,10 @@ public:
     template <typename S>
     using VarSignalT = VarSignal<D,S>;
 
-    template <typename E = EventToken>
+    template <typename E = Token>
     using EventsT = Events<D,E>;
 
-    template <typename E = EventToken>
+    template <typename E = Token>
     using EventSourceT = EventSource<D,E>;
 
     using ObserverT = Observer<D>;
@@ -152,7 +152,7 @@ public:
     }
 
     static auto MakeEventSource()
-        -> EventSourceT<EventToken>
+        -> EventSourceT<Token>
     {
         return REACT::MakeEventSource<D>();
     }

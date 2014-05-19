@@ -136,10 +136,10 @@ void EventExample2()
     // stream just indicates that it has fired, i.e. it behaves like a token stream.
     auto emitter = D::MakeEventSource();
 
-    auto counter = Iterate(emitter, 0, [] (int v) { return v+1; });
+    auto counter = Iterate(emitter, 0, [] (Token, int v) { return v+1; });
 
-    // In this case, the observer func must not declare a parameter for token streams.
-    Observe(emitter, [] {
+    // The observer func declares a parameter of type Token
+    Observe(emitter, [] (Token) {
         cout << "Emitter fired!" << endl;
     });
 

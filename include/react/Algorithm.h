@@ -31,7 +31,7 @@ class Events;
 template <typename D, typename E>
 class EventSource;
 
-enum class EventToken;
+enum class Token;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterate
@@ -42,9 +42,7 @@ template
     typename E,
     typename V,
     typename FIn,
-    typename S = std::decay<V>::type,
-    class = std::enable_if<
-        ! std::is_same<E,EventToken>::value>::type
+    typename S = std::decay<V>::type
 >
 auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
     -> Signal<D,S>
@@ -56,28 +54,6 @@ auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
     return Signal<D,S>(
         std::make_shared<IterateNode<D,S,E,F>>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
-}
-
-// Token stream version
-template
-<
-    typename D,
-    typename V,
-    typename FIn,
-    typename S = std::decay<V>::type
->
-auto Iterate(const Events<D,EventToken>& events, V&& init, FIn&& func)
-    -> Signal<D,S>
-{
-    using REACT_IMPL::IterateNode;
-    using REACT_IMPL::AddDummyArgWrapper;
-
-    using F = std::decay<FIn>::type;
-    using WrapperT = AddDummyArgWrapper<EventToken,F,S,S>;
-
-    return Signal<D,S>(
-        std::make_shared<IterateNode<D,S,EventToken,WrapperT>>(
-            std::forward<V>(init), events.NodePtr(), WrapperT{ 0, std::forward<FIn>(func) }));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,28 +77,6 @@ auto IterateByRef(const Events<D,E>& events, V&& init, FIn&& func)
     return Signal<D,S>(
         std::make_shared<IterateByRefNode<D,S,E,F>>(
             std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
-}
-
-// Token stream version
-template
-<
-    typename D,
-    typename V,
-    typename FIn,
-    typename S = std::decay<V>::type
->
-auto IterateByRef(const Events<D,EventToken>& events, V&& init, FIn&& func)
-    -> Signal<D,S>
-{
-    using REACT_IMPL::IterateByRefNode;
-    using REACT_IMPL::AddDummyArgWrapper;
-
-    using F = std::decay<FIn>::type;
-    using WrapperT = AddDummyArgWrapper<EventToken,F,void,S>;
-
-    return Signal<D,S>(
-        std::make_shared<IterateByRefNode<D,S,EventToken,WrapperT>>(
-            std::forward<V>(init), events.NodePtr(), WrapperT{ 0, std::forward<FIn>(func) }));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -209,10 +163,10 @@ template
     typename S
 >
 auto Changed(const Signal<D,S>& target)
-    -> Events<D,EventToken>
+    -> Events<D,Token>
 {
     return Monitor(target)
-        .Transform([] (const S& v) { return EventToken::token; });
+        .Transform([] (const S& v) { return Token::token; });
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -225,12 +179,12 @@ template
     typename S = std::decay<V>::type
 >
 auto ChangedTo(const Signal<D,S>& target, V&& value)
-    -> Events<D,EventToken>
+    -> Events<D,Token>
 {
     return Monitor(target)
         .Transform([=] (const S& v) { return v == value; })
         .Filter([] (bool v) { return v == true; })
-        .Transform([=] (const S& v) { return EventToken::token; })
+        .Transform([=] (const S& v) { return Token::token; })
 }
 
 /******************************************/ REACT_END /******************************************/
