@@ -77,12 +77,16 @@ using namespace react;
 REACTIVE_DOMAIN(D);
 
 // Two event sources
-D::EventSource<> leftClicked  = D::MakeEventSource();
-D::EventSource<> rightClicked = D::MakeEventSource();
+D::EventSourceT<Token> leftClicked  = D::MakeEventSource();
+D::EventSourceT<Token> rightClicked = D::MakeEventSource();
 
-// Merge both event streams and register an observer
-auto clickObserver = (leftClicked | rightClicked)
-    .Observe([] { cout << "button clicked!" << endl; });
+// Merge both event streams
+auto merged = leftClicked | rightClicked;
+
+// React to events
+auto obs = Observe(merged, [] (Token) {
+    cout << "clicked!" << endl;
+});
 ```
 
 #### Implicit parallelism
@@ -117,15 +121,13 @@ using namespace react;
 
     auto in = D::MakeVar(0);
 
-    // The ->* operator is overloaded for a DSL
-
-    auto op1 = in ->* [] (int in)
+    auto op1 = MakeSignal(in, [] (int in)
     {
         int result = in /* Costly operation #1 */;
         return result;
     };
 
-    auto op2 = in ->* [] (int in)
+    auto op2 = MakeSignal(in, [] (int in)
     {
         int result = in /* Costly operation #2 */;
         return result;
@@ -246,8 +248,8 @@ public:
         NameObserver
         {
             // Reactive reference to inner event stream of signal
-            REACTIVE_REF(CurrentCompany, Name)
-                .Observe([] (const string& name) {
+            Observe(REACTIVE_REF(CurrentCompany, Name),
+                [] (const string& name) {
                     cout << "Manager: Now managing " << name << endl;
                 });
         }
