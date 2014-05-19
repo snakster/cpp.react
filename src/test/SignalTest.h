@@ -515,37 +515,12 @@ TYPED_TEST_P(SignalTest, Flatten4)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Member1)
 {
-    auto in1 = MyDomain::MakeVar(10);
-    auto in2 = MyDomain::MakeVar(std::string{ "a" });
-    
-    auto x = in1 + 1;
-
-    in1.Observe([] (int v) {
-        ASSERT_EQ(v, 20);
-    });
-
-    x.Observe([] (int v) {
-        ASSERT_EQ(v, 21);
-    });
-
-    in2.Observe([] (const std::string& v) {
-        ASSERT_EQ(v, "b");
-    });
-
-    in1 <<= 20;
-    in2 <<= std::string{ "b"};
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Member2 test
-///////////////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(SignalTest, Member2)
-{
     auto outer = MyDomain::MakeVar(10);
     auto inner = MyDomain::MakeVar(outer);
+
     auto flattened = inner.Flatten();
 
-    flattened.Observe([] (int v) {
+    Observe(flattened, [] (int v) {
         ASSERT_EQ(v, 30);
     });
 
@@ -560,7 +535,7 @@ REGISTER_TYPED_TEST_CASE_P
     Signals1, Signals2, Signals3, Signals4,
     FunctionBind1, FunctionBind2,
     Flatten1, Flatten2, Flatten3, Flatten4,
-    Member1, Member2
+    Member1
 );
 
 } // ~namespace

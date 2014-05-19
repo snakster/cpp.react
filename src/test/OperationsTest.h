@@ -132,7 +132,7 @@ TYPED_TEST_P(OperationsTest, Monitor1)
         return v > 10;
     };
 
-    auto obs = Monitor(target).Filter(filterFunc).Observe([&] (int v) {
+    auto obs = Observe(Monitor(target).Filter(filterFunc), [&] (int v) {
         results.push_back(v);
     });
 

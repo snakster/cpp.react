@@ -100,12 +100,6 @@ public:
     {
         return REACT::Transform(*this, std::forward<F>(f));
     }
-
-    template <typename F>
-    Observer<D> Observe(F&& f) const
-    {
-        return REACT::Observe(*this, std::forward<F>(f));
-    }
 };
 
 // Specialize for references
@@ -172,12 +166,6 @@ public:
         -> decltype(REACT::Transform(std::declval<Events>(), std::forward<F>(f)))
     {
         return REACT::Transform(*this, std::forward<F>(f));
-    }
-
-    template <typename F>
-    Observer<D> Observe(F&& f) const
-    {
-        return REACT::Observe(*this, std::forward<F>(f));
     }
 };
 

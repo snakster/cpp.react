@@ -68,12 +68,6 @@ public:
     {
         return REACT::Flatten(*this);
     }
-
-    template <typename F>
-    Observer<D> Observe(F&& f) const
-    {
-        return REACT::Observe(*this, std::forward<F>(f));
-    }
 };
 
 // Specialize for references
@@ -116,12 +110,6 @@ public:
     bool IsValid() const
     {
         return BaseT::IsValid();
-    }
-
-    template <typename F>
-    Observer<D> Observe(F&& f) const
-    {
-        return REACT::Observe(*this, std::forward<F>(f));
     }
 };
 
