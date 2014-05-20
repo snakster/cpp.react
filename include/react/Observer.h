@@ -164,7 +164,7 @@ template
     typename ... TDepValues
 >
 auto Observe(const Events<D,E>& subject,
-             SignalPack<D,TDepValues...> depPack, FIn&& func)
+             const SignalPack<D,TDepValues...>& depPack, FIn&& func)
     -> Observer<D>
 {
     using REACT_IMPL::IObserver;
