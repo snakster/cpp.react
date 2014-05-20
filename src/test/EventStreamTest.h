@@ -256,42 +256,6 @@ TYPED_TEST_P(EventStreamTest, EventTransform)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventForward test
-///////////////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(EventStreamTest, EventForward)
-{
-    using std::string;
-
-    std::queue<int> results;
-
-    auto in = MyDomain::MakeEventSource<int>();
-    auto phase1 = Forward(in);
-    auto phase2 = Forward(phase1);
-    auto phase3 = Forward(phase2);
-
-    Observe(phase3, [&] (int v)
-    {
-        results.push(v);
-    });
-
-    in << 1 << 2 << 3;
-
-    ASSERT_FALSE(results.empty());
-    ASSERT_EQ(results.front(),1);
-    results.pop();
-
-    ASSERT_FALSE(results.empty());
-    ASSERT_EQ(results.front(),2);
-    results.pop();
-
-    ASSERT_FALSE(results.empty());
-    ASSERT_EQ(results.front(),3);
-    results.pop();
-
-    ASSERT_TRUE(results.empty());
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     EventStreamTest,
@@ -300,8 +264,7 @@ REGISTER_TYPED_TEST_CASE_P
     EventMerge2,
     EventMerge3,
     EventFilter,
-    EventTransform,
-    EventForward
+    EventTransform
 );
 
 } // ~namespace

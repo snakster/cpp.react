@@ -150,59 +150,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventForwardNode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename E
->
-class EventForwardNode : public EventStreamNode<D,E>
-{
-public:
-    EventForwardNode(const SharedPtrT<EventStreamNode<D,E>>& other) :
-        EventStreamNode{ },
-        other_{ other }
-    {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *other_);
-    }
-
-    ~EventForwardNode()
-    {
-        Engine::OnNodeDetach(*this, *other_);
-        Engine::OnNodeDestroy(*this);
-    }
-
-    virtual const char* GetNodeType() const override        { return "EventForwardNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
-
-    virtual void Tick(void* turnPtr) override
-    {
-        typedef typename D::Engine::TurnT TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        SetCurrentTurn(turn, true);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        events_.insert(events_.end(), other_->Events().begin(), other_->Events().end());
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (events_.size() > 0)
-            Engine::OnNodePulse(*this, turn);
-        else
-            Engine::OnNodeIdlePulse(*this, turn);
-    }
-
-private:
-    SharedPtrT<EventStreamNode<D,E>>   other_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventMergeOp
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
