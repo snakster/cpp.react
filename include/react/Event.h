@@ -207,22 +207,21 @@ public:
         Events{ std::move(nodePtr) }
     {}
 
-    void Emit(const E& e) const
-    {
-        BaseT::emit(e);
-    }
-
-    void Emit(E&& e) const
-    {
-        BaseT::emit(std::move(e));
-    }
+    // Explicit emit
+    void Emit(const E& e) const         { BaseT::emit(e); }
+    void Emit(E&& e) const              { BaseT::emit(std::move(e)); }
 
     template <class = std::enable_if<std::is_same<E,Token>::value>::type>
-    void Emit() const
-    {
-        BaseT::emit(Token::value);
-    }
+    void Emit() const   { BaseT::emit(Token::value); }
 
+    // Function object style
+    void operator()(const E& e) const   { BaseT::emit(e); }
+    void operator()(E&& e) const        { BaseT::emit(std::move(e)); }
+
+    template <class = std::enable_if<std::is_same<E,Token>::value>::type>
+    void operator()() const { BaseT::emit(Token::value); }
+
+    // Stream style
     const EventSource& operator<<(const E& e) const
     {
         BaseT::emit(e);
@@ -260,11 +259,13 @@ public:
         Events{ std::move(nodePtr) }
     {}
 
-    void Emit(std::reference_wrapper<E> e) const
-    {
-        BaseT::emit(e);
-    }
+    // Explicit emit
+    void Emit(std::reference_wrapper<E> e) const        { BaseT::emit(e); }
 
+    // Function object style
+    void operator()(std::reference_wrapper<E> e) const  { BaseT::emit(e); }
+
+    // Stream style
     const EventSource& operator<<(std::reference_wrapper<E> e) const
     {
         BaseT::emit(e);
@@ -551,7 +552,7 @@ template
     typename FIn,
     typename ... TDepValues
 >
-auto Filter(const Events<D,E>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
+auto Filter(const Events<D,E>& source, const SignalPack<D,TDepValues...>& depPack, FIn&& func)
     -> Events<D,E>
 {
     using REACT_IMPL::SyncedEventFilterNode;
@@ -636,7 +637,7 @@ template
     typename ... TDepValues,
     typename TOut = std::result_of<FIn(TIn,TDepValues...)>::type
 >
-auto Transform(const Events<D,TIn>& source, SignalPack<D,TDepValues...> depPack, FIn&& func)
+auto Transform(const Events<D,TIn>& source, const SignalPack<D,TDepValues...>& depPack, FIn&& func)
     -> Events<D,TOut>
 {
     using REACT_IMPL::SyncedEventTransformNode;
