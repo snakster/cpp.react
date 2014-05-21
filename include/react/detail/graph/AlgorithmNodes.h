@@ -154,8 +154,8 @@ public:
                       const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
         SignalNode{ std::forward<T>(init) },
         events_{ events },
-        func_{ std::forward<F>(func) }
-
+        func_{ std::forward<F>(func) },
+        deps_{ deps ... }
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events);
@@ -201,8 +201,9 @@ public:
             GetObjectId(*this), turn.Id()));
 
         S newValue = value_;
+
         for (const auto& e : events_->Events())
-            newValue = apply(EvalFunctor_{ e, newValue, func_ }, deps_);
+            newValue = apply(EvalFunctor_{ e, std::move(newValue), func_ }, deps_);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
