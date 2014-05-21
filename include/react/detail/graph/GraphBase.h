@@ -194,7 +194,7 @@ public:
     using DepHolderT = std::tuple<TDeps...>;
 
     template <typename ... TDepsIn>
-    ReactiveOpBase(uint /*not move ctor*/, TDepsIn&& ... deps) :
+    ReactiveOpBase(DontMove, TDepsIn&& ... deps) :
         deps_{ std::forward<TDepsIn>(deps) ... }
     {}
 

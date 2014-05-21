@@ -162,7 +162,7 @@ class EventMergeOp : public ReactiveOpBase<TDeps...>
 public:
     template <typename ... TDepsIn>
     EventMergeOp(TDepsIn&& ... deps) :
-        ReactiveOpBase(0u, std::forward<TDepsIn>(deps) ...)
+        ReactiveOpBase(DontMove{}, std::forward<TDepsIn>(deps) ...)
     {}
 
     EventMergeOp(EventMergeOp&& other) :
@@ -229,7 +229,7 @@ class EventFilterOp : public ReactiveOpBase<TDep>
 public:
     template <typename TFilterIn, typename TDepIn>
     EventFilterOp(TFilterIn&& filter, TDepIn&& dep) :
-        ReactiveOpBase{ 0u, std::forward<TDepIn>(dep) },
+        ReactiveOpBase{ DontMove{}, std::forward<TDepIn>(dep) },
         filter_{ std::forward<TFilterIn>(filter) }
     {}
 
@@ -306,7 +306,7 @@ class EventTransformOp : public ReactiveOpBase<TDep>
 public:
     template <typename TFuncIn, typename TDepIn>
     EventTransformOp(TFuncIn&& func, TDepIn&& dep) :
-        ReactiveOpBase{ 0u, std::forward<TDepIn>(dep) },
+        ReactiveOpBase{ DontMove{}, std::forward<TDepIn>(dep) },
         func_{ std::forward<TFuncIn>(func) }
     {}
 

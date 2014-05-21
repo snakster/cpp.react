@@ -127,7 +127,7 @@ class FunctionOp : public ReactiveOpBase<TDeps...>
 public:
     template <typename FIn, typename ... TDepsIn>
     FunctionOp(FIn&& func, TDepsIn&& ... deps) :
-        ReactiveOpBase{ 0u, std::forward<TDepsIn>(deps) ... },
+        ReactiveOpBase{ DontMove{}, std::forward<TDepsIn>(deps) ... },
         func_{ std::forward<FIn>(func) }
     {}
 
