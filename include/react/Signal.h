@@ -415,7 +415,7 @@ auto MakeSignal(const SignalPack<D,TValues...>& argPack, FIn&& func)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Unary operators
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_OP(op,name)                                                         \
+#define REACT_DECLARE_OP(op,name)                                                   \
 template <typename T>                                                               \
 struct name ## OpFunctor                                                            \
 {                                                                                   \
@@ -458,19 +458,19 @@ auto operator ## op(TempSignal<D,TVal,TOpIn>&& arg)                             
             F(), arg.StealOp()));                                                   \
 }
 
-DECLARE_OP(+, UnaryPlus);
-DECLARE_OP(-, UnaryMinus);
-DECLARE_OP(!, LogicalNegation);
-DECLARE_OP(~, BitwiseComplement);
-DECLARE_OP(++, Increment);
-DECLARE_OP(--, Decrement);
+REACT_DECLARE_OP(+, UnaryPlus);
+REACT_DECLARE_OP(-, UnaryMinus);
+REACT_DECLARE_OP(!, LogicalNegation);
+REACT_DECLARE_OP(~, BitwiseComplement);
+REACT_DECLARE_OP(++, Increment);
+REACT_DECLARE_OP(--, Decrement);
 
-#undef DECLARE_OP                                                                      
+#undef REACT_DECLARE_OP                                                                      
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Binary operators
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#define DECLARE_OP(op,name)                                                         \
+#define REACT_DECLARE_OP(op,name)                                                   \
 template <typename L, typename R>                                                   \
 struct name ## OpFunctor                                                            \
 {                                                                                   \
@@ -549,7 +549,7 @@ auto operator ## op(const TLeftSignal& lhs, const TRightSignal& rhs)            
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(), lhs.NodePtr(), rhs.NodePtr()));                                    \
+            F{ }, lhs.NodePtr(), rhs.NodePtr()));                                   \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -573,7 +573,7 @@ auto operator ## op(const TLeftSignal& lhs, TRightValIn&& rhs)                  
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(std::forward<TRightValIn>(rhs)), lhs.NodePtr()));                     \
+            F{ std::forward<TRightValIn>(rhs) }, lhs.NodePtr()));                   \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -597,7 +597,7 @@ auto operator ## op(TLeftValIn&& lhs, const TRightSignal& rhs)                  
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(std::forward<TLeftValIn>(lhs)), rhs.NodePtr()));                      \
+            F{ std::forward<TLeftValIn>(lhs) }, rhs.NodePtr()));                    \
 }                                                                                   \
 template                                                                            \
 <                                                                                   \
@@ -616,7 +616,7 @@ auto operator ## op(TempSignal<D,TLeftVal,TLeftOp>&& lhs,                       
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(), lhs.StealOp(), rhs.StealOp()));                                    \
+            F{ }, lhs.StealOp(), rhs.StealOp()));                                   \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -640,7 +640,7 @@ template                                                                        
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(), lhs.StealOp(), rhs.NodePtr()));                                    \
+            F{ }, lhs.StealOp(), rhs.NodePtr()));                                   \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -653,8 +653,8 @@ template                                                                        
     typename F = name ## OpFunctor<TLeftVal,TRightVal>,                             \
     typename S = std::result_of<F(TLeftVal,TRightVal)>::type,                       \
     typename TOp = REACT_IMPL::FunctionOp<S,F,                                      \
-        TRightOp,                                                                   \
-        REACT_IMPL::SignalNodePtrT<D,TLeftVal>>,                                    \
+        REACT_IMPL::SignalNodePtrT<D,TLeftVal>,                                     \
+        TRightOp>,                                                                  \
     class = std::enable_if<                                                         \
         IsSignal<TLeftSignal>::value>::type                                         \
 >                                                                                   \
@@ -663,7 +663,7 @@ auto operator ## op(const TLeftSignal& lhs, TempSignal<D,TRightVal,TRightOp>&& r
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(), lhs.NodePtr(), rhs.StealOp()));                                    \
+            F{ }, lhs.NodePtr(), rhs.StealOp()));                                   \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -684,7 +684,7 @@ auto operator ## op(TempSignal<D,TLeftVal,TLeftOp>&& lhs, TRightValIn&& rhs)    
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(std::forward<TRightValIn>(rhs)), lhs.StealOp()));                     \
+            F{ std::forward<TRightValIn>(rhs) }, lhs.StealOp()));                   \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -705,32 +705,32 @@ auto operator ## op(TLeftValIn&& lhs, TempSignal<D,TRightVal,TRightOp>&& rhs)   
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F(std::forward<TLeftValIn>(lhs)), rhs.StealOp()));                      \
+            F{ std::forward<TLeftValIn>(lhs) }, rhs.StealOp()));                    \
 }                                                                                   
 
-DECLARE_OP(+, Addition);
-DECLARE_OP(-, Subtraction);
-DECLARE_OP(*, Multiplication);
-DECLARE_OP(/, Division);
-DECLARE_OP(%, Modulo);
+REACT_DECLARE_OP(+, Addition);
+REACT_DECLARE_OP(-, Subtraction);
+REACT_DECLARE_OP(*, Multiplication);
+REACT_DECLARE_OP(/, Division);
+REACT_DECLARE_OP(%, Modulo);
 
-DECLARE_OP(==, Equal);
-DECLARE_OP(!=, NotEqual);
-DECLARE_OP(<, Less);
-DECLARE_OP(<=, LessEqual);
-DECLARE_OP(>, Greater);
-DECLARE_OP(>=, GreaterEqual);
+REACT_DECLARE_OP(==, Equal);
+REACT_DECLARE_OP(!=, NotEqual);
+REACT_DECLARE_OP(<, Less);
+REACT_DECLARE_OP(<=, LessEqual);
+REACT_DECLARE_OP(>, Greater);
+REACT_DECLARE_OP(>=, GreaterEqual);
 
-DECLARE_OP(&&, LogicalAnd);
-DECLARE_OP(||, LogicalOr);
+REACT_DECLARE_OP(&&, LogicalAnd);
+REACT_DECLARE_OP(||, LogicalOr);
 
-DECLARE_OP(&, BitwiseAnd);
-DECLARE_OP(|, BitwiseOr);
-DECLARE_OP(^, BitwiseXor);
-//DECLARE_OP(<<, BitwiseLeftShift); // MSVC: Internal compiler error
-//DECLARE_OP(>>, BitwiseRightShift);
+REACT_DECLARE_OP(&, BitwiseAnd);
+REACT_DECLARE_OP(|, BitwiseOr);
+REACT_DECLARE_OP(^, BitwiseXor);
+//REACT_DECLARE_OP(<<, BitwiseLeftShift); // MSVC: Internal compiler error
+//REACT_DECLARE_OP(>>, BitwiseRightShift);
 
-#undef DECLARE_OP
+#undef REACT_DECLARE_OP
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Comma operator overload to create signal pack from 2 signals.
