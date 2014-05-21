@@ -74,12 +74,6 @@ public:
         return BaseT::IsValid();
     }
 
-    auto Forward() const
-        -> decltype(REACT::Forward(std::declval<Events>()))
-    {
-        return REACT::Forward(*this);
-    }
-
     auto Tokenize() const
         -> decltype(REACT::Tokenize(std::declval<Events>()))
     {
@@ -145,12 +139,6 @@ public:
     bool IsValid() const
     {
         return BaseT::IsValid();
-    }
-
-    auto Forward() const
-        -> decltype(REACT::Forward(std::declval<Events>()))
-    {
-        return REACT::Forward(*this);
     }
 
     auto Tokenize() const
