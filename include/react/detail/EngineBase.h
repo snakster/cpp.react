@@ -21,6 +21,7 @@
 #include "react/detail/ReactiveInput.h"
 #include "react/detail/IReactiveNode.h"
 #include "react/detail/IReactiveEngine.h"
+#include "react/detail/ObserverBase.h"
 #include "react/detail/Options.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
@@ -58,12 +59,16 @@ private:
 
     TurnIdT    id_;
 
-    template <typename TRegistry>
-    void detachObservers(TRegistry& registry)
+    template <typename D>
+    void detachObservers()
     {
         if (detachedObserversPtr_ != nullptr)
+        {
+            auto& registry = DomainSpecificObserverRegistry<D>::Instance();
+
             for (auto* o : *detachedObserversPtr_)
                 registry.Unregister(o);
+        }
     }
 
 
