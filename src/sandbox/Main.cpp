@@ -68,9 +68,11 @@ void SignalExample2()
     auto height = D::MakeVar(70);
     auto depth  = D::MakeVar(8);
 
-    auto volume = (width,height,depth) ->* [] (int w, int h, int d) {
-        return w * h * d;
-    };
+    auto volume = MakeSignal(
+        With(width,height,depth),
+        [] (int w, int h, int d) {
+            return w * h * d;
+        });
 
     // Observe returns an observer handle, which can be used to detach the observer explicitly.
     // This observer handle holds a shared_ptr to the subject, so as long as it exists,
@@ -80,6 +82,7 @@ void SignalExample2()
         cout << "Volume changed to: " << v << endl;
     });
 
+    // Change multiple inputs at once
     D::DoTransaction([&] {
         width <<= 90;
         depth <<= 80;
