@@ -19,13 +19,13 @@
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 template <typename T>
-struct NodeLevelHelper
+struct TopoLevelFunctor
 {
     int operator()(const T& x) const { return x.Level; }
 };
 
 template <typename T>
-struct NodeLevelHelper<T*>
+struct TopoLevelFunctor<T*>
 {
     int operator()(const T* x) const { return x->Level; }
 };
@@ -36,63 +36,91 @@ struct NodeLevelHelper<T*>
 template <typename T>
 class TopoQueue
 {
-public:
-    using DataT = std::vector<T>;
-    using LevelFunctorT = NodeLevelHelper<T>;
+private:
+    struct Entry;
 
-    void Push(const T& node)
+public:
+    // Store the level as part of the entry for cheap comparisons
+    using QueueDataT    = std::vector<Entry>;
+    using NextDataT     = std::vector<T>;
+    using LevelFunctorT = TopoLevelFunctor<T>;
+
+    void Push(const T& value)
     {
-        data_.push_back(node);
+        queueData_.emplace_back(value, LevelFunctorT{}(value));
     }
 
     bool FetchNext()
     {
-        next_.clear();
+        // Throw away previous values
+        nextData_.clear();
 
-        minLevel_ = std::numeric_limits<int>::max();
-        for (const auto& e : data_)
-        {
-            auto l = LevelFunctorT{}(e);
-            if (minLevel_ > l)
-                minLevel_ = l;
-        }
+        // Find min level of nodes in queue data
+        minLevel_ = (std::numeric_limits<int>::max)();
+        for (const auto& e : queueData_)
+            if (minLevel_ > e.Level)
+                minLevel_ = e.Level;
 
-        auto p = std::partition(data_.begin(), data_.end(), CompFunctor{ minLevel_ });
+        // Swap entries with min level to the end
+        auto p = std::partition(
+            queueData_.begin(),
+            queueData_.end(),
+            LevelCompFunctor{ minLevel_ });
 
-        next_.insert(next_.end(), p, data_.end());
-        data_.resize(std::distance(data_.begin(), p));
+        // Reserve once to avoid multiple re-allocations
+        nextData_.reserve(std::distance(p, queueData_.end()));
 
-        return !next_.empty();
+        // Move min level values to next data
+        for (auto it = p; it != queueData_.end(); ++it)
+            nextData_.push_back(std::move(it->Value));
+
+        // Truncate moved entries
+        queueData_.resize(std::distance(queueData_.begin(), p));
+
+        return !nextData_.empty();
     }
 
-    const DataT& NextNodes() const  { return next_; }
+    const NextDataT& NextValues() const  { return nextData_; }
 
 private:
-    struct CompFunctor
+    struct Entry
     {
-        CompFunctor(int level) : Level{ level } {}
-        bool operator()(const T& x) { return LevelFunctorT{}(x) != Level; }
+        Entry() = default;
+        Entry(const Entry&) = default;
+
+        Entry(const T& value, int level) : Value{ value }, Level{ level } {}
+
+        T       Value;
+        int     Level;
+    };
+
+    struct LevelCompFunctor
+    {
+        LevelCompFunctor(int level) : Level{ level } {}
+
+        bool operator()(const Entry& e) const { return e.Level != Level; }
+
         const int Level;
     };
 
-    DataT   next_;
-    DataT   data_;
-    int     minLevel_ = std::numeric_limits<int>::max();
+    NextDataT   nextData_;
+    QueueDataT  queueData_;
+    int         minLevel_ = (std::numeric_limits<int>::max)();
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// WeightedRange
+/// WeightedRange - Implements tbb range concept
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-struct NodeWeightHelper
+struct RangeWeightFunctor
 {
-    int operator()(const T& x) const { return x.Weight; }
+    uint operator()(const T& x) const { return x.IsHeavyweight() ? grain_size : 1; }
 };
 
 template <typename T>
-struct NodeWeightHelper<T*>
+struct RangeWeightFunctor<T*>
 {
-    int operator()(const T* x) const { return x->Weight; }
+    uint operator()(const T* x) const { return x->IsHeavyweight(); }
 };
 
 template
@@ -105,7 +133,7 @@ class WeightedRange
 public:
     using const_iterator = TIt;
     using ValueT = typename TIt::value_type;
-    using WeightFunctorT = NodeWeightHelper<ValueT>;
+    using WeightFunctorT = RangeWeightFunctor<ValueT>;
 
     WeightedRange() = default;
     WeightedRange(const WeightedRange&) = default;
@@ -122,7 +150,8 @@ public:
         TIt p = source.begin_;
         while (p != source.end_)
         {
-            sum += WeightFunctorT{}(*p);
+            // Note: assuming a pair with weight as second until more flexibility is needed
+            sum += p->second;
             ++p;
             if (sum >= grain_size)
                 break;
@@ -150,9 +179,9 @@ public:
     uint    Weight() const  { return weight_; }
 
 private:
-    TIt     begin_;
-    TIt     end_;
-    uint    weight_ = 0;
+    TIt         begin_;
+    TIt         end_;
+    uint        weight_ = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,30 +194,39 @@ private:
 template <typename T, uint grain_size>
 class ConcurrentTopoQueue
 {
-public:
-    using DataT = std::vector<T>;
-    using RangeT = WeightedRange<typename DataT::const_iterator, grain_size>;
-    using LevelFunctorT = NodeLevelHelper<T>;
-    using WeightFunctorT = NodeWeightHelper<T>;
+private:
+    struct Entry;
 
-    void Push(const T& node)
+public:
+    using QueueDataT    = std::vector<Entry>;
+    using NextDataT     = std::vector<std::pair<T,uint>>;
+    using NextRangeT    = WeightedRange<typename NextDataT::const_iterator, grain_size>;
+
+    using LevelFunctorT = TopoLevelFunctor<T>;
+    using WeightFunctorT = RangeWeightFunctor<T>;
+
+    void Push(const T& value)
     {
         auto& t = collectBuffer_.local();
-        
-        t.Data.push_back(node);
-        t.Weight += WeightFunctorT{}(node);
-        auto l = LevelFunctorT{}(node);
-        if (t.MinLevel > l)
-            t.MinLevel = l;
+
+        auto level  = LevelFunctorT{}(value);
+        auto weight = WeightFunctorT{}(value);
+
+        t.Data.emplace_back(value,level,weight);
+
+        t.Weight += weight;
+
+        if (t.MinLevel > level)
+            t.MinLevel = level;
     }
 
     bool FetchNext()
     {
-        nodes_.clear();
+        nextData_.clear();
         uint totalWeight = 0;
 
         // Determine current min level
-        minLevel_ = std::numeric_limits<int>::max();
+        minLevel_ = (std::numeric_limits<int>::max)();
         for (const auto& buf : collectBuffer_)
             if (minLevel_ > buf.MinLevel)
                 minLevel_ = buf.MinLevel;
@@ -199,59 +237,84 @@ public:
             auto& v = buf.Data;
 
             // Swap min level nodes to end of v
-            auto p = std::partition(v.begin(), v.end(), CompFunctor{ minLevel_ });
+            auto p = std::partition(
+                v.begin(),
+                v.end(),
+                LevelCompFunctor{ minLevel_ });
 
-            // Copy them to global nodes_
-            std::copy(p, v.end(), std::back_inserter(nodes_));
+            // Reserve once to avoid multiple re-allocations
+            nextData_.reserve(std::distance(p, v.end()));
+
+            // Move min level values to global next data
+            for (auto it = p; it != v.end(); ++it)
+                nextData_.emplace_back(std::move(it->Value), it->Weight);
 
             // Truncate remaining
             v.resize(std::distance(v.begin(), p));
 
             // Calc new min level and weight for this buffer
-            buf.MinLevel = std::numeric_limits<int>::max();
+            buf.MinLevel = (std::numeric_limits<int>::max)();
             int oldWeight = buf.Weight;
             buf.Weight = 0;
-            for (const T& x : v)
+            for (const auto& x : v)
             {
-                buf.Weight += WeightFunctorT{}(x);
-                auto l = LevelFunctorT{}(x);
-                if (buf.MinLevel > l)
-                    buf.MinLevel = l;
+                buf.Weight += x.Weight;
+
+                if (buf.MinLevel > x.Level)
+                    buf.MinLevel = x.Level;
             }
 
             // Add diff to nodes_ weight
             totalWeight += oldWeight - buf.Weight;
         }
 
-        range_ = RangeT(nodes_.begin(), nodes_.end(), totalWeight);
+        nextRange_ = NextRangeT{ nextData_.begin(), nextData_.end(), totalWeight };
 
         // Found more nodes?
-        return !nodes_.empty();
+        return !nextData_.empty();
     }
 
-    const RangeT& NextRange() const
+    const NextRangeT& NextRange() const
     {
-        return range_;
+        return nextRange_;
     }
 
 private:
-    struct CompFunctor
+    struct Entry
     {
-        CompFunctor(int level) : Level{ level } {}
-        bool operator()(const T& x) { return  LevelFunctorT{}(x) != Level; }
+        Entry() = default;
+        Entry(const Entry&) = default;
+
+        Entry(const T& value, int level, uint weight) :
+            Value{ value },
+            Level{ level },
+            Weight{ weight }
+        {}
+
+        T       Value;
+        int     Level;
+        uint    Weight;
+    };
+
+    struct LevelCompFunctor
+    {
+        LevelCompFunctor(int level) : Level{ level } {}
+
+        bool operator()(const Entry& e) const { return  e.Level != Level; }
+
         const int Level;
     };
 
     struct ThreadLocalBuffer
     {
-        DataT   Data;
-        int     MinLevel = std::numeric_limits<int>::max();
-        uint    Weight = 0;
+        QueueDataT  Data;
+        int         MinLevel = (std::numeric_limits<int>::max)();
+        uint        Weight = 0;
     };
 
-    int                 minLevel_ = std::numeric_limits<int>::max();
-    DataT               nodes_;
-    RangeT              range_;
+    int         minLevel_ = (std::numeric_limits<int>::max)();
+    NextDataT   nextData_;
+    NextRangeT  nextRange_;
 
     tbb::enumerable_thread_specific<ThreadLocalBuffer>    collectBuffer_;
 };
