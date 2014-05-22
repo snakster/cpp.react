@@ -155,8 +155,8 @@ private:
     {
         auto curId = nextTurnId_.fetch_add(1, std::memory_order_relaxed);
 
-        if (curId == std::numeric_limits<int>::max())
-            nextTurnId_.fetch_sub(std::numeric_limits<int>::max());
+        if (curId == (std::numeric_limits<int>::max)())
+            nextTurnId_.fetch_sub((std::numeric_limits<int>::max)());
 
         return curId;
     }

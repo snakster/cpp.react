@@ -6,15 +6,6 @@
 
 #pragma once
 
-#define NOMINMAX
-
-#ifdef max
-    #undef max
-#endif
-#ifdef min
-    #undef min
-#endif
-
 #include <cassert>
 #include <cstddef>
 

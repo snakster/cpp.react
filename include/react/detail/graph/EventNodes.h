@@ -75,7 +75,7 @@ public:
 
 protected:
     DataT   events_;
-    uint    curTurnId_ = std::numeric_limits<int>::max();
+    uint    curTurnId_ = (std::numeric_limits<int>::max)();
 };
 
 template <typename D, typename E>
