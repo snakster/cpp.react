@@ -29,8 +29,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TurnBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class IObserver;
-
 class TurnBase
 {
 public:
@@ -70,7 +68,6 @@ private:
                 registry.Unregister(o);
         }
     }
-
 
     std::unique_ptr<ObsVectT>   detachedObserversPtr_;
     ContinuationInput           continuation_;
@@ -131,7 +128,11 @@ public:
         }
 
     private:
-        using MergedDataVectT = std::vector<std::pair<std::function<void()>,BlockingCondition*>>;
+        using MergedDataVectT =
+            std::vector<
+                std::pair<
+                    std::function<void()>,
+                    BlockingCondition*>>;
 
         bool                isMergeable_;
         QueueEntry*         successor_ = nullptr;
