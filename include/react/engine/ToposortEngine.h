@@ -102,6 +102,21 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Functors
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+struct GetLevelFunctor
+{
+    int operator()(const T* x) const { return x->Level; }
+};
+
+template <typename T>
+struct GetWeightFunctor
+{
+    uint operator()(T* x) const { return x->IsHeavyweight() ? grain_size : 1; }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EngineBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TNode, typename TTurn>
@@ -125,7 +140,7 @@ template <typename TTurn>
 class SeqEngineBase : public EngineBase<SeqNode,TTurn>
 {
 public:
-    using TopoQueueT = TopoQueue<SeqNode*>;
+    using TopoQueueT = TopoQueue<SeqNode*, GetLevelFunctor<SeqNode>>;
 
     void OnTurnPropagate(TTurn& turn);
 
@@ -148,7 +163,13 @@ class ParEngineBase : public EngineBase<ParNode,TTurn>
 {
 public:
     using DynRequestVectT = concurrent_vector<DynRequestData>;
-    using TopoQueueT = ConcurrentTopoQueue<ParNode*,grain_size>;
+    using TopoQueueT = ConcurrentTopoQueue
+    <
+        ParNode*,
+        grain_size,
+        GetLevelFunctor<ParNode>,
+        GetWeightFunctor<ParNode>
+    >;
 
     void OnTurnPropagate(TTurn& turn);
 
@@ -186,7 +207,13 @@ public:
     using NodeVectT = vector<ParNode*>;
     using IntervalSetT = set<pair<int,int>>;
     using DynRequestVectT = concurrent_vector<DynRequestData>;
-    using TopoQueueT = ConcurrentTopoQueue<ParNode*,grain_size>;
+    using TopoQueueT = ConcurrentTopoQueue
+    <
+        ParNode*,
+        grain_size,
+        GetLevelFunctor<ParNode>,
+        GetWeightFunctor<ParNode>
+    >;
 
     PipeliningTurn(TurnIdT id, TurnFlagsT flags);
 

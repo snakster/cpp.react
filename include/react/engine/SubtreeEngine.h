@@ -113,7 +113,14 @@ private:
     atomic<bool>        shouldUpdate_   = false;
 };
 
-//enum { x = sizeof(Node) };
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Functors
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+struct GetLevelFunctor
+{
+    int operator()(const T* x) const { return x->Level; }
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EngineBase
@@ -122,7 +129,7 @@ template <typename TTurn>
 class EngineBase : public IReactiveEngine<Node,TTurn>
 {
 public:
-    using TopoQueueT = TopoQueue<Node*>;
+    using TopoQueueT = TopoQueue<Node*, GetLevelFunctor<Node>>;
     using NodeShiftMutexT = Node::ShiftMutexT;
 
     void OnNodeAttach(Node& node, Node& parent);

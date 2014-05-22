@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <limits>
+#include <utility>
 #include <vector>
 
 #include "tbb/enumerable_thread_specific.h"
@@ -18,22 +19,10 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename T>
-struct TopoLevelFunctor
-{
-    int operator()(const T& x) const { return x.Level; }
-};
-
-template <typename T>
-struct TopoLevelFunctor<T*>
-{
-    int operator()(const T* x) const { return x->Level; }
-};
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Sequential TopoQueue
+/// TopoQueue - Sequential
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
+template <typename T, typename TLevelFunc>
 class TopoQueue
 {
 private:
@@ -43,11 +32,18 @@ public:
     // Store the level as part of the entry for cheap comparisons
     using QueueDataT    = std::vector<Entry>;
     using NextDataT     = std::vector<T>;
-    using LevelFunctorT = TopoLevelFunctor<T>;
+
+    TopoQueue() = default;
+    TopoQueue(const TopoQueue&) = default;
+
+    template <typename FIn>
+    TopoQueue(FIn&& levelFunc) :
+        levelFunc_{ levelFunc }
+    {}
 
     void Push(const T& value)
     {
-        queueData_.emplace_back(value, LevelFunctorT{}(value));
+        queueData_.emplace_back(value, levelFunc_(value));
     }
 
     bool FetchNext()
@@ -105,24 +101,15 @@ private:
 
     NextDataT   nextData_;
     QueueDataT  queueData_;
+
+    TLevelFunc  levelFunc_;
+
     int         minLevel_ = (std::numeric_limits<int>::max)();
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// WeightedRange - Implements tbb range concept
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-struct RangeWeightFunctor
-{
-    uint operator()(const T& x) const { return x.IsHeavyweight() ? grain_size : 1; }
-};
-
-template <typename T>
-struct RangeWeightFunctor<T*>
-{
-    uint operator()(const T* x) const { return x->IsHeavyweight(); }
-};
-
 template
 <
     typename TIt,
@@ -133,7 +120,6 @@ class WeightedRange
 public:
     using const_iterator = TIt;
     using ValueT = typename TIt::value_type;
-    using WeightFunctorT = RangeWeightFunctor<ValueT>;
 
     WeightedRange() = default;
     WeightedRange(const WeightedRange&) = default;
@@ -191,7 +177,12 @@ private:
 ///     2. FetchNext() prepares all nodes of the next level in NextNodes().
 ///         The previous contents of NextNodes() are automatically cleared. 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, uint grain_size>
+template
+<   typename T,
+    uint grain_size,
+    typename TLevelFunc,
+    typename TWeightFunc
+>
 class ConcurrentTopoQueue
 {
 private:
@@ -202,15 +193,21 @@ public:
     using NextDataT     = std::vector<std::pair<T,uint>>;
     using NextRangeT    = WeightedRange<typename NextDataT::const_iterator, grain_size>;
 
-    using LevelFunctorT = TopoLevelFunctor<T>;
-    using WeightFunctorT = RangeWeightFunctor<T>;
+    ConcurrentTopoQueue() = default;
+    ConcurrentTopoQueue(const ConcurrentTopoQueue&) = default;
+
+    template <typename FIn1, typename FIn2>
+    ConcurrentTopoQueue(FIn1&& levelFunc, FIn2&& weightFunc) :
+        levelFunc_{std::forward<FIn1>(levelFunc) },
+        weightFunc_{ std::forward<FIn2>(weightFunc) }
+    {}
 
     void Push(const T& value)
     {
         auto& t = collectBuffer_.local();
 
-        auto level  = LevelFunctorT{}(value);
-        auto weight = WeightFunctorT{}(value);
+        auto level  = levelFunc_(value);
+        auto weight = weightFunc_(value);
 
         t.Data.emplace_back(value,level,weight);
 
@@ -313,8 +310,12 @@ private:
     };
 
     int         minLevel_ = (std::numeric_limits<int>::max)();
+
     NextDataT   nextData_;
     NextRangeT  nextRange_;
+
+    TLevelFunc  levelFunc_;
+    TWeightFunc weightFunc_;
 
     tbb::enumerable_thread_specific<ThreadLocalBuffer>    collectBuffer_;
 };
