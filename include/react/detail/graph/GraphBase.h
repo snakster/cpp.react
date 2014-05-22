@@ -8,13 +8,10 @@
 
 #include "react/detail/Defs.h"
 
-#include <atomic>
-#include <chrono>
 #include <memory>
 
-#include "tbb/tick_count.h" // vc12 chrono clock too inaccurate
-
 #include "react/common/Util.h"
+#include "react/common/Timing.h"
 #include "react/common/Types.h"
 #include "react/detail/IReactiveEngine.h"
 #include "react/detail/ObserverBase.h"
@@ -28,64 +25,28 @@ template <typename T>
 using WeakPtrT = std::weak_ptr<T>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// NodeUpdateTimer
+/// UpdateTimingPolicy
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, bool enabled>
-class NodeUpdateTimerBase;
-
-// Defines guard that does nothing
-template <typename D>
-class NodeUpdateTimerBase<D,false>
+template
+<
+    typename D,
+    long long threshold
+>
+struct UpdateTimingPolicy :
+    private ConditionalTimer
+    <
+        threshold,
+        EnableNodeUpdateTimer<typename D::Policy::Engine>::value
+    >
 {
-public:
-    template <typename T>
-    struct ScopedUpdateTimer
-    {
-        ScopedUpdateTimer(const T& node) {}
-    };
-};
-
-template <typename D>
-class NodeUpdateTimerBase<D,true>
-{
-public:
-    template <typename T>
-    class ScopedUpdateTimer
+    class ScopedUpdateTimer : public ScopedTimer
     {
     public:
-        ScopedUpdateTimer(T& node) :
-            node_{ node }
-        {
-            if (node.shouldMeasure_)
-                t0_ = tbb::tick_count::now();
-        }
-
-        ~ScopedUpdateTimer()
-        {
-            if (!node_.shouldMeasure_)
-                return;
-
-            node_.shouldMeasure_ = false;
-
-            auto d = std::chrono::duration<double>(
-                (tbb::tick_count::now() - t0_).seconds());
-
-            D::Engine::HintUpdateDuration(
-                node_, std::chrono::duration_cast<UpdateDurationT>(d).count());
-        }
-
-    private:
-        T&  node_;
-        tbb::tick_count t0_;
+        ScopedUpdateTimer(UpdateTimingPolicy& parent) : ScopedTimer{ parent } {}
     };
 
-private:
-    bool shouldMeasure_ = true;
+    bool IsUpdateThresholdExceeded() const { return IsThresholdExceeded(); }
 };
-
-template <typename D>
-class NodeUpdateTimer :
-    public NodeUpdateTimerBase<D, EnableNodeUpdateTimer<typename D::Policy::Engine>::value> {};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeBase
@@ -106,6 +67,7 @@ public:
     virtual bool    IsInputNode() const override    { return false; }
     virtual bool    IsOutputNode() const override   { return false; }
     virtual bool    IsDynamicNode() const override  { return false; }
+    virtual bool    IsHeavyweight() const override  { return false; }
 
     SharedPtrT<NodeBase> GetSharedPtr() const
     {

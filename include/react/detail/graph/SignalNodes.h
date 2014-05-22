@@ -183,7 +183,7 @@ template
 >
 class SignalOpNode :
     public SignalNode<D,S>,
-    public NodeUpdateTimer<D>
+    public UpdateTimingPolicy<D,500>
 {
 public:
     template <typename ... TArgs>
@@ -218,7 +218,7 @@ public:
         bool changed = false;
 
         {// timer
-            ScopedUpdateTimer<SignalOpNode> timer{ *this };
+            ScopedUpdateTimer scopedTimer{ *this };
 
             S newValue = op_.Evaluate();
 
@@ -233,13 +233,14 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (changed)
-        {
             Engine::OnNodePulse(*this, turn);
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, turn);
-        }
+    }
+
+    virtual bool IsHeavyweight() const override
+    {
+        return IsUpdateThresholdExceeded();
     }
 
     TOp StealOp()
@@ -311,14 +312,12 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        TInner newValue = inner_->ValueRef();
-
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (! REACT_IMPL::Equals(value_, newValue))
+        if (! REACT_IMPL::Equals(value_, inner_->ValueRef()))
         {
-            value_ = newValue;
+            value_ = inner_->ValueRef();
             Engine::OnNodePulse(*this, turn);
         }
         else

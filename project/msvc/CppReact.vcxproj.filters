@@ -144,6 +144,9 @@
     <ClInclude Include="..\..\include\react\Domain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\react\common\Timing.h">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\logging\EventLog.cpp">

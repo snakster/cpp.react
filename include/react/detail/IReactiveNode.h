@@ -37,6 +37,9 @@ struct IReactiveNode
     // This information is statically available at compile time on the graph layer,
     // so the engine does not have to calculate it again.
     virtual int     DependencyCount() const = 0;
+
+    // Heavyweight nodes are worth parallelizing.
+    virtual bool    IsHeavyweight() const = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
