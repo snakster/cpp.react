@@ -27,17 +27,21 @@ template <typename D, typename S>
 class SignalNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventStreamNodeAccessPolicy
+/// BufferClearAccessPolicy
+///
+/// Provides thread safe access to clear event buffer if parallel updating is enabled.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// Empty base class optimization
+// Note: Weird design due to empty base class optimization
 template <typename D>
-struct EventStreamNodeAccessPolicy :
-    private ConditionalCriticalSection<
+struct BufferClearAccessPolicy :
+    private ConditionalCriticalSection
+    <
         tbb::spin_mutex,
-        EnableNodeUpdateTimer<typename D::Policy::Engine>::value>
+        EnableParallelUpdating<typename D::Policy::Engine>::value
+    >
 {
     template <typename F>
-    void AccessCriticalSection(const F& f) { Access(f); }
+    void AccessBufferForClearing(const F& f) { Access(f); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,7 +54,7 @@ template
 >
 class EventStreamNode :
     public ReactiveNode<D,E,void>,
-    private EventStreamNodeAccessPolicy<D>
+    private BufferClearAccessPolicy<D>
 {
 public:
     using DataT     = std::vector<E>;
@@ -61,7 +65,7 @@ public:
 
     void SetCurrentTurn(const TurnT& turn, bool forceUpdate = false, bool noClear = false)
     {
-        AccessCriticalSection([&] {
+        AccessBufferForClearing([&] {
             if (curTurnId_ != turn.Id() || forceUpdate)
             {
                 curTurnId_ =  turn.Id();
