@@ -112,7 +112,7 @@ public:
                     succ->SetReadyCount(0);
 
                     // Heavyweight - spawn new task
-                    if (succ->IsHeavy())
+                    if (succ->IsHeavyweight())
                     {
                         auto& t = *new(task::allocate_additional_child_of(*parent()))
                             UpdaterTask(turn_, succ);
@@ -155,7 +155,7 @@ void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
     // Phase 1
     while (scheduledNodes_.FetchNext())
     {
-        for (auto* curNode : scheduledNodes_.NextNodes())
+        for (auto* curNode : scheduledNodes_.NextValues())
         {
             if (curNode->Level < curNode->NewLevel)
             {
@@ -245,15 +245,6 @@ void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& tur
 }
 
 template <typename TTurn>
-void EngineBase<TTurn>::HintUpdateDuration(Node& node, uint dur)
-{
-    if (dur > heavy_weight)
-        node.SetHeavyFlag();
-    else
-        node.ClearHeavyFlag();
-}
-
-template <typename TTurn>
 void EngineBase<TTurn>::applyAsyncDynamicAttach(Node& node, Node& parent, TTurn& turn)
 {
     bool shouldTick = false;
@@ -306,7 +297,7 @@ void EngineBase<TTurn>::processChildren(Node& node, TTurn& turn)
             continue;
 
         // Light nodes use sequential toposort in phase 1
-        if (! succ->IsHeavy())
+        if (! succ->IsHeavyweight())
         {
             if (!succ->IsQueued())
             {

@@ -76,7 +76,6 @@ public:
     int             Level = 0;
     int             NewLevel = 0;
     atomic<bool>    Collected = false;
-    uint            Weight = 1;
 
     NodeVector<ParNode>     Successors;
     InvalidateMutexT        InvalidateMutex;
@@ -155,8 +154,6 @@ public:
 
     void OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn);
     void OnDynamicNodeDetach(ParNode& node, ParNode& parent, TTurn& turn);
-
-    void HintUpdateDuration(ParNode& node, uint dur);
 
 private:
     void applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn);
@@ -247,7 +244,7 @@ private:
     PipeliningTurn*     successor_ = nullptr;
 
     int     currentLevel_ = -1;
-    int     maxLevel_ = numeric_limits<int>::max(); /// This turn may only advance up to maxLevel
+    int     maxLevel_ = (numeric_limits<int>::max)(); /// This turn may only advance up to maxLevel
     int     minLevel_ = -1;                         /// successor.maxLevel = this.minLevel - 1
 
     int     curUpperBound_ = -1;
@@ -362,5 +359,10 @@ template <typename> struct EnableParallelUpdating;
 template <> struct EnableParallelUpdating<ToposortEngine<parallel>> : std::true_type {};
 template <> struct EnableParallelUpdating<ToposortEngine<parallel_queue>> : std::true_type {};
 template <> struct EnableParallelUpdating<ToposortEngine<parallel_pipeline>> : std::true_type {};
+
+template <typename> struct EnableConcurrentInput;
+template <> struct EnableConcurrentInput<ToposortEngine<sequential_queue>> : std::true_type {};
+template <> struct EnableConcurrentInput<ToposortEngine<parallel_queue>> : std::true_type {};
+template <> struct EnableConcurrentInput<ToposortEngine<parallel_pipeline>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/

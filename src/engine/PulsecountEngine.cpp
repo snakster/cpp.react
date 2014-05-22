@@ -133,7 +133,7 @@ public:
                         continue;
 
                     // Heavyweight - spawn new task
-                    if (succ->Weight > heavy_weight)
+                    if (succ->IsHeavyweight())
                     {
                         auto& t = *new(task::allocate_additional_child_of(*parent()))
                             UpdaterTask(turn_, succ);
@@ -286,12 +286,6 @@ void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& tur
 
     parent.Successors.Remove(node);
 }// ~parent.ShiftMutex (write)
-
-template <typename TTurn>
-void EngineBase<TTurn>::HintUpdateDuration(Node& node, uint dur)
-{
-    node.Weight = dur;
-}
 
 // Explicit instantiation
 template class EngineBase<Turn>;

@@ -52,10 +52,6 @@ public:
     inline void SetQueuedFlag()     { flags_.Set<flag_queued>(); }
     inline void ClearQueuedFlag()   { flags_.Clear<flag_queued>(); }
 
-    inline bool IsHeavy() const     { return flags_.Test<flag_heavy>(); }
-    inline void SetHeavyFlag()      { flags_.Set<flag_heavy>(); }
-    inline void ClearHeavyFlag()    { flags_.Clear<flag_heavy>(); }
-
     inline bool IsMarked() const    { return flags_.Test<flag_marked>(); }
     inline void SetMarkedFlag()     { flags_.Set<flag_marked>(); }
     inline void ClearMarkedFlag()   { flags_.Clear<flag_marked>(); }
@@ -105,7 +101,6 @@ private:
     enum EFlags : uint16_t
     {
         flag_queued = 0,
-        flag_heavy,
         flag_marked,
         flag_changed,
         flag_deferred,
@@ -141,8 +136,6 @@ public:
 
     void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
     void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
-
-    void HintUpdateDuration(Node& node, uint dur);
 
 private:
     void applyAsyncDynamicAttach(Node& node, Node& parent, TTurn& turn);

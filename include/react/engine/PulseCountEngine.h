@@ -85,7 +85,6 @@ public:
     NodeVector<Node>    Successors;
     
     ENodeState          State       = ENodeState::unchanged;
-    uint                Weight      = 0;
 
 private:
     atomic<int>         counter_    = 0;
@@ -113,8 +112,6 @@ public:
 
     void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
     void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
-
-    void HintUpdateDuration(Node& node, uint dur);
 
 private:
     NodeVectT       changedInputs_;

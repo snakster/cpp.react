@@ -47,8 +47,6 @@ struct IReactiveEngine
 
     template <typename F>
     bool TryMerge(F&& f) { return false; }
-
-    void HintUpdateDuration(NodeT& node, uint dur)    {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,12 +158,6 @@ struct EngineInterface
     {
         return Engine().TryMerge(std::forward<F>(f));
     }
-
-    static void HintUpdateDuration(NodeT& node, uint dur)
-    {
-        Engine().HintUpdateDuration(node, dur);
-    }
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -173,5 +165,6 @@ struct EngineInterface
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename> struct EnableNodeUpdateTimer : std::false_type {};
 template <typename> struct EnableParallelUpdating : std::false_type {};
+template <typename> struct EnableConcurrentInput : std::false_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -62,7 +62,7 @@ void SeqEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
     while (scheduledNodes_.FetchNext())
     {
-        for (auto* curNode : scheduledNodes_.NextNodes())
+        for (auto* curNode : scheduledNodes_.NextValues())
         {
             if (curNode->Level < curNode->NewLevel)
             {
@@ -133,15 +133,17 @@ void ParEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
     while (topoQueue_.FetchNext())
     {
         //using RangeT = tbb::blocked_range<vector<ParNode*>::const_iterator>;
-        using RangeT = ParEngineBase::TopoQueueT::RangeT;
+        using RangeT = ParEngineBase::TopoQueueT::NextRangeT;
 
         // Iterate all nodes of current level and start processing them in parallel
         tbb::parallel_for(
             topoQueue_.NextRange(),
             [&] (const RangeT& range)
             {
-                for (auto* curNode : range)
+                for (const auto& e : range)
                 {
+                    auto* curNode = e.first;
+
                     if (curNode->Level < curNode->NewLevel)
                     {
                         curNode->Level = curNode->NewLevel;
@@ -184,15 +186,6 @@ void ParEngineBase<TTurn>::OnDynamicNodeDetach(ParNode& node, ParNode& parent, T
 {
     DynRequestData data{ false, &node, &parent };
     dynRequests_.push_back(data);
-}
-
-template <typename TTurn>
-void ParEngineBase<TTurn>::HintUpdateDuration(ParNode& node, uint dur)
-{
-    if (dur < min_weight)
-        dur = min_weight;
-
-    node.Weight = dur;
 }
 
 template <typename TTurn>
@@ -331,7 +324,7 @@ void PipeliningTurn::Remove()
     }
     else if (successor_)
     {
-        successor_->SetMaxLevel(numeric_limits<int>::max());
+        successor_->SetMaxLevel((numeric_limits<int>::max)());
         successor_->predecessor_ = nullptr;
     }
 
@@ -434,10 +427,10 @@ void PipeliningEngine::OnTurnPropagate(PipeliningTurn& turn)
 
     while (turn.TopoQueue.FetchNext())
     {
-        using RangeT = PipeliningTurn::TopoQueueT::RangeT;
+        using RangeT = PipeliningTurn::TopoQueueT::NextRangeT;
 
-        for (const auto* node : turn.TopoQueue.NextRange())
-            turn.AdjustUpperBound(node->Level);
+        for (const auto& e : turn.TopoQueue.NextRange())
+            turn.AdjustUpperBound(e.first->Level);
 
         advanceTurn(turn);
 
@@ -446,8 +439,9 @@ void PipeliningEngine::OnTurnPropagate(PipeliningTurn& turn)
             turn.TopoQueue.NextRange(),
             [&] (const RangeT& range)
             {
-                for (auto* curNode : range)
+                for (const auto& e : range)
                 {
+                    auto* curNode = e.first;
                     if (curNode->Level < curNode->NewLevel)
                     {
                         curNode->Level = curNode->NewLevel;
@@ -492,7 +486,7 @@ void PipeliningEngine::OnDynamicNodeDetach(ParNode& node, ParNode& parent, Pipel
 
 void PipeliningEngine::applyDynamicAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn)
 {
-    turn.WaitForMaxLevel(numeric_limits<int>::max());
+    turn.WaitForMaxLevel((numeric_limits<int>::max)());
 
     OnNodeAttach(node, parent);
     
