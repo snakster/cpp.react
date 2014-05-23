@@ -10,7 +10,7 @@ To react to events, event streams are provided as composable first class objects
 
 For seamless integration with existing code, _reactive domains_ encapsulate a reactive sub-system, with an input interface to trigger changes imperatively, and an output interface to apply side effects.
 
-As an alternative to implementing change propagation or callback-based approaches manually, using Cpp.React results in less boilerplate code and better scalability due to the guarentee of avoiding unnecessary recalculations and glitches.
+As an alternative to implementing change propagation or callback-based approaches manually, using Cpp.React results in less boilerplate code and better scalability due to the guarentees of avoiding unnecessary recalculations and glitches.
 Furthermore, since functional purity is maintained in each reactive domain, the propagation engine can safely support implicit parallelism for the updating process.
 Behind the scenes, task-based programming and dynamic chunking based on collected timing data are employed to optimize parallel utilization.
 
@@ -19,16 +19,16 @@ The documentation is still incomplete, but it already contains plenty of useful 
 It can be found in the [wiki](https://github.com/schlangster/cpp.react/wiki).
 
 # Development
-This library is still work-in-progress and should not be considered release quality yet.
-That being said, it's in a usable state, has been actively developed during the last 6 months and has seen a fair share of testing and tuning during that time.
+Cpp.React is a work-in-progress and should not be considered release quality yet.
+The project has been actively developed for about 6 months and has seen a fair share of testing and tuning during that time, so it's in a usable state.
 
 ### Compiling
-So far, Cpp.React has only been tested in Visual Studio 2013 as that's the development environment used to create it.
+At the moment, the only support build environment is Visual Studio 2013.
 
-You are welcome to try compiling it with other C++11 compilers/on other platforms and report any issues you encounter.
+You are welcome to try other C++11 compilers/platforms and report any issues you encounter.
 
 ### Projects
-The VS solution currently contains four pojects:
+The VS solution contains the following pojects:
 
 * `CppReact` - The library itself.
 * `CppReactBenchmark` - A number of benchmarks used to compare the different propagation strategies.
@@ -43,7 +43,7 @@ Cpp.React uses several external dependencies, but only one of them is mandatory:
 * [Boost C++ Libraries](http://www.boost.org/) (optional, to use ReactiveLoop, which requires boost::coroutine)
 
 TBB is required, because it enables the parallel propagation strategies.
-Future plans are to separate the multi-threaded and single-threaded propagation engines more cleanly to remove that dependency if parallelism is not used.
+Future plans are to separate the multi-threaded and single-threaded propagation engines more cleanly to remove the TBB dependency if parallelism is not used.
 
 # Features by example
 
