@@ -1,21 +1,18 @@
 # Introduction
-
 Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) library for C++11.
 
 It provides abstractions to simplify the implementation of reactive behaviour.
 
-To react to changing data, variables can be declared in terms of functions that calcuate their values, rather than manipulating them directly.
+To react to changing data, reactive variables are declared in terms of functions that calcuate their values, rather than manipulating them directly.
 A runtime engine will automatically handle the change propagation by re-calculating data if its dependencies have been modified.
 
 To react to events, event streams are provided as composable first class objects with value semantics.
 
 For seamless integration with existing code, _reactive domains_ encapsulate a reactive sub-system, with an input interface to trigger changes imperatively, and an output interface to apply side effects.
-Inside of a reactive domain functional purity is maintained, which allows the easier reasoning about program behaviour and implicit parallelism.
 
-As an alternative to implementing change propagation or callback-based approaches manually, Cpp.React offers the following benefits:
-* Less boilerplate code;
-* consistent updating without redundant calculations or glitches;
-* implicit parallelism.
+As an alternative to implementing change propagation or callback-based approaches manually, using Cpp.React results in less boilerplate code and better scalability due to the guarentee of avoiding unnecessary recalculations and glitches.
+Furthermore, since functional purity is maintained in each reactive domain, the propagation engine can safely support implicit parallelism for the updating process.
+Behind the scenes, task-based programming and dynamic chunking based on collected timing data are employed to optimize parallel utilization.
 
 # Documentation
 The documentation is still incomplete, but it already contains plenty of useful information and examples.
@@ -23,7 +20,7 @@ It can be found in the [wiki](https://github.com/schlangster/cpp.react/wiki).
 
 # Development
 This library is still work-in-progress and should not be considered release quality yet.
-That being said, it's in a usable state, has been actively developed during the last 6 months and has seen a fair share of testing and tweaking during that time.
+That being said, it's in a usable state, has been actively developed during the last 6 months and has seen a fair share of testing and tuning during that time.
 
 ### Compiling
 So far, Cpp.React has only been tested in Visual Studio 2013 as that's the development environment used to create it.
@@ -33,10 +30,10 @@ You are welcome to try compiling it with other C++11 compilers/on other platform
 ### Projects
 The VS solution currently contains four pojects:
 
-* CppReact - The library itself.
-* CppReactBenchmark - A number of benchmarks used to compare the different propagation strategies.
-* CppReactTest - The unit tests.
-* CppReactSandbox - A project containing several basic examples. You can use this to start experimenting with the library.
+* `CppReact` - The library itself.
+* `CppReactBenchmark` - A number of benchmarks used to compare the different propagation strategies.
+* `CppReactTest` - The unit tests.
+* `CppReactSandbox` - A project containing several basic examples. You can use this to start experimenting with the library.
 
 ### Dependencies
 Cpp.React uses several external dependencies, but only one of them is mandatory:
@@ -79,8 +76,9 @@ width.Set(10);
 cout << "area: " << area.Value() << endl; // => area: 20
 ```
 
-When used with built-in operators, this can be simplified further:
+For expressions that use operators only, `MakeSignal` can be omitted completely:
 ```C++
+// Lift as reactive expression
 D::SignalT<int> area = width * height;
 ```
 
@@ -168,5 +166,6 @@ using namespace react;
 # Acknowledgements
 
 The API of Cpp.React has been inspired by the following two research papers:
+
 * [Deprecating the Observer Pattern with Scala.React](http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf)
 * [REScala: Bridging Between Object-oriented and Functional Style in Reactive Applications](http://www.stg.tu-darmstadt.de/media/st/research/rescala_folder/REScala-Bridging-The-Gap-Between-Object-Oriented-And-Functional-Style-In-Reactive-Applications.pdf)
