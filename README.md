@@ -1,76 +1,95 @@
-## Introduction
+# Introduction
 
 Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) library for C++11.
 
 It provides abstractions to simplify the implementation of reactive behaviour.
-As an alternative to raw callbacks, it offers the following benefits:
+
+To react to changing data, variables can be declared in terms of functions that calcuate their values, rather than manipulating them directly.
+A runtime engine will automatically handle the change propagation by re-calculating data if its dependencies have been modified.
+
+To react to events, event streams are provided as composable first class objects with value semantics.
+
+For seamless integration with existing code, _reactive domains_ encapsulate a reactive sub-system, with an input interface to trigger changes imperatively, and an output interface to apply side effects.
+Inside of a reactive domain functional purity is maintained, which allows the easier reasoning about program behaviour and implicit parallelism.
+
+As an alternative to implementing change propagation or callback-based approaches manually, Cpp.React offers the following benefits:
 * Less boilerplate code;
 * consistent updating without redundant calculations or glitches;
 * implicit parallelism.
 
-#### Compiling
-
-So far, the build has only been tested in Visual Studio 2013 as it's the development environment I'm using.
-The Intel C++ Compiler 14.0 with Visual Studio 2012/13 is theoretically supported as well, but last I checked, it did not compile anymore due to [some bugs]() with C++11 support.
-
-You are welcome to try compiling it with other C++11 compilers/on other platforms and report any issues you encounter.
-
-#### Dependencies
-* [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
-* [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the tests)
-* [Boost C++ Libraries](http://www.boost.org/) (optional, to use ReactiveLoop, which requires boost::coroutine)
-
-## Status
-
-This library is still under development and should not be considered release quality yet.
-That being said, I've been working on it for about 6 months and it's in a usable state.
-
-## Documentation
-
+# Documentation
 The documentation is still incomplete, but it already contains plenty of useful information and examples.
 It can be found in the [wiki](https://github.com/schlangster/cpp.react/wiki).
 
-## Features by example
+# Development
+This library is still work-in-progress and should not be considered release quality yet.
+That being said, it's in a usable state, has been actively developed during the last 6 months and has seen a fair share of testing and tweaking during that time.
 
-#### Signals
+### Compiling
+So far, Cpp.React has only been tested in Visual Studio 2013 as that's the development environment used to create it.
+
+You are welcome to try compiling it with other C++11 compilers/on other platforms and report any issues you encounter.
+
+### Projects
+The VS solution currently contains four pojects:
+
+* CppReact - The library itself.
+* CppReactBenchmark - A number of benchmarks used to compare the different propagation strategies.
+* CppReactTest - The unit tests.
+* CppReactSandbox - A project containing several basic examples. You can use this to start experimenting with the library.
+
+### Dependencies
+Cpp.React uses several external dependencies, but only one of them is mandatory:
+
+* [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
+* [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the unit tests)
+* [Boost C++ Libraries](http://www.boost.org/) (optional, to use ReactiveLoop, which requires boost::coroutine)
+
+TBB is required, because it enables the parallel propagation strategies.
+Future plans are to separate the multi-threaded and single-threaded propagation engines more cleanly to remove that dependency if parallelism is not used.
+
+# Features by example
+
+## Signals
 
 Signals are self-updating reactive variables.
 They can be combined to expressions to create new signals, which are automatically re-calculated whenever one of their data dependencies changes.
 
 ```C++
-#include "react/Domain.h"
-#include "react/Signal.h"
-///...
+using namespace std;
 using namespace react;
 
 REACTIVE_DOMAIN(D);
 
-// Two variable that can be manipulated imperatively
+// Two reactive variables that can be manipulated imperatively
 D::VarSignalT<int> width  = D::MakeVar(1);
 D::VarSignalT<int> height = D::MakeVar(2);
 
-// Arithmetic operators are overloaded to lift expressions
-// with signal operands and build new signals from them
-D::SignalT<int>    area   = width * height;
+// A signal that depends on width and height and multiplies their values
+D::SignalT<int> area = MakeSignal(With(width, height),
+    [] (int w, int h) {
+        return w * h;
+    });
 
 cout << "area: " << area.Value() << endl; // => area: 2
 
 // Width changed, so area is re-calculated automatically
-width <<= 10;
+width.Set(10);
 
 cout << "area: " << area.Value() << endl; // => area: 20
 ```
 
-#### Events
+When used with built-in operators, this can be simplified further:
+```C++
+D::SignalT<int> area = width * height;
+```
+
+## Events and Observers
 
 Event streams represent flows of discrete values.
-They are first-class objects and can be merged, filtered, transformed or composed to more complex types.
+They are first-class objects and can be merged, filtered, transformed or composed to more complex types:
 
 ```C++
-#include "react/Domain.h"
-#include "react/Event.h"
-#include "react/Observer.h"
-//...
 using namespace std;
 using namespace react;
 
@@ -81,28 +100,28 @@ D::EventSourceT<Token> leftClicked  = D::MakeEventSource();
 D::EventSourceT<Token> rightClicked = D::MakeEventSource();
 
 // Merge both event streams
-auto merged = leftClicked | rightClicked;
+D::EventsT<Token> merged = leftClicked | rightClicked;
 
 // React to events
 auto obs = Observe(merged, [] (Token) {
     cout << "clicked!" << endl;
 });
+
+// ...
+
+rightClicked.Emit(); // => clicked!
 ```
 
-#### Implicit parallelism
+## Implicit parallelism
 
 The change propagation is handled implicitly by a _propagation engine_.
-Depending on the selected engine, independent propagation paths are automatically parallelized.
+Depending on the selected engine, updates can be parallelized:
 
 ```C++
-#include "react/Domain.h"
-#include "react/Signal.h"
-#include "react/engine/ToposortEngine.h"
-//...
 using namespace react;
 
 
-// Sequential
+// Sequential updating
 {
     REACTIVE_DOMAIN(D, ToposortEngine<sequential>);
 
@@ -115,7 +134,7 @@ using namespace react;
     b <<= 20;
 }
 
-// Parallel
+// Parallel updating
 {
     REACTIVE_DOMAIN(D, ToposortEngine<parallel>);
 
@@ -138,141 +157,16 @@ using namespace react;
     // op1 and op2 can be re-calculated in parallel
     in <<= 123456789;
 }
-
-// Queued input
-{
-    REACTIVE_DOMAIN(D, ToposortEngine<sequential_queue>);
-
-    auto a = D::MakeVar(1);
-    auto b = D::MakeVar(2);
-    auto c = D::MakeVar(3);
-
-    auto x = (a + b) * c;
-
-    // Thread-safe input (Note: unspecified order)
-    std::thread t1{ [&] { a <<= 10; } };
-    std::thread t2{ [&] { b <<= 100; } };
-    std::thread t3{ [&] { a <<= 1000; } };
-    std::thread t4{ [&] { b <<= 10000; } };
-
-    t1.join(); t2.join(); t3.join(); t4.join();
-}
 ```
 
-#### Reactive loops
-(Note: Experimental)
-
-```C++
-#include "react/Domain.h"
-#include "react/Event.h"
-#include "react/Reactor.h"
-//...
-using namespace std;
-using namespace react;
-
-REACTIVE_DOMAIN(D);
-
-using PointT = pair<int,int>;
-using PathT  = vector<PointT>;
-
-vector<PathT> paths;
-
-auto mouseDown = D::MakeEventSource<PointT>();
-auto mouseUp   = D::MakeEventSource<PointT>();
-auto mouseMove = D::MakeEventSource<PointT>();
-
-D::ReactiveLoopT loop
-{
-    [&] (D::ReactiveLoopT::Context& ctx)
-    {
-        PathT points;
-
-        points.emplace_back(ctx.Await(mouseDown));
-
-        ctx.RepeatUntil(mouseUp, [&] {
-            points.emplace_back(ctx.Await(mouseMove));
-        });
-
-        points.emplace_back(ctx.Await(mouseUp));
-
-        paths.push_back(points);
-    }
-};
-
-mouseDown << PointT(1,1);
-mouseMove << PointT(2,2) << PointT(3,3) << PointT(4,4);
-mouseUp   << PointT(5,5);
-
-mouseMove << PointT(999,999);
-
-mouseDown << PointT(10,10);
-mouseMove << PointT(20,20);
-mouseUp   << PointT(30,30);
-
-// => paths[0]: (1,1) (2,2) (3,3) (4,4) (5,5)
-// => paths[1]: (10,10) (20,20) (30,30)
-```
-
-#### Reactive objects and dynamic reactives
-
-```C++
-#include "react/Domain.h"
-#include "react/Signal.h"
-#include "react/ReactiveObject.h"
-//...
-using namespace std;
-using namespace react;
-
-REACTIVE_DOMAIN(D);
-
-class Company : public ReactiveObject<D>
-{
-public:
-    VarSignalT<string>    Name;
-
-    Company(const char* name) :
-        Name{ MakeVar(string(name)) }
-    {}
-
-    bool operator==(const Company&) const;
-};
-
-class Manager : public ReactiveObject<D>
-{
-public:
-    VarSignalT<Company&>    CurrentCompany;
-    ObserverT               NameObserver;
-
-    Manager(initialCompany& company) :
-        CurrentCompany{ MakeVar(ref(company)) },
-        NameObserver
-        {
-            // Reactive reference to inner event stream of signal
-            Observe(REACTIVE_REF(CurrentCompany, Name),
-                [] (const string& name) {
-                    cout << "Manager: Now managing " << name << endl;
-                });
-        }
-    {}
-};
-
-Company company1{ "Cellnet" };
-Company company2{ "Borland" };
-
-Manager manager{ company1 };
-
-company1.Name <<= string("BT Cellnet");
-company2.Name <<= string("Inprise");
-
-// Observer moves from company1.Name to company2.Name
-manager.CurrentCompany <<= ref(company2);
-
-company1.Name <<= string("O2");
-company2.Name <<= string("Borland");
-```
-
-### More examples
+## More examples
 
 * [Examples](https://github.com/schlangster/cpp.react/blob/master/src/sandbox/Main.cpp)
-* [Benchmark](https://github.com/schlangster/cpp.react/blob/master/src/benchmark/BenchmarkLifeSim.h)
 * [Test cases](https://github.com/schlangster/cpp.react/tree/master/src/test)
+* [Benchmark](https://github.com/schlangster/cpp.react/blob/master/src/benchmark/BenchmarkLifeSim.h)
+
+# Acknowledgements
+
+The API of Cpp.React has been inspired by the following two research papers:
+* [Deprecating the Observer Pattern with Scala.React](http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf)
+* [REScala: Bridging Between Object-oriented and Functional Style in Reactive Applications](http://www.stg.tu-darmstadt.de/media/st/research/rescala_folder/REScala-Bridging-The-Gap-Between-Object-Oriented-And-Functional-Style-In-Reactive-Applications.pdf)
