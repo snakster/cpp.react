@@ -13,8 +13,8 @@
 #include "react/detail/Options.h"
 
 #ifdef REACT_ENABLE_LOGGING
-    #include "react/detail/logging/EventLog.h"
-    #include "react/detail/logging/EventRecords.h"
+    #include "react/logging/EventLog.h"
+    #include "react/logging/EventRecords.h"
 #endif //REACT_ENABLE_LOGGING
 
 #include "react/detail/IReactiveEngine.h"
@@ -55,6 +55,10 @@ class TempEvents;
 enum class Token;
 
 using REACT_IMPL::TurnFlagsT;
+
+#ifdef REACT_ENABLE_LOGGING
+    using REACT_IMPL::EventLog;
+#endif //REACT_ENABLE_LOGGING    
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DomainBase
@@ -161,7 +165,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////////////////////////
     static EventLog& Log()
     {
-        static ObserverRegistry<D> instance;
+        static EventLog instance;
         return instance;
     }
 #endif //REACT_ENABLE_LOGGING
@@ -193,7 +197,7 @@ public:
     DomainInitializer()
     {
 #ifdef REACT_ENABLE_LOGGING
-        DomainSpecificData<D>::Log();
+        D::Log();
 #endif //REACT_ENABLE_LOGGING
 
         typename D::Engine::Engine();
