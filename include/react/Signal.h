@@ -34,7 +34,7 @@ protected:
 
 private:
     using NodeT     = REACT_IMPL::SignalNode<D,S>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
     using ValueT = S;
@@ -83,7 +83,7 @@ protected:
 
 private:
     using NodeT     = REACT_IMPL::SignalNode<D,std::reference_wrapper<S>>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
     using ValueT = S;
@@ -125,7 +125,7 @@ class VarSignal : public Signal<D,S>
 {
 private:
     using NodeT     = REACT_IMPL::VarNode<D,S>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
     VarSignal() = default;
@@ -172,7 +172,7 @@ class VarSignal<D,S&> : public Signal<D,std::reference_wrapper<S>>
 {
 private:
     using NodeT     = REACT_IMPL::VarNode<D,std::reference_wrapper<S>>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
     using ValueT = S;
@@ -213,7 +213,7 @@ class TempSignal : public Signal<D,S>
 {
 private:
     using NodeT     = REACT_IMPL::SignalOpNode<D,S,TOp>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:    
     TempSignal() = default;

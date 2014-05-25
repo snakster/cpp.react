@@ -35,7 +35,7 @@ class ReactiveBase
 {
 public:
     using DomainT   = typename TNode::DomainT;
-    using NodePtrT  = SharedPtrT<TNode>;
+    using NodePtrT  = std::shared_ptr<TNode>;
 
     ReactiveBase() = default;
     ReactiveBase(const ReactiveBase&) = default;
@@ -52,7 +52,7 @@ public:
         ptr_{ std::move(ptr) }
     {}
 
-    const SharedPtrT<TNode>& NodePtr() const
+    const std::shared_ptr<TNode>& NodePtr() const
     {
         return ptr_;
     }
@@ -68,7 +68,7 @@ public:
     }
 
 protected:
-    SharedPtrT<TNode>   ptr_;
+    std::shared_ptr<TNode>  ptr_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

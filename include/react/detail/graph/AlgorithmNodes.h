@@ -8,6 +8,7 @@
 
 #include "react/detail/Defs.h"
 
+#include <memory>
 #include <utility>
 
 #include "EventNodes.h"
@@ -71,10 +72,10 @@ public:
     }
 
     virtual const char* GetNodeType() const override    { return "IterateNode"; }
-    virtual int DependencyCount() const    override     { return 1; }
+    virtual int DependencyCount() const override        { return 1; }
 
 private:
-    SharedPtrT<EventStreamNode<D,E>> events_;
+    std::shared_ptr<EventStreamNode<D,E>> events_;
     
     TFunc   func_;
 };
@@ -93,7 +94,7 @@ class IterateByRefNode : public SignalNode<D,S>
 {
 public:
     template <typename T, typename F>
-    IterateByRefNode(T&& init, const SharedPtrT<EventStreamNode<D,E>>& events, F&& func) :
+    IterateByRefNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func) :
         SignalNode{ std::forward<T>(init) },
         func_{ std::forward<F>(func) },
         events_{ events }
@@ -132,7 +133,7 @@ public:
 protected:
     TFunc   func_;
 
-    SharedPtrT<EventStreamNode<D,E>> events_;
+    std::shared_ptr<EventStreamNode<D,E>> events_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -168,7 +169,7 @@ public:
 
         apply(
             DetachFunctor<D,SyncedIterateNode,
-                SharedPtrT<SignalNode<D,TDepValues>>...>{ *this },
+                std::shared_ptr<SignalNode<D,TDepValues>>...>{ *this },
             deps_);
 
         Engine::OnNodeDestroy(*this);
@@ -184,7 +185,7 @@ public:
                 MyFunc{ f }
             {}
 
-            S operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
+            S operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
             {
                 return MyFunc(MyEvent, MyValue, args->ValueRef() ...);
             }
@@ -231,9 +232,9 @@ public:
     virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
 
 private:
-    using DepHolderT = std::tuple<SharedPtrT<SignalNode<D,TDepValues>>...>;
+    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
 
-    SharedPtrT<EventStreamNode<D,E>> events_;
+    std::shared_ptr<EventStreamNode<D,E>> events_;
     
     DepHolderT  deps_;
     TFunc       func_;
@@ -272,7 +273,7 @@ public:
 
         apply(
             DetachFunctor<D,SyncedIterateByRefNode,
-                SharedPtrT<SignalNode<D,TDepValues>>...>{ *this },
+                std::shared_ptr<SignalNode<D,TDepValues>>...>{ *this },
             deps_);
 
         Engine::OnNodeDestroy(*this);
@@ -288,7 +289,7 @@ public:
                 MyFunc{ f }
             {}
 
-            void operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
+            void operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
             {
                 MyFunc(MyEvent, MyValue, args->ValueRef() ...);
             }
@@ -329,9 +330,9 @@ public:
     virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
 
 private:
-    using DepHolderT = std::tuple<SharedPtrT<SignalNode<D,TDepValues>>...>;
+    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
 
-    SharedPtrT<EventStreamNode<D,E>> events_;
+    std::shared_ptr<EventStreamNode<D,E>> events_;
     
     DepHolderT  deps_;
     TFunc       func_;
@@ -349,7 +350,7 @@ class HoldNode : public SignalNode<D,S>
 {
 public:
     template <typename T>
-    HoldNode(T&& init, const SharedPtrT<EventStreamNode<D,S>>& events) :
+    HoldNode(T&& init, const std::shared_ptr<EventStreamNode<D,S>>& events) :
         SignalNode(std::forward<T>(init)),
         events_{ events }
     {
@@ -398,7 +399,7 @@ public:
     virtual int DependencyCount() const override    { return 1; }
 
 private:
-    const SharedPtrT<EventStreamNode<D,S>>    events_;
+    const std::shared_ptr<EventStreamNode<D,S>>    events_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -413,8 +414,8 @@ template
 class SnapshotNode : public SignalNode<D,S>
 {
 public:
-    SnapshotNode(const SharedPtrT<SignalNode<D,S>>& target,
-                 const SharedPtrT<EventStreamNode<D,E>>& trigger) :
+    SnapshotNode(const std::shared_ptr<SignalNode<D,S>>& target,
+                 const std::shared_ptr<EventStreamNode<D,E>>& trigger) :
         SignalNode{ target->ValueRef() },
         target_{ target },
         trigger_{ trigger }
@@ -467,8 +468,8 @@ public:
     }
 
 private:
-    const SharedPtrT<SignalNode<D,S>>       target_;
-    const SharedPtrT<EventStreamNode<D,E>>  trigger_;
+    const std::shared_ptr<SignalNode<D,S>>      target_;
+    const std::shared_ptr<EventStreamNode<D,E>> trigger_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -482,7 +483,7 @@ template
 class MonitorNode : public EventStreamNode<D,E>
 {
 public:
-    MonitorNode(const SharedPtrT<SignalNode<D,E>>& target) :
+    MonitorNode(const std::shared_ptr<SignalNode<D,E>>& target) :
         EventStreamNode{ },
         target_{ target }
     {
@@ -521,7 +522,7 @@ public:
     }
 
 private:
-    const SharedPtrT<SignalNode<D,E>>    target_;
+    const std::shared_ptr<SignalNode<D,E>>    target_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -536,8 +537,8 @@ template
 class PulseNode : public EventStreamNode<D,S>
 {
 public:
-    PulseNode(const SharedPtrT<SignalNode<D,S>>& target,
-              const SharedPtrT<EventStreamNode<D,E>>& trigger) :
+    PulseNode(const std::shared_ptr<SignalNode<D,S>>& target,
+              const std::shared_ptr<EventStreamNode<D,E>>& trigger) :
         EventStreamNode{ },
         target_{ target },
         trigger_{ trigger }
@@ -581,8 +582,8 @@ public:
     }
 
 private:
-    const SharedPtrT<SignalNode<D,S>>       target_;
-    const SharedPtrT<EventStreamNode<D,E>>  trigger_;
+    const std::shared_ptr<SignalNode<D,S>>      target_;
+    const std::shared_ptr<EventStreamNode<D,E>> trigger_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -48,7 +48,7 @@ protected:
 
 private:
     using NodeT     = REACT_IMPL::EventStreamNode<D,E>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
     using ValueT = E;
@@ -115,7 +115,7 @@ protected:
 
 private:
     using NodeT     = REACT_IMPL::EventStreamNode<D,std::reference_wrapper<E>>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
     using ValueT = E;
@@ -181,7 +181,7 @@ class EventSource : public Events<D,E>
 {
 private:
     using NodeT     = REACT_IMPL::EventSourceNode<D,E>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
     EventSource() = default;
@@ -233,7 +233,7 @@ class EventSource<D,E&> : public Events<D,std::reference_wrapper<E>>
 {
 private:
     using NodeT     = REACT_IMPL::EventSourceNode<D,std::reference_wrapper<E>>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
     EventSource() = default;
@@ -274,7 +274,7 @@ class TempEvents : public Events<D,E>
 {
 protected:
     using NodeT     = REACT_IMPL::EventOpNode<D,E,TOp>;
-    using NodePtrT  = REACT_IMPL::SharedPtrT<NodeT>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:    
     TempEvents() = default;

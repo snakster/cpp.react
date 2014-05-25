@@ -11,6 +11,7 @@
 #include <atomic>
 #include <deque>
 #include <memory>
+#include <utility>
 
 #include "tbb/spin_mutex.h"
 
@@ -34,11 +35,7 @@ class SignalNode;
 // Note: Weird design due to empty base class optimization
 template <typename D>
 struct BufferClearAccessPolicy :
-    private ConditionalCriticalSection
-    <
-        tbb::spin_mutex,
-        EnableParallelUpdating<typename D::Policy::Engine>::value
-    >
+    private ConditionalCriticalSection<tbb::spin_mutex, D::uses_parallel_updating>
 {
     template <typename F>
     void AccessBufferForClearing(const F& f) { Access(f); }
@@ -83,7 +80,7 @@ protected:
 };
 
 template <typename D, typename E>
-using EventStreamNodePtrT = SharedPtrT<EventStreamNode<D,E>>;
+using EventStreamNodePtrT = std::shared_ptr<EventStreamNode<D,E>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventSourceNode
@@ -206,7 +203,7 @@ private:
         }
 
         template <typename T>
-        void collect(const SharedPtrT<T>& depPtr) const
+        void collect(const std::shared_ptr<T>& depPtr) const
         {
             depPtr->SetCurrentTurn(MyTurn);
 
@@ -284,7 +281,8 @@ private:
     }
 
     template <typename TTurn, typename TCollector, typename T>
-    static void collectImpl(const TTurn& turn, const TCollector& collector, const SharedPtrT<T>& depPtr)
+    static void collectImpl(const TTurn& turn, const TCollector& collector,
+                            const std::shared_ptr<T>& depPtr)
     {
         depPtr->SetCurrentTurn(turn);
 
@@ -359,7 +357,7 @@ private:
     }
 
     template <typename TTurn, typename TCollector, typename T>
-    static void collectImpl(const TTurn& turn, const TCollector& collector, const SharedPtrT<T>& depPtr)
+    static void collectImpl(const TTurn& turn, const TCollector& collector, const std::shared_ptr<T>& depPtr)
     {
         depPtr->SetCurrentTurn(turn);
 
@@ -460,8 +458,8 @@ template
 class EventFlattenNode : public EventStreamNode<D,TInner>
 {
 public:
-    EventFlattenNode(const SharedPtrT<SignalNode<D,TOuter>>& outer,
-                     const SharedPtrT<EventStreamNode<D,TInner>>& inner) :
+    EventFlattenNode(const std::shared_ptr<SignalNode<D,TOuter>>& outer,
+                     const std::shared_ptr<EventStreamNode<D,TInner>>& inner) :
         EventStreamNode{ },
         outer_{ outer },
         inner_{ inner }
@@ -525,8 +523,8 @@ public:
     }
 
 private:
-    SharedPtrT<SignalNode<D,TOuter>>        outer_;
-    SharedPtrT<EventStreamNode<D,TInner>>   inner_;
+    std::shared_ptr<SignalNode<D,TOuter>>       outer_;
+    std::shared_ptr<EventStreamNode<D,TInner>>  inner_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -562,7 +560,7 @@ public:
 
         apply(
             DetachFunctor<D,SyncedEventTransformNode,
-                SharedPtrT<SignalNode<D,TDepValues>>...>{ *this },
+                std::shared_ptr<SignalNode<D,TDepValues>>...>{ *this },
             deps_);
 
         Engine::OnNodeDestroy(*this);
@@ -580,7 +578,7 @@ public:
                 MyFunc{ f }
             {}
 
-            TOut operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
+            TOut operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
             {
                 return MyFunc(MyEvent, args->ValueRef() ...);
             }
@@ -613,9 +611,9 @@ public:
     }
 
 private:
-    using DepHolderT = std::tuple<SharedPtrT<SignalNode<D,TDepValues>>...>;
+    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
 
-    SharedPtrT<EventStreamNode<D,TIn>>   source_;
+    std::shared_ptr<EventStreamNode<D,TIn>>   source_;
 
     DepHolderT  deps_;
     TFunc       func_;
@@ -653,7 +651,7 @@ public:
 
         apply(
             DetachFunctor<D,SyncedEventFilterNode,
-                SharedPtrT<SignalNode<D,TDepValues>>...>{ *this },
+                std::shared_ptr<SignalNode<D,TDepValues>>...>{ *this },
             deps_);
 
         Engine::OnNodeDestroy(*this);
@@ -671,7 +669,7 @@ public:
                 MyFilter{ f }
             {}
 
-            bool operator()(const SharedPtrT<SignalNode<D,TDepValues>>& ... args)
+            bool operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
             {
                 return MyFilter(MyEvent, args->ValueRef() ...);
             }
@@ -705,9 +703,9 @@ public:
     }
 
 private:
-    using DepHolderT = std::tuple<SharedPtrT<SignalNode<D,TDepValues>>...>;
+    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
 
-    SharedPtrT<EventStreamNode<D,E>>   source_;
+    std::shared_ptr<EventStreamNode<D,E>>   source_;
 
     DepHolderT  deps_;
     TFunc       filter_;

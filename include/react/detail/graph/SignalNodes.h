@@ -8,6 +8,7 @@
 
 #include "react/detail/Defs.h"
 
+#include <memory>
 #include <utility>
 
 #include "GraphBase.h"
@@ -49,7 +50,7 @@ protected:
 };
 
 template <typename D, typename S>
-using SignalNodePtrT = SharedPtrT<SignalNode<D,S>>;
+using SignalNodePtrT = std::shared_ptr<SignalNode<D,S>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// VarNode
@@ -160,7 +161,7 @@ private:
         }
 
         template <typename T>
-        static auto eval(const SharedPtrT<T>& depPtr) -> decltype(depPtr->ValueRef())
+        static auto eval(const std::shared_ptr<T>& depPtr) -> decltype(depPtr->ValueRef())
         {
             return depPtr->ValueRef();
         }
@@ -268,8 +269,8 @@ template
 class FlattenNode : public SignalNode<D,TInner>
 {
 public:
-    FlattenNode(const SharedPtrT<SignalNode<D,TOuter>>& outer,
-                const SharedPtrT<SignalNode<D,TInner>>& inner) :
+    FlattenNode(const std::shared_ptr<SignalNode<D,TOuter>>& outer,
+                const std::shared_ptr<SignalNode<D,TInner>>& inner) :
         SignalNode{ inner->ValueRef() },
         outer_{ outer },
         inner_{ inner }
@@ -327,8 +328,8 @@ public:
     }
 
 private:
-    SharedPtrT<SignalNode<D,TOuter>>    outer_;
-    SharedPtrT<SignalNode<D,TInner>>    inner_;
+    std::shared_ptr<SignalNode<D,TOuter>>   outer_;
+    std::shared_ptr<SignalNode<D,TInner>>   inner_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -9,6 +9,7 @@
 #include "react/detail/Defs.h"
 
 #include <memory>
+#include <utility>
 
 #include "react/common/Util.h"
 #include "react/common/Timing.h"
@@ -17,12 +18,6 @@
 #include "react/detail/ObserverBase.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-template <typename T>
-using SharedPtrT = std::shared_ptr<T>;
-
-template <typename T>
-using WeakPtrT = std::weak_ptr<T>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// UpdateTimingPolicy
@@ -65,14 +60,14 @@ public:
     virtual bool    IsDynamicNode() const override  { return false; }
     virtual bool    IsHeavyweight() const override  { return false; }
 
-    SharedPtrT<NodeBase> GetSharedPtr() const
+    std::shared_ptr<NodeBase> GetSharedPtr() const
     {
         return shared_from_this();
     }
 };
 
 template <typename D>
-using NodeBasePtrT = SharedPtrT<NodeBase<D>>;
+using NodeBasePtrT = std::shared_ptr<NodeBase<D>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ReactiveNode
@@ -112,7 +107,7 @@ struct AttachFunctor
     }
 
     template <typename T>
-    void attach(const SharedPtrT<T>& depPtr) const
+    void attach(const std::shared_ptr<T>& depPtr) const
     {
         D::Engine::OnNodeAttach(MyNode, *depPtr);
     }
@@ -137,7 +132,7 @@ struct DetachFunctor
     }
 
     template <typename T>
-    void detach(const SharedPtrT<T>& depPtr) const
+    void detach(const std::shared_ptr<T>& depPtr) const
     {
         D::Engine::OnNodeDetach(MyNode, *depPtr);
     }
@@ -196,7 +191,7 @@ public:
     struct CountHelper { static const int value = T::dependency_count; };
 
     template <typename T>
-    struct CountHelper<SharedPtrT<T>> { static const int value = 1; };
+    struct CountHelper<std::shared_ptr<T>> { static const int value = 1; };
 
     template <int N, typename... Args>
     struct DepCounter;
