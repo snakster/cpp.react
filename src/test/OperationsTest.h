@@ -357,6 +357,203 @@ TYPED_TEST_P(OperationsTest, SyncedTransform1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SyncedIterate1 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, SyncedIterate1)
+{
+    auto in1 = MyDomain::MakeVar(1);
+    auto in2 = MyDomain::MakeVar(1);
+
+    auto op1 = in1 + in2;
+    auto op2 = (in1 + in2) * 10;
+
+    auto src1 = MyDomain::MakeEventSource();
+    auto src2 = MyDomain::MakeEventSource<int>();
+
+    auto out1 = Iterate(
+        src1,
+        make_tuple(0,0),
+        With(op1,op2),
+        [] (Token, const tuple<int,int>& t, int op1, int op2) {
+            return make_tuple(get<0>(t) + op1, get<1>(t) + op2);
+        });
+
+    auto out2 = Iterate(
+        src2,
+        make_tuple(0,0,0),
+        With(op1,op2),
+        [] (int e, const tuple<int,int,int>& t, int op1, int op2) {
+            return make_tuple(get<0>(t) + e, get<1>(t) + op1, get<2>(t) + op2);
+        });
+
+    int obsCount1 = 0;
+    int obsCount2 = 0;
+
+    Observe(out1, [&] (const tuple<int,int>& t) {
+        ++obsCount1;
+
+        ASSERT_EQ(get<0>(t), 33);
+        ASSERT_EQ(get<1>(t), 330);
+
+        DetachThisObserver();
+    });
+
+    Observe(out2, [&] (const tuple<int,int,int>& t) {
+        ++obsCount2;
+
+        ASSERT_EQ(get<0>(t), 42);
+        ASSERT_EQ(get<1>(t), 33);
+        ASSERT_EQ(get<2>(t), 330);
+
+        DetachThisObserver();
+    });
+
+    in1 <<= 22;
+    in2 <<= 11;
+
+    src1.Emit();
+    src2.Emit(42);
+
+    ASSERT_EQ(obsCount1, 1);
+    ASSERT_EQ(obsCount2, 1);
+
+    Observe(out1, [&] (const tuple<int,int>& t) {
+        ++obsCount1;
+
+        ASSERT_EQ(get<0>(t), 33 + 330);
+        ASSERT_EQ(get<1>(t), 330 + 3300);
+
+        DetachThisObserver();
+    });
+
+    Observe(out2, [&] (const tuple<int,int,int>& t) {
+        ++obsCount2;
+
+        ASSERT_EQ(get<0>(t), 42 + 420);
+        ASSERT_EQ(get<1>(t), 33 + 330);
+        ASSERT_EQ(get<2>(t), 330 + 3300);
+
+        DetachThisObserver();
+    });
+
+    in1 <<= 220;
+    in2 <<= 110;
+
+    src1.Emit();
+    src2.Emit(420);
+
+    ASSERT_EQ(obsCount1, 2);
+    ASSERT_EQ(obsCount2, 2);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SyncedIterate2 test (by ref)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, SyncedIterate2)
+{
+    auto in1 = MyDomain::MakeVar(1);
+    auto in2 = MyDomain::MakeVar(1);
+
+    auto op1 = in1 + in2;
+    auto op2 = (in1 + in2) * 10;
+
+    auto src1 = MyDomain::MakeEventSource();
+    auto src2 = MyDomain::MakeEventSource<int>();
+
+    auto out1 = Iterate(
+        src1,
+        vector<int>{},
+        With(op1,op2),
+        [] (Token, vector<int>& v, int op1, int op2) {
+            v.push_back(op1);
+            v.push_back(op2);
+        });
+
+    auto out2 = Iterate(
+        src2,
+        vector<int>{},
+        With(op1,op2),
+        [] (int e, vector<int>& v, int op1, int op2) {
+            v.push_back(e);
+            v.push_back(op1);
+            v.push_back(op2);
+        });
+
+    int obsCount1 = 0;
+    int obsCount2 = 0;
+
+    Observe(out1, [&] (const vector<int>& v) {
+        ++obsCount1;
+
+        ASSERT_EQ(v.size(), 2);
+
+        ASSERT_EQ(v[0], 33);
+        ASSERT_EQ(v[1], 330);
+
+        DetachThisObserver();
+    });
+
+    Observe(out2, [&] (const vector<int>& v) {
+        ++obsCount2;
+
+        ASSERT_EQ(v.size(), 3);
+
+        ASSERT_EQ(v[0], 42);
+        ASSERT_EQ(v[1], 33);
+        ASSERT_EQ(v[2], 330);
+
+        DetachThisObserver();
+    });
+
+    in1 <<= 22;
+    in2 <<= 11;
+
+    src1.Emit();
+    src2.Emit(42);
+
+    ASSERT_EQ(obsCount1, 1);
+    ASSERT_EQ(obsCount2, 1);
+
+    Observe(out1, [&] (const vector<int>& v) {
+        ++obsCount1;
+
+        ASSERT_EQ(v.size(), 4);
+
+        ASSERT_EQ(v[0], 33);
+        ASSERT_EQ(v[1], 330);
+        ASSERT_EQ(v[2], 330);
+        ASSERT_EQ(v[3], 3300);
+
+        DetachThisObserver();
+    });
+
+    Observe(out2, [&] (const vector<int>& v) {
+        ++obsCount2;
+
+        ASSERT_EQ(v.size(), 6);
+
+        ASSERT_EQ(v[0], 42);
+        ASSERT_EQ(v[1], 33);
+        ASSERT_EQ(v[2], 330);
+
+        ASSERT_EQ(v[3], 420);
+        ASSERT_EQ(v[4], 330);
+        ASSERT_EQ(v[5], 3300);
+
+        DetachThisObserver();
+    });
+
+    in1 <<= 220;
+    in2 <<= 110;
+
+    src1.Emit();
+    src2.Emit(420);
+
+    ASSERT_EQ(obsCount1, 2);
+    ASSERT_EQ(obsCount2, 2);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     OperationsTest,
@@ -369,7 +566,9 @@ REGISTER_TYPED_TEST_CASE_P
     Snapshot1,
     IterateByRef1,
     IterateByRef2,
-    SyncedTransform1
+    SyncedTransform1,
+    SyncedIterate1,
+    SyncedIterate2
 );
 
 } // ~namespace
