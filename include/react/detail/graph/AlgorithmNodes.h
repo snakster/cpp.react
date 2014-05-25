@@ -59,7 +59,7 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (! impl::Equals(newValue, value_))
+        if (! Equals(newValue, value_))
         {
             value_ = std::move(newValue);
             Engine::OnNodePulse(*this, turn);
@@ -197,26 +197,34 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
+        events_->SetCurrentTurn(turn);
+
+        bool changed = false;
+
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        S newValue = value_;
+        if (! events_->Events().empty())
+        {
+            S newValue = value_;
 
-        for (const auto& e : events_->Events())
-            newValue = apply(EvalFunctor_{ e, std::move(newValue), func_ }, deps_);
+            for (const auto& e : events_->Events())
+                newValue = apply(EvalFunctor_{ e, std::move(newValue), func_ }, deps_);
+
+            if (! Equals(newValue, value_))
+            {
+                changed = true;
+                value_ = std::move(newValue);
+            }            
+        }
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (! impl::Equals(newValue, value_))
-        {
-            value_ = std::move(newValue);
+        if (changed)   
             Engine::OnNodePulse(*this, turn);
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, turn);
-        }
     }
 
     virtual const char* GetNodeType() const override        { return "SyncedIterateNode"; }
@@ -250,8 +258,8 @@ public:
                            const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
         SignalNode{ std::forward<T>(init) },
         events_{ events },
-        func_{ std::forward<F>(func) }
-
+        func_{ std::forward<F>(func) },
+        deps_{ deps ... }
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events);
@@ -274,7 +282,7 @@ public:
     {
         struct EvalFunctor_
         {
-            EvalFunctor_(const E& e, const S& v, TFunc& f) :
+            EvalFunctor_(const E& e, S& v, TFunc& f) :
                 MyEvent{ e },
                 MyValue{ v },
                 MyFunc{ f }
@@ -293,16 +301,28 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
+        events_->SetCurrentTurn(turn);
+
+        bool changed = false;
+
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        for (const auto& e : events_->Events())
-            apply(EvalFunctor_{ e, newValue, func_ }, deps_);
+        if (! events_->Events().empty())
+        {
+            for (const auto& e : events_->Events())
+                apply(EvalFunctor_{ e, value_, func_ }, deps_);
+
+            changed = true;
+        }
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        Engine::OnNodePulse(*this, turn);
+        if (changed)
+            Engine::OnNodePulse(*this, turn);
+        else
+            Engine::OnNodeIdlePulse(*this, turn);
     }
 
     virtual const char* GetNodeType() const override        { return "SyncedIterateByRefNode"; }
@@ -358,7 +378,8 @@ public:
         if (! events_->Events().empty())
         {
             const S& newValue = events_->Events().back();
-            if (newValue != value_)
+
+            if (! Equals(newValue, value_))
             {
                 changed = true;
                 value_ = newValue;
@@ -369,13 +390,9 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (changed)
-        {
             Engine::OnNodePulse(*this, turn);
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, turn);
-        }
     }
 
     virtual int DependencyCount() const override    { return 1; }
@@ -432,7 +449,8 @@ public:
         if (! trigger_->Events().empty())
         {
             const S& newValue = target_->ValueRef();
-            if (newValue != value_)
+
+            if (! Equals(newValue, value_))
             {
                 changed = true;
                 value_ = newValue;
@@ -443,13 +461,9 @@ public:
             GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash()));
 
         if (changed)
-        {
             Engine::OnNodePulse(*this, turn);
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, turn);
-        }
     }
 
 private:
@@ -500,14 +514,10 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (events_.size() > 0)
-        {
+        if (! events_.empty())
             Engine::OnNodePulse(*this, turn);
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, turn);
-        }
     }
 
 private:
@@ -564,7 +574,7 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (events_.size() > 0)
+        if (! events_.empty())
             Engine::OnNodePulse(*this, turn);
         else
             Engine::OnNodeIdlePulse(*this, turn);

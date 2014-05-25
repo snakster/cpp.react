@@ -33,11 +33,7 @@ template
     long long threshold
 >
 struct UpdateTimingPolicy :
-    private ConditionalTimer
-    <
-        threshold,
-        EnableNodeUpdateTimer<typename D::Policy::Engine>::value
-    >
+    private ConditionalTimer<threshold, D::uses_update_timer>
 {
     class ScopedUpdateTimer : public ScopedTimer
     {
@@ -91,6 +87,9 @@ class ReactiveNode : public NodeBase<D>
 {
 public:
     ReactiveNode() = default;
+
+    // Reactive nodes can't be copied
+    ReactiveNode(const ReactiveNode&) = delete;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
