@@ -9,6 +9,7 @@
 #include "gtest/gtest.h"
 
 #include <queue>
+#include <vector>
 
 #include "react/Domain.h"
 #include "react/Signal.h"
@@ -518,6 +519,148 @@ TYPED_TEST_P(SignalTest, Member1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Modify1 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(SignalTest, Modify1)
+{
+    using std::vector;
+
+    auto v = MyDomain::MakeVar(vector<int>{});
+
+    int obsCount = 0;
+
+    Observe(v, [&] (const vector<int>& v) {
+        ASSERT_EQ(v[0], 30);
+        ASSERT_EQ(v[1], 50);
+        ASSERT_EQ(v[2], 70);
+
+        obsCount++;
+    });
+    
+    v.Modify([] (vector<int>& v) {
+        v.push_back(30);
+        v.push_back(50);
+        v.push_back(70);
+    });
+
+    ASSERT_EQ(obsCount, 1);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Modify2 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(SignalTest, Modify2)
+{
+    using std::vector;
+
+    auto v = MyDomain::MakeVar(vector<int>{});
+
+    int obsCount = 0;
+
+    Observe(v, [&] (const vector<int>& v) {
+        ASSERT_EQ(v[0], 30);
+        ASSERT_EQ(v[1], 50);
+        ASSERT_EQ(v[2], 70);
+
+        obsCount++;
+    });
+    
+    MyDomain::DoTransaction([&] {
+        v.Modify([] (vector<int>& v) {
+            v.push_back(30);
+        });
+
+        v.Modify([] (vector<int>& v) {
+            v.push_back(50);
+        });
+
+        v.Modify([] (vector<int>& v) {
+            v.push_back(70);
+        });
+    });
+    
+
+    ASSERT_EQ(obsCount, 1);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Modify3 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(SignalTest, Modify3)
+{
+    using std::vector;
+
+    auto vect = MyDomain::MakeVar(vector<int>{});
+
+    int obsCount = 0;
+
+    // Terrible, but lets test it
+    Observe(vect, [&] (const vector<int>& v)
+    {    
+        if (obsCount == 0)
+        {
+            ASSERT_EQ(v[0], 30);
+
+            vect.Modify([] (vector<int>& v) {
+                v.push_back(50);
+            });
+        }
+        else if (obsCount == 1)
+        {
+            ASSERT_EQ(v[1], 50);
+
+            vect.Modify([] (vector<int>& v) {
+                v.push_back(70);
+            });
+        }
+        else
+        {
+            ASSERT_EQ(v[2], 70);
+        }
+
+        obsCount++;
+    });
+
+    vect.Modify([] (vector<int>& v) {
+        v.push_back(30);
+    });
+
+    ASSERT_EQ(obsCount, 3);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Modify4 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(SignalTest, Modify4)
+{
+    using std::vector;
+
+    auto vect = MyDomain::MakeVar(vector<int>{});
+
+    int obsCount = 0;
+
+    Observe(vect, [&] (const vector<int>& v) {
+        ASSERT_EQ(v[0], 30);
+        ASSERT_EQ(v[1], 50);
+        ASSERT_EQ(v[2], 70);
+
+        obsCount++;
+    });
+    
+    // Also terrible
+    MyDomain::DoTransaction([&] {
+
+        vect.Set(vector<int>{ 30, 50 });
+
+        vect.Modify([] (vector<int>& v) {
+            v.push_back(70);
+        });
+    });
+
+    ASSERT_EQ(obsCount, 1);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     SignalTest,
@@ -525,7 +668,9 @@ REGISTER_TYPED_TEST_CASE_P
     Signals1, Signals2, Signals3, Signals4,
     FunctionBind1, FunctionBind2,
     Flatten1, Flatten2, Flatten3, Flatten4,
-    Member1
+    Member1,
+    Modify1, Modify2, Modify3, Modify4
+
 );
 
 } // ~namespace
