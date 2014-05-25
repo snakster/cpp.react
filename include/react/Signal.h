@@ -160,6 +160,12 @@ public:
         BaseT::setValue(std::move(newValue));
         return *this;
     }
+
+    template <typename F>
+    void Modify(const F& func) const
+    {
+        BaseT::modifyValue(func);
+    }
 };
 
 // Specialize for references

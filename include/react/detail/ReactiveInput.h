@@ -199,19 +199,36 @@ public:
     }
 
     template <typename R, typename V>
-    static void AddInput(R&& r, V&& v)
+    static void AddInput(R& r, V&& v)
     {
         if (ContinuationHolder<D>::Get() != nullptr)
         {
-            addContinuationInput(std::forward<R>(r), std::forward<V>(v));
+            addContinuationInput(r, std::forward<V>(v));
         }
         else if (transactionState_.Active)
         {
-            addTransactionInput(std::forward<R>(r), std::forward<V>(v));
+            addTransactionInput(r, std::forward<V>(v));
         }
         else
         {
-            addSimpleInput(std::forward<R>(r), std::forward<V>(v));
+            addSimpleInput(r, std::forward<V>(v));
+        }
+    }
+
+    template <typename R, typename F>
+    static void ModifyInput(R& r, const F& func)
+    {
+        if (ContinuationHolder<D>::Get() != nullptr)
+        {
+            modifyContinuationInput(r, func);
+        }
+        else if (transactionState_.Active)
+        {
+            modifyTransactionInput(r, func);
+        }
+        else
+        {
+            modifySimpleInput(r, func);
         }
     }
 
@@ -243,7 +260,7 @@ private:
 
     // Create a turn with a single input
     template <typename R, typename V>
-    static void addSimpleInput(R&& r, V&& v)
+    static void addSimpleInput(R& r, V&& v)
     {
         auto turn = makeTurn(0);
 
@@ -259,21 +276,56 @@ private:
         postProcessTurn(turn);
     }
 
+    template <typename R, typename F>
+    static void modifySimpleInput(R& r, const F& func)
+    {
+        auto turn = makeTurn(0);
+
+        Engine::OnTurnAdmissionStart(turn);
+        r.ModifyInput(func);
+        Engine::OnTurnAdmissionEnd(turn);
+
+        // Return value, will always be true
+        r.ApplyInput(&turn);
+
+        Engine::OnTurnPropagate(turn);
+
+        Engine::OnTurnEnd(turn);
+
+        postProcessTurn(turn);
+    }
+
     // This input is part of an active transaction
     template <typename R, typename V>
-    static void addTransactionInput(R&& r, V&& v)
+    static void addTransactionInput(R& r, V&& v)
     {
         r.AddInput(std::forward<V>(v));
         transactionState_.Inputs.push_back(&r);
     }
 
+    template <typename R, typename F>
+    static void modifyTransactionInput(R& r, const F& func)
+    {
+        r.ModifyInput(func);
+        transactionState_.Inputs.push_back(&r);
+    }
+
     // Input happened during a turn - buffer in continuation
     template <typename R, typename V>
-    static void addContinuationInput(R&& r, V&& v)
+    static void addContinuationInput(R& r, const V& v)
     {
         // Copy v
         ContinuationHolder<D>::Get()->Add(
             [&r,v] { addTransactionInput(r, std::move(v)); }
+        );
+    }
+
+    template <typename R, typename F>
+    static void modifyContinuationInput(R& r, const F& func)
+    {
+        // Copy func
+        ContinuationHolder<D>::Get()->Add(
+            [&r,func] { modifyTransactionInput(r, func); }
         );
     }
 

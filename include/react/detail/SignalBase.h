@@ -48,6 +48,13 @@ protected:
             *reinterpret_cast<VarNode<D,S>*>(ptr_.get()),
             std::forward<T>(newValue));
     }
+
+    template <typename F>
+    void modifyValue(const F& func) const
+    {
+        InputManager<D>::ModifyInput(
+            *reinterpret_cast<VarNode<D,S>*>(ptr_.get()), func);
+    }
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

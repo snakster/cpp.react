@@ -91,19 +91,62 @@ public:
     void AddInput(V&& newValue)
     {
         newValue_ = std::forward<V>(newValue);
+
+        isInputAdded_ = true;
+
+        // isInputAdded_ takes precedences over isInputModified_
+        // the only difference between the two is that isInputModified_ doesn't/can't compare
+        isInputModified_ = false;
+    }
+
+    // This is signal-specific
+    template <typename F>
+    void ModifyInput(F& func)
+    {
+        // There hasn't been any Set(...) input yet, modify.
+        if (! isInputAdded_)
+        {
+            func(value_);
+
+            isInputModified_ = true;
+        }
+        // There's a newValue, modify newValue instead.
+        // The modified newValue will handled like before, i.e. it'll be compared to value_
+        // in ApplyInput
+        else
+        {
+            func(newValue_);            
+        }
     }
 
     virtual bool ApplyInput(void* turnPtr) override
     {
-        if (! impl::Equals(value_, newValue_))
-        {
-            using TurnT = typename D::Engine::TurnT;
-            TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
-            value_ = std::move(newValue_);
+        if (isInputAdded_)
+        {
+            isInputAdded_ = false;
+
+            if (! Equals(value_, newValue_))
+            {
+                value_ = std::move(newValue_);
+                Engine::OnTurnInputChange(*this, turn);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else if (isInputModified_)
+        {            
+            isInputModified_ = false;
+
             Engine::OnTurnInputChange(*this, turn);
             return true;
         }
+
         else
         {
             return false;
@@ -111,7 +154,9 @@ public:
     }
 
 private:
-    S   newValue_;
+    S       newValue_;
+    bool    isInputAdded_ = false;
+    bool    isInputModified_ = false;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
