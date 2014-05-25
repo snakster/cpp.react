@@ -27,34 +27,100 @@ using TurnFlagsT = uint;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ContinuationInput
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+template <bool is_thread_safe>
 class ContinuationInput
+{
+public:
+    ContinuationInput() = default;
+    ContinuationInput(const ContinuationInput&) = delete;
+    ContinuationInput(ContinuationInput&&);
+
+    bool IsEmpty() const;
+
+    template <typename F>
+    void Add(F&& input);
+
+    void Execute();
+};
+
+// Not thread-safe
+template <>
+class ContinuationInput<false>
+{
+public:
+    using InputClosureT = std::function<void()>;
+    using InputVectT    = std::vector<InputClosureT>;
+
+    ContinuationInput() = default;
+    ContinuationInput(const ContinuationInput&) = delete;
+
+    ContinuationInput(ContinuationInput&& other) :
+        bufferedInputs_{ std::move(other.bufferedInputs_) }
+    {}
+    
+    ContinuationInput& operator=(ContinuationInput&& other)
+    {
+        bufferedInputs_ = std::move(other.bufferedInputs_);
+        return *this;
+    }
+
+    bool IsEmpty() const { return bufferedInputs_.empty(); }
+
+    template <typename F>
+    void Add(F&& input)
+    {
+        bufferedInputs_.push_back(std::forward<F>(input));
+    }
+
+    void Execute()
+    {
+        for (auto& f : bufferedInputs_)
+            f();
+        bufferedInputs_.clear();
+    }
+
+private:
+    InputVectT  bufferedInputs_;
+};
+
+// Thread-safe
+template <>
+class ContinuationInput<true>
 {
 public:
     using InputClosureT = std::function<void()>;
     using InputVectT    = tbb::concurrent_vector<InputClosureT>;
+
+    ContinuationInput() = default;
+    ContinuationInput(const ContinuationInput&) = delete;
+
+    ContinuationInput(ContinuationInput&& other) :
+        bufferedInputsPtr_{ std::move(other.bufferedInputsPtr_) }
+    {}
     
-    inline ContinuationInput& operator=(ContinuationInput&& other)
+    ContinuationInput& operator=(ContinuationInput&& other)
     {
         bufferedInputsPtr_ = std::move(other.bufferedInputsPtr_);
         return *this;
     }
 
-    inline bool IsEmpty() const { return bufferedInputsPtr_ == nullptr; }
+    bool IsEmpty() const { return bufferedInputsPtr_ == nullptr; }
 
     template <typename F>
     void Add(F&& input)
     {
+        // Allocation of concurrent vector is not cheap -> create on demand
         std::call_once(bufferedInputsInit_, [this] {
             bufferedInputsPtr_.reset(new InputVectT());
         });
         bufferedInputsPtr_->push_back(std::forward<F>(input));
     }
 
-    inline void Execute()
+    void Execute()
     {
         if (bufferedInputsPtr_ != nullptr)
         {
-            for (auto f : *bufferedInputsPtr_)
+            for (auto& f : *bufferedInputsPtr_)
                 f();
             bufferedInputsPtr_->clear();
         }
@@ -73,19 +139,20 @@ class ContinuationHolder
 {
 public:
     using TurnT = typename D::TurnT;
+    using ContinuationT = ContinuationInput<D::uses_parallel_updating>;
 
     ContinuationHolder() = delete;
 
-    static void                 SetTurn(TurnT& turn)    { ptr_ = &turn.continuation_; }
-    static void                 Clear()                 { ptr_ = nullptr; }
-    static ContinuationInput*   Get()                   { return ptr_; }
+    static void             SetTurn(TurnT& turn)    { ptr_ = &turn.continuation_; }
+    static void             Clear()                 { ptr_ = nullptr; }
+    static ContinuationT*   Get()                   { return ptr_; }
 
 private:
-    static REACT_TLS ContinuationInput* ptr_;
+    static REACT_TLS ContinuationT* ptr_;
 };
 
 template <typename D>
-ContinuationInput* ContinuationHolder<D>::ptr_(nullptr);
+typename ContinuationHolder<D>::ContinuationT* ContinuationHolder<D>::ptr_(nullptr);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// InputManager
@@ -219,7 +286,7 @@ private:
             processContinuations(std::move(turn.continuation_), 0);
     }
 
-    static void processContinuations(ContinuationInput&& cont, TurnFlagsT flags)
+    static void processContinuations(typename TurnT::ContinuationT&& cont, TurnFlagsT flags)
     {
         // No merging for continuations
         flags &= ~enable_input_merging;

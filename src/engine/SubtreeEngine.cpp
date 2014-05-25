@@ -26,8 +26,7 @@ static const uint heavy_weight  = 1000;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
     TurnBase(id, flags)
-{
-}
+{}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PulsecountEngine
@@ -212,8 +211,6 @@ void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 {
     if (isInPhase2_)
         node.ClearChangedFlag();
-    else
-        processChildren(node, turn);
 }
 
 template <typename TTurn>
@@ -270,7 +267,6 @@ void EngineBase<TTurn>::applyAsyncDynamicAttach(Node& node, Node& parent, TTurn&
             node.SetShouldUpdate(true);
 
             node.WaitCount = 1;
-            
         }
     }// ~parent.ShiftMutex (write)
 

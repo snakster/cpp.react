@@ -30,6 +30,7 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+template <bool is_thread_safe>
 class TurnBase;
 
 namespace toposort {
@@ -92,13 +93,21 @@ struct DynRequestData
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ExclusiveTurn
+/// ExclusiveSeqTurn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-class ExclusiveTurn : public REACT_IMPL::TurnBase
+class ExclusiveSeqTurn : public REACT_IMPL::TurnBase<false>
 {
 public:
-    ExclusiveTurn(TurnIdT id, TurnFlagsT flags);
+    ExclusiveSeqTurn(TurnIdT id, TurnFlagsT flags);
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ExclusiveParTurn
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class ExclusiveParTurn : public REACT_IMPL::TurnBase<true>
+{
+public:
+    ExclusiveParTurn(TurnIdT id, TurnFlagsT flags);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -191,16 +200,16 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Concrete engines
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class BasicSeqEngine : public SeqEngineBase<ExclusiveTurn> {};
-class QueuingSeqEngine : public DefaultQueuingEngine<SeqEngineBase,ExclusiveTurn> {};
+class BasicSeqEngine : public SeqEngineBase<ExclusiveSeqTurn> {};
+class QueuingSeqEngine : public DefaultQueuingEngine<SeqEngineBase,ExclusiveSeqTurn> {};
 
-class BasicParEngine : public ParEngineBase<ExclusiveTurn> {};
-class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveTurn> {};
+class BasicParEngine : public ParEngineBase<ExclusiveParTurn> {};
+class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveParTurn> {};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PipeliningTurn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class PipeliningTurn : public TurnBase
+class PipeliningTurn : public TurnBase<true>
 {
 public:
     using ConcNodeVectT = concurrent_vector<ParNode*>;

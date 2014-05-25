@@ -10,6 +10,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -29,19 +30,90 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TurnBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+template <bool is_thread_safe>
 class TurnBase
 {
 public:
-    inline TurnBase(TurnIdT id, TurnFlagsT flags) :
+    TurnBase(TurnIdT id, TurnFlagsT flags);
+
+    TurnIdT Id() const;
+
+    void QueueForDetach(IObserver& obs);
+
+    template <typename D>
+    friend class InputManager;
+
+    template <typename D>
+    friend class ContinuationHolder;
+
+private:
+    using ContinuationT =   ContinuationInput<is_thread_safe>;
+
+    template <typename D>
+    void detachObservers();
+};
+
+// Not thread-safe
+template <>
+class TurnBase<false>
+{
+public:
+    TurnBase(TurnIdT id, TurnFlagsT flags) :
         id_{ id }
     {}
 
-    inline TurnIdT Id() const { return id_; }
+    TurnIdT Id() const { return id_; }
 
-    inline void QueueForDetach(IObserver& obs)
+    void QueueForDetach(IObserver& obs)
     {
-        if (detachedObserversPtr_ == nullptr)
-            detachedObserversPtr_ = std::unique_ptr<ObsVectT>(new ObsVectT());
+        detachedObservers_.push_back(&obs);
+    }
+
+    template <typename D>
+    friend class InputManager;
+
+    template <typename D>
+    friend class ContinuationHolder;
+
+private:
+    using ObsVectT =        std::vector<IObserver*>;
+    using ContinuationT =   ContinuationInput<false>;
+
+    TurnIdT    id_;
+
+    template <typename D>
+    void detachObservers()
+    {
+
+        auto& registry = DomainSpecificObserverRegistry<D>::Instance();
+
+        for (auto* o : detachedObservers_)
+            registry.Unregister(o);
+
+        detachedObservers_.clear();
+    }
+
+    ObsVectT        detachedObservers_;
+    ContinuationT   continuation_;
+};
+
+// Thread-safe
+template <>
+class TurnBase<true>
+{
+public:
+    TurnBase(TurnIdT id, TurnFlagsT flags) :
+        id_{ id }
+    {}
+
+    TurnIdT Id() const { return id_; }
+
+    void QueueForDetach(IObserver& obs)
+    {
+        // Allocation of concurrent vector is not cheap -> create on demand
+        std::call_once(detachedObserversInit_, [this] {
+            detachedObserversPtr_.reset(new ObsVectT());
+        });
 
         detachedObserversPtr_->push_back(&obs);
     }
@@ -54,6 +126,7 @@ public:
 
 private:
     using ObsVectT = tbb::concurrent_vector<IObserver*>;
+    using ContinuationT =  ContinuationInput<true>;
 
     TurnIdT    id_;
 
@@ -66,11 +139,14 @@ private:
 
             for (auto* o : *detachedObserversPtr_)
                 registry.Unregister(o);
+
+            detachedObserversPtr_->clear();
         }
     }
 
+    std::once_flag              detachedObserversInit_;
     std::unique_ptr<ObsVectT>   detachedObserversPtr_;
-    ContinuationInput           continuation_;
+    ContinuationT               continuation_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

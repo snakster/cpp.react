@@ -11,12 +11,18 @@
 namespace toposort {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Turn
+/// ExclusiveSeqTurn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-ExclusiveTurn::ExclusiveTurn(TurnIdT id, TurnFlagsT flags) :
+ExclusiveSeqTurn::ExclusiveSeqTurn(TurnIdT id, TurnFlagsT flags) :
     TurnBase(id, flags)
-{
-}
+{}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ExclusiveParTurn
+///////////////////////////////////////////////////////////////////////////////////////////////////
+ExclusiveParTurn::ExclusiveParTurn(TurnIdT id, TurnFlagsT flags) :
+    TurnBase(id, flags)
+{}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EngineBase
@@ -49,10 +55,10 @@ void EngineBase<TNode,TTurn>::OnNodePulse(TNode& node, TTurn& turn)
 }
 
 // Explicit instantiation
-template class EngineBase<SeqNode,ExclusiveTurn>;
-template class EngineBase<ParNode,ExclusiveTurn>;
-template class EngineBase<SeqNode,DefaultQueueableTurn<ExclusiveTurn>>;
-template class EngineBase<ParNode,DefaultQueueableTurn<ExclusiveTurn>>;
+template class EngineBase<SeqNode,ExclusiveSeqTurn>;
+template class EngineBase<ParNode,ExclusiveParTurn>;
+template class EngineBase<SeqNode,DefaultQueueableTurn<ExclusiveSeqTurn>>;
+template class EngineBase<ParNode,DefaultQueueableTurn<ExclusiveParTurn>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SeqEngineBase
@@ -121,8 +127,8 @@ void SeqEngineBase<TTurn>::invalidateSuccessors(SeqNode& node)
 }
 
 // Explicit instantiation
-template class SeqEngineBase<ExclusiveTurn>;
-template class SeqEngineBase<DefaultQueueableTurn<ExclusiveTurn>>;
+template class SeqEngineBase<ExclusiveSeqTurn>;
+template class SeqEngineBase<DefaultQueueableTurn<ExclusiveSeqTurn>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ParEngineBase
@@ -228,8 +234,8 @@ void ParEngineBase<TTurn>::invalidateSuccessors(ParNode& node)
 }
 
 // Explicit instantiation
-template class ParEngineBase<ExclusiveTurn>;
-template class ParEngineBase<DefaultQueueableTurn<ExclusiveTurn>>;
+template class ParEngineBase<ExclusiveParTurn>;
+template class ParEngineBase<DefaultQueueableTurn<ExclusiveParTurn>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PipeliningTurn
