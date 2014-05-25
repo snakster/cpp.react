@@ -34,7 +34,7 @@ public:
     SignalNode() = default;
 
     template <typename T>
-    SignalNode(T&& value) :
+    explicit SignalNode(T&& value) :
         ReactiveNode{ },
         value_{ std::forward<T>(value) }
     {}

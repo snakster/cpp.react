@@ -74,17 +74,31 @@ public:
         ScopedTimer(ConditionalTimer& parent) :
             parent_{ parent }
         {
-            if (parent_.shouldMeasure_)
-                QueryPerformanceCounter(&startTime_);
+            if (!parent_.shouldMeasure_)
+                return;
+
+            startMeasure();
         }
 
-        ~ScopedTimer()
+        // Note: virtual for performance reasons
+        virtual ~ScopedTimer()
         {
             if (!parent_.shouldMeasure_)
                 return;
 
             parent_.shouldMeasure_ = false;
+            
+            endMeasure();
+        }
 
+    private:
+        void startMeasure()
+        {
+            QueryPerformanceCounter(&startTime_);
+        }
+
+        void endMeasure()
+        {
             LARGE_INTEGER endTime, durationMS;
 
             QueryPerformanceCounter(&endTime);
@@ -96,7 +110,6 @@ public:
             parent_.isThresholdExceeded_ = durationMS.QuadPart > threshold;
         }
 
-    private:
         ConditionalTimer& parent_;
         
         LARGE_INTEGER startTime_;  

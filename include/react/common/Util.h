@@ -8,7 +8,6 @@
 
 #include "react/detail/Defs.h"
 
-#include <ctime>
 #include <functional>
 #include <tuple>
 #include <type_traits>

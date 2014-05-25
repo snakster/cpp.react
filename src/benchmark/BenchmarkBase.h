@@ -7,9 +7,11 @@
 #pragma once
 
 #include <cfloat>
+#include <ctime>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <random>
 
 #include "react/common/Util.h"
 
