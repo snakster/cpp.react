@@ -28,7 +28,7 @@ template
     long long threshold
 >
 struct UpdateTimingPolicy :
-    private ConditionalTimer<threshold, D::uses_update_timer>
+    private ConditionalTimer<threshold, D::uses_node_update_timer>
 {
     class ScopedUpdateTimer : public ScopedTimer
     {
