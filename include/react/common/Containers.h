@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_COMMON_CONTAINERS_H_INCLUDED
+#define REACT_COMMON_CONTAINERS_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -75,7 +78,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct SplitTag {};
 
-template <typename T, uint N>
+template <typename T, size_t N>
 class NodeBuffer
 {
 public:
@@ -83,36 +86,36 @@ public:
     using iterator = typename DataT::iterator;
     using const_iterator = typename DataT::const_iterator;
 
-    static const uint split_size = N / 2;
+    static const size_t split_size = N / 2;
 
     NodeBuffer() :
-        size_{ 0 },
-        front_{ nodes_.begin() },
-        back_{ nodes_.begin() }
+        size_( 0 ),
+        front_( nodes_.begin() ),
+        back_( nodes_.begin() )
     {}
 
     NodeBuffer(T* node) :
-        size_{ 1 },
-        front_{ nodes_.begin() },
-        back_{ nodes_.begin() + 1 }
+        size_( 1 ),
+        front_( nodes_.begin() ),
+        back_( nodes_.begin() + 1 )
     {
         nodes_[0] = node;
     }
 
     template <typename TInput>
     NodeBuffer(TInput srcBegin, TInput srcEnd) :
-        size_{ std::distance(srcBegin, srcEnd) },
-        front_{ nodes_.begin() },
-        back_{ size_ != N ? nodes_.begin() + size_ : nodes_.begin() }
+        size_( std::distance(srcBegin, srcEnd) ), // parentheses to allow narrowing conversion
+        front_( nodes_.begin() ),
+        back_( size_ != N ? nodes_.begin() + size_ : nodes_.begin() )
     {
         std::copy(srcBegin, srcEnd, front_);
     }
 
     // Other must be full
     NodeBuffer(NodeBuffer& other, SplitTag) :
-        size_{ split_size },
-        front_{ nodes_.begin() },
-        back_{ nodes_.begin() }
+        size_( split_size ),
+        front_( nodes_.begin() ),
+        back_( nodes_.begin() )
     {
         for (auto i=0; i<split_size; i++)
             *(back_++) = other.PopFront();
@@ -165,9 +168,11 @@ private:
     }
 
     DataT       nodes_;
-    uint        size_;
+    size_t      size_;
     iterator    front_;
     iterator    back_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_COMMON_CONTAINERS_H_INCLUDED

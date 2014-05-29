@@ -4,11 +4,21 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DOMAIN_H_INCLUDED
+#define REACT_DOMAIN_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
 
+#include <utility>
+#include <type_traits>
+
 #include "react/TypeTraits.h"
+
+#include "react/detail/EventFwd.h"
+#include "react/detail/SignalFwd.h"
+
 #include "react/detail/ReactiveInput.h"
 #include "react/detail/Options.h"
 
@@ -33,26 +43,6 @@ class Observer;
 
 template <typename D>
 class ScopedObserver;
-
-template <typename D, typename S>
-class Signal;
-
-template <typename D, typename S>
-class VarSignal;
-
-template <typename D, typename S, typename TOp>
-class TempSignal;
-
-template <typename D, typename E>
-class Events;
-
-template <typename D, typename E>
-class EventSource;
-
-template <typename D, typename E, typename TOp>
-class TempEvents;
-
-enum class Token;
 
 using REACT_IMPL::TurnFlagsT;
 
@@ -113,8 +103,8 @@ public:
     template
     <
         typename V,
-        typename S = std::decay<V>::type,
-        class = std::enable_if<
+        typename S = typename std::decay<V>::type,
+        class = typename std::enable_if<
             !IsSignal<S>::value>::type
     >
     static auto MakeVar(V&& value)
@@ -129,9 +119,9 @@ public:
     template
     <
         typename V,
-        typename S = std::decay<V>::type,
-        typename TInner = S::ValueT,
-        class = std::enable_if<
+        typename S = typename std::decay<V>::type,
+        typename TInner = typename S::ValueT,
+        class = typename std::enable_if<
             IsSignal<S>::value>::type
     >
     static auto MakeVar(V&& value)
@@ -212,7 +202,7 @@ public:
         D::Log();
 #endif //REACT_ENABLE_LOGGING
 
-        typename D::Engine::Engine();
+        D::Engine::Engine();
     }
 };
 
@@ -224,3 +214,5 @@ public:
 #define REACTIVE_DOMAIN(name, ...) \
     struct name : public REACT::DomainBase<name, REACT_IMPL::DomainPolicy<__VA_ARGS__ >> {}; \
     REACT_IMPL::DomainInitializer< name > name ## _initializer_;
+
+#endif // REACT_DOMAIN_H_INCLUDED

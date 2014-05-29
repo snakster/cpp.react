@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_IREACTIVEENGINE_H_INCLUDED
+#define REACT_DETAIL_IREACTIVEENGINE_H_INCLUDED
+
 #pragma once
 
 #include <utility>
@@ -168,3 +171,5 @@ template <typename> struct EnableParallelUpdating : std::false_type {};
 template <typename> struct EnableConcurrentInput : std::false_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_IREACTIVEENGINE_H_INCLUDED

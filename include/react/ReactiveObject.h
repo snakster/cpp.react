@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_REACTIVEOBJECT_H_INCLUDED
+#define REACT_REACTIVEOBJECT_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -14,30 +17,15 @@
 #include "react/TypeTraits.h"
 #include "react/common/Util.h"
 
+#include "react/detail/EventFwd.h"
+#include "react/detail/SignalFwd.h"
+
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename S>
-class Signal;
-
-template <typename D, typename S>
-class VarSignal;
-
-template <typename D, typename S, typename TOp>
-class TempSignal;
-
-template <typename D, typename E>
-class Events;
-
-template <typename D, typename E>
-class EventSource;
-
-template <typename D, typename E, typename TOp>
-class TempEvents;
-
 template <typename D>
 class ReactiveLoop;
 
@@ -46,8 +34,6 @@ class Observer;
 
 template <typename D>
 class ScopedObserver;
-
-enum class Token;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ReactiveObject
@@ -85,8 +71,8 @@ public:
     template
     <
         typename V,
-        typename S = std::decay<V>::type,
-        class = std::enable_if<
+        typename S = typename std::decay<V>::type,
+        class = typename std::enable_if<
             !IsSignal<S>::value>::type
     >
     static auto MakeVar(V&& value)
@@ -111,9 +97,9 @@ public:
     template
     <
         typename V,
-        typename S = std::decay<V>::type,
-        typename TInner = S::ValueT,
-        class = std::enable_if<
+        typename S = typename std::decay<V>::type,
+        typename TInner = typename S::ValueT,
+        class = typename std::enable_if<
             IsSignal<S>::value>::type
     >
     static auto MakeVar(V&& value)
@@ -162,7 +148,9 @@ public:
             obj,                                                                            \
             [] (REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)                        \
             {                                                                               \
-                REACT_ASSERT(r != nullptr);                                                 \
+                assert(r != nullptr);                                                       \
                 using T = decltype(r->name);                                                \
                 return static_cast<RemoveInput<typename T::DomainT, T>::Type>(r->name);     \
             }))
+
+#endif // REACT_REACTIVEOBJECT_H_INCLUDED

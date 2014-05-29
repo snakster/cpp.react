@@ -87,7 +87,7 @@ void SeqEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 template <typename TTurn>
 void SeqEngineBase<TTurn>::OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, TTurn& turn)
 {
-    OnNodeAttach(node, parent);
+    this->OnNodeAttach(node, parent);
     
     invalidateSuccessors(node);
 
@@ -99,7 +99,7 @@ void SeqEngineBase<TTurn>::OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, T
 template <typename TTurn>
 void SeqEngineBase<TTurn>::OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, TTurn& turn)
 {
-    OnNodeDetach(node, parent);
+    this->OnNodeDetach(node, parent);
 }
 
 template <typename TTurn>
@@ -197,7 +197,7 @@ void ParEngineBase<TTurn>::OnDynamicNodeDetach(ParNode& node, ParNode& parent, T
 template <typename TTurn>
 void ParEngineBase<TTurn>::applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn)
 {
-    OnNodeAttach(node, parent);
+    this->OnNodeAttach(node, parent);
 
     invalidateSuccessors(node);
 
@@ -209,7 +209,7 @@ void ParEngineBase<TTurn>::applyDynamicAttach(ParNode& node, ParNode& parent, TT
 template <typename TTurn>
 void ParEngineBase<TTurn>::applyDynamicDetach(ParNode& node, ParNode& parent, TTurn& turn)
 {
-    OnNodeDetach(node, parent);
+    this->OnNodeDetach(node, parent);
 }
 
 template <typename TTurn>

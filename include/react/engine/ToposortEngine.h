@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_ENGINE_TOPOSORTENGINE_H_INCLUDED
+#define REACT_DETAIL_ENGINE_TOPOSORTENGINE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -59,11 +62,11 @@ static const uint grain_size = 100;
 class SeqNode : public IReactiveNode
 {
 public:
-    int     Level = 0;
-    int     NewLevel = 0;
-    bool    Queued = false;
+    int     Level       { 0 };
+    int     NewLevel    { 0 };
+    bool    Queued      { false };
 
-    NodeVector<SeqNode>    Successors;
+    NodeVector<SeqNode>     Successors;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,12 +77,12 @@ class ParNode : public IReactiveNode
 public:
     using InvalidateMutexT = spin_mutex;
 
-    int             Level = 0;
-    int             NewLevel = 0;
-    atomic<bool>    Collected = false;
+    int             Level       { 0 };
+    int             NewLevel    { 0 };
+    atomic<bool>    Collected   { false };
 
-    NodeVector<ParNode>     Successors;
-    InvalidateMutexT        InvalidateMutex;
+    NodeVector<ParNode> Successors;
+    InvalidateMutexT    InvalidateMutex;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -276,14 +279,18 @@ private:
 
     IntervalSetT        levelIntervals_;
 
-    PipeliningTurn*     predecessor_ = nullptr;
-    PipeliningTurn*     successor_ = nullptr;
+    PipeliningTurn*     predecessor_    { nullptr };
+    PipeliningTurn*     successor_      { nullptr };
 
-    int     currentLevel_ = -1;
-    int     maxLevel_ = (numeric_limits<int>::max)(); /// This turn may only advance up to maxLevel
-    int     minLevel_ = -1;                         /// successor.maxLevel = this.minLevel - 1
+    int     currentLevel_   { -1 };
 
-    int     curUpperBound_ = -1;
+    /// This turn may only advance up to maxLevel
+    int     maxLevel_       { (numeric_limits<int>::max)() };
+
+    /// successor.maxLevel = this.minLevel - 1
+    int     minLevel_       { -1 };                              
+ 
+    int     curUpperBound_  { -1 };
 
     mutex               advMutex_;
     condition_variable  advCondition_;
@@ -344,7 +351,7 @@ private:
     void advanceTurn(PipeliningTurn& turn);
 
     SeqMutexT           seqMutex_;
-    PipeliningTurn*     tail_ = nullptr;
+    PipeliningTurn*     tail_       { nullptr };
 
     NodeSetT    dynamicNodes_;
     int         maxDynamicLevel_;
@@ -402,3 +409,5 @@ template <> struct EnableConcurrentInput<ToposortEngine<parallel_queue>> : std::
 template <> struct EnableConcurrentInput<ToposortEngine<parallel_pipeline>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_ENGINE_TOPOSORTENGINE_H_INCLUDED

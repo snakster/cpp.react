@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_GRAPH_GRAPHBASE_H_INCLUDED
+#define REACT_DETAIL_GRAPH_GRAPHBASE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -27,16 +30,42 @@ template
     typename D,
     long long threshold
 >
-struct UpdateTimingPolicy :
+class UpdateTimingPolicy :
     private ConditionalTimer<threshold, D::uses_node_update_timer>
 {
-    class ScopedUpdateTimer : public ScopedTimer
+    using ScopedTimer = typename UpdateTimingPolicy::ScopedTimer;
+
+public:
+    class ScopedUpdateTimer : private ScopedTimer
     {
     public:
-        ScopedUpdateTimer(UpdateTimingPolicy& parent) : ScopedTimer{ parent } {}
+        ScopedUpdateTimer(UpdateTimingPolicy& parent) :
+            ScopedTimer( parent ) {}
     };
 
-    bool IsUpdateThresholdExceeded() const { return IsThresholdExceeded(); }
+    bool IsUpdateThresholdExceeded() const { return this->IsThresholdExceeded(); }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// DepCounter
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+struct CountHelper { static const int value = T::dependency_count; };
+
+template <typename T>
+struct CountHelper<std::shared_ptr<T>> { static const int value = 1; };
+
+template <int N, typename... Args>
+struct DepCounter;
+
+template <>
+struct DepCounter<0> { static int const value = 0; };
+
+template <int N, typename First, typename... Args>
+struct DepCounter<N, First, Args...>
+{
+    static int const value =
+        CountHelper<typename std::decay<First>::type>::value + DepCounter<N-1,Args...>::value;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +91,7 @@ public:
 
     std::shared_ptr<NodeBase> GetSharedPtr() const
     {
-        return shared_from_this();
+        return this->shared_from_this();
     }
 };
 
@@ -93,7 +122,7 @@ public:
 template <typename D, typename TNode, typename ... TDeps>
 struct AttachFunctor
 {
-    AttachFunctor(TNode& node) : MyNode{ node } {}
+    AttachFunctor(TNode& node) : MyNode( node ) {}
 
     void operator()(const TDeps& ...deps) const
     {
@@ -103,7 +132,7 @@ struct AttachFunctor
     template <typename T>
     void attach(const T& op) const
     {
-        op.AttachRec<D,TNode>(*this);
+        op.template AttachRec<D,TNode>(*this);
     }
 
     template <typename T>
@@ -118,7 +147,7 @@ struct AttachFunctor
 template <typename D, typename TNode, typename ... TDeps>
 struct DetachFunctor
 {
-    DetachFunctor(TNode& node) : MyNode{ node } {}
+    DetachFunctor(TNode& node) : MyNode( node ) {}
 
     void operator()(const TDeps& ... deps) const
     {
@@ -128,7 +157,7 @@ struct DetachFunctor
     template <typename T>
     void detach(const T& op) const
     {
-        op.DetachRec<D,TNode>(*this);
+        op.template DetachRec<D,TNode>(*this);
     }
 
     template <typename T>
@@ -151,11 +180,11 @@ public:
 
     template <typename ... TDepsIn>
     ReactiveOpBase(DontMove, TDepsIn&& ... deps) :
-        deps_{ std::forward<TDepsIn>(deps) ... }
+        deps_( std::forward<TDepsIn>(deps) ... )
     {}
 
     ReactiveOpBase(ReactiveOpBase&& other) :
-        deps_{ std::move(other.deps_) }
+        deps_( std::move(other.deps_) )
     {}
 
     // Can't be copied, only moved
@@ -186,26 +215,6 @@ public:
         apply(reinterpret_cast<const DetachFunctor<D,TNode,TDeps...>&>(functor), deps_);
     }
 
-    // Dependency counting
-    template <typename T>
-    struct CountHelper { static const int value = T::dependency_count; };
-
-    template <typename T>
-    struct CountHelper<std::shared_ptr<T>> { static const int value = 1; };
-
-    template <int N, typename... Args>
-    struct DepCounter;
-
-    template <>
-    struct DepCounter<0> { static int const value = 0; };
-
-    template <int N, typename First, typename... Args>
-    struct DepCounter<N, First, Args...>
-    {
-        static int const value =
-            CountHelper<std::decay<First>::type>::value + DepCounter<N-1,Args...>::value;
-    };
-
 public:
     static const int dependency_count = DepCounter<sizeof...(TDeps), TDeps...>::value;
 
@@ -213,4 +222,7 @@ protected:
     DepHolderT   deps_;
 };
 
+
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_GRAPH_GRAPHBASE_H_INCLUDED

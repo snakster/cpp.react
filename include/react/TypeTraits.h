@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_TYPETRAITS_H_INCLUDED
+#define REACT_TYPETRAITS_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -98,3 +101,5 @@ template <typename D, typename T>
 struct RemoveInput<D, EventSource<D,T>> { using Type = Events<D,T>; };
 
 /******************************************/ REACT_END /******************************************/
+
+#endif // REACT_TYPETRAITS_H_INCLUDED

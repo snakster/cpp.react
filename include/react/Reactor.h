@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_REACTOR_H_INCLUDED
+#define REACT_REACTOR_H_INCLUDED
+
 #pragma once
 
 #ifdef REACT_ENABLE_REACTORS
@@ -65,4 +68,6 @@ private:
 
 /******************************************/ REACT_END /******************************************/
 
-#endif //REACT_ENABLE_REACTORS
+#endif // REACT_ENABLE_REACTORS
+
+#endif // REACT_REACTOR_H_INCLUDED

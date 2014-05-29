@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_REACTIVEBASE_H_INCLUDED
+#define REACT_DETAIL_REACTIVEBASE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -39,17 +42,24 @@ public:
 
     ReactiveBase() = default;
     ReactiveBase(const ReactiveBase&) = default;
+    ReactiveBase& operator=(const ReactiveBase&) = default;
 
     ReactiveBase(ReactiveBase&& other) :
-        ptr_{ std::move(other.ptr_) }
+        ptr_( std::move(other.ptr_) )
     {}
 
+    ReactiveBase& operator=(ReactiveBase&& other)
+    {
+        ptr_.reset(std::move(other));
+        return *this;
+    }
+
     explicit ReactiveBase(const NodePtrT& ptr) :
-        ptr_{ ptr }
+        ptr_( ptr )
     {}
 
     explicit ReactiveBase(NodePtrT&& ptr) :
-        ptr_{ std::move(ptr) }
+        ptr_( std::move(ptr) )
     {}
 
     const std::shared_ptr<TNode>& NodePtr() const
@@ -72,3 +82,5 @@ protected:
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_REACTIVEBASE_H_INCLUDED

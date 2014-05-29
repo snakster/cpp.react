@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_ENGINE_SUBTREEENGINE_H_INCLUDED
+#define REACT_DETAIL_ENGINE_SUBTREEENGINE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -93,9 +96,9 @@ public:
 
     NodeVector<Node>    Successors;
     ShiftMutexT         ShiftMutex;
-    uint16_t            Level       = 0;
-    uint16_t            NewLevel    = 0;
-    uint16_t            WaitCount   = 0;
+    uint16_t            Level       { 0 };
+    uint16_t            NewLevel    { 0 };
+    uint16_t            WaitCount   { 0 };
 
 private:
     enum EFlags : uint16_t
@@ -109,8 +112,8 @@ private:
     };
 
     EnumFlags<EFlags>   flags_;
-    atomic<uint16_t>    readyCount_     = 0;
-    atomic<bool>        shouldUpdate_   = false;
+    atomic<uint16_t>    readyCount_     { 0 };
+    atomic<bool>        shouldUpdate_   { false };
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,10 +159,10 @@ private:
     TopoQueueT      scheduledNodes_;
     vector<Node*>   subtreeRoots_;
 
-    empty_task*     rootTask_ = new(task::allocate_root()) empty_task;
+    empty_task*     rootTask_   { new(task::allocate_root()) empty_task };
     task_list       spawnList_;
 
-    bool            isInPhase2_ = false;
+    bool            isInPhase2_ { false };
 }; 
 
 class BasicEngine : public EngineBase<Turn> {};
@@ -195,3 +198,5 @@ template <> struct EnableParallelUpdating<SubtreeEngine<parallel>> : std::true_t
 template <> struct EnableParallelUpdating<SubtreeEngine<parallel_queue>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_ENGINE_SUBTREEENGINE_H_INCLUDED

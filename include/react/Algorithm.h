@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_ALGORITHM_H_INCLUDED
+#define REACT_ALGORITHM_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -45,7 +48,7 @@ template
     typename E,
     typename V,
     typename FIn,
-    typename S = std::decay<V>::type
+    typename S = typename std::decay<V>::type
 >
 auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
     -> Signal<D,S>
@@ -53,9 +56,10 @@ auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
     using REACT_IMPL::IterateNode;
     using REACT_IMPL::IterateByRefNode;
 
-    using F = std::decay<FIn>::type;
-    using TNode = std::conditional<
-        std::is_same<void,std::result_of<F(E,S)>::type>::value,
+    using F = typename std::decay<FIn>::type;
+    using TNode = typename std::conditional<
+        std::is_same<void,
+            typename std::result_of<F(E,S)>::type>::value,
         IterateByRefNode<D,S,E,F>,
         IterateNode<D,S,E,F>
         >::type;
@@ -75,7 +79,7 @@ template
     typename V,
     typename FIn,
     typename ... TDepValues,
-    typename S = std::decay<V>::type
+    typename S = typename std::decay<V>::type
 >
 auto Iterate(const Events<D,E>& events, V&& init,
              const SignalPack<D,TDepValues...>& depPack, FIn&& func)
@@ -84,9 +88,10 @@ auto Iterate(const Events<D,E>& events, V&& init,
     using REACT_IMPL::SyncedIterateNode;
     using REACT_IMPL::SyncedIterateByRefNode;
 
-    using F = std::decay<FIn>::type;
-    using TNode = std::conditional<
-        std::is_same<void,std::result_of<F(E,S,TDepValues...)>::type>::value,
+    using F = typename std::decay<FIn>::type;
+    using TNode = typename std::conditional<
+        std::is_same<void,
+            typename std::result_of<F(E,S,TDepValues...)>::type>::value,
         SyncedIterateByRefNode<D,S,E,F,TDepValues ...>,
         SyncedIterateNode<D,S,E,F,TDepValues ...>
         >::type;
@@ -125,7 +130,7 @@ template
 <
     typename D,
     typename V,
-    typename T = std::decay<V>::type
+    typename T = typename std::decay<V>::type
 >
 auto Hold(const Events<D,T>& events, V&& init)
     -> Signal<D,T>
@@ -214,7 +219,7 @@ template
 <
     typename D,
     typename V,
-    typename S = std::decay<V>::type
+    typename S = typename std::decay<V>::type
 >
 auto OnChangedTo(const Signal<D,S>& target, V&& value)
     -> Events<D,Token>
@@ -225,3 +230,5 @@ auto OnChangedTo(const Signal<D,S>& target, V&& value)
 }
 
 /******************************************/ REACT_END /******************************************/
+
+#endif // REACT_ALGORITHM_H_INCLUDED

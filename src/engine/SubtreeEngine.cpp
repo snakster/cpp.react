@@ -63,12 +63,12 @@ public:
     using BufferT = NodeBuffer<Node,chunk_size>;
 
     UpdaterTask(TTurn& turn, Node* node) :
-        turn_{ turn },
+        turn_( turn ), // For now, GCC requires still parenthesis here
         nodes_{ node }
     {}
 
     UpdaterTask(UpdaterTask& other, SplitTag) :
-        turn_{ other.turn_ },
+        turn_( other.turn_ ),
         nodes_{ other.nodes_, SplitTag{} }
     {}
 

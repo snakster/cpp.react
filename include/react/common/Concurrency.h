@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_COMMON_CONCURRENCY_H_INCLUDED
+#define REACT_COMMON_CONCURRENCY_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -109,3 +112,5 @@ private:
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_COMMON_CONCURRENCY_H_INCLUDED

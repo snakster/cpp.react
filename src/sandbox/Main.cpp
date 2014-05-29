@@ -13,13 +13,17 @@
 //#define REACT_ENABLE_LOGGING
 
 // Experimental. Requires boost::coroutine.
-#define REACT_ENABLE_REACTORS
+//#define REACT_ENABLE_REACTORS
 
 #include "react/Domain.h"
 #include "react/Signal.h"
 #include "react/Event.h"
 #include "react/Algorithm.h"
 #include "react/ReactiveObject.h"
+
+#ifdef REACT_ENABLE_REACTORS
+    #include "react/Reactor.h"
+#endif
 
 using namespace std;
 using namespace react;
@@ -277,7 +281,6 @@ void IterateExample1()
 }
 
 #ifdef REACT_ENABLE_REACTORS
-#include "react/Reactor.h"
 
 void LoopTest()
 {

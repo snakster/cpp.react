@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_COMMON_UTIL_H_INCLUDED
+#define REACT_COMMON_UTIL_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -103,7 +106,7 @@ class ScopeGuard
 {
 public:
     explicit ScopeGuard(F func) :
-        func_{ std::move(func) }
+        func_( std::move(func) )
     {
     }
 
@@ -132,7 +135,7 @@ class MoveBindWrapper
 {
 public:
     explicit MoveBindWrapper(T&& v):
-        v_{ std::forward<T>(v) }
+        v_( std::forward<T>(v) )
     {} 
 
     template <typename ... U>
@@ -164,10 +167,10 @@ struct AddDummyArgWrapper
 {
     // Dummy int to make sure it calls the right ctor
     template <typename FIn>
-    AddDummyArgWrapper(int, FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
+    AddDummyArgWrapper(int, FIn&& func) : MyFunc( std::forward<FIn>(func) ) {}
 
     AddDummyArgWrapper(const AddDummyArgWrapper& other) = default;
-    AddDummyArgWrapper(AddDummyArgWrapper&& other) : MyFunc{ std::move(other.MyFunc) } {}
+    AddDummyArgWrapper(AddDummyArgWrapper&& other) : MyFunc( std::move(other.MyFunc) ) {}
 
     TRet operator()(TArg, TDepValues& ... args)
     {
@@ -182,10 +185,10 @@ struct AddDummyArgWrapper<TArg,F,void,TDepValues...>
 {
     // Dummy int to make sure it calls the right ctor
     template <typename FIn>
-    AddDummyArgWrapper(int, FIn&& func) : MyFunc{ std::forward<FIn>(func) } {}
+    AddDummyArgWrapper(int, FIn&& func) : MyFunc( std::forward<FIn>(func) ) {}
 
     AddDummyArgWrapper(const AddDummyArgWrapper& other) = default;
-    AddDummyArgWrapper(AddDummyArgWrapper&& other) : MyFunc{ std::move(other.MyFunc) } {}
+    AddDummyArgWrapper(AddDummyArgWrapper&& other) : MyFunc( std::move(other.MyFunc) ) {}
 
     void operator()(TArg, TDepValues& ... args)
     {
@@ -226,3 +229,5 @@ namespace std
 #define REACT_SCOPE_EXIT \
     auto REACT_ANON_VAR(REACT_SCOPE_EXIT_PREFIX) \
         = REACT_IMPL::ScopeGuardDummy_() + [&]()
+
+#endif // REACT_COMMON_UTIL_H_INCLUDED

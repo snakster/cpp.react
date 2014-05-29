@@ -6,6 +6,9 @@
 
 #pragma once
 
+#ifndef REACT_DETAIL_GRAPH_SIGNALNODES_H_INCLUDED
+#define REACT_DETAIL_GRAPH_SIGNALNODES_H_INCLUDED
+
 #include "react/detail/Defs.h"
 
 #include <memory>
@@ -36,8 +39,8 @@ public:
 
     template <typename T>
     explicit SignalNode(T&& value) :
-        ReactiveNode{ },
-        value_{ std::forward<T>(value) }
+        SignalNode::ReactiveNode( ),
+        value_( std::forward<T>(value) )
     {}
 
     const S& ValueRef() const
@@ -64,11 +67,13 @@ class VarNode :
     public SignalNode<D,S>,
     public IInputNode
 {
+    using Engine = typename VarNode::Engine;
+
 public:
     template <typename T>
     VarNode(T&& value) :
-        SignalNode{ std::forward<T>(value) },
-        newValue_{ value_ }
+        VarNode::SignalNode( std::forward<T>(value) ),
+        newValue_( value )
     {
         Engine::OnNodeCreate(*this);
     }
@@ -106,7 +111,7 @@ public:
         // There hasn't been any Set(...) input yet, modify.
         if (! isInputAdded_)
         {
-            func(value_);
+            func(this->value_);
 
             isInputModified_ = true;
         }
@@ -128,9 +133,9 @@ public:
         {
             isInputAdded_ = false;
 
-            if (! Equals(value_, newValue_))
+            if (! Equals(this->value_, newValue_))
             {
-                value_ = std::move(newValue_);
+                this->value_ = std::move(newValue_);
                 Engine::OnTurnInputChange(*this, turn);
                 return true;
             }
@@ -173,25 +178,25 @@ class FunctionOp : public ReactiveOpBase<TDeps...>
 public:
     template <typename FIn, typename ... TDepsIn>
     FunctionOp(FIn&& func, TDepsIn&& ... deps) :
-        ReactiveOpBase{ DontMove{}, std::forward<TDepsIn>(deps) ... },
-        func_{ std::forward<FIn>(func) }
+        FunctionOp::ReactiveOpBase( DontMove(), std::forward<TDepsIn>(deps) ... ),
+        func_( std::forward<FIn>(func) )
     {}
 
     FunctionOp(FunctionOp&& other) :
-        ReactiveOpBase{ std::move(other) },
-        func_{ std::move(other.func_) }
+        FunctionOp::ReactiveOpBase( std::move(other) ),
+        func_( std::move(other.func_) )
     {}
 
     S Evaluate() 
     {
-        return apply(EvalFunctor{ func_ }, deps_);
+        return apply(EvalFunctor( func_ ), this->deps_);
     }
 
 private:
     // Eval
     struct EvalFunctor
     {
-        EvalFunctor(F& f) : MyFunc{ f }   {}
+        EvalFunctor(F& f) : MyFunc( f )   {}
 
         template <typename ... T>
         S operator()(T&& ... args)
@@ -231,22 +236,24 @@ class SignalOpNode :
     public SignalNode<D,S>,
     public UpdateTimingPolicy<D,500>
 {
+    using Engine = typename SignalOpNode::Engine;
+
 public:
     template <typename ... TArgs>
     SignalOpNode(TArgs&& ... args) :
-        SignalNode{ },
-        op_{ std::forward<TArgs>(args) ... }
+        SignalOpNode::SignalNode( ),
+        op_( std::forward<TArgs>(args) ... )
     {
-        value_ = op_.Evaluate();
+        this->value_ = op_.Evaluate();
 
         Engine::OnNodeCreate(*this);
-        op_.Attach<D>(*this);
+        op_.template Attach<D>(*this);
     }
 
     ~SignalOpNode()
     {
         if (!wasOpStolen_)
-            op_.Detach<D>(*this);
+            op_.template Detach<D>(*this);
         Engine::OnNodeDestroy(*this);
     }
 
@@ -264,13 +271,14 @@ public:
         bool changed = false;
 
         {// timer
-            ScopedUpdateTimer scopedTimer{ *this };
+            using TimerT = typename SignalOpNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this );
 
             S newValue = op_.Evaluate();
 
-            if (! REACT_IMPL::Equals(value_, newValue))
+            if (! Equals(this->value_, newValue))
             {
-                value_ = std::move(newValue);
+                this->value_ = std::move(newValue);
                 changed = true;
             }
         }// ~timer
@@ -286,14 +294,14 @@ public:
 
     virtual bool IsHeavyweight() const override
     {
-        return IsUpdateThresholdExceeded();
+        return this->IsUpdateThresholdExceeded();
     }
 
     TOp StealOp()
     {
         REACT_ASSERT(wasOpStolen_ == false, "Op was already stolen.");
         wasOpStolen_ = true;
-        op_.Detach<D>(*this);
+        op_.template Detach<D>(*this);
         return std::move(op_);
     }
 
@@ -313,12 +321,14 @@ template
 >
 class FlattenNode : public SignalNode<D,TInner>
 {
+    using Engine = typename FlattenNode::Engine;
+
 public:
     FlattenNode(const std::shared_ptr<SignalNode<D,TOuter>>& outer,
                 const std::shared_ptr<SignalNode<D,TInner>>& inner) :
-        SignalNode{ inner->ValueRef() },
-        outer_{ outer },
-        inner_{ inner }
+        FlattenNode::SignalNode( inner->ValueRef() ),
+        outer_( outer ),
+        inner_( inner )
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *outer_);
@@ -361,9 +371,9 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (! REACT_IMPL::Equals(value_, inner_->ValueRef()))
+        if (! Equals(this->value_, inner_->ValueRef()))
         {
-            value_ = inner_->ValueRef();
+            this->value_ = inner_->ValueRef();
             Engine::OnNodePulse(*this, turn);
         }
         else
@@ -378,3 +388,5 @@ private:
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_GRAPH_SIGNALNODES_H_INCLUDED

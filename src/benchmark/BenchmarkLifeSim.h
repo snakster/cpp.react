@@ -150,7 +150,7 @@ public:
                 return r.get();
         }
 
-        printf("Out of bounds %d %d\n", pos.first, pos.second);
+        //printf("Out of bounds %d %d\n", pos.first, pos.second);
         assert(false);
         return nullptr;
     }

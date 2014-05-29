@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_OBSERVERBASE_H_INCLUDED
+#define REACT_DETAIL_OBSERVERBASE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -20,7 +23,20 @@
 template <typename D>
 class Observable;
 
-class IObserver;
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// IObserver
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class IObserver
+{
+public:
+    virtual ~IObserver() = default;
+
+private:
+    virtual void detachObserver() = 0;
+
+    template <typename D>
+    friend class ObserverRegistry;
+};
 
 // tbb tasks are non-preemptible, thread local flag for each worker
 template <typename = void>
@@ -29,8 +45,8 @@ struct GlobalObserverState
     static REACT_TLS bool    ShouldDetach;
 };
 
-template <>
-bool GlobalObserverState<void>::ShouldDetach = false;
+template <typename T>
+REACT_TLS bool GlobalObserverState<T>::ShouldDetach(false);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverRegistry
@@ -44,15 +60,15 @@ private:
     {
     public:
         Entry(std::unique_ptr<IObserver>&& nodePtr, const Observable<D>* subjectPtr) :
-            nodePtr_{ std::move(nodePtr) },
-            SubjectPtr{ subjectPtr }
+            nodePtr_( std::move(nodePtr) ),
+            SubjectPtr( subjectPtr )
         {}
 
         Entry(const Entry&) = delete;
 
         Entry(Entry&& other) :
-            nodePtr_{ std::move(other.nodePtr_) },
-            SubjectPtr{ other.SubjectPtr }
+            nodePtr_( std::move(other.nodePtr_) ),
+            SubjectPtr( other.SubjectPtr )
         {}
 
         const Observable<D>* SubjectPtr;
@@ -121,6 +137,14 @@ template <typename D>
 class Observable
 {
 public:
+    Observable() :
+        obsCount_( 0u )
+    {};
+
+    Observable(const Observable& other) :
+        obsCount_( other.GetObsCount() )
+    {}
+
     void    IncObsCount()       { obsCount_.fetch_add(1, std::memory_order_relaxed); }
     void    DecObsCount()       { obsCount_.fetch_sub(1, std::memory_order_relaxed); }
     uint    GetObsCount() const { return obsCount_.load(std::memory_order_relaxed); }
@@ -132,22 +156,9 @@ public:
     }
 
 private:
-    std::atomic<uint>   obsCount_   = 0;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// IObserver
-///////////////////////////////////////////////////////////////////////////////////////////////////
-class IObserver
-{
-public:
-    virtual ~IObserver() = default;
-
-private:
-    virtual void detachObserver() = 0;
-
-    template <typename D>
-    friend class ObserverRegistry;
+    std::atomic<uint>   obsCount_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_OBSERVERBASE_H_INCLUDED

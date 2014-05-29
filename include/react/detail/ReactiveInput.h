@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_REACTIVEINPUT_H_INCLUDED
+#define REACT_DETAIL_REACTIVEINPUT_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -18,6 +21,7 @@
 #include "tbb/concurrent_vector.h"
 
 #include "react/detail/IReactiveNode.h."
+#include "react/detail/Options.h."
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -55,7 +59,7 @@ public:
     ContinuationInput(const ContinuationInput&) = delete;
 
     ContinuationInput(ContinuationInput&& other) :
-        bufferedInputs_{ std::move(other.bufferedInputs_) }
+        bufferedInputs_( std::move(other.bufferedInputs_) )
     {}
     
     ContinuationInput& operator=(ContinuationInput&& other)
@@ -95,7 +99,7 @@ public:
     ContinuationInput(const ContinuationInput&) = delete;
 
     ContinuationInput(ContinuationInput&& other) :
-        bufferedInputsPtr_{ std::move(other.bufferedInputsPtr_) }
+        bufferedInputsPtr_( std::move(other.bufferedInputsPtr_) )
     {}
     
     ContinuationInput& operator=(ContinuationInput&& other)
@@ -152,7 +156,7 @@ private:
 };
 
 template <typename D>
-typename ContinuationHolder<D>::ContinuationT* ContinuationHolder<D>::ptr_(nullptr);
+REACT_TLS typename ContinuationHolder<D>::ContinuationT* ContinuationHolder<D>::ptr_(nullptr);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// InputManager
@@ -331,7 +335,7 @@ private:
 
     static void postProcessTurn(TurnT& turn)
     {
-        turn.detachObservers<D>();
+        turn.template detachObservers<D>();
 
         // Steal continuation from current turn
         if (! turn.continuation_.IsEmpty())
@@ -364,7 +368,7 @@ private:
 
             Engine::OnTurnEnd(turn);
 
-            turn.detachObservers<D>();
+            turn.template detachObservers<D>();
 
             if (turn.continuation_.IsEmpty())
                 break;
@@ -381,3 +385,5 @@ template <typename D>
 typename InputManager<D>::TransactionState InputManager<D>::transactionState_;
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_REACTIVEINPUT_H_INCLUDED

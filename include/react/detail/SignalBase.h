@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_SIGNALBASE_H_INCLUDED
+#define REACT_DETAIL_SIGNALBASE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -32,20 +35,20 @@ public:
     
     template <typename T>
     explicit SignalBase(T&& ptr) :
-        ReactiveBase{ std::forward<T>(ptr) }
+        SignalBase::ReactiveBase( std::forward<T>(ptr) )
     {}
 
 protected:
     const S& getValue() const
     {
-        return ptr_->ValueRef();
+        return this->ptr_->ValueRef();
     }
 
     template <typename T>
     void setValue(T&& newValue) const
     {
         InputManager<D>::AddInput(
-            *reinterpret_cast<VarNode<D,S>*>(ptr_.get()),
+            *reinterpret_cast<VarNode<D,S>*>(this->ptr_.get()),
             std::forward<T>(newValue));
     }
 
@@ -53,8 +56,10 @@ protected:
     void modifyValue(const F& func) const
     {
         InputManager<D>::ModifyInput(
-            *reinterpret_cast<VarNode<D,S>*>(ptr_.get()), func);
+            *reinterpret_cast<VarNode<D,S>*>(this->ptr_.get()), func);
     }
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_SIGNALBASE_H_INCLUDED

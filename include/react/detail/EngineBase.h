@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_ENGINEBASE_H_INCLUDED
+#define REACT_DETAIL_ENGINEBASE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -59,7 +62,7 @@ class TurnBase<false>
 {
 public:
     TurnBase(TurnIdT id, TurnFlagsT flags) :
-        id_{ id }
+        id_( id )
     {}
 
     TurnIdT Id() const { return id_; }
@@ -103,7 +106,7 @@ class TurnBase<true>
 {
 public:
     TurnBase(TurnIdT id, TurnFlagsT flags) :
-        id_{ id }
+        id_( id )
     {}
 
     TurnIdT Id() const { return id_; }
@@ -159,7 +162,7 @@ public:
     {
     public:
         explicit QueueEntry(TurnFlagsT flags) :
-            isMergeable_{ (flags & enable_input_merging) != 0 }
+            isMergeable_( (flags & enable_input_merging) != 0 )
         {}
 
         inline void Append(QueueEntry& tr)
@@ -280,8 +283,8 @@ class DefaultQueueableTurn :
 {
 public:
     DefaultQueueableTurn(TurnIdT id, TurnFlagsT flags) :
-        TTurnBase{ id, flags },
-        TurnQueueManager::QueueEntry{ flags }
+        TTurnBase( id, flags ),
+        TurnQueueManager::QueueEntry( flags )
     {}
 };
 
@@ -324,3 +327,5 @@ private:
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_ENGINEBASE_H_INCLUDED

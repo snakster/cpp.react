@@ -4,14 +4,20 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_COMMON_TIMING_H_INCLUDED
+#define REACT_COMMON_TIMING_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
 
 #include <utility>
 
-// Todo: Make portable
-#include <windows.h>
+#if _WIN32 || _WIN64
+    #include <windows.h>
+#else
+    #include <ctime>
+#endif
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -19,6 +25,7 @@
 /// GetPerformanceFrequency
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Todo: Initialization not thread-safe
+#if _WIN32 || _WIN64
 inline const LARGE_INTEGER& GetPerformanceFrequency()
 {
     static bool init = false;
@@ -32,16 +39,27 @@ inline const LARGE_INTEGER& GetPerformanceFrequency()
 
     return frequency;
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ConditionalTimer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    long long heavy_threshold,
+    long long threshold,
     bool is_enabled
 >
-class ConditionalTimer;
+class ConditionalTimer
+{
+public:
+    class ScopedTimer
+    {
+    public:
+        ScopedTimer(const ConditionalTimer&);
+    };
+
+    bool IsThresholdExceeded() const;
+};
 
 // Disabled
 template
@@ -52,8 +70,9 @@ class ConditionalTimer<threshold,false>
 {
 public:
     // Defines scoped timer that does nothing
-    struct ScopedTimer
+    class ScopedTimer
     {
+    public:
         ScopedTimer(const ConditionalTimer&) {}
     };
 
@@ -68,11 +87,17 @@ template
 class ConditionalTimer<threshold,true>
 {
 public:
+#if _WIN32 || _WIN64
+    using TimestampT = LARGE_INTEGER;
+#elif __linux__
+    using TimestampT = long long;
+#endif
+
     class ScopedTimer
     {
     public:
         ScopedTimer(ConditionalTimer& parent) :
-            parent_{ parent }
+            parent_( parent )
         {
             if (!parent_.shouldMeasure_)
                 return;
@@ -80,8 +105,7 @@ public:
             startMeasure();
         }
 
-        // Note: virtual for performance reasons
-        virtual ~ScopedTimer()
+        ~ScopedTimer()
         {
             if (!parent_.shouldMeasure_)
                 return;
@@ -94,26 +118,45 @@ public:
     private:
         void startMeasure()
         {
-            QueryPerformanceCounter(&startTime_);
+            startTime_ = now();
         }
 
         void endMeasure()
         {
-            LARGE_INTEGER endTime, durationMS;
+            TimestampT endTime = now();
 
-            QueryPerformanceCounter(&endTime);
+#if _WIN32 || _WIN64
+            LARGE_INTEGER durationMS;
 
             durationMS.QuadPart = endTime.QuadPart - startTime_.QuadPart;
             durationMS.QuadPart *= 1000000;
             durationMS.QuadPart /= GetPerformanceFrequency().QuadPart;
 
             parent_.isThresholdExceeded_ = durationMS.QuadPart > threshold;
+#else
+            // TODO
+            parent_.isThresholdExceeded_ = false;
+#endif
         }
 
-        ConditionalTimer& parent_;
-        
-        LARGE_INTEGER startTime_;  
+        ConditionalTimer&   parent_;
+        TimestampT          startTime_;  
     };
+
+    static TimestampT now()
+    {
+#if _WIN32 || _WIN64
+        TimestampT result;
+        QueryPerformanceCounter(&result);
+        return result;
+#else
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return static_cast<long long>(1000000000UL)
+            * static_cast<long long>(ts.tv_sec)
+            + static_cast<long long>(ts.tv_nsec);
+#endif
+    }
 
     bool IsThresholdExceeded() const { return isThresholdExceeded_; }
 
@@ -124,3 +167,5 @@ private:
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_COMMON_TIMING_H_INCLUDED

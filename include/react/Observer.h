@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_OBSERVER_H_INCLUDED
+#define REACT_OBSERVER_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -46,11 +49,19 @@ public:
     {}
 
     Observer(const Observer&) = delete;
+    Observer& operator=(const Observer&) = delete;
 
     Observer(Observer&& other) :
         nodePtr_{ std::move(other.nodePtr_) },
         subject_{ std::move(other.subject_) }
     {}
+
+    Observer& operator=(Observer&& other)
+    {
+        nodePtr_ = std::move(other.nodePtr_);
+        subject_ = std::move(other.subject_);
+        return *this;
+    }
 
     Observer(NodeT* nodePtr, const SubjectT& subject) :
         nodePtr_{ nodePtr },
@@ -113,7 +124,7 @@ auto Observe(const Signal<D,S>& subject, FIn&& func)
     using REACT_IMPL::SignalObserverNode;
     using REACT_IMPL::DomainSpecificObserverRegistry;
 
-    using F = std::decay<FIn>::type;
+    using F = typename std::decay<FIn>::type;
 
     std::unique_ptr<IObserver> obsPtr{
         new SignalObserverNode<D,S,F>{
@@ -141,7 +152,7 @@ auto Observe(const Events<D,E>& subject, FIn&& func)
     using REACT_IMPL::EventObserverNode;
     using REACT_IMPL::DomainSpecificObserverRegistry;
 
-    using F = std::decay<FIn>::type;
+    using F = typename std::decay<FIn>::type;
 
     std::unique_ptr<IObserver> obsPtr{
         new EventObserverNode<D,E,F>{
@@ -171,7 +182,7 @@ auto Observe(const Events<D,E>& subject,
     using REACT_IMPL::SyncedObserverNode;
     using REACT_IMPL::DomainSpecificObserverRegistry;
 
-    using F = std::decay<FIn>::type;
+    using F = typename std::decay<FIn>::type;
 
     struct NodeBuilder_
     {
@@ -223,3 +234,5 @@ inline void DetachThisObserver()
 }
 
 /******************************************/ REACT_END /******************************************/
+
+#endif // REACT_OBSERVER_H_INCLUDED

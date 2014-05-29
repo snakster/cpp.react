@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_GRAPH_OBSERVERNODES_H_INCLUDED
+#define REACT_DETAIL_GRAPH_OBSERVERNODES_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -49,12 +52,14 @@ template
 >
 class SignalObserverNode : public ObserverNode<D>
 {
+    using Engine = typename SignalObserverNode::Engine;
+
 public:
     template <typename F>
     SignalObserverNode(const std::shared_ptr<SignalNode<D,S>>& subject, F&& func) :
-        ObserverNode{ },
-        subject_{ subject },
-        func_{ std::forward<F>(func) }
+        SignalObserverNode::ObserverNode( ),
+        subject_( subject ),
+        func_( std::forward<F>(func) )
     {
         Engine::OnNodeCreate(*this);
         subject->IncObsCount();
@@ -120,12 +125,14 @@ template
 >
 class EventObserverNode : public ObserverNode<D>
 {
+    using Engine = typename EventObserverNode::Engine;
+
 public:
     template <typename F>
     EventObserverNode(const std::shared_ptr<EventStreamNode<D,E>>& subject, F&& func) :
-        ObserverNode{ },
-        subject_{ subject },
-        func_{ std::forward<F>(func) }
+        EventObserverNode::ObserverNode( ),
+        subject_( subject ),
+        func_( std::forward<F>(func) )
     {
         Engine::OnNodeCreate(*this);
         subject->IncObsCount();
@@ -196,15 +203,17 @@ template
 >
 class SyncedObserverNode : public ObserverNode<D>
 {
+    using Engine = typename SyncedObserverNode::Engine;
+
 public:
     // NOTE: After upgrading to VS2013 Udpate2, using std::shared_ptr here crashes the compiler
     template <typename F>
     SyncedObserverNode(const std::shared_ptr<EventStreamNode<D,E>>& subject, F&& func, 
                        const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        ObserverNode{ },
-        subject_{ subject },
-        func_{ std::forward<F>(func) },
-        deps_{ deps ... }
+        SyncedObserverNode::ObserverNode( ),
+        subject_( subject ),
+        func_( std::forward<F>(func) ),
+        deps_( deps ... )
     {
         Engine::OnNodeCreate(*this);
         subject->IncObsCount();
@@ -226,8 +235,8 @@ public:
         struct EvalFunctor_
         {
             EvalFunctor_(const E& e, TFunc& f) :
-                MyEvent{ e },
-                MyFunc{ f }
+                MyEvent( e ),
+                MyFunc( f )
             {}
 
             void operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
@@ -286,7 +295,7 @@ private:
 
             apply(
                 DetachFunctor<D,SyncedObserverNode,
-                    std::shared_ptr<SignalNode<D,TDepValues>>...>{ *this },
+                    std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
                 deps_);
 
             subject_.reset();
@@ -295,3 +304,5 @@ private:
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_GRAPH_OBSERVERNODES_H_INCLUDED

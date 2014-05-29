@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_ENGINE_PULSECOUNTENGINE_H_INCLUDED
+#define REACT_DETAIL_ENGINE_PULSECOUNTENGINE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -84,11 +87,11 @@ public:
     ShiftMutexT         ShiftMutex;
     NodeVector<Node>    Successors;
     
-    ENodeState          State       = ENodeState::unchanged;
+    ENodeState          State       { ENodeState::unchanged };
 
 private:
-    atomic<int>         counter_    = 0;
-    atomic<ENodeMark>   mark_       = ENodeMark::unmarked;
+    atomic<int>         counter_    { 0 };
+    atomic<ENodeMark>   mark_       { ENodeMark::unmarked };
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,7 +118,7 @@ public:
 
 private:
     NodeVectT       changedInputs_;
-    empty_task*     rootTask_ = new(task::allocate_root()) empty_task;
+    empty_task*     rootTask_       { new(task::allocate_root()) empty_task };
     task_list       spawnList_;
 };
 
@@ -152,3 +155,5 @@ template <> struct EnableParallelUpdating<PulsecountEngine<parallel>> : std::tru
 template <> struct EnableParallelUpdating<PulsecountEngine<parallel_queue>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_ENGINE_PULSECOUNTENGINE_H_INCLUDED

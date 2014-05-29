@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_COMMON_TOPOQUEUE_H_INCLUDED
+#define REACT_COMMON_TOPOQUEUE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -38,7 +41,7 @@ public:
 
     template <typename FIn>
     TopoQueue(FIn&& levelFunc) :
-        levelFunc_{ levelFunc }
+        levelFunc_( std::forward<FIn>(levelFunc) )
     {}
 
     void Push(const T& value)
@@ -84,7 +87,7 @@ private:
         Entry() = default;
         Entry(const Entry&) = default;
 
-        Entry(const T& value, int level) : Value{ value }, Level{ level } {}
+        Entry(const T& value, int level) : Value( value ), Level( level ) {}
 
         T       Value;
         int     Level;
@@ -92,7 +95,7 @@ private:
 
     struct LevelCompFunctor
     {
-        LevelCompFunctor(int level) : Level{ level } {}
+        LevelCompFunctor(int level) : Level( level ) {}
 
         bool operator()(const Entry& e) const { return e.Level != Level; }
 
@@ -125,9 +128,9 @@ public:
     WeightedRange(const WeightedRange&) = default;
 
     WeightedRange(const TIt& a, const TIt& b, uint weight) :
-        begin_{ a },
-        end_{ b },
-        weight_{ weight }
+        begin_( a ),
+        end_( b ),
+        weight_( weight )
     {}
 
     WeightedRange(WeightedRange& source, tbb::split)
@@ -198,8 +201,8 @@ public:
 
     template <typename FIn1, typename FIn2>
     ConcurrentTopoQueue(FIn1&& levelFunc, FIn2&& weightFunc) :
-        levelFunc_{std::forward<FIn1>(levelFunc) },
-        weightFunc_{ std::forward<FIn2>(weightFunc) }
+        levelFunc_( std::forward<FIn1>(levelFunc) ),
+        weightFunc_( std::forward<FIn2>(weightFunc) )
     {}
 
     void Push(const T& value)
@@ -283,9 +286,9 @@ private:
         Entry(const Entry&) = default;
 
         Entry(const T& value, int level, uint weight) :
-            Value{ value },
-            Level{ level },
-            Weight{ weight }
+            Value( value ),
+            Level( level ),
+            Weight( weight )
         {}
 
         T       Value;
@@ -321,3 +324,5 @@ private:
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_COMMON_TOPOQUEUE_H_INCLUDED

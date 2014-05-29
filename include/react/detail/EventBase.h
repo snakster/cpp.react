@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_EVENTBASE_H_INCLUDED
+#define REACT_DETAIL_EVENTBASE_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -31,7 +34,7 @@ public:
 
     template <typename T>
     explicit EventStreamBase(T&& ptr) :
-        ReactiveBase{ std::forward<T>(ptr) }
+        EventStreamBase::ReactiveBase( std::forward<T>(ptr) )
     {}
 
 protected:
@@ -39,9 +42,11 @@ protected:
     void emit(T&& e) const
     {
         InputManager<D>::AddInput(
-            *reinterpret_cast<EventSourceNode<D,E>*>(ptr_.get()),
+            *reinterpret_cast<EventSourceNode<D,E>*>(this->ptr_.get()),
             std::forward<T>(e));
     }
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_EVENTBASE_H_INCLUDED

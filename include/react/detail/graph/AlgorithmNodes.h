@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_GRAPH_ALGORITHMNODES_H_INCLUDED
+#define REACT_DETAIL_GRAPH_ALGORITHMNODES_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -28,12 +31,14 @@ template
 >
 class IterateNode : public SignalNode<D,S>
 {
+    using Engine = typename IterateNode::Engine;
+
 public:
     template <typename T, typename F>
     IterateNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func) :
-        SignalNode{ std::forward<T>(init) },
-        events_{ events },
-        func_{ std::forward<F>(func) }
+        IterateNode::SignalNode( std::forward<T>(init) ),
+        events_( events ),
+        func_( std::forward<F>(func) )
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events);
@@ -53,16 +58,16 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        S newValue = value_;
+        S newValue = this->value_;
         for (const auto& e : events_->Events())
             newValue = func_(e, newValue);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (! Equals(newValue, value_))
+        if (! Equals(newValue, this->value_))
         {
-            value_ = std::move(newValue);
+            this->value_ = std::move(newValue);
             Engine::OnNodePulse(*this, turn);
         }
         else
@@ -92,12 +97,14 @@ template
 >
 class IterateByRefNode : public SignalNode<D,S>
 {
+    using Engine = typename IterateByRefNode::Engine;
+
 public:
     template <typename T, typename F>
     IterateByRefNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func) :
-        SignalNode{ std::forward<T>(init) },
-        func_{ std::forward<F>(func) },
-        events_{ events }
+        IterateByRefNode::SignalNode( std::forward<T>(init) ),
+        func_( std::forward<F>(func) ),
+        events_( events )
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events);
@@ -118,7 +125,7 @@ public:
             GetObjectId(*this), turn.Id()));
 
         for (const auto& e : events_->Events())
-            func_(e, value_);
+            func_(e, this->value_);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -149,14 +156,16 @@ template
 >
 class SyncedIterateNode : public SignalNode<D,S>
 {
+    using Engine = typename SyncedIterateNode::Engine;
+
 public:
     template <typename T, typename F>
     SyncedIterateNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func,
                       const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        SignalNode{ std::forward<T>(init) },
-        events_{ events },
-        func_{ std::forward<F>(func) },
-        deps_{ deps ... }
+        SyncedIterateNode::SignalNode( std::forward<T>(init) ),
+        events_( events ),
+        func_( std::forward<F>(func) ),
+        deps_( deps ... )
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events);
@@ -169,7 +178,7 @@ public:
 
         apply(
             DetachFunctor<D,SyncedIterateNode,
-                std::shared_ptr<SignalNode<D,TDepValues>>...>{ *this },
+                std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
             deps_);
 
         Engine::OnNodeDestroy(*this);
@@ -180,9 +189,9 @@ public:
         struct EvalFunctor_
         {
             EvalFunctor_(const E& e, const S& v, TFunc& f) :
-                MyEvent{ e },
-                MyValue{ v },
-                MyFunc{ f }
+                MyEvent( e ),
+                MyValue( v ),
+                MyFunc( f )
             {}
 
             S operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
@@ -207,15 +216,15 @@ public:
 
         if (! events_->Events().empty())
         {
-            S newValue = value_;
+            S newValue = this->value_;
 
             for (const auto& e : events_->Events())
-                newValue = apply(EvalFunctor_{ e, std::move(newValue), func_ }, deps_);
+                newValue = apply(EvalFunctor_( e, std::move(newValue), func_ ), deps_);
 
-            if (! Equals(newValue, value_))
+            if (! Equals(newValue, this->value_))
             {
                 changed = true;
-                value_ = std::move(newValue);
+                this->value_ = std::move(newValue);
             }            
         }
 
@@ -253,14 +262,16 @@ template
 >
 class SyncedIterateByRefNode : public SignalNode<D,S>
 {
+    using Engine = typename SyncedIterateByRefNode::Engine;
+
 public:
     template <typename T, typename F>
     SyncedIterateByRefNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func,
                            const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        SignalNode{ std::forward<T>(init) },
-        events_{ events },
-        func_{ std::forward<F>(func) },
-        deps_{ deps ... }
+        SyncedIterateByRefNode::SignalNode( std::forward<T>(init) ),
+        events_( events ),
+        func_( std::forward<F>(func) ),
+        deps_( deps ... )
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events);
@@ -273,7 +284,7 @@ public:
 
         apply(
             DetachFunctor<D,SyncedIterateByRefNode,
-                std::shared_ptr<SignalNode<D,TDepValues>>...>{ *this },
+                std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
             deps_);
 
         Engine::OnNodeDestroy(*this);
@@ -284,9 +295,9 @@ public:
         struct EvalFunctor_
         {
             EvalFunctor_(const E& e, S& v, TFunc& f) :
-                MyEvent{ e },
-                MyValue{ v },
-                MyFunc{ f }
+                MyEvent( e ),
+                MyValue( v ),
+                MyFunc( f )
             {}
 
             void operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
@@ -312,7 +323,7 @@ public:
         if (! events_->Events().empty())
         {
             for (const auto& e : events_->Events())
-                apply(EvalFunctor_{ e, value_, func_ }, deps_);
+                apply(EvalFunctor_( e, this->value_, func_ ), deps_);
 
             changed = true;
         }
@@ -348,11 +359,13 @@ template
 >
 class HoldNode : public SignalNode<D,S>
 {
+    using Engine = typename HoldNode::Engine;
+
 public:
     template <typename T>
     HoldNode(T&& init, const std::shared_ptr<EventStreamNode<D,S>>& events) :
-        SignalNode(std::forward<T>(init)),
-        events_{ events }
+        HoldNode::SignalNode( std::forward<T>(init) ),
+        events_( events )
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *events_);
@@ -380,10 +393,10 @@ public:
         {
             const S& newValue = events_->Events().back();
 
-            if (! Equals(newValue, value_))
+            if (! Equals(newValue, this->value_))
             {
                 changed = true;
-                value_ = newValue;
+                this->value_ = newValue;
             }
         }
 
@@ -413,12 +426,14 @@ template
 >
 class SnapshotNode : public SignalNode<D,S>
 {
+    using Engine = typename SnapshotNode::Engine;
+
 public:
     SnapshotNode(const std::shared_ptr<SignalNode<D,S>>& target,
                  const std::shared_ptr<EventStreamNode<D,E>>& trigger) :
-        SignalNode{ target->ValueRef() },
-        target_{ target },
-        trigger_{ trigger }
+        SnapshotNode::SignalNode( target->ValueRef() ),
+        target_( target ),
+        trigger_( trigger )
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *target_);
@@ -451,10 +466,10 @@ public:
         {
             const S& newValue = target_->ValueRef();
 
-            if (! Equals(newValue, value_))
+            if (! Equals(newValue, this->value_))
             {
                 changed = true;
-                value_ = newValue;
+                this->value_ = newValue;
             }
         }
 
@@ -482,10 +497,12 @@ template
 >
 class MonitorNode : public EventStreamNode<D,E>
 {
+    using Engine = typename MonitorNode::Engine;
+
 public:
     MonitorNode(const std::shared_ptr<SignalNode<D,E>>& target) :
-        EventStreamNode{ },
-        target_{ target }
+        MonitorNode::EventStreamNode( ),
+        target_( target )
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *target_);
@@ -505,17 +522,17 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
-        SetCurrentTurn(turn, true);
+        this->SetCurrentTurn(turn, true);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        events_.push_back(target_->ValueRef());
+        this->events_.push_back(target_->ValueRef());
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (! events_.empty())
+        if (! this->events_.empty())
             Engine::OnNodePulse(*this, turn);
         else
             Engine::OnNodeIdlePulse(*this, turn);
@@ -536,12 +553,14 @@ template
 >
 class PulseNode : public EventStreamNode<D,S>
 {
+    using Engine = typename PulseNode::Engine;
+
 public:
     PulseNode(const std::shared_ptr<SignalNode<D,S>>& target,
               const std::shared_ptr<EventStreamNode<D,E>>& trigger) :
-        EventStreamNode{ },
-        target_{ target },
-        trigger_{ trigger }
+        PulseNode::EventStreamNode( ),
+        target_( target ),
+        trigger_( trigger )
     {
         Engine::OnNodeCreate(*this);
         Engine::OnNodeAttach(*this, *target_);
@@ -563,19 +582,19 @@ public:
         typedef typename D::Engine::TurnT TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
-        SetCurrentTurn(turn, true);
+        this->SetCurrentTurn(turn, true);
         trigger_->SetCurrentTurn(turn);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
         for (const auto& e : trigger_->Events())
-            events_.push_back(target_->ValueRef());
+            this->events_.push_back(target_->ValueRef());
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (! events_.empty())
+        if (! this->events_.empty())
             Engine::OnNodePulse(*this, turn);
         else
             Engine::OnNodeIdlePulse(*this, turn);
@@ -587,3 +606,5 @@ private:
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_DETAIL_GRAPH_ALGORITHMNODES_H_INCLUDED

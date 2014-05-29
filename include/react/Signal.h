@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_SIGNAL_H_INCLUDED
+#define REACT_SIGNAL_H_INCLUDED
+
 #pragma once
 
 #include "react/detail/Defs.h"
@@ -13,243 +16,11 @@
 #include <type_traits>
 #include <utility>
 
+#include "react/detail/SignalFwd.h"
+
 #include "react/Observer.h"
 #include "react/TypeTraits.h"
 #include "react/detail/SignalBase.h"
-
-/*****************************************/ REACT_BEGIN /*****************************************/
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Signal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S
->
-class Signal : public REACT_IMPL::SignalBase<D,S>
-{
-protected:
-    using BaseT     = REACT_IMPL::SignalBase<D,S>;
-
-private:
-    using NodeT     = REACT_IMPL::SignalNode<D,S>;
-    using NodePtrT  = std::shared_ptr<NodeT>;
-
-public:
-    using ValueT = S;
-
-    Signal() = default;
-    Signal(const Signal&) = default;
-
-    Signal(Signal&& other) :
-        SignalBase{ std::move(other) }
-    {}
-
-    explicit Signal(NodePtrT&& nodePtr) :
-        SignalBase{ std::move(nodePtr) }
-    {}
-
-    const S& Value() const      { return BaseT::getValue(); }
-    const S& operator()() const { return BaseT::getValue(); }
-
-    bool Equals(const Signal& other) const
-    {
-        return BaseT::Equals(other);
-    }
-
-    bool IsValid() const
-    {
-        return BaseT::IsValid();
-    }
-
-    template <class = std::enable_if<IsReactive<S>::value>::type>
-    S Flatten() const
-    {
-        return REACT::Flatten(*this);
-    }
-};
-
-// Specialize for references
-template
-<
-    typename D,
-    typename S
->
-class Signal<D,S&> : public REACT_IMPL::SignalBase<D,std::reference_wrapper<S>>
-{
-protected:
-    using BaseT     = REACT_IMPL::SignalBase<D,std::reference_wrapper<S>>;
-
-private:
-    using NodeT     = REACT_IMPL::SignalNode<D,std::reference_wrapper<S>>;
-    using NodePtrT  = std::shared_ptr<NodeT>;
-
-public:
-    using ValueT = S;
-
-    Signal() = default;
-    Signal(const Signal&) = default;
-
-    Signal(Signal&& other) :
-        SignalBase{ std::move(other) }
-    {}
-
-    explicit Signal(NodePtrT&& nodePtr) :
-        SignalBase{ std::move(nodePtr) }
-    {}
-
-    const S& Value() const      { return BaseT::getValue(); }
-    const S& operator()() const { return BaseT::getValue(); }
-
-    bool Equals(const Signal& other) const
-    {
-        return BaseT::Equals(other);
-    }
-
-    bool IsValid() const
-    {
-        return BaseT::IsValid();
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// VarSignal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S
->
-class VarSignal : public Signal<D,S>
-{
-private:
-    using NodeT     = REACT_IMPL::VarNode<D,S>;
-    using NodePtrT  = std::shared_ptr<NodeT>;
-
-public:
-    VarSignal() = default;
-    VarSignal(const VarSignal&) = default;
-
-    VarSignal(VarSignal&& other) :
-        Signal{ std::move(other) }
-    {}
-
-    explicit VarSignal(NodePtrT&& nodePtr) :
-        Signal{ std::move(nodePtr) }
-    {}
-
-    void Set(const S& newValue) const
-    {
-        BaseT::setValue(newValue);
-    }
-
-    void Set(S&& newValue) const
-    {
-        BaseT::setValue(std::move(newValue));
-    }
-
-    const VarSignal& operator<<=(const S& newValue) const
-    {
-        BaseT::setValue(newValue);
-        return *this;
-    }
-
-    const VarSignal& operator<<=(S&& newValue) const
-    {
-        BaseT::setValue(std::move(newValue));
-        return *this;
-    }
-
-    template <typename F>
-    void Modify(const F& func) const
-    {
-        BaseT::modifyValue(func);
-    }
-};
-
-// Specialize for references
-template
-<
-    typename D,
-    typename S
->
-class VarSignal<D,S&> : public Signal<D,std::reference_wrapper<S>>
-{
-private:
-    using NodeT     = REACT_IMPL::VarNode<D,std::reference_wrapper<S>>;
-    using NodePtrT  = std::shared_ptr<NodeT>;
-
-public:
-    using ValueT = S;
-
-    VarSignal() = default;
-    VarSignal(const VarSignal&) = default;
-
-    VarSignal(VarSignal&& other) :
-        Signal{ std::move(other) }
-    {}
-
-    explicit VarSignal(NodePtrT&& nodePtr) :
-        Signal{ std::move(nodePtr) }
-    {}
-
-    void Set(std::reference_wrapper<S> newValue) const
-    {
-        BaseT::setValue(newValue);
-    }
-
-    const VarSignal& operator<<=(std::reference_wrapper<S> newValue) const
-    {
-        BaseT::setValue(newValue);
-        return *this;
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// TempSignal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename TOp
->
-class TempSignal : public Signal<D,S>
-{
-private:
-    using NodeT     = REACT_IMPL::SignalOpNode<D,S,TOp>;
-    using NodePtrT  = std::shared_ptr<NodeT>;
-
-public:    
-    TempSignal() = default;
-    TempSignal(const TempSignal&) = default;
-
-    TempSignal(TempSignal&& other) :
-        Signal{ std::move(other) }
-    {}
-
-    explicit TempSignal(NodePtrT&& ptr) :
-        Signal{ std::move(ptr) }
-    {}
-
-    TOp StealOp()
-    {
-        return std::move(reinterpret_cast<NodeT*>(ptr_.get())->StealOp());
-    }
-};
-
-/******************************************/ REACT_END /******************************************/
-
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-template <typename D, typename L, typename R>
-bool Equals(const Signal<D,L>& lhs, const Signal<D,R>& rhs)
-{
-    return lhs.Equals(rhs);
-}
-
-/****************************************/ REACT_IMPL_END /***************************************/
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -265,12 +36,12 @@ class SignalPack
 {
 public:
     SignalPack(const Signal<D,TValues>&  ... deps) :
-        Data{ std::tie(deps ...) }
+        Data( std::tie(deps ...) )
     {}
 
     template <typename ... TCurValues, typename TAppendValue>
     SignalPack(const SignalPack<D, TCurValues ...>& curArgs, const Signal<D,TAppendValue>& newArg) :
-        Data{ std::tuple_cat(curArgs.Data, std::tie(newArg)) }
+        Data( std::tuple_cat(curArgs.Data, std::tie(newArg)) )
     {}
 
     std::tuple<const Signal<D,TValues>& ...> Data;
@@ -297,9 +68,8 @@ template
 <
     typename D,
     typename V,
-    typename S = std::decay<V>::type,
-    class = std::enable_if<
-        ! IsReactive<S>::value>::type
+    typename S,
+    class /*SFINAE*/
 >
 auto MakeVar(V&& value)
     -> VarSignal<D,S>
@@ -328,9 +98,9 @@ template
 <
     typename D,
     typename V,
-    typename S = std::decay<V>::type,
-    typename TInner = S::ValueT,
-    class = std::enable_if<
+    typename S = typename std::decay<V>::type,
+    typename TInner = typename S::ValueT,
+    class = typename std::enable_if<
         IsSignal<S>::value>::type
 >
 auto MakeVar(V&& value)
@@ -345,9 +115,9 @@ template
 <
     typename D,
     typename V,
-    typename S = std::decay<V>::type,
-    typename TInner = S::ValueT,
-    class = std::enable_if<
+    typename S = typename std::decay<V>::type,
+    typename TInner = typename S::ValueT,
+    class = typename std::enable_if<
         IsEvent<S>::value>::type
 >
 auto MakeVar(V&& value)
@@ -367,8 +137,8 @@ template
     typename D,
     typename TValue,
     typename FIn,
-    typename F = std::decay<FIn>::type,
-    typename S = std::result_of<F(TValue)>::type,
+    typename F = typename std::decay<FIn>::type,
+    typename S = typename std::result_of<F(TValue)>::type,
     typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtrT<D,TValue>>
 >
 auto MakeSignal(const Signal<D,TValue>& arg, FIn&& func)
@@ -385,8 +155,8 @@ template
     typename D,
     typename ... TValues,
     typename FIn,
-    typename F = std::decay<FIn>::type,
-    typename S = std::result_of<F(TValues...)>::type,
+    typename F = typename std::decay<FIn>::type,
+    typename S = typename std::result_of<F(TValues...)>::type,
     typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtrT<D,TValues> ...>
 >
 auto MakeSignal(const SignalPack<D,TValues...>& argPack, FIn&& func)
@@ -394,12 +164,10 @@ auto MakeSignal(const SignalPack<D,TValues...>& argPack, FIn&& func)
 {
     using REACT_IMPL::SignalOpNode;
 
-    using F = std::decay<FIn>::type;
-
     struct NodeBuilder_
     {
         NodeBuilder_(FIn&& func) :
-            MyFunc{ std::forward<FIn>(func) }
+            MyFunc( std::forward<FIn>(func) )
         {}
 
         auto operator()(const Signal<D,TValues>& ... args)
@@ -414,7 +182,7 @@ auto MakeSignal(const SignalPack<D,TValues...>& argPack, FIn&& func)
     };
 
     return REACT_IMPL::apply(
-        NodeBuilder_{ std::forward<FIn>(func) },
+        NodeBuilder_( std::forward<FIn>(func) ),
         argPack.Data);
 }
 
@@ -431,15 +199,15 @@ struct name ## OpFunctor                                                        
 template                                                                            \
 <                                                                                   \
     typename TSignal,                                                               \
-    typename D = TSignal::DomainT,                                                  \
-    typename TVal = TSignal::ValueT,                                                \
+    typename D = typename TSignal::DomainT,                                         \
+    typename TVal = typename TSignal::ValueT,                                       \
+    class = typename std::enable_if<                                                \
+        IsSignal<TSignal>::value>::type,                                            \
     typename F = name ## OpFunctor<TVal>,                                           \
-    typename S = std::result_of<F(TVal)>::type,                                     \
-    typename TOp = REACT_IMPL::FunctionOp<S,F,REACT_IMPL::SignalNodePtrT<D,TVal>>,  \
-    class = std::enable_if<                                                         \
-        IsSignal<TSignal>::value>::type                                             \
+    typename S = typename std::result_of<F(TVal)>::type,                            \
+    typename TOp = REACT_IMPL::FunctionOp<S,F,REACT_IMPL::SignalNodePtrT<D,TVal>>   \
 >                                                                                   \
-auto operator ## op(const TSignal& arg)                                             \
+auto operator op(const TSignal& arg)                                                \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
@@ -453,10 +221,10 @@ template                                                                        
     typename TVal,                                                                  \
     typename TOpIn,                                                                 \
     typename F = name ## OpFunctor<TVal>,                                           \
-    typename S = std::result_of<F(TVal)>::type,                                     \
+    typename S = typename std::result_of<F(TVal)>::type,                            \
     typename TOp = REACT_IMPL::FunctionOp<S,F,TOpIn>                                \
 >                                                                                   \
-auto operator ## op(TempSignal<D,TVal,TOpIn>&& arg)                                 \
+auto operator op(TempSignal<D,TVal,TOpIn>&& arg)                                    \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
@@ -464,12 +232,12 @@ auto operator ## op(TempSignal<D,TVal,TOpIn>&& arg)                             
             F(), arg.StealOp()));                                                   \
 }
 
-REACT_DECLARE_OP(+, UnaryPlus);
-REACT_DECLARE_OP(-, UnaryMinus);
-REACT_DECLARE_OP(!, LogicalNegation);
-REACT_DECLARE_OP(~, BitwiseComplement);
-REACT_DECLARE_OP(++, Increment);
-REACT_DECLARE_OP(--, Decrement);
+REACT_DECLARE_OP(+, UnaryPlus)
+REACT_DECLARE_OP(-, UnaryMinus)
+REACT_DECLARE_OP(!, LogicalNegation)
+REACT_DECLARE_OP(~, BitwiseComplement)
+REACT_DECLARE_OP(++, Increment)
+REACT_DECLARE_OP(--, Decrement)
 
 #undef REACT_DECLARE_OP                                                                      
 
@@ -491,12 +259,12 @@ template <typename L, typename R>                                               
 struct name ## OpRFunctor                                                           \
 {                                                                                   \
     name ## OpRFunctor(name ## OpRFunctor&& other) :                                \
-        LeftVal{ std::move(other.LeftVal) }                                         \
+        LeftVal( std::move(other.LeftVal) )                                         \
     {}                                                                              \
                                                                                     \
     template <typename T>                                                           \
     name ## OpRFunctor(T&& val) :                                                   \
-        LeftVal{ std::forward<T>(val) }                                             \
+        LeftVal( std::forward<T>(val) )                                             \
     {}                                                                              \
                                                                                     \
     name ## OpRFunctor(const name ## OpRFunctor& other) = delete;                   \
@@ -514,12 +282,12 @@ template <typename L, typename R>                                               
 struct name ## OpLFunctor                                                           \
 {                                                                                   \
     name ## OpLFunctor(name ## OpLFunctor&& other) :                                \
-        RightVal{ std::move(other.RightVal) }                                       \
+        RightVal( std::move(other.RightVal) )                                       \
     {}                                                                              \
                                                                                     \
     template <typename T>                                                           \
     name ## OpLFunctor(T&& val) :                                                   \
-        RightVal{ std::forward<T>(val) }                                            \
+        RightVal( std::forward<T>(val) )                                            \
     {}                                                                              \
                                                                                     \
     name ## OpLFunctor(const name ## OpLFunctor& other) = delete;                   \
@@ -537,73 +305,73 @@ template                                                                        
 <                                                                                   \
     typename TLeftSignal,                                                           \
     typename TRightSignal,                                                          \
-    typename D = TLeftSignal::DomainT,                                              \
-    typename TLeftVal = TLeftSignal::ValueT,                                        \
-    typename TRightVal = TRightSignal::ValueT,                                      \
+    typename D = typename TLeftSignal::DomainT,                                     \
+    typename TLeftVal = typename TLeftSignal::ValueT,                               \
+    typename TRightVal = typename TRightSignal::ValueT,                             \
+    class = typename std::enable_if<                                                \
+        IsSignal<TLeftSignal>::value>::type,                                        \
+    class = typename std::enable_if<                                                \
+        IsSignal<TRightSignal>::value>::type,                                       \
     typename F = name ## OpFunctor<TLeftVal,TRightVal>,                             \
-    typename S = std::result_of<F(TLeftVal,TRightVal)>::type,                       \
+    typename S = typename std::result_of<F(TLeftVal,TRightVal)>::type,              \
     typename TOp = REACT_IMPL::FunctionOp<S,F,                                      \
         REACT_IMPL::SignalNodePtrT<D,TLeftVal>,                                     \
-        REACT_IMPL::SignalNodePtrT<D,TRightVal>>,                                   \
-    class = std::enable_if<                                                         \
-        IsSignal<TLeftSignal>::value>::type,                                        \
-    class = std::enable_if<                                                         \
-        IsSignal<TRightSignal>::value>::type                                        \
+        REACT_IMPL::SignalNodePtrT<D,TRightVal>>                                    \
 >                                                                                   \
-auto operator ## op(const TLeftSignal& lhs, const TRightSignal& rhs)                \
+auto operator op(const TLeftSignal& lhs, const TRightSignal& rhs)                   \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F{ }, lhs.NodePtr(), rhs.NodePtr()));                                   \
+            F(), lhs.NodePtr(), rhs.NodePtr()));                                    \
 }                                                                                   \
                                                                                     \
 template                                                                            \
 <                                                                                   \
     typename TLeftSignal,                                                           \
     typename TRightValIn,                                                           \
-    typename D = TLeftSignal::DomainT,                                              \
-    typename TLeftVal = TLeftSignal::ValueT,                                        \
-    typename TRightVal = std::decay<TRightValIn>::type,                             \
-    typename F = name ## OpLFunctor<TLeftVal,TRightVal>,                            \
-    typename S = std::result_of<F(TLeftVal)>::type,                                 \
-    typename TOp = REACT_IMPL::FunctionOp<S,F,                                      \
-        REACT_IMPL::SignalNodePtrT<D,TLeftVal>>,                                    \
-    class = std::enable_if<                                                         \
+    typename D = typename TLeftSignal::DomainT,                                     \
+    typename TLeftVal = typename TLeftSignal::ValueT,                               \
+    typename TRightVal = typename std::decay<TRightValIn>::type,                    \
+    class = typename std::enable_if<                                                \
         IsSignal<TLeftSignal>::value>::type,                                        \
-    class = std::enable_if<                                                         \
-        ! IsSignal<TRightVal>::value>::type                                         \
+    class = typename std::enable_if<                                                \
+        ! IsSignal<TRightVal>::value>::type,                                        \
+    typename F = name ## OpLFunctor<TLeftVal,TRightVal>,                            \
+    typename S = typename std::result_of<F(TLeftVal)>::type,                        \
+    typename TOp = REACT_IMPL::FunctionOp<S,F,                                      \
+        REACT_IMPL::SignalNodePtrT<D,TLeftVal>>                                     \
 >                                                                                   \
-auto operator ## op(const TLeftSignal& lhs, TRightValIn&& rhs)                      \
+auto operator op(const TLeftSignal& lhs, TRightValIn&& rhs)                         \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F{ std::forward<TRightValIn>(rhs) }, lhs.NodePtr()));                   \
+            F( std::forward<TRightValIn>(rhs) ), lhs.NodePtr()));                   \
 }                                                                                   \
                                                                                     \
 template                                                                            \
 <                                                                                   \
     typename TLeftValIn,                                                            \
     typename TRightSignal,                                                          \
-    typename D = TRightSignal::DomainT,                                             \
-    typename TLeftVal = std::decay<TLeftValIn>::type,                               \
-    typename TRightVal = TRightSignal::ValueT,                                      \
-    typename F = name ## OpRFunctor<TLeftVal,TRightVal>,                            \
-    typename S = std::result_of<F(TRightVal)>::type,                                \
-    typename TOp = REACT_IMPL::FunctionOp<S,F,                                      \
-        REACT_IMPL::SignalNodePtrT<D,TRightVal>>,                                   \
-    class = std::enable_if<                                                         \
+    typename D = typename TRightSignal::DomainT,                                    \
+    typename TLeftVal = typename std::decay<TLeftValIn>::type,                      \
+    typename TRightVal = typename TRightSignal::ValueT,                             \
+    class = typename std::enable_if<                                                \
         ! IsSignal<TLeftVal>::value>::type,                                         \
-    class = std::enable_if<                                                         \
-        IsSignal<TRightSignal>::value>::type                                        \
+    class = typename std::enable_if<                                                \
+        IsSignal<TRightSignal>::value>::type,                                       \
+    typename F = name ## OpRFunctor<TLeftVal,TRightVal>,                            \
+    typename S = typename std::result_of<F(TRightVal)>::type,                       \
+    typename TOp = REACT_IMPL::FunctionOp<S,F,                                      \
+        REACT_IMPL::SignalNodePtrT<D,TRightVal>>                                    \
 >                                                                                   \
-auto operator ## op(TLeftValIn&& lhs, const TRightSignal& rhs)                      \
+auto operator op(TLeftValIn&& lhs, const TRightSignal& rhs)                         \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F{ std::forward<TLeftValIn>(lhs) }, rhs.NodePtr()));                    \
+            F( std::forward<TLeftValIn>(lhs) ), rhs.NodePtr()));                    \
 }                                                                                   \
 template                                                                            \
 <                                                                                   \
@@ -613,16 +381,16 @@ template                                                                        
     typename TRightVal,                                                             \
     typename TRightOp,                                                              \
     typename F = name ## OpFunctor<TLeftVal,TRightVal>,                             \
-    typename S = std::result_of<F(TLeftVal,TRightVal)>::type,                       \
+    typename S = typename std::result_of<F(TLeftVal,TRightVal)>::type,              \
     typename TOp = REACT_IMPL::FunctionOp<S,F,TLeftOp,TRightOp>                     \
 >                                                                                   \
-auto operator ## op(TempSignal<D,TLeftVal,TLeftOp>&& lhs,                           \
-                    TempSignal<D,TRightVal,TRightOp>&& rhs)                         \
+auto operator op(TempSignal<D,TLeftVal,TLeftOp>&& lhs,                              \
+                 TempSignal<D,TRightVal,TRightOp>&& rhs)                            \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F{ }, lhs.StealOp(), rhs.StealOp()));                                   \
+            F(), lhs.StealOp(), rhs.StealOp()));                                    \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -631,22 +399,22 @@ template                                                                        
     typename TLeftVal,                                                              \
     typename TLeftOp,                                                               \
     typename TRightSignal,                                                          \
-    typename TRightVal = TRightSignal::ValueT,                                      \
+    typename TRightVal = typename TRightSignal::ValueT,                             \
+    class = typename std::enable_if<                                                \
+        IsSignal<TRightSignal>::value>::type,                                       \
     typename F = name ## OpFunctor<TLeftVal,TRightVal>,                             \
-    typename S = std::result_of<F(TLeftVal,TRightVal)>::type,                       \
+    typename S = typename std::result_of<F(TLeftVal,TRightVal)>::type,              \
     typename TOp = REACT_IMPL::FunctionOp<S,F,                                      \
         TLeftOp,                                                                    \
-        REACT_IMPL::SignalNodePtrT<D,TRightVal>>,                                   \
-    class = std::enable_if<                                                         \
-        IsSignal<TRightSignal>::value>::type                                        \
+        REACT_IMPL::SignalNodePtrT<D,TRightVal>>                                    \
 >                                                                                   \
-    auto operator ## op(TempSignal<D,TLeftVal,TLeftOp>&& lhs,                       \
-                        const TRightSignal& rhs)                                    \
+auto operator op(TempSignal<D,TLeftVal,TLeftOp>&& lhs,                              \
+                 const TRightSignal& rhs)                                           \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F{ }, lhs.StealOp(), rhs.NodePtr()));                                   \
+            F(), lhs.StealOp(), rhs.NodePtr()));                                    \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -655,21 +423,21 @@ template                                                                        
     typename D,                                                                     \
     typename TRightVal,                                                             \
     typename TRightOp,                                                              \
-    typename TLeftVal = TLeftSignal::ValueT,                                        \
+    typename TLeftVal = typename TLeftSignal::ValueT,                               \
+    class = typename std::enable_if<                                                \
+        IsSignal<TLeftSignal>::value>::type,                                        \
     typename F = name ## OpFunctor<TLeftVal,TRightVal>,                             \
-    typename S = std::result_of<F(TLeftVal,TRightVal)>::type,                       \
+    typename S = typename std::result_of<F(TLeftVal,TRightVal)>::type,              \
     typename TOp = REACT_IMPL::FunctionOp<S,F,                                      \
         REACT_IMPL::SignalNodePtrT<D,TLeftVal>,                                     \
-        TRightOp>,                                                                  \
-    class = std::enable_if<                                                         \
-        IsSignal<TLeftSignal>::value>::type                                         \
+        TRightOp>                                                                   \
 >                                                                                   \
-auto operator ## op(const TLeftSignal& lhs, TempSignal<D,TRightVal,TRightOp>&& rhs) \
+auto operator op(const TLeftSignal& lhs, TempSignal<D,TRightVal,TRightOp>&& rhs)    \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F{ }, lhs.NodePtr(), rhs.StealOp()));                                   \
+            F(), lhs.NodePtr(), rhs.StealOp()));                                    \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -678,19 +446,19 @@ template                                                                        
     typename TLeftVal,                                                              \
     typename TLeftOp,                                                               \
     typename TRightValIn,                                                           \
-    typename TRightVal = std::decay<TRightValIn>::type,                             \
+    typename TRightVal = typename std::decay<TRightValIn>::type,                    \
+    class = typename std::enable_if<                                                \
+        ! IsSignal<TRightVal>::value>::type,                                        \
     typename F = name ## OpLFunctor<TLeftVal,TRightVal>,                            \
-    typename S = std::result_of<F(TLeftVal)>::type,                                 \
-    typename TOp = REACT_IMPL::FunctionOp<S,F,TLeftOp>,                             \
-    class = std::enable_if<                                                         \
-        ! IsSignal<TRightVal>::value>::type                                         \
+    typename S = typename std::result_of<F(TLeftVal)>::type,                        \
+    typename TOp = REACT_IMPL::FunctionOp<S,F,TLeftOp>                              \
 >                                                                                   \
-auto operator ## op(TempSignal<D,TLeftVal,TLeftOp>&& lhs, TRightValIn&& rhs)        \
+auto operator op(TempSignal<D,TLeftVal,TLeftOp>&& lhs, TRightValIn&& rhs)           \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F{ std::forward<TRightValIn>(rhs) }, lhs.StealOp()));                   \
+            F( std::forward<TRightValIn>(rhs) ), lhs.StealOp()));                   \
 }                                                                                   \
                                                                                     \
 template                                                                            \
@@ -699,44 +467,44 @@ template                                                                        
     typename D,                                                                     \
     typename TRightVal,                                                             \
     typename TRightOp,                                                              \
-    typename TLeftVal = std::decay<TLeftValIn>::type,                               \
+    typename TLeftVal = typename std::decay<TLeftValIn>::type,                      \
+    class = typename std::enable_if<                                                \
+        ! IsSignal<TLeftVal>::value>::type,                                         \
     typename F = name ## OpRFunctor<TLeftVal,TRightVal>,                            \
-    typename S = std::result_of<F(TRightVal)>::type,                                \
-    typename TOp = REACT_IMPL::FunctionOp<S,F,TRightOp>,                            \
-    class = std::enable_if<                                                         \
-        ! IsSignal<TLeftVal>::value>::type                                          \
+    typename S = typename std::result_of<F(TRightVal)>::type,                       \
+    typename TOp = REACT_IMPL::FunctionOp<S,F,TRightOp>                             \
 >                                                                                   \
-auto operator ## op(TLeftValIn&& lhs, TempSignal<D,TRightVal,TRightOp>&& rhs)       \
+auto operator op(TLeftValIn&& lhs, TempSignal<D,TRightVal,TRightOp>&& rhs)          \
     -> TempSignal<D,S,TOp>                                                          \
 {                                                                                   \
     return TempSignal<D,S,TOp>(                                                     \
         std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(                        \
-            F{ std::forward<TLeftValIn>(lhs) }, rhs.StealOp()));                    \
+            F( std::forward<TLeftValIn>(lhs) ), rhs.StealOp()));                    \
 }                                                                                   
 
-REACT_DECLARE_OP(+, Addition);
-REACT_DECLARE_OP(-, Subtraction);
-REACT_DECLARE_OP(*, Multiplication);
-REACT_DECLARE_OP(/, Division);
-REACT_DECLARE_OP(%, Modulo);
+REACT_DECLARE_OP(+, Addition)
+REACT_DECLARE_OP(-, Subtraction)
+REACT_DECLARE_OP(*, Multiplication)
+REACT_DECLARE_OP(/, Division)
+REACT_DECLARE_OP(%, Modulo)
 
-REACT_DECLARE_OP(==, Equal);
-REACT_DECLARE_OP(!=, NotEqual);
-REACT_DECLARE_OP(<, Less);
-REACT_DECLARE_OP(<=, LessEqual);
-REACT_DECLARE_OP(>, Greater);
-REACT_DECLARE_OP(>=, GreaterEqual);
+REACT_DECLARE_OP(==, Equal)
+REACT_DECLARE_OP(!=, NotEqual)
+REACT_DECLARE_OP(<, Less)
+REACT_DECLARE_OP(<=, LessEqual)
+REACT_DECLARE_OP(>, Greater)
+REACT_DECLARE_OP(>=, GreaterEqual)
 
-REACT_DECLARE_OP(&&, LogicalAnd);
-REACT_DECLARE_OP(||, LogicalOr);
+REACT_DECLARE_OP(&&, LogicalAnd)
+REACT_DECLARE_OP(||, LogicalOr)
 
-REACT_DECLARE_OP(&, BitwiseAnd);
-REACT_DECLARE_OP(|, BitwiseOr);
-REACT_DECLARE_OP(^, BitwiseXor);
+REACT_DECLARE_OP(&, BitwiseAnd)
+REACT_DECLARE_OP(|, BitwiseOr)
+REACT_DECLARE_OP(^, BitwiseXor)
 //REACT_DECLARE_OP(<<, BitwiseLeftShift); // MSVC: Internal compiler error
 //REACT_DECLARE_OP(>>, BitwiseRightShift);
 
-#undef REACT_DECLARE_OP
+#undef REACT_DECLARE_OP 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Comma operator overload to create signal pack from 2 signals.
@@ -778,7 +546,7 @@ template
     typename F,
     template <typename D_, typename V_> class TSignal,
     typename TValue,
-    class = std::enable_if<
+    class = typename std::enable_if<
         IsSignal<TSignal<D,TValue>>::value>::type
 >
 auto operator->*(const TSignal<D,TValue>& arg, F&& func)
@@ -816,4 +584,267 @@ auto Flatten(const Signal<D,Signal<D,TInnerValue>>& node)
             node.NodePtr(), node.Value().NodePtr()));
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Signal
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename S
+>
+class Signal : public REACT_IMPL::SignalBase<D,S>
+{
+protected:
+    using BaseT     = REACT_IMPL::SignalBase<D,S>;
+
+private:
+    using NodeT     = REACT_IMPL::SignalNode<D,S>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
+
+public:
+    using ValueT = S;
+
+    Signal() = default;
+    Signal(const Signal&) = default;
+    Signal& operator=(const Signal&) = default;
+
+    Signal(Signal&& other) :
+        Signal::SignalBase( std::move(other) )
+    {}
+
+    Signal& operator=(Signal&& other)
+    {
+        Signal::SignalBase::operator=( std::move(other) );
+        return *this;
+    }
+
+    explicit Signal(NodePtrT&& nodePtr) :
+        Signal::SignalBase( std::move(nodePtr) )
+    {}
+
+    const S& Value() const      { return Signal::BaseT::getValue(); }
+    const S& operator()() const { return Signal::BaseT::getValue(); }
+
+    bool Equals(const Signal& other) const
+    {
+        return Signal::BaseT::Equals(other);
+    }
+
+    bool IsValid() const
+    {
+        return Signal::BaseT::IsValid();
+    }
+
+    S Flatten() const
+    {
+        static_assert(IsReactive<S>::value, "Flatten requires a Signal value type.");
+        return REACT::Flatten(*this);
+    }
+};
+
+// Specialize for references
+template
+<
+    typename D,
+    typename S
+>
+class Signal<D,S&> : public REACT_IMPL::SignalBase<D,std::reference_wrapper<S>>
+{
+protected:
+    using BaseT     = REACT_IMPL::SignalBase<D,std::reference_wrapper<S>>;
+
+private:
+    using NodeT     = REACT_IMPL::SignalNode<D,std::reference_wrapper<S>>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
+
+public:
+    using ValueT = S;
+
+    Signal() = default;
+    Signal(const Signal&) = default;
+    Signal& operator=(const Signal&) = default;
+
+    Signal(Signal&& other) :
+        Signal::SignalBase( std::move(other) )
+    {}
+
+    Signal& operator=(Signal&& other)
+    {
+        return Signal::SignalBase::operator=( std::move(other) );
+    }
+
+    explicit Signal(NodePtrT&& nodePtr) :
+        Signal::SignalBase( std::move(nodePtr) )
+    {}
+
+    const S& Value() const      { return Signal::BaseT::getValue(); }
+    const S& operator()() const { return Signal::BaseT::getValue(); }
+
+    bool Equals(const Signal& other) const
+    {
+        return Signal::BaseT::Equals(other);
+    }
+
+    bool IsValid() const
+    {
+        return Signal::BaseT::IsValid();
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// VarSignal
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename S
+>
+class VarSignal : public Signal<D,S>
+{
+private:
+    using NodeT     = REACT_IMPL::VarNode<D,S>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
+
+public:
+    VarSignal() = default;
+    VarSignal(const VarSignal&) = default;
+    VarSignal& operator=(const VarSignal&) = default;
+
+    VarSignal(VarSignal&& other) :
+        VarSignal::Signal( std::move(other) )
+    {}
+
+    VarSignal& operator=(VarSignal&& other)
+    {
+        return VarSignal::Signal::operator=( std::move(other) );
+    }
+
+    explicit VarSignal(NodePtrT&& nodePtr) :
+        VarSignal::Signal( std::move(nodePtr) )
+    {}
+
+    void Set(const S& newValue) const
+    {
+        VarSignal::BaseT::setValue(newValue);
+    }
+
+    void Set(S&& newValue) const
+    {
+        VarSignal::BaseT::setValue(std::move(newValue));
+    }
+
+    const VarSignal& operator<<=(const S& newValue) const
+    {
+        VarSignal::BaseT::setValue(newValue);
+        return *this;
+    }
+
+    const VarSignal& operator<<=(S&& newValue) const
+    {
+        VarSignal::BaseT::setValue(std::move(newValue));
+        return *this;
+    }
+
+    template <typename F>
+    void Modify(const F& func) const
+    {
+        VarSignal::BaseT::modifyValue(func);
+    }
+};
+
+// Specialize for references
+template
+<
+    typename D,
+    typename S
+>
+class VarSignal<D,S&> : public Signal<D,std::reference_wrapper<S>>
+{
+private:
+    using NodeT     = REACT_IMPL::VarNode<D,std::reference_wrapper<S>>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
+
+public:
+    using ValueT = S;
+
+    VarSignal() = default;
+    VarSignal(const VarSignal&) = default;
+    VarSignal& operator=(const VarSignal&) = default;
+
+    VarSignal(VarSignal&& other) :
+        VarSignal::Signal( std::move(other) )
+    {}
+
+    VarSignal& operator=(VarSignal&& other)
+    {
+        return VarSignal::Signal::operator=( std::move(other) );
+    }
+
+    explicit VarSignal(NodePtrT&& nodePtr) :
+        VarSignal::Signal( std::move(nodePtr) )
+    {}
+
+    void Set(std::reference_wrapper<S> newValue) const
+    {
+        VarSignal::BaseT::setValue(newValue);
+    }
+
+    const VarSignal& operator<<=(std::reference_wrapper<S> newValue) const
+    {
+        VarSignal::BaseT::setValue(newValue);
+        return *this;
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// TempSignal
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename S,
+    typename TOp
+>
+class TempSignal : public Signal<D,S>
+{
+private:
+    using NodeT     = REACT_IMPL::SignalOpNode<D,S,TOp>;
+    using NodePtrT  = std::shared_ptr<NodeT>;
+
+public:    
+    TempSignal() = default;
+    TempSignal(const TempSignal&) = default;
+    TempSignal& operator=(const TempSignal&) = default;
+
+    TempSignal(TempSignal&& other) :
+        TempSignal::Signal( std::move(other) )
+    {}
+
+    TempSignal& operator=(TempSignal&& other)
+    {
+        return TempSignal::Signal::operator=( std::move(other) );
+    }
+
+    explicit TempSignal(NodePtrT&& ptr) :
+        TempSignal::Signal( std::move(ptr) )
+    {}
+
+    TOp StealOp()
+    {
+        return std::move(reinterpret_cast<NodeT*>(this->ptr_.get())->StealOp());
+    }
+};
+
 /******************************************/ REACT_END /******************************************/
+
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+template <typename D, typename L, typename R>
+bool Equals(const Signal<D,L>& lhs, const Signal<D,R>& rhs)
+{
+    return lhs.Equals(rhs);
+}
+
+/****************************************/ REACT_IMPL_END /***************************************/
+
+#endif // REACT_SIGNAL_H_INCLUDED

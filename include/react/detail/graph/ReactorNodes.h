@@ -4,6 +4,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#ifndef REACT_DETAIL_GRAPH_REACTORNODES_H_INCLUDED
+#define REACT_DETAIL_GRAPH_REACTORNODES_H_INCLUDED
+
 #pragma once
 
 #ifndef REACT_DISABLE_REACTORS
@@ -212,4 +215,6 @@ private:
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
-#endif //REACT_DISABLE_REACTORS
+#endif // REACT_DISABLE_REACTORS
+
+#endif // REACT_DETAIL_GRAPH_REACTORNODES_H_INCLUDED
