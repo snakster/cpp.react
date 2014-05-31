@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cfloat>
 #include <ctime>
 #include <stdio.h>
@@ -75,10 +76,10 @@ template
     typename TBenchmark,
     typename TParams
 >
-void RunBenchmark(std::ostream& logfile, TBenchmark& b, TParams params)
+void RunBenchmark(std::ostream& logfile, TBenchmark b, const TParams& params)
 {
-    std::cout    << "Engine: " << typeid(TBenchmark::Domain::Policy::Engine).name() << std::endl << std::endl;
-    logfile        << "Engine: " << typeid(TBenchmark::Domain::Policy::Engine).name() << std::endl << std::endl;
+    std::cout   << "Engine: " << typeid(typename TBenchmark::Domain::Policy::Engine).name() << std::endl << std::endl;
+    logfile     << "Engine: " << typeid(typename TBenchmark::Domain::Policy::Engine).name() << std::endl << std::endl;
 
     double sum = 0;
     double min = DBL_MAX;

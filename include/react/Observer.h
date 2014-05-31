@@ -45,27 +45,32 @@ private:
 
 public:
     Observer() :
-        nodePtr_{ nullptr }
+        nodePtr_( nullptr )
     {}
 
     Observer(const Observer&) = delete;
     Observer& operator=(const Observer&) = delete;
 
     Observer(Observer&& other) :
-        nodePtr_{ std::move(other.nodePtr_) },
-        subject_{ std::move(other.subject_) }
-    {}
+        nodePtr_( other.nodePtr_ ),
+        subject_( std::move(other.subject_) )
+    {
+        other.nodePtr_ = nullptr;
+    }
 
     Observer& operator=(Observer&& other)
     {
-        nodePtr_ = std::move(other.nodePtr_);
+        nodePtr_ = other.nodePtr_;
         subject_ = std::move(other.subject_);
+
+        other.nodePtr_ = nullptr;
+
         return *this;
     }
 
     Observer(NodeT* nodePtr, const SubjectT& subject) :
-        nodePtr_{ nodePtr },
-        subject_{ subject }
+        nodePtr_( nodePtr ),
+        subject_( subject )
     {}
 
     bool IsValid() const
@@ -94,8 +99,21 @@ template <typename D>
 class ScopedObserver
 {
 public:
+    ScopedObserver() = delete;
+    ScopedObserver(const ScopedObserver&) = delete;
+    ScopedObserver& operator=(const ScopedObserver&) = delete;
+
+    ScopedObserver(ScopedObserver&& other) :
+        obs_( std::move(other.obs_) )
+    {}
+
+    ScopedObserver& operator=(ScopedObserver&& other)
+    {
+        obs_ = std::move(other.obs_);
+    }
+
     ScopedObserver(Observer<D>&& obs) :
-        obs_{ std::move(obs) }
+        obs_( std::move(obs) )
     {}
 
     ~ScopedObserver()
@@ -187,8 +205,8 @@ auto Observe(const Events<D,E>& subject,
     struct NodeBuilder_
     {
         NodeBuilder_(const Events<D,E>& subject, FIn&& func) :
-            MySubject{ subject },
-            MyFunc{ std::forward<FIn>(func) }
+            MySubject( subject ),
+            MyFunc( std::forward<FIn>(func) )
         {}
 
         auto operator()(const Signal<D,TDepValues>& ... deps)
@@ -204,7 +222,7 @@ auto Observe(const Events<D,E>& subject,
     };
 
     auto obsPtr = REACT_IMPL::apply(
-        NodeBuilder_{ subject, std::forward<FIn>(func) },
+        NodeBuilder_( subject, std::forward<FIn>(func) ),
         depPack.Data);
 
     auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()

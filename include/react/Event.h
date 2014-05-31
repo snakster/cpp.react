@@ -15,8 +15,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "react/detail/EventFwd.h"
-
 #include "react/Observer.h"
 #include "react/TypeTraits.h"
 #include "react/common/Util.h"
@@ -27,6 +25,17 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename E>
+class Events;
+
+template <typename D, typename E>
+class EventSource;
+
+template <typename D, typename E, typename TOp>
+class TempEvents;
+
+enum class Token;
+
 template <typename D, typename S>
 class Signal;
 
@@ -36,7 +45,7 @@ class SignalPack;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MakeEventSource
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename E>
+template <typename D, typename E = Token>
 auto MakeEventSource()
     -> EventSource<D,E>
 {
@@ -44,16 +53,6 @@ auto MakeEventSource()
 
     return EventSource<D,E>(
         std::make_shared<EventSourceNode<D,E>>());
-}
-
-template <typename D>
-auto MakeEventSource()
-    -> EventSource<D,Token>
-{
-    using REACT_IMPL::EventSourceNode;
-
-    return EventSource<D,Token>(
-        std::make_shared<EventSourceNode<D,Token>>());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -400,10 +399,17 @@ public:
 
     Events() = default;
     Events(const Events&) = default;
+    Events& operator=(const Events&) = default;
 
     Events(Events&& other) :
         Events::EventStreamBase( std::move(other) )
     {}
+
+    Events& operator=(Events&& other)
+    {
+        Events::EventStreamBase::operator=( std::move(other) );
+        return *this;
+    }
 
     explicit Events(NodePtrT&& nodePtr) :
         Events::EventStreamBase( std::move(nodePtr) )
@@ -467,10 +473,17 @@ public:
 
     Events() = default;
     Events(const Events&) = default;
+    Events& operator=(const Events&) = default;
 
     Events(Events&& other) :
         Events::EventStreamBase( std::move(other) )
     {}
+
+    Events& operator=(Events&& other)
+    {
+        Events::EventStreamBase::operator=( std::move(other) );
+        return *this;
+    }
 
     explicit Events(NodePtrT&& nodePtr) :
         Events::EventStreamBase( std::move(nodePtr) )
@@ -531,10 +544,17 @@ private:
 public:
     EventSource() = default;
     EventSource(const EventSource&) = default;
+    EventSource& operator=(const EventSource&) = default;
 
     EventSource(EventSource&& other) :
         EventSource::Events( std::move(other) )
     {}
+
+    EventSource& operator=(EventSource&& other)
+    {
+        EventSource::Events::operator=( std::move(other) );
+        return *this;
+    }
 
     explicit EventSource(NodePtrT&& nodePtr) :
         EventSource::Events( std::move(nodePtr) )
@@ -589,10 +609,17 @@ private:
 public:
     EventSource() = default;
     EventSource(const EventSource&) = default;
+    EventSource& operator=(const EventSource&) = default;
 
     EventSource(EventSource&& other) :
         EventSource::Events( std::move(other) )
     {}
+
+    EventSource& operator=(EventSource&& other)
+    {
+        EventSource::Events::operator=( std::move(other) );
+        return *this;
+    }
 
     explicit EventSource(NodePtrT&& nodePtr) :
         EventSource::Events( std::move(nodePtr) )
@@ -630,6 +657,7 @@ protected:
 public:    
     TempEvents() = default;
     TempEvents(const TempEvents&) = default;
+    TempEvents& operator=(const TempEvents&) = default;
 
     TempEvents(TempEvents&& other) :
         TempEvents::Events( std::move(other) )

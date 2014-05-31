@@ -15,10 +15,9 @@
 /// NodeCreateEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 NodeCreateEvent::NodeCreateEvent(ObjectId nodeId, const char* type) :
-    nodeId_{ nodeId },
-    type_{ type }
-{
-}
+    nodeId_( nodeId ),
+    type_( type )
+{}
 
 void NodeCreateEvent::Serialize(std::ostream& out) const
 {
@@ -30,9 +29,8 @@ void NodeCreateEvent::Serialize(std::ostream& out) const
 /// NodeDestroyEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 NodeDestroyEvent::NodeDestroyEvent(ObjectId nodeId) :
-    nodeId_{ nodeId }
-{
-}
+    nodeId_( nodeId )
+{}
 
 void NodeDestroyEvent::Serialize(std::ostream& out) const
 {
@@ -43,10 +41,9 @@ void NodeDestroyEvent::Serialize(std::ostream& out) const
 /// NodeAttachEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 NodeAttachEvent::NodeAttachEvent(ObjectId nodeId, ObjectId parentId) :
-    nodeId_{ nodeId },
+    nodeId_( nodeId ),
     parentId_{ parentId }
-{
-}
+{}
 
 void NodeAttachEvent::Serialize(std::ostream& out) const
 {
@@ -58,10 +55,9 @@ void NodeAttachEvent::Serialize(std::ostream& out) const
 /// NodeDetachEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 NodeDetachEvent::NodeDetachEvent(ObjectId nodeId, ObjectId parentId) :
-    nodeId_{ nodeId },
+    nodeId_( nodeId ),
     parentId_{ parentId }
-{
-}
+{}
 
 void NodeDetachEvent::Serialize(std::ostream& out) const
 {
@@ -73,10 +69,9 @@ void NodeDetachEvent::Serialize(std::ostream& out) const
 /// InputNodeAdmissionEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 InputNodeAdmissionEvent::InputNodeAdmissionEvent(ObjectId nodeId, int transactionId) :
-    nodeId_{ nodeId },
-    transactionId_{ transactionId }
-{
-}
+    nodeId_( nodeId ),
+    transactionId_( transactionId )
+{}
 
 void InputNodeAdmissionEvent::Serialize(std::ostream& out) const
 {
@@ -88,10 +83,9 @@ void InputNodeAdmissionEvent::Serialize(std::ostream& out) const
 /// NodePulseEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 NodePulseEvent::NodePulseEvent(ObjectId nodeId, int transactionId) :
-    nodeId_{ nodeId },
-    transactionId_{ transactionId }
-{
-}
+    nodeId_( nodeId ),
+    transactionId_( transactionId )
+{}
 
 void NodePulseEvent::Serialize(std::ostream& out) const
 {
@@ -103,10 +97,9 @@ void NodePulseEvent::Serialize(std::ostream& out) const
 /// NodeIdlePulseEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 NodeIdlePulseEvent::NodeIdlePulseEvent(ObjectId nodeId, int transactionId) :
-    nodeId_{ nodeId },
-    transactionId_{ transactionId }
-{
-}
+    nodeId_( nodeId ),
+    transactionId_( transactionId )
+{}
 
 void NodeIdlePulseEvent::Serialize(std::ostream& out) const
 {
@@ -118,11 +111,10 @@ void NodeIdlePulseEvent::Serialize(std::ostream& out) const
 /// DynamicNodeAttachEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 DynamicNodeAttachEvent::DynamicNodeAttachEvent(ObjectId nodeId, ObjectId parentId, int transactionId) :
-    nodeId_{ nodeId },
+    nodeId_( nodeId ),
     parentId_{ parentId },
-    transactionId_{ transactionId }
-{
-}
+    transactionId_( transactionId )
+{}
 
 void DynamicNodeAttachEvent::Serialize(std::ostream& out) const
 {
@@ -135,11 +127,10 @@ void DynamicNodeAttachEvent::Serialize(std::ostream& out) const
 /// DynamicNodeDetachEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 DynamicNodeDetachEvent::DynamicNodeDetachEvent(ObjectId nodeId, ObjectId parentId, int transactionId) :
-    nodeId_{ nodeId },
+    nodeId_( nodeId ),
     parentId_{ parentId },
-    transactionId_{ transactionId }
-{
-}
+    transactionId_( transactionId )
+{}
 
 void DynamicNodeDetachEvent::Serialize(std::ostream& out) const
 {
@@ -152,11 +143,10 @@ void DynamicNodeDetachEvent::Serialize(std::ostream& out) const
 /// NodeEvaluateBeginEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 NodeEvaluateBeginEvent::NodeEvaluateBeginEvent(ObjectId nodeId, int transactionId) :
-    nodeId_{ nodeId },
-    transactionId_{ transactionId },
-    threadId_{ std::this_thread::get_id().hash() }
-{
-}
+    nodeId_( nodeId ),
+    transactionId_( transactionId ),
+    threadId_( std::this_thread::get_id() )
+{}
 
 void NodeEvaluateBeginEvent::Serialize(std::ostream& out) const
 {
@@ -169,11 +159,10 @@ void NodeEvaluateBeginEvent::Serialize(std::ostream& out) const
 /// NodeEvaluateEndEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 NodeEvaluateEndEvent::NodeEvaluateEndEvent(ObjectId nodeId, int transactionId) :
-    nodeId_{ nodeId },
-    transactionId_{ transactionId },
-    threadId_{ std::this_thread::get_id().hash() }
-{
-}
+    nodeId_( nodeId ),
+    transactionId_( transactionId ),
+    threadId_{ std::this_thread::get_id() }
+{}
 
 void NodeEvaluateEndEvent::Serialize(std::ostream& out) const
 {
@@ -186,9 +175,8 @@ void NodeEvaluateEndEvent::Serialize(std::ostream& out) const
 /// TransactionBeginEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TransactionBeginEvent::TransactionBeginEvent(int transactionId) :
-    transactionId_{ transactionId }
-{
-}
+    transactionId_( transactionId )
+{}
 
 void TransactionBeginEvent::Serialize(std::ostream& out) const
 {
@@ -199,9 +187,8 @@ void TransactionBeginEvent::Serialize(std::ostream& out) const
 /// TransactionEndEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TransactionEndEvent::TransactionEndEvent(int transactionId) :
-    transactionId_{ transactionId }
-{
-}
+    transactionId_( transactionId )
+{}
 
 void TransactionEndEvent::Serialize(std::ostream& out) const
 {
@@ -212,9 +199,8 @@ void TransactionEndEvent::Serialize(std::ostream& out) const
 /// UserBreakpointEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 UserBreakpointEvent::UserBreakpointEvent(const char* name) :
-    name_{ name }
-{
-}
+    name_( name )
+{}
 
 void UserBreakpointEvent::Serialize(std::ostream& out) const
 {

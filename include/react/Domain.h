@@ -12,12 +12,6 @@
 #include "react/detail/Defs.h"
 
 #include <utility>
-#include <type_traits>
-
-#include "react/TypeTraits.h"
-
-#include "react/detail/EventFwd.h"
-#include "react/detail/SignalFwd.h"
 
 #include "react/detail/ReactiveInput.h"
 #include "react/detail/Options.h"
@@ -35,6 +29,26 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename S>
+class Signal;
+
+template <typename D, typename S>
+class VarSignal;
+
+template <typename D, typename S, typename TOp>
+class TempSignal;
+
+template <typename D, typename E>
+class Events;
+
+template <typename D, typename E>
+class EventSource;
+
+template <typename D, typename E, typename TOp>
+class TempEvents;
+
+enum class Token;
+
 template <typename D>
 class ReactiveLoop;
 
@@ -77,7 +91,7 @@ public:
         REACT_IMPL::EnableParallelUpdating<typename Policy::Engine>::value;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    /// Aliases for reactives of current domain
+    /// Aliases for reactives of this domain
     ///////////////////////////////////////////////////////////////////////////////////////////////
     template <typename S>
     using SignalT = Signal<D,S>;
@@ -96,55 +110,6 @@ public:
     using ScopedObserverT = ScopedObserver<D>;
 
     using ReactiveLoopT = ReactiveLoop<D>;
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// MakeVar
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    template
-    <
-        typename V,
-        typename S = typename std::decay<V>::type,
-        class = typename std::enable_if<
-            !IsSignal<S>::value>::type
-    >
-    static auto MakeVar(V&& value)
-        -> VarSignalT<S>
-    {
-        return REACT::MakeVar<D>(std::forward<V>(value));
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// MakeVar (higher order)
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    template
-    <
-        typename V,
-        typename S = typename std::decay<V>::type,
-        typename TInner = typename S::ValueT,
-        class = typename std::enable_if<
-            IsSignal<S>::value>::type
-    >
-    static auto MakeVar(V&& value)
-        -> VarSignalT<SignalT<TInner>>
-    {
-        return REACT::MakeVar<D>(std::forward<V>(value));
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    /// MakeEventSource
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    template <typename E>
-    static auto MakeEventSource()
-        -> EventSourceT<E>
-    {
-        return REACT::MakeEventSource<D,E>();
-    }
-
-    static auto MakeEventSource()
-        -> EventSourceT<Token>
-    {
-        return REACT::MakeEventSource<D>();
-    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     /// DoTransaction
@@ -214,5 +179,27 @@ public:
 #define REACTIVE_DOMAIN(name, ...) \
     struct name : public REACT::DomainBase<name, REACT_IMPL::DomainPolicy<__VA_ARGS__ >> {}; \
     REACT_IMPL::DomainInitializer< name > name ## _initializer_;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Define type aliases for given domain
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#define USING_REACTIVE_DOMAIN(name)                                                         \
+    template <typename S>                                                                   \
+    using SignalT = Signal<name,S>;                                                         \
+                                                                                            \
+    template <typename S>                                                                   \
+    using VarSignalT = VarSignal<name,S>;                                                   \
+                                                                                            \
+    template <typename E = Token>                                                           \
+    using EventsT = Events<name,E>;                                                         \
+                                                                                            \
+    template <typename E = Token>                                                           \
+    using EventSourceT = EventSource<name,E>;                                               \
+                                                                                            \
+    using ObserverT = Observer<name>;                                                       \
+                                                                                            \
+    using ScopedObserverT = ScopedObserver<name>;                                           \
+                                                                                            \
+    using ReactiveLoopT = ReactiveLoop<name>;
 
 #endif // REACT_DOMAIN_H_INCLUDED

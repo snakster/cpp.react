@@ -47,7 +47,9 @@ TYPED_TEST_CASE_P(OperationsTest);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, Iterate1)
 {
-    auto numSrc = MyDomain::MakeEventSource<int>();
+    using D = typename Iterate1::MyDomain;
+
+    auto numSrc = MakeEventSource<D,int>();
     auto numFold = Iterate(numSrc, 0, [] (int d, int v) {
         return v + d;
     });
@@ -59,7 +61,7 @@ TYPED_TEST_P(OperationsTest, Iterate1)
 
     ASSERT_EQ(numFold(), 5050);
 
-    auto charSrc = MyDomain::MakeEventSource<char>();
+    auto charSrc = MakeEventSource<D,char>();
     auto strFold = Iterate(charSrc, string(""), [] (char c, string s) {
         return s + c;
     });
@@ -74,7 +76,9 @@ TYPED_TEST_P(OperationsTest, Iterate1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, Iterate2)
 {
-    auto numSrc = MyDomain::MakeEventSource<int>();
+    using D = typename Iterate2::MyDomain;
+
+    auto numSrc = MakeEventSource<D,int>();
     auto numFold = Iterate(numSrc, 0, [] (int d, int v) {
         return v + d;
     });
@@ -86,7 +90,7 @@ TYPED_TEST_P(OperationsTest, Iterate2)
         ASSERT_EQ(v, 5050);
     });
 
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         for (auto i=1; i<=100; i++)
             numSrc << i;
     });
@@ -100,7 +104,9 @@ TYPED_TEST_P(OperationsTest, Iterate2)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, Iterate3)
 {
-    auto trigger = MyDomain::MakeEventSource();
+    using D = typename Iterate3::MyDomain;
+
+    auto trigger = MakeEventSource<D>();
 
     {
         auto inc = Iterate(trigger, 0, Incrementer<int>{});
@@ -124,7 +130,9 @@ TYPED_TEST_P(OperationsTest, Iterate3)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, Monitor1)
 {
-    auto target = MyDomain::MakeVar(10);
+    using D = typename Monitor1::MyDomain;
+
+    auto target = MakeVar<D>(10);
 
     vector<int> results;
 
@@ -156,7 +164,9 @@ TYPED_TEST_P(OperationsTest, Monitor1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, Hold1)
 {
-    auto src = MyDomain::MakeEventSource<int>();
+    using D = typename Hold1::MyDomain;
+
+    auto src = MakeEventSource<D,int>();
 
     auto h = Hold(src, 0);
 
@@ -176,8 +186,10 @@ TYPED_TEST_P(OperationsTest, Hold1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, Pulse1)
 {
-    auto trigger = MyDomain::MakeEventSource();
-    auto target = MyDomain::MakeVar(10);
+    using D = typename Pulse1::MyDomain;
+
+    auto trigger = MakeEventSource<D>();
+    auto target = MakeVar<D>(10);
 
     vector<int> results;
 
@@ -203,8 +215,10 @@ TYPED_TEST_P(OperationsTest, Pulse1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, Snapshot1)
 {
-    auto trigger = MyDomain::MakeEventSource();
-    auto target = MyDomain::MakeVar(10);
+    using D = typename Snapshot1::MyDomain;
+
+    auto trigger = MakeEventSource<D>();
+    auto target = MakeVar<D>(10);
 
     auto snap = Snapshot(trigger, target);
 
@@ -226,7 +240,9 @@ TYPED_TEST_P(OperationsTest, Snapshot1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, IterateByRef1)
 {
-    auto src = MyDomain::MakeEventSource<int>();
+    using D = typename IterateByRef1::MyDomain;
+
+    auto src = MakeEventSource<D,int>();
     auto f = Iterate(
         src,
         std::vector<int>(),
@@ -250,7 +266,9 @@ TYPED_TEST_P(OperationsTest, IterateByRef1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, IterateByRef2)
 {
-    auto src = MyDomain::MakeEventSource();
+    using D = typename IterateByRef2::MyDomain;
+
+    auto src = MakeEventSource<D>();
     auto x = Iterate(
         src,
         std::vector<int>(),
@@ -274,15 +292,17 @@ TYPED_TEST_P(OperationsTest, IterateByRef2)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, SyncedTransform1)
 {
-    auto in1 = MyDomain::MakeVar(1);
-    auto in2 = MyDomain::MakeVar(1);
+    using D = typename SyncedTransform1::MyDomain;
+
+    auto in1 = MakeVar<D>(1);
+    auto in2 = MakeVar<D>(1);
 
     auto sum  = in1 + in2;
     auto prod = in1 * in2;
     auto diff = in1 - in2;
 
-    auto src1 = MyDomain::MakeEventSource();
-    auto src2 = MyDomain::MakeEventSource<int>();
+    auto src1 = MakeEventSource<D>();
+    auto src2 = MakeEventSource<D,int>();
 
     auto out1 = Transform(src1, With(sum,prod,diff), [] (Token, int sum, int prod, int diff) {
         return make_tuple(sum, prod, diff);
@@ -361,14 +381,16 @@ TYPED_TEST_P(OperationsTest, SyncedTransform1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, SyncedIterate1)
 {
-    auto in1 = MyDomain::MakeVar(1);
-    auto in2 = MyDomain::MakeVar(1);
+    using D = typename SyncedIterate1::MyDomain;
+
+    auto in1 = MakeVar<D>(1);
+    auto in2 = MakeVar<D>(1);
 
     auto op1 = in1 + in2;
     auto op2 = (in1 + in2) * 10;
 
-    auto src1 = MyDomain::MakeEventSource();
-    auto src2 = MyDomain::MakeEventSource<int>();
+    auto src1 = MakeEventSource<D>();
+    auto src2 = MakeEventSource<D,int>();
 
     auto out1 = Iterate(
         src1,
@@ -451,20 +473,22 @@ TYPED_TEST_P(OperationsTest, SyncedIterate1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, SyncedIterate2)
 {
-    auto in1 = MyDomain::MakeVar(1);
-    auto in2 = MyDomain::MakeVar(1);
+    using D = typename SyncedIterate2::MyDomain;
+
+    auto in1 = MakeVar<D>(1);
+    auto in2 = MakeVar<D>(1);
 
     auto op1 = in1 + in2;
     auto op2 = (in1 + in2) * 10;
 
-    auto src1 = MyDomain::MakeEventSource();
-    auto src2 = MyDomain::MakeEventSource<int>();
+    auto src1 = MakeEventSource<D>();
+    auto src2 = MakeEventSource<D,int>();
 
     auto out1 = Iterate(
         src1,
         vector<int>{},
         With(op1,op2),
-        [] (Token, vector<int>& v, int op1, int op2) {
+        [] (Token, vector<int>& v, int op1, int op2) -> void {
             v.push_back(op1);
             v.push_back(op2);
         });
@@ -473,7 +497,7 @@ TYPED_TEST_P(OperationsTest, SyncedIterate2)
         src2,
         vector<int>{},
         With(op1,op2),
-        [] (int e, vector<int>& v, int op1, int op2) {
+        [] (int e, vector<int>& v, int op1, int op2) -> void {
             v.push_back(e);
             v.push_back(op1);
             v.push_back(op2);

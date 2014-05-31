@@ -458,7 +458,7 @@ public:
         trigger_->SetCurrentTurn(turn);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash()));
+            GetObjectId(*this), turn.Id()));
 
         bool changed = false;
         
@@ -474,7 +474,7 @@ public:
         }
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id(), std::this_thread::get_id().hash()));
+            GetObjectId(*this), turn.Id()));
 
         if (changed)
             Engine::OnNodePulse(*this, turn);

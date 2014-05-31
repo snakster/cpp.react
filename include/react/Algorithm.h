@@ -57,12 +57,12 @@ auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
     using REACT_IMPL::IterateByRefNode;
 
     using F = typename std::decay<FIn>::type;
+    using R = typename std::result_of<FIn(E,S&)>::type;
     using TNode = typename std::conditional<
-        std::is_same<void,
-            typename std::result_of<F(E,S)>::type>::value,
+        std::is_same<void,R>::value,
         IterateByRefNode<D,S,E,F>,
         IterateNode<D,S,E,F>
-        >::type;
+            >::type;
 
     return Signal<D,S>(
         std::make_shared<TNode>(
@@ -89,19 +89,19 @@ auto Iterate(const Events<D,E>& events, V&& init,
     using REACT_IMPL::SyncedIterateByRefNode;
 
     using F = typename std::decay<FIn>::type;
+    using R = typename std::result_of<FIn(E,S&,TDepValues...)>::type;
     using TNode = typename std::conditional<
-        std::is_same<void,
-            typename std::result_of<F(E,S,TDepValues...)>::type>::value,
+        std::is_same<void,R>::value,
         SyncedIterateByRefNode<D,S,E,F,TDepValues ...>,
         SyncedIterateNode<D,S,E,F,TDepValues ...>
-        >::type;
+            >::type;
 
     struct NodeBuilder_
     {
         NodeBuilder_(const Events<D,E>& source, V&& init, FIn&& func) :
-            MySource{ source },
-            MyInit{ std::forward<V>(init) },
-            MyFunc{ std::forward<FIn>(func) }
+            MySource( source ),
+            MyInit( std::forward<V>(init) ),
+            MyFunc( std::forward<FIn>(func) )
         {}
 
         auto operator()(const Signal<D,TDepValues>& ... deps)
@@ -119,7 +119,7 @@ auto Iterate(const Events<D,E>& events, V&& init,
     };
 
     return REACT_IMPL::apply(
-        NodeBuilder_{ events, std::forward<V>(init), std::forward<FIn>(func) },
+        NodeBuilder_( events, std::forward<V>(init), std::forward<FIn>(func) ),
         depPack.Data);
 }
 

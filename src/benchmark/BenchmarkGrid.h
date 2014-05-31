@@ -14,6 +14,10 @@
 
 #include "BenchmarkBase.h"
 
+#include "react/Signal.h"
+
+using namespace react;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// GridGraphGenerator
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,32 +29,32 @@ template
 class GridGraphGenerator
 {
 public:
-    typedef typename D::template SignalT<TValue>    MyHandle;
+    using MySignal = Signal<D,TValue>;
 
-    typedef std::function<TValue(TValue)>           Func1T;
-    typedef std::function<TValue(TValue,TValue)>    Func2T;
+    using Func1T = std::function<TValue(TValue)>;
+    using Func2T = std::function<TValue(TValue,TValue)>;
 
-    typedef std::vector<MyHandle>   HandleVect;
-    typedef std::vector<int>        WidthVect;
+    using SignalVectT   = std::vector<MySignal>;
+    using WidthVectT    = std::vector<int>;
 
-    HandleVect    InputSignals;
-    HandleVect    OutputSignals;
+    SignalVectT InputSignals;
+    SignalVectT OutputSignals;
 
-    Func1T    Function1;
-    Func2T    Function2;
+    Func1T  Function1;
+    Func2T  Function2;
 
-    WidthVect    Widths;
+    WidthVectT  Widths;
 
     void Generate()
     {
         assert(InputSignals.size() >= 1);
         assert(Widths.size() >= 1);
 
-        HandleVect buf1 = InputSignals;
-        HandleVect buf2;
+        SignalVectT buf1 = InputSignals;
+        SignalVectT buf2;
 
-        HandleVect* curBuf = &buf1;
-        HandleVect* nextBuf = &buf2;
+        SignalVectT* curBuf = &buf1;
+        SignalVectT* nextBuf = &buf2;
 
         int curWidth = InputSignals.size();
 
@@ -93,7 +97,7 @@ public:
                 curBuf->clear();
 
                 // Swap buffer pointers
-                HandleVect* t = curBuf;
+                SignalVectT* t = curBuf;
                 curBuf = nextBuf;
                 nextBuf = t;
 
@@ -119,17 +123,16 @@ struct BenchmarkParams_Grid
     BenchmarkParams_Grid(int n, int k) :
         N(n),
         K(k)
-    {
-    }
-
-    const int N;
-    const int K;
+    {}
 
     void Print(std::ostream& out) const
     {
         out << "N = " << N
             << ", K = " << K;
     }
+
+    const int N;
+    const int K;
 };
 
 template <typename D>
@@ -137,11 +140,9 @@ struct Benchmark_Grid : public BenchmarkBase<D>
 {
     double Run(const BenchmarkParams_Grid& params)
     {
-        using MyDomain = D;
+        auto in = MakeVar<D>(1);
 
-        auto in = MyDomain::MakeVar(1);
-
-        GridGraphGenerator<MyDomain,int> generator;
+        GridGraphGenerator<D,int> generator;
 
         generator.InputSignals.push_back(in);
 

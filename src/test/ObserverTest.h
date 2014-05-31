@@ -37,8 +37,10 @@ TYPED_TEST_CASE_P(ObserverTest);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(ObserverTest, Detach)
 {
-    auto a1 = MyDomain::MakeVar(1);
-    auto a2 = MyDomain::MakeVar(1);
+    using D = typename Detach::MyDomain;
+
+    auto a1 = MakeVar<D>(1);
+    auto a2 = MakeVar<D>(1);
 
     auto result = a1 + a2;
 
@@ -110,12 +112,14 @@ TYPED_TEST_P(ObserverTest, Detach)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(ObserverTest, ScopedObserverTest)
 {
+    using D = typename ScopedObserverTest::MyDomain;
+
     std::vector<int> results;
 
-    auto in = MyDomain::MakeVar(1);
+    auto in = MakeVar<D>(1);
 
     {
-        MyDomain::ScopedObserverT obs = Observe(in, [&] (int v) {
+        ScopedObserver<D> obs = Observe(in, [&] (int v) {
             results.push_back(v);
         });
 
@@ -133,15 +137,17 @@ TYPED_TEST_P(ObserverTest, ScopedObserverTest)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(ObserverTest, SyncedObserveTest)
 {
-    auto in1 = MyDomain::MakeVar(1);
-    auto in2 = MyDomain::MakeVar(1);
+    using D = typename SyncedObserveTest::MyDomain;
+
+    auto in1 = MakeVar<D>(1);
+    auto in2 = MakeVar<D>(1);
 
     auto sum  = in1 + in2;
     auto prod = in1 * in2;
     auto diff = in1 - in2;
 
-    auto src1 = MyDomain::MakeEventSource();
-    auto src2 = MyDomain::MakeEventSource<int>();
+    auto src1 = MakeEventSource<D>();
+    auto src2 = MakeEventSource<D,int>();
 
     Observe(src1, With(sum,prod,diff), [] (Token, int sum, int prod, int diff) {
         ASSERT_EQ(sum, 33);
@@ -168,7 +174,9 @@ TYPED_TEST_P(ObserverTest, SyncedObserveTest)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(ObserverTest, DetachThisObserver1)
 {
-    auto src = MyDomain::MakeEventSource();
+    using D = typename DetachThisObserver1::MyDomain;
+
+    auto src = MakeEventSource<D>();
 
     int count = 0;
 
@@ -189,14 +197,16 @@ TYPED_TEST_P(ObserverTest, DetachThisObserver1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(ObserverTest, DetachThisObserver2)
 {
-    auto in1 = MyDomain::MakeVar(1);
-    auto in2 = MyDomain::MakeVar(1);
+    using D = typename DetachThisObserver2::MyDomain;
+
+    auto in1 = MakeVar<D>(1);
+    auto in2 = MakeVar<D>(1);
 
     auto sum  = in1 + in2;
     auto prod = in1 * in2;
     auto diff = in1 - in2;
 
-    auto src = MyDomain::MakeEventSource();
+    auto src = MakeEventSource<D>();
 
     int count = 0;
 

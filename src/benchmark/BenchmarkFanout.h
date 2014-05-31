@@ -9,12 +9,15 @@
 #ifndef CPP_REACT_BENCHMARK_FANOUT_H
 #define CPP_REACT_BENCHMARK_FANOUT_H
 
-#include <functional>
 #include <iostream>
 #include <random>
 #include <vector>
 
 #include "BenchmarkBase.h"
+
+#include "react/Signal.h"
+
+using namespace react;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Benchmark_Fanout
@@ -25,12 +28,7 @@ struct BenchmarkParams_Fanout
         N(n),
         K(k),
         Delay(delay)
-    {
-    }
-
-    const int N;
-    const int K;
-    const int Delay;
+    {}
 
     void Print(std::ostream& out) const
     {
@@ -38,6 +36,10 @@ struct BenchmarkParams_Fanout
             << ", K = " << K
             << ", Delay = " << Delay;
     }
+
+    const int N;
+    const int K;
+    const int Delay;
 };
 
 template <typename D>
@@ -45,14 +47,13 @@ struct Benchmark_Fanout : public BenchmarkBase<D>
 {
     double Run(const BenchmarkParams_Fanout& params)
     {
-        using MyDomain = D;
-        using MyHandle = MyDomain::SignalT<int>;
+        using MySignal = Signal<D,int>;
 
         bool initializing = true;
 
-        auto in = MyDomain::MakeVar(1);
+        auto in = MakeVar<D>(1);
 
-        std::vector<MyHandle> nodes;
+        std::vector<MySignal> nodes;
         auto f = [&initializing,&params] (int a)
         {
             if (params.Delay > 0 && !initializing)
@@ -65,7 +66,7 @@ struct Benchmark_Fanout : public BenchmarkBase<D>
 
         for (int i=0; i<params.N; i++)
         {
-            auto t = in ->* f;
+            auto t = MakeSignal(in, f);
             nodes.push_back(t);
         }
 

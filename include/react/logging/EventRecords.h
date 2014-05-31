@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "Logging.h"
 #include "react/common/Types.h"
@@ -186,9 +187,9 @@ public:
     virtual void Serialize(std::ostream& out) const;
 
 private:
-    ObjectId    nodeId_;
-    int         transactionId_;
-    size_t      threadId_;
+    ObjectId        nodeId_;
+    int             transactionId_;
+    std::thread::id threadId_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -204,9 +205,9 @@ public:
     virtual void Serialize(std::ostream& out) const;
 
 private:
-    ObjectId    nodeId_;
-    int         transactionId_;
-    size_t      threadId_;
+    ObjectId        nodeId_;
+    int             transactionId_;
+    std::thread::id threadId_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

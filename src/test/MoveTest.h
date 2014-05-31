@@ -36,26 +36,23 @@ public:
         int v = 0;
         Stats* stats = nullptr;
 
-        CopyCounter()
-        {    
-        }
+        CopyCounter() = default;
 
         CopyCounter(int x, Stats* s) :
-            v{ x },
-            stats{ s }
-        {
-        }
+            v( x ),
+            stats( s )
+        {}
 
         CopyCounter(const CopyCounter& other) :
-            v{ other.v },
-            stats{ other.stats }
+            v( other.v ),
+            stats( other.stats )
         {
             stats->copyCount++;
         }
 
         CopyCounter(CopyCounter&& other) :
-            v{ other.v },
-            stats{ other.stats }
+            v( other.v ),
+            stats( other.stats )
         {
             stats->moveCount++;
         }
@@ -95,12 +92,16 @@ TYPED_TEST_CASE_P(MoveTest);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(MoveTest, Copy1)
 {
+    using D = typename Copy1::MyDomain;
+    using CopyCounter = typename Copy1::CopyCounter;
+    using Stats = typename Copy1::Stats;
+
     Stats stats1;
 
-    auto a = MyDomain::MakeVar(CopyCounter{1,&stats1});
-    auto b = MyDomain::MakeVar(CopyCounter{10,&stats1});
-    auto c = MyDomain::MakeVar(CopyCounter{100,&stats1});
-    auto d = MyDomain::MakeVar(CopyCounter{1000,&stats1});
+    auto a = MakeVar<D>(CopyCounter{1,&stats1});
+    auto b = MakeVar<D>(CopyCounter{10,&stats1});
+    auto c = MakeVar<D>(CopyCounter{100,&stats1});
+    auto d = MakeVar<D>(CopyCounter{1000,&stats1});
 
     // 4x move to value_
     // 4x copy to newValue_ (can't be unitialized for references)

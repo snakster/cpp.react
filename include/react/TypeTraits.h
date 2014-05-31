@@ -91,14 +91,14 @@ struct IsReactive<TempEvents<D,T,TOp>> { static const bool value = true; };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// RemoveInput
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename T>
+template <typename T>
 struct RemoveInput { using Type = T; };
 
 template <typename D, typename T>
-struct RemoveInput<D, VarSignal<D,T>> { using Type = Signal<D,T>; };
+struct RemoveInput<VarSignal<D,T>> { using Type = Signal<D,T>; };
 
 template <typename D, typename T>
-struct RemoveInput<D, EventSource<D,T>> { using Type = Events<D,T>; };
+struct RemoveInput<EventSource<D,T>> { using Type = Events<D,T>; };
 
 /******************************************/ REACT_END /******************************************/
 

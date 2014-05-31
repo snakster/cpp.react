@@ -79,7 +79,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\react\common\Timing.h" />
     <ClInclude Include="..\..\include\react\detail\EventBase.h" />
-    <ClInclude Include="..\..\include\react\detail\EventFwd.h" />
     <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h" />
     <ClInclude Include="..\..\include\react\detail\ObserverBase.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveInput.h" />
@@ -95,7 +94,6 @@
     <ClInclude Include="..\..\include\react\detail\Options.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveBase.h" />
     <ClInclude Include="..\..\include\react\detail\SignalBase.h" />
-    <ClInclude Include="..\..\include\react\detail\SignalFwd.h" />
     <ClInclude Include="..\..\include\react\Domain.h" />
     <ClInclude Include="..\..\include\react\engine\PulseCountEngine.h" />
     <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h" />
@@ -112,7 +110,6 @@
     <ClInclude Include="..\..\include\react\Algorithm.h" />
     <ClInclude Include="..\..\include\react\Event.h" />
     <ClInclude Include="..\..\include\react\Observer.h" />
-    <ClInclude Include="..\..\include\react\ReactiveObject.h" />
     <ClInclude Include="..\..\include\react\Reactor.h" />
     <ClInclude Include="..\..\include\react\Signal.h" />
     <ClInclude Include="..\..\include\react\TypeTraits.h" />

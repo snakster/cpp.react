@@ -18,9 +18,9 @@
 
 #include "BenchmarkBase.h"
 
+#include "react/Domain.h"
 #include "react/Signal.h"
 #include "react/Event.h"
-#include "react/ReactiveObject.h"
 #include "react/logging/EventLog.h"
 
 using namespace react;
@@ -43,10 +43,12 @@ using BoundsT = std::tuple<int,int,int,int>;
 /// Time
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
-class Time : public ReactiveObject<D>
+class Time
 {
 public:
-    EventSourceT<>      NewDay      = MakeEventSource();
+    USING_REACTIVE_DOMAIN(D)
+
+    EventSourceT<>      NewDay      = MakeEventSource<D>();
 
     SignalT<int>        TotalDays   = Iterate(NewDay, 0, Incrementer<int>());
     SignalT<int>        DayOfYear   = TotalDays % 365;
@@ -62,14 +64,14 @@ public:
 /// Region
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
-class Region : public ReactiveObject<D>
+class Region
 {
-    Time<D>& theTime;
-
 public:
+    USING_REACTIVE_DOMAIN(D)
+
     BoundsT Bounds;
 
-    EventSourceT<Migration>    EnterOrLeave = MakeEventSource<Migration>();
+    EventSourceT<Migration>    EnterOrLeave = MakeEventSource<D,Migration>();
 
     SignalT<int> AnimalCount = Iterate(
         EnterOrLeave,
@@ -93,8 +95,8 @@ public:
     EventsT<int> FoodOutput = Pulse(theTime.NewDay, FoodOutputPerDay);
 
     Region(Time<D>& time, int x, int y) :
-        theTime{ time },
-        Bounds{ x*10, x*10+9, y*10, y*10+9 }
+        theTime( time ),
+        Bounds( x*10, x*10+9, y*10, y*10+9 )
     {}
 
     PositionT Center() const
@@ -121,17 +123,20 @@ public:
         return  get<0>(Bounds) <= pos.first  && pos.first  <= get<1>(Bounds) &&
                 get<2>(Bounds) <= pos.second && pos.second <= get<3>(Bounds);
     }
+
+private:
+    Time<D>& theTime;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// World
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
-class World : public ReactiveObject<D>
+class World
 {
-    int w_;
-
 public:
+    USING_REACTIVE_DOMAIN(D)
+
     vector<unique_ptr<Region<D>>>    Regions;
 
     World(Time<D>& time, int w) :
@@ -162,13 +167,16 @@ public:
 
         return  pos;
     }
+
+private:
+    int w_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Animal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
-class Animal : public ReactiveObject<D>
+class Animal
 {
     Time<D>&    theTime;
     World<D>&   theWorld;
@@ -176,6 +184,8 @@ class Animal : public ReactiveObject<D>
     std::mt19937 generator;
 
 public:
+    USING_REACTIVE_DOMAIN(D)
+
     VarSignalT<Region<D>*>  CurrentRegion;
 
     EventsT<int>        FoodReceived    = REACTIVE_PTR(CurrentRegion, FoodOutput);
@@ -183,12 +193,7 @@ public:
     EventsT<bool>       Moving          = Pulse(theTime.NewDay, ShouldMigrate);
 
     SignalT<PositionT>  Position;
-    
-    SignalT<Region<D>*> NewRegion       = MakeSignal(
-        Position, 
-        [this] (PositionT pos) {
-            return theWorld.GetRegion(pos);
-        });
+    SignalT<Region<D>*> NewRegion;
 
     EventsT<Region<D>*> RegionChanged   = Monitor(NewRegion);;
 
@@ -203,12 +208,12 @@ public:
         });
 
     Animal(Time<D>& time, World<D>& world, Region<D>* initRegion, unsigned seed) :
-        theTime{ time },
-        theWorld{ world },
-        generator{ seed },
-        CurrentRegion{ MakeVar(initRegion) },
+        theTime( time ),
+        theWorld( world ),
+        generator( seed ),
+        CurrentRegion( MakeVar<D>(initRegion) ),
         Position
-        {
+        (
             Iterate(Moving, initRegion->Center(), With(CurrentRegion),
                 [this] (bool moving, PositionT position, Region<D>* region) {
                     std::uniform_int_distribution<int> dist(-1,1);
@@ -226,7 +231,14 @@ public:
                     else
                         return region->Clamp(position);
                 })
-        }
+        ),
+        NewRegion
+        (
+            MakeSignal(Position, 
+                [this] (PositionT pos) {
+                    return theWorld.GetRegion(pos);
+                })
+        )
     {
         initRegion->EnterOrLeave(Migration::enter);
 
@@ -249,12 +261,8 @@ public:
 struct BenchmarkParams_LifeSim
 {
     BenchmarkParams_LifeSim(int n, int w, int k) :
-        N{ n }, W{ w }, K{ k }
+        N( n ), W( w ), K( k )
     {}
-
-    const int N;
-    const int W;
-    const int K;
 
     void Print(std::ostream& out) const
     {
@@ -262,6 +270,10 @@ struct BenchmarkParams_LifeSim
             << ", K = " << K
             << ", W = " << W;
     }
+
+    const int N;
+    const int W;
+    const int K;
 };
 
 template <typename D>
@@ -270,12 +282,12 @@ struct Benchmark_LifeSim : public BenchmarkBase<D>
     double Run(const BenchmarkParams_LifeSim& params)
     {
         Time<D>  theTime;
-        World<D> theWorld{ theTime, params.W };
+        World<D> theWorld( theTime, params.W );
 
-        vector<unique_ptr<Animal<D>>> animals{};
+        vector<unique_ptr<Animal<D>>> animals;
 
-        std::mt19937 gen{ 2015 };
-        std::uniform_int_distribution<unsigned> dist{ 0u, theWorld.Regions.size()-1 };
+        std::mt19937 gen( 2015 );
+        std::uniform_int_distribution<unsigned> dist( 0u, theWorld.Regions.size()-1 );
 
         for (int i=0; i<params.N; i++)
         {

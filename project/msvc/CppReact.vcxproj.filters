@@ -51,9 +51,6 @@
     <ClInclude Include="..\..\include\react\common\Util.h">
       <Filter>Header Files\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\ReactiveObject.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\Signal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -146,12 +143,6 @@
     </ClInclude>
     <ClInclude Include="..\..\include\react\common\Timing.h">
       <Filter>Header Files\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\SignalFwd.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\EventFwd.h">
-      <Filter>Header Files\detail</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

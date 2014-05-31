@@ -36,10 +36,12 @@ TYPED_TEST_CASE_P(SignalTest);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, MakeVars)
 {
-    auto v1 = MyDomain::MakeVar(1);
-    auto v2 = MyDomain::MakeVar(2);
-    auto v3 = MyDomain::MakeVar(3);
-    auto v4 = MyDomain::MakeVar(4);
+    using D = typename MakeVars::MyDomain;
+
+    auto v1 = MakeVar<D>(1);
+    auto v2 = MakeVar<D>(2);
+    auto v3 = MakeVar<D>(3);
+    auto v4 = MakeVar<D>(4);
 
     ASSERT_EQ(v1(),1);
     ASSERT_EQ(v2(),2);
@@ -62,10 +64,12 @@ TYPED_TEST_P(SignalTest, MakeVars)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Signals1)
 {
-    auto v1 = MyDomain::MakeVar(1);
-    auto v2 = MyDomain::MakeVar(2);
-    auto v3 = MyDomain::MakeVar(3);
-    auto v4 = MyDomain::MakeVar(4);
+    using D = typename Signals1::MyDomain;
+
+    auto v1 = MakeVar<D>(1);
+    auto v2 = MakeVar<D>(2);
+    auto v3 = MakeVar<D>(3);
+    auto v4 = MakeVar<D>(4);
 
     auto s1 = MakeSignal(With(v1,v2), [] (int a, int b) {
         return a + b;
@@ -110,8 +114,10 @@ TYPED_TEST_P(SignalTest, Signals1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Signals2)
 {
-    auto a1 = MyDomain::MakeVar(1);
-    auto a2 = MyDomain::MakeVar(1);
+    using D = typename Signals2::MyDomain;
+
+    auto a1 = MakeVar<D>(1);
+    auto a2 = MakeVar<D>(1);
     
     auto b1 = a1 + 0;
     auto b2 = a1 + a2;
@@ -183,8 +189,10 @@ TYPED_TEST_P(SignalTest, Signals2)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Signals3)
 {
-    auto a1 = MyDomain::MakeVar(1);
-    auto a2 = MyDomain::MakeVar(1);
+    using D = typename Signals3::MyDomain;
+
+    auto a1 = MakeVar<D>(1);
+    auto a2 = MakeVar<D>(1);
     
     auto b1 = a1 + 0;
     auto b2 = a1 + a2;
@@ -215,7 +223,7 @@ TYPED_TEST_P(SignalTest, Signals3)
 
     ASSERT_EQ(result(),6);
 
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         a1 <<= 2;
         a2 <<= 2;
     });
@@ -240,8 +248,10 @@ TYPED_TEST_P(SignalTest, Signals3)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Signals4)
 {
-    auto a1 = MyDomain::MakeVar(1);
-    auto a2 = MyDomain::MakeVar(1);
+    using D = typename Signals4::MyDomain;
+
+    auto a1 = MakeVar<D>(1);
+    auto a2 = MakeVar<D>(1);
     
     auto b1 = a1 + a2;
     auto b2 = b1 + a2;
@@ -266,9 +276,11 @@ TYPED_TEST_P(SignalTest, Signals4)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, FunctionBind1)
 {
-    auto v1 = MyDomain::MakeVar(2);
-    auto v2 = MyDomain::MakeVar(30);
-    auto v3 = MyDomain::MakeVar(10);
+    using D = typename FunctionBind1::MyDomain;
+
+    auto v1 = MakeVar<D>(2);
+    auto v2 = MakeVar<D>(30);
+    auto v3 = MakeVar<D>(10);
 
     auto signal = (v1, v2, v3) ->* [=] (int a, int b, int c) -> int
     {
@@ -289,8 +301,10 @@ float myfunc3(float a, float b) { return a * b; }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, FunctionBind2)
 {
-    auto a = MyDomain::MakeVar(1);
-    auto b = MyDomain::MakeVar(1);
+    using D = typename FunctionBind2::MyDomain;
+
+    auto a = MakeVar<D>(1);
+    auto b = MakeVar<D>(1);
     
     auto c = ((a+b), (a+100)) ->* &myfunc;
     auto d = c ->* &myfunc2;
@@ -315,10 +329,12 @@ TYPED_TEST_P(SignalTest, FunctionBind2)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Flatten1)
 {
-    auto inner1 = MyDomain::MakeVar(123);
-    auto inner2 = MyDomain::MakeVar(789);
+    using D = typename Flatten1::MyDomain;
+
+    auto inner1 = MakeVar<D>(123);
+    auto inner2 = MakeVar<D>(789);
     
-    auto outer = MyDomain::MakeVar(inner1);
+    auto outer = MakeVar<D>(inner1);
 
     auto flattened = Flatten(outer);
 
@@ -354,12 +370,14 @@ TYPED_TEST_P(SignalTest, Flatten1)
 /// Flatten2 test
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Flatten2)
-{    
-    auto a0 = MyDomain::MakeVar(100);
-    
-    auto inner1 = MyDomain::MakeVar(200);
+{
+    using D = typename Flatten2::MyDomain;
 
-    auto a1 = MyDomain::MakeVar(300);
+    auto a0 = MakeVar<D>(100);
+    
+    auto inner1 = MakeVar<D>(200);
+
+    auto a1 = MakeVar<D>(300);
     auto a2 = a1 + 0;
     auto a3 = a2 + 0;
     auto a4 = a3 + 0;
@@ -370,7 +388,7 @@ TYPED_TEST_P(SignalTest, Flatten2)
     ASSERT_EQ(inner1(),200);
     ASSERT_EQ(inner2(),300);
 
-    auto outer = MyDomain::MakeVar(inner1);
+    auto outer = MakeVar<D>(inner1);
 
     auto flattened = Flatten(outer);
 
@@ -400,7 +418,7 @@ TYPED_TEST_P(SignalTest, Flatten2)
     ASSERT_EQ(result(), 100 + 300);
     ASSERT_EQ(observeCount, 2);
 
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         a0 <<= 5000;
         a1 <<= 6000;
     });
@@ -414,16 +432,18 @@ TYPED_TEST_P(SignalTest, Flatten2)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Flatten3)
 {
-    auto inner1 = MyDomain::MakeVar(10);
+    using D = typename Flatten3::MyDomain;
 
-    auto a1 = MyDomain::MakeVar(20);
+    auto inner1 = MakeVar<D>(10);
+
+    auto a1 = MakeVar<D>(20);
     auto a2 = a1 + 0;
     auto a3 = a2 + 0;
     auto inner2 = a3 + 0;
 
-    auto outer = MyDomain::MakeVar(inner1);
+    auto outer = MakeVar<D>(inner1);
 
-    auto a0 = MyDomain::MakeVar(30);
+    auto a0 = MakeVar<D>(30);
 
     auto flattened = Flatten(outer);
 
@@ -439,7 +459,7 @@ TYPED_TEST_P(SignalTest, Flatten3)
     ASSERT_EQ(result(), 10 + 30);
     ASSERT_EQ(observeCount, 0);
 
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         inner1 <<= 1000;
         a0 <<= 200000;
         a1 <<= 50000;
@@ -449,7 +469,7 @@ TYPED_TEST_P(SignalTest, Flatten3)
     ASSERT_EQ(result(), 50000 + 200000);
     ASSERT_EQ(observeCount, 1);
 
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         a0 <<= 667;
         a1 <<= 776;
     });
@@ -457,7 +477,7 @@ TYPED_TEST_P(SignalTest, Flatten3)
     ASSERT_EQ(result(), 776 + 667);
     ASSERT_EQ(observeCount, 2);
 
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         inner1 <<= 999;
         a0 <<= 888;
     });
@@ -471,17 +491,19 @@ TYPED_TEST_P(SignalTest, Flatten3)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Flatten4)
 {
+    using D = typename Flatten4::MyDomain;
+
     std::vector<int> results;
 
-    auto a1 = MyDomain::MakeVar(100);
+    auto a1 = MakeVar<D>(100);
     auto inner1 = a1 + 0;
 
-    auto a2 = MyDomain::MakeVar(200);
+    auto a2 = MakeVar<D>(200);
     auto inner2 = a2;
 
-    auto a3 = MyDomain::MakeVar(200);
+    auto a3 = MakeVar<D>(200);
 
-    auto outer = MyDomain::MakeVar(inner1);
+    auto outer = MakeVar<D>(inner1);
 
     auto flattened = Flatten(outer);
 
@@ -491,7 +513,7 @@ TYPED_TEST_P(SignalTest, Flatten4)
         results.push_back(v);
     });
 
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         a3 <<= 400;
         outer <<= inner2;
     });
@@ -506,8 +528,10 @@ TYPED_TEST_P(SignalTest, Flatten4)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Member1)
 {
-    auto outer = MyDomain::MakeVar(10);
-    auto inner = MyDomain::MakeVar(outer);
+    using D = typename Member1::MyDomain;
+
+    auto outer = MakeVar<D>(10);
+    auto inner = MakeVar<D>(outer);
 
     auto flattened = inner.Flatten();
 
@@ -523,9 +547,11 @@ TYPED_TEST_P(SignalTest, Member1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Modify1)
 {
+    using D = typename Modify1::MyDomain;
+
     using std::vector;
 
-    auto v = MyDomain::MakeVar(vector<int>{});
+    auto v = MakeVar<D>(vector<int>{});
 
     int obsCount = 0;
 
@@ -551,9 +577,11 @@ TYPED_TEST_P(SignalTest, Modify1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Modify2)
 {
+    using D = typename Modify2::MyDomain;
+
     using std::vector;
 
-    auto v = MyDomain::MakeVar(vector<int>{});
+    auto v = MakeVar<D>(vector<int>{});
 
     int obsCount = 0;
 
@@ -565,7 +593,7 @@ TYPED_TEST_P(SignalTest, Modify2)
         obsCount++;
     });
     
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         v.Modify([] (vector<int>& v) {
             v.push_back(30);
         });
@@ -588,9 +616,11 @@ TYPED_TEST_P(SignalTest, Modify2)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Modify3)
 {
+    using D = typename Modify3::MyDomain;
+
     using std::vector;
 
-    auto vect = MyDomain::MakeVar(vector<int>{});
+    auto vect = MakeVar<D>(vector<int>{});
 
     int obsCount = 0;
 
@@ -633,9 +663,11 @@ TYPED_TEST_P(SignalTest, Modify3)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(SignalTest, Modify4)
 {
+    using D = typename Modify4::MyDomain;
+
     using std::vector;
 
-    auto vect = MyDomain::MakeVar(vector<int>{});
+    auto vect = MakeVar<D>(vector<int>{});
 
     int obsCount = 0;
 
@@ -648,7 +680,7 @@ TYPED_TEST_P(SignalTest, Modify4)
     });
     
     // Also terrible
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
 
         vect.Set(vector<int>{ 30, 50 });
 

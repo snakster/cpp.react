@@ -4,7 +4,7 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-//#define REACT_ENABLE_LOGGING
+#define REACT_ENABLE_LOGGING
 
 #include "tbb/tick_count.h"
 #include "tbb/tbbmalloc_proxy.h"
@@ -167,8 +167,8 @@ void debugBenchmarks()
 {
     using TestDomain = PulsecountDomain;
 
-    RUN_BENCHMARK(std::cout, 3, Benchmark_Grid, BenchmarkParams_Grid(30, 1),
-        PulsecountDomain);
+    //RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 1),
+    //    TestDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_Fanout, BenchmarkParams_Fanout(1000, 5, 0),
     //    TestDomain);
@@ -181,6 +181,9 @@ void debugBenchmarks()
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_Random, BenchmarkParams_Random(10, 25, 10, 0, 10, 25, 25, false),
     //    ToposortDomain);
+
+    RUN_BENCHMARK(std::cout, 1, Benchmark_Random, BenchmarkParams_Random(40, 11, 2, 0, 1, 40, 40, false, 41556, 21624),
+        TestDomain);
 
     //const auto w = 10;
     //const auto h = 11;
@@ -213,19 +216,19 @@ void debugBenchmarks()
 
 void profileBenchmark()
 {
-    RUN_BENCHMARK(std::cout, 3, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
-        ToposortSTDomain);
-        //ToposortSTDomain, ToposortDomain, ELMDomain, PulsecountDomain, SubtreeDomain, SourceSetDomain);
+    //RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(100, 10000),
+    //    PulsecountDomain);
+        //ToposortSTDomain, ToposortDomain, PulsecountDomain, SubtreeDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
     //    SourceSetDomain);
 
-    //RUN_BENCHMARK(std::cout, 1, Benchmark_Random, BenchmarkParams_Random(20, 11, 100, 0, 5, 80, 20, false, 41556, 21624),
-        //SubtreeDomain);
+    RUN_BENCHMARK(std::cout, 3, Benchmark_Random, BenchmarkParams_Random(20, 11, 100, 0, 1, 40, 40, false, 41556, 21624),
+        SubtreeDomain);
         //ToposortSTDomain, ToposortDomain, PulsecountDomain, SubtreeDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
-     //   ToposortDomain);
+        //ToposortSTDomain);
 }
 
 } // ~anonymous namespace 
@@ -233,6 +236,6 @@ void profileBenchmark()
 int main()
 {
     //runBenchmarks();
-    //debugBenchmarks();    
-    profileBenchmark();
+    debugBenchmarks();    
+    //profileBenchmark();
 }

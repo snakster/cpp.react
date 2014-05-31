@@ -19,7 +19,6 @@
 #include "react/Signal.h"
 #include "react/Event.h"
 #include "react/Algorithm.h"
-#include "react/ReactiveObject.h"
 
 #ifdef REACT_ENABLE_REACTORS
     #include "react/Reactor.h"
@@ -31,7 +30,7 @@ using namespace react;
 // Defines a domain.
 // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
 // Reactives of different domains can not be combined.
-REACTIVE_DOMAIN(D);
+REACTIVE_DOMAIN(D)
 
 // Explicit engine:
 //#include "react/engine/SubtreeEngine.h"
@@ -43,9 +42,10 @@ void SignalExample1()
 {
     cout << "Signal Example 1" << endl;
 
-    auto width  = D::MakeVar(60);
-    auto height = D::MakeVar(70);
-    auto depth  = D::MakeVar(8);
+    D::VarSignalT<int> width  = MakeVar<D>(60);
+    // Note: Using auto from here on
+    auto height = MakeVar<D>(70);
+    auto depth  = MakeVar<D>(8);
 
     auto area   = width * height;
     auto volume = area  * depth;
@@ -68,9 +68,9 @@ void SignalExample2()
 {
     cout << "Signal Example 2" << endl;
 
-    auto width  = D::MakeVar(60);
-    auto height = D::MakeVar(70);
-    auto depth  = D::MakeVar(8);
+    auto width  = MakeVar<D>(60);
+    auto height = MakeVar<D>(70);
+    auto depth  = MakeVar<D>(8);
 
     auto volume = MakeSignal(
         With(width,height,depth),
@@ -99,7 +99,7 @@ void SignalExample3()
 {
     cout << "Signal Example 3" << endl;
 
-    auto src = D::MakeVar(0);
+    auto src = MakeVar<D>(0);
 
     // Input values can be manipulated imperatively in observers.
     // Inputs are implicitly thread-safe, buffered and executed in a continuation turn.
@@ -120,8 +120,8 @@ void EventExample1()
 {
     cout << "Event Example 1" << endl;
 
-    auto numbers1 = D::MakeEventSource<int>();
-    auto numbers2 = D::MakeEventSource<int>();
+    auto numbers1 = MakeEventSource<D,int>();
+    auto numbers2 = MakeEventSource<D,int>();
 
     auto anyNumber = numbers1 | numbers2;
 
@@ -141,7 +141,7 @@ void EventExample2()
 
     // The event type can be omitted if not required, in which case the event
     // stream just indicates that it has fired, i.e. it behaves like a token stream.
-    auto emitter = D::MakeEventSource();
+    auto emitter = MakeEventSource<D>();
 
     auto counter = Iterate(emitter, 0, [] (Token, int v) { return v+1; });
 
@@ -158,10 +158,12 @@ void EventExample2()
     cout << endl;
 }
 
-class Person : public ReactiveObject<D>
+class Person
 {
 public:
-    VarSignalT<int> Age     = MakeVar(1);
+    USING_REACTIVE_DOMAIN(D)
+
+    VarSignalT<int> Age     = MakeVar<D>(1);
     SignalT<int>    Health  = 100 - Age;
     SignalT<int>    Wisdom  = Age * Age / 100;
 
@@ -205,13 +207,15 @@ void ObjectExample1()
     cout << endl;
 }
 
-class Company : public ReactiveObject<D>
+class Company
 {
+    USING_REACTIVE_DOMAIN(D)
+
 public:
     VarSignalT<string>    Name;
 
     Company(const char* name) :
-        Name{ MakeVar(string(name)) }
+        Name( MakeVar<D>(string(name)) )
     {}
 
     inline bool operator==(const Company& other) const
@@ -220,15 +224,17 @@ public:
     }
 };
 
-class Manager : public ReactiveObject<D>
+class Manager
 {
+    USING_REACTIVE_DOMAIN(D)
+
     ObserverT nameObs;
 
 public:
     VarSignalT<Company&>    CurrentCompany;
 
     Manager(Company& c) :
-        CurrentCompany{ MakeVar(ref(c)) }
+        CurrentCompany( MakeVar<D>(ref(c)) )
     {
         nameObs = Observe(REACTIVE_REF(CurrentCompany, Name), [] (string name) {
             cout << "Manager: Now managing " << name << endl;
@@ -260,7 +266,7 @@ void IterateExample1()
 {
     cout << "Iterate Example 1" << endl;
 
-    auto src = D::MakeEventSource<int>();
+    auto src = MakeEventSource<D,int>();
     auto it = Iterate(src, 0, [] (int d, int v) {
         return v + d;
     });
@@ -270,7 +276,7 @@ void IterateExample1()
 
     cout << it() << endl;
 
-    auto charSrc = D::MakeEventSource<char>();
+    auto charSrc = MakeEventSource<D,char>();
     auto str = Iterate(charSrc, string(""), [] (char c, string s) {
         return s + c;
     });
@@ -291,9 +297,9 @@ void LoopTest()
 
     vector<PathT> paths;
 
-    auto mouseDown = D::MakeEventSource<PointT>();
-    auto mouseUp   = D::MakeEventSource<PointT>();
-    auto mouseMove = D::MakeEventSource<PointT>();
+    auto mouseDown = MakeEventSource<D,PointT>();
+    auto mouseUp   = MakeEventSource<D,PointT>();
+    auto mouseMove = MakeEventSource<D,PointT>();
 
     D::ReactiveLoopT loop
     {

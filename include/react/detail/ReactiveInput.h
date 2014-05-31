@@ -178,7 +178,7 @@ public:
 
         bool shouldPropagate = false;
 
-        auto turn = makeTurn(flags);
+        TurnT turn( nextTurnId(), flags );
 
         // Phase 1 - Input admission
         transactionState_.Active = true;
@@ -257,16 +257,11 @@ private:
 
     static TransactionState transactionState_;
 
-    static TurnT makeTurn(TurnFlagsT flags)
-    {
-        return TurnT(nextTurnId(), flags);
-    }
-
     // Create a turn with a single input
     template <typename R, typename V>
     static void addSimpleInput(R& r, V&& v)
     {
-        auto turn = makeTurn(0);
+        TurnT turn( nextTurnId(), 0 );
 
         Engine::OnTurnAdmissionStart(turn);
         r.AddInput(std::forward<V>(v));
@@ -283,7 +278,7 @@ private:
     template <typename R, typename F>
     static void modifySimpleInput(R& r, const F& func)
     {
-        auto turn = makeTurn(0);
+        TurnT turn( nextTurnId(), 0 );
 
         Engine::OnTurnAdmissionStart(turn);
         r.ModifyInput(func);
@@ -350,7 +345,7 @@ private:
         while (true)
         {
             bool shouldPropagate = false;
-            auto turn = makeTurn(flags);
+            TurnT turn( nextTurnId(), flags );
 
             transactionState_.Active = true;
             Engine::OnTurnAdmissionStart(turn);

@@ -37,9 +37,11 @@ TYPED_TEST_CASE_P(TransactionTest);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(TransactionTest, Concurrent1)
 {
+    using D = typename Concurrent1::MyDomain;
+
     std::vector<int> results;
 
-    auto n1 = MyDomain::MakeVar(1);
+    auto n1 = MakeVar<D>(1);
     auto n2 = n1 + 1;
     auto n3 = n2 + n1 + 1;
     auto n4 = n3 + 1;
@@ -98,12 +100,14 @@ TYPED_TEST_P(TransactionTest, Concurrent1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(TransactionTest, Concurrent2)
 {
+    using D = typename Concurrent2::MyDomain;
+
     std::vector<int> results;
 
-    auto in = MyDomain::MakeVar(-1);
+    auto in = MakeVar<D>(-1);
 
     // 1. Generate graph
-    MyDomain::SignalT<int> n0 = in;
+    Signal<D,int> n0 = in;
 
     auto next = n0;
 
@@ -163,6 +167,8 @@ TYPED_TEST_P(TransactionTest, Concurrent2)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(TransactionTest, Concurrent3)
 {
+    using D = typename Concurrent3::MyDomain;
+
     std::vector<int> results;
 
     std::function<int(int)> f_0 = [] (int a) -> int
@@ -177,7 +183,7 @@ TYPED_TEST_P(TransactionTest, Concurrent3)
         return a + b;
     };
 
-    auto n1 = MyDomain::MakeVar(1);
+    auto n1 = MakeVar<D>(1);
     auto n2 = n1 ->* f_0;
     auto n3 = ((n2, n1) ->* f_n) ->* f_0;
     auto n4 = n3 ->* f_0;
@@ -236,6 +242,8 @@ TYPED_TEST_P(TransactionTest, Concurrent3)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(TransactionTest, Merging1)
 {
+    using D = typename Merging1::MyDomain;
+
     std::vector<int> results;
 
     std::atomic<bool> shouldSpin(false);
@@ -247,7 +255,7 @@ TYPED_TEST_P(TransactionTest, Merging1)
         return a;
     };
 
-    auto n1 = MyDomain::MakeVar(1);
+    auto n1 = MakeVar<D>(1);
     auto n2 = n1 ->* f;
 
     Observe(n2, [&] (int v)
@@ -258,25 +266,25 @@ TYPED_TEST_P(TransactionTest, Merging1)
     // Todo: improve this as it'll fail occasionally
     shouldSpin = true;
     std::thread t1([&] {
-        MyDomain::DoTransaction(enable_input_merging, [&] {
+        D::DoTransaction(enable_input_merging, [&] {
             n1 <<= 2;
         });
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     std::thread t2([&] {
-        MyDomain::DoTransaction(enable_input_merging, [&] {
+        D::DoTransaction(enable_input_merging, [&] {
             n1 <<= 3;
         });
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     std::thread t3([&] {
-        MyDomain::DoTransaction(enable_input_merging, [&] {
+        D::DoTransaction(enable_input_merging, [&] {
             n1 <<= 4;
         });
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     std::thread t4([&] {
-        MyDomain::DoTransaction(enable_input_merging, [&] {
+        D::DoTransaction(enable_input_merging, [&] {
             n1 <<= 5;
         });
         

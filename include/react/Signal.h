@@ -16,13 +16,23 @@
 #include <type_traits>
 #include <utility>
 
-#include "react/detail/SignalFwd.h"
-
 #include "react/Observer.h"
 #include "react/TypeTraits.h"
 #include "react/detail/SignalBase.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Forward declarations
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename S>
+class Signal;
+
+template <typename D, typename S>
+class VarSignal;
+
+template <typename D, typename S, typename TOp>
+class TempSignal;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalPack - Wraps several nodes in a tuple. Create with comma operator.
@@ -68,8 +78,9 @@ template
 <
     typename D,
     typename V,
-    typename S,
-    class /*SFINAE*/
+    typename S = typename std::decay<V>::type,
+    class = typename std::enable_if<
+        ! IsReactive<S>::value>::type
 >
 auto MakeVar(V&& value)
     -> VarSignal<D,S>
@@ -670,7 +681,8 @@ public:
 
     Signal& operator=(Signal&& other)
     {
-        return Signal::SignalBase::operator=( std::move(other) );
+        Signal::SignalBase::operator=( std::move(other) );
+        return *this;
     }
 
     explicit Signal(NodePtrT&& nodePtr) :
@@ -716,7 +728,8 @@ public:
 
     VarSignal& operator=(VarSignal&& other)
     {
-        return VarSignal::Signal::operator=( std::move(other) );
+        VarSignal::Signal::operator=( std::move(other) );
+        return *this;
     }
 
     explicit VarSignal(NodePtrT&& nodePtr) :
@@ -777,7 +790,8 @@ public:
 
     VarSignal& operator=(VarSignal&& other)
     {
-        return VarSignal::Signal::operator=( std::move(other) );
+        VarSignal::Signal::operator=( std::move(other) );
+        return *this;
     }
 
     explicit VarSignal(NodePtrT&& nodePtr) :
@@ -822,7 +836,8 @@ public:
 
     TempSignal& operator=(TempSignal&& other)
     {
-        return TempSignal::Signal::operator=( std::move(other) );
+        TempSignal::Signal::operator=( std::move(other) );
+        return *this;
     }
 
     explicit TempSignal(NodePtrT&& ptr) :
@@ -846,5 +861,42 @@ bool Equals(const Signal<D,L>& lhs, const Signal<D,R>& rhs)
 }
 
 /****************************************/ REACT_IMPL_END /***************************************/
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Flatten macros
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Note: Using static_cast rather than -> return type, because when using lambda for inline
+// class initialization, decltype did not recognize the parameter r
+// Note2: MSVC doesn't like typename in the lambda
+#if _MSC_VER && !__INTEL_COMPILER
+    #define REACT_MSVC_NO_TYPENAME
+#else
+    #define REACT_MSVC_NO_TYPENAME typename
+#endif
+
+#define REACTIVE_REF(obj, name)                                                             \
+    Flatten(                                                                                \
+        MakeSignal(                                                                         \
+            obj,                                                                            \
+            [] (const REACT_MSVC_NO_TYPENAME                                                \
+                REACT_IMPL::Identity<decltype(obj)>::Type::ValueT& r)                       \
+            {                                                                               \
+                using T = decltype(r.name);                                                 \
+                using S = REACT_MSVC_NO_TYPENAME REACT::RemoveInput<T>::Type;               \
+                return static_cast<S>(r.name);                                              \
+            }))
+
+#define REACTIVE_PTR(obj, name)                                                             \
+    Flatten(                                                                                \
+        MakeSignal(                                                                         \
+            obj,                                                                            \
+            [] (REACT_MSVC_NO_TYPENAME                                                      \
+                REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)                        \
+            {                                                                               \
+                assert(r != nullptr);                                                       \
+                using T = decltype(r->name);                                                \
+                using S = REACT_MSVC_NO_TYPENAME REACT::RemoveInput<T>::Type;               \
+                return static_cast<S>(r->name);                                             \
+            }))
 
 #endif // REACT_SIGNAL_H_INCLUDED

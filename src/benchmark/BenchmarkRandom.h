@@ -14,6 +14,10 @@
 #include "BenchmarkBase.h"
 #include "react/common/Types.h"
 
+#include "react/Signal.h"
+
+using namespace react;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DiamondGraphGenerator
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,20 +185,7 @@ struct BenchmarkParams_Random
         WithRandomInput(randInput),
         EdgeSeed(edgeSeed),
         SlowSeed(slowSeed)
-    {
-    }
-
-    const int W;
-    const int H;
-    const int K;
-    const int FastDelay;
-    const int SlowDelay;
-    const int EdgeCount;
-    const int SlowCount;
-    const bool WithRandomInput;
-
-    const int EdgeSeed;
-    const int SlowSeed;
+    {}
 
     void Print(std::ostream& out) const
     {
@@ -209,6 +200,18 @@ struct BenchmarkParams_Random
             << ", EdgeSeed = " << EdgeSeed
             << ", SlowSeed = " << SlowSeed;
     }
+
+    const int W;
+    const int H;
+    const int K;
+    const int FastDelay;
+    const int SlowDelay;
+    const int EdgeCount;
+    const int SlowCount;
+    const bool WithRandomInput;
+
+    const int EdgeSeed;
+    const int SlowSeed;
 };
 
 template <typename D>
@@ -216,12 +219,10 @@ struct Benchmark_Random : public BenchmarkBase<D>
 {
     double Run(const BenchmarkParams_Random& params)
     {
-        using MyDomain = D;
-
-        RandomGraphGenerator<MyDomain,int> generator;
+        RandomGraphGenerator<D,int> generator;
 
         for (int i=0; i<params.W; i++)
-            generator.InputSignals.push_back(MyDomain::MakeVar(1));
+            generator.InputSignals.push_back(MakeVar<D>(1));
 
         generator.Width = params.W;
         generator.Height = params.H;
@@ -303,7 +304,7 @@ struct Benchmark_Random : public BenchmarkBase<D>
         auto t0 = tbb::tick_count::now();
         for (int i=0; i<params.K; i++)
         {
-            MyDomain::DoTransaction([&] {
+            D::DoTransaction([&] {
                 for (int j=0; j<counts[i]; j++)
                 {
                     generator.InputSignals[cursor++] <<= 10+i;

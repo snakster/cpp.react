@@ -26,7 +26,7 @@ template <typename TEngine>
 class EventStreamTest : public testing::Test
 {
 public:
-    REACTIVE_DOMAIN(MyDomain, TEngine);
+    REACTIVE_DOMAIN(MyDomain, TEngine)
 };
 
 TYPED_TEST_CASE_P(EventStreamTest);
@@ -36,8 +36,10 @@ TYPED_TEST_CASE_P(EventStreamTest);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(EventStreamTest, EventSources)
 {
-    auto es1 = MyDomain::MakeEventSource<int>();
-    auto es2 = MyDomain::MakeEventSource<int>();
+    using D = typename EventSources::MyDomain;
+
+    auto es1 = MakeEventSource<D,int>();
+    auto es2 = MakeEventSource<D,int>();
 
     std::queue<int> results1;
     std::queue<int> results2;
@@ -91,9 +93,11 @@ TYPED_TEST_P(EventStreamTest, EventSources)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(EventStreamTest, EventMerge1)
 {
-    auto a1 = MyDomain::MakeEventSource<int>();
-    auto a2 = MyDomain::MakeEventSource<int>();
-    auto a3 = MyDomain::MakeEventSource<int>();
+    using D = typename EventMerge1::MyDomain;
+
+    auto a1 = MakeEventSource<D,int>();
+    auto a2 = MakeEventSource<D,int>();
+    auto a3 = MakeEventSource<D,int>();
 
     auto merged = Merge(a1, a2, a3);
 
@@ -104,7 +108,7 @@ TYPED_TEST_P(EventStreamTest, EventMerge1)
         results.push_back(v);
     });
     
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         a1 << 10;
         a2 << 20;
         a3 << 30;
@@ -121,9 +125,11 @@ TYPED_TEST_P(EventStreamTest, EventMerge1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(EventStreamTest, EventMerge2)
 {
-    auto a1 = MyDomain::MakeEventSource<std::string>();
-    auto a2 = MyDomain::MakeEventSource<std::string>();
-    auto a3 = MyDomain::MakeEventSource<std::string>();
+    using D = typename EventMerge2::MyDomain;
+
+    auto a1 = MakeEventSource<D,std::string>();
+    auto a2 = MakeEventSource<D,std::string>();
+    auto a3 = MakeEventSource<D,std::string>();
 
     auto merged = Merge(a1, a2, a3);
 
@@ -138,7 +144,7 @@ TYPED_TEST_P(EventStreamTest, EventMerge2)
     std::string s2("two");
     std::string s3("three");
 
-    MyDomain::DoTransaction([&] {
+    D::DoTransaction([&] {
         a1 << s1;
         a2 << s2;
         a3 << s3;
@@ -155,8 +161,10 @@ TYPED_TEST_P(EventStreamTest, EventMerge2)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(EventStreamTest, EventMerge3)
 {
-    auto a1 = MyDomain::MakeEventSource<int>();
-    auto a2 = MyDomain::MakeEventSource<int>();
+    using D = typename EventMerge3::MyDomain;
+
+    auto a1 = MakeEventSource<D,int>();
+    auto a2 = MakeEventSource<D,int>();
 
     auto f1 = Filter(a1, [] (int v) { return true; });
     auto f2 = Filter(a2, [] (int v) { return true; });
@@ -194,11 +202,13 @@ TYPED_TEST_P(EventStreamTest, EventMerge3)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(EventStreamTest, EventFilter)
 {
+    using D = typename EventFilter::MyDomain;
+
     using std::string;
 
     std::queue<string> results;
 
-    auto in = MyDomain::MakeEventSource<string>();
+    auto in = MakeEventSource<D,string>();
 
     auto filtered = Filter(in, [] (const string& s)
     {
@@ -225,12 +235,14 @@ TYPED_TEST_P(EventStreamTest, EventFilter)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(EventStreamTest, EventTransform)
 {
+    using D = typename EventTransform::MyDomain;
+
     using std::string;
 
     std::vector<string> results;
 
-    auto in1 = MyDomain::MakeEventSource<string>();
-    auto in2 = MyDomain::MakeEventSource<string>();
+    auto in1 = MakeEventSource<D,string>();
+    auto in2 = MakeEventSource<D,string>();
 
     auto merged = Merge(in1, in2);
 
@@ -239,7 +251,6 @@ TYPED_TEST_P(EventStreamTest, EventTransform)
         std::transform(s.begin(), s.end(), s.begin(), ::toupper);
         return s;
     });
-
 
     Observe(transformed, [&] (const string& s)
     {

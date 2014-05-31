@@ -13,6 +13,7 @@
 
 #include "react/detail/Defs.h"
 #include "react/common/Types.h"
+#include "react/logging/EventRecords.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 

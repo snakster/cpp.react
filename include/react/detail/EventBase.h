@@ -31,6 +31,7 @@ class EventStreamBase : public ReactiveBase<EventStreamNode<D,E>>
 {
 public:
     EventStreamBase() = default;
+    EventStreamBase(const EventStreamBase&) = default;
 
     template <typename T>
     explicit EventStreamBase(T&& ptr) :
