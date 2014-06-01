@@ -9,8 +9,6 @@
 
 #pragma once
 
-#ifdef REACT_ENABLE_REACTORS
-
 #include "react/detail/Defs.h"
 
 #include <functional>
@@ -36,7 +34,7 @@ public:
     {
     public:
         Context(NodeT& node) :
-            node_{ node }
+            node_( node )
         {}
 
         template <typename E>
@@ -57,7 +55,7 @@ public:
 
     template <typename F>
     ReactiveLoop(F&& func) :
-        nodePtr_{ new REACT_IMPL::ReactorNode<D, Context>(std::forward<F>(func)) }
+        nodePtr_( new REACT_IMPL::ReactorNode<D, Context>(std::forward<F>(func)) )
     {
         nodePtr_->StartLoop();
     }
@@ -67,7 +65,5 @@ private:
 };
 
 /******************************************/ REACT_END /******************************************/
-
-#endif // REACT_ENABLE_REACTORS
 
 #endif // REACT_REACTOR_H_INCLUDED
