@@ -17,6 +17,7 @@
 #include <memory>
 #include <mutex>
 #include <utility>
+#include <vector>
 
 #include "tbb/concurrent_vector.h"
 
