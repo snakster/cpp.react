@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -11,8 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{52A9EC67-C6A7-453B-AD65-F027CA07AF44}</ProjectGuid>
-    <RootNamespace>CppReactTest</RootNamespace>
+    <ProjectGuid>{617019A2-97BE-4A60-8EC4-3547D8C54533}</ProjectGuid>
+    <RootNamespace>Example_BasicAlgorithms</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -51,15 +51,10 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;$(GTestDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Cpp0xSupport>true</Cpp0xSupport>
-      <DisableSpecificWarnings>4503;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(GTestDir)\msvc\gtest-md\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>gtestd.lib;gtest_main-mdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
@@ -70,19 +65,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;$(GTestDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Cpp0xSupport>true</Cpp0xSupport>
-      <DisableSpecificWarnings>4503;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(GTestDir)\msvc\gtest-md\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>gtest.lib;gtest_main-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <SubSystem>Console</SubSystem>
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -91,24 +79,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\tests\src\EventStreamTest.cpp" />
-    <ClCompile Include="..\..\tests\src\EventStreamTestQ.cpp" />
-    <ClCompile Include="..\..\tests\src\MoveTest.cpp" />
-    <ClCompile Include="..\..\tests\src\ObserverTest.cpp" />
-    <ClCompile Include="..\..\tests\src\ObserverTestQ.cpp" />
-    <ClCompile Include="..\..\tests\src\OperationsTest.cpp" />
-    <ClCompile Include="..\..\tests\src\OperationsTestQ.cpp" />
-    <ClCompile Include="..\..\tests\src\SignalTest.cpp" />
-    <ClCompile Include="..\..\tests\src\SignalTestQ.cpp" />
-    <ClCompile Include="..\..\tests\src\TransactionTest.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\tests\src\EventStreamTest.h" />
-    <ClInclude Include="..\..\tests\src\MoveTest.h" />
-    <ClInclude Include="..\..\tests\src\ObserverTest.h" />
-    <ClInclude Include="..\..\tests\src\OperationsTest.h" />
-    <ClInclude Include="..\..\tests\src\SignalTest.h" />
-    <ClInclude Include="..\..\tests\src\TransactionTest.h" />
+    <ClCompile Include="..\..\examples\src\BasicAlgorithms.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

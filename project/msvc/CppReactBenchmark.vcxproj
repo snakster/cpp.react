@@ -39,11 +39,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionName)/$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)..\..\build\$(Configuration)\</OutDir>
     <IntDir>$(OutDir)$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionName)/$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)..\..\build\$(Configuration)\</OutDir>
     <IntDir>$(OutDir)$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -52,7 +52,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <Cpp0xSupport>true</Cpp0xSupport>
-      <AdditionalIncludeDirectories>..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -68,7 +68,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <Cpp0xSupport>true</Cpp0xSupport>
-      <AdditionalIncludeDirectories>..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -80,20 +80,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\benchmark\Main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="CppReact.vcxproj">
       <Project>{5e56aab9-4e33-4b9e-a315-e85cedb75cf1}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\benchmark\BenchmarkBase.h" />
-    <ClInclude Include="..\..\src\benchmark\BenchmarkFanout.h" />
-    <ClInclude Include="..\..\src\benchmark\BenchmarkGrid.h" />
-    <ClInclude Include="..\..\src\benchmark\BenchmarkLifeSim.h" />
-    <ClInclude Include="..\..\src\benchmark\BenchmarkRandom.h" />
-    <ClInclude Include="..\..\src\benchmark\BenchmarkSequence.h" />
+    <ClInclude Include="..\..\benchmarks\src\BenchmarkBase.h" />
+    <ClInclude Include="..\..\benchmarks\src\BenchmarkFanout.h" />
+    <ClInclude Include="..\..\benchmarks\src\BenchmarkGrid.h" />
+    <ClInclude Include="..\..\benchmarks\src\BenchmarkLifeSim.h" />
+    <ClInclude Include="..\..\benchmarks\src\BenchmarkRandom.h" />
+    <ClInclude Include="..\..\benchmarks\src\BenchmarkSequence.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\benchmarks\src\Main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
