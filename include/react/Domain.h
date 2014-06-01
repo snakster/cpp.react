@@ -168,6 +168,7 @@ public:
 #endif //REACT_ENABLE_LOGGING
 
         D::Engine::Engine();
+        DomainSpecificObserverRegistry<D>::Instance();
     }
 };
 
