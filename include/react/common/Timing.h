@@ -14,9 +14,15 @@
 #include <utility>
 
 #if _WIN32 || _WIN64
+    #define REACT_FIXME_CUSTOM_TIMER 1
+#else
+    #define REACT_FIXME_CUSTOM_TIMER 0
+#endif
+
+#if REACT_FIXME_CUSTOM_TIMER
     #include <windows.h>
 #else
-    #include <ctime>
+    #include <chrono>
 #endif
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
@@ -25,7 +31,7 @@
 /// GetPerformanceFrequency
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Todo: Initialization not thread-safe
-#if _WIN32 || _WIN64
+#if REACT_FIXME_CUSTOM_TIMER
 inline const LARGE_INTEGER& GetPerformanceFrequency()
 {
     static bool init = false;
@@ -87,10 +93,11 @@ template
 class ConditionalTimer<threshold,true>
 {
 public:
-#if _WIN32 || _WIN64
+#if REACT_FIXME_CUSTOM_TIMER
     using TimestampT = LARGE_INTEGER;
-#elif __linux__
-    using TimestampT = long long;
+#else
+    using ClockT = std::chrono::high_resolution_clock;
+    using TimestampT = std::chrono::time_point<ClockT>;
 #endif
 
     class ScopedTimer
@@ -123,19 +130,22 @@ public:
 
         void endMeasure()
         {
+#if REACT_FIXME_CUSTOM_TIMER
             TimestampT endTime = now();
 
-#if _WIN32 || _WIN64
-            LARGE_INTEGER durationMS;
+            LARGE_INTEGER durationUS;
 
-            durationMS.QuadPart = endTime.QuadPart - startTime_.QuadPart;
-            durationMS.QuadPart *= 1000000;
-            durationMS.QuadPart /= GetPerformanceFrequency().QuadPart;
+            durationUS.QuadPart = endTime.QuadPart - startTime_.QuadPart;
+            durationUS.QuadPart *= 1000000;
+            durationUS.QuadPart /= GetPerformanceFrequency().QuadPart;
 
-            parent_.isThresholdExceeded_ = durationMS.QuadPart > threshold;
+            parent_.isThresholdExceeded_ = durationUS.QuadPart > threshold;
 #else
-            // TODO
-            parent_.isThresholdExceeded_ = false;
+            using std::chrono::duration_cast;
+            using std::chrono::microseconds;
+
+            parent_.isThresholdExceeded_ =
+                duration_cast<microseconds>(now() - startTime_).count() > threshold;      
 #endif
         }
 
@@ -145,16 +155,12 @@ public:
 
     static TimestampT now()
     {
-#if _WIN32 || _WIN64
+#if REACT_FIXME_CUSTOM_TIMER
         TimestampT result;
         QueryPerformanceCounter(&result);
         return result;
 #else
-        struct timespec ts;
-        clock_gettime(CLOCK_REALTIME, &ts);
-        return static_cast<long long>(1000000000UL)
-            * static_cast<long long>(ts.tv_sec)
-            + static_cast<long long>(ts.tv_nsec);
+        return ClockT::now();
 #endif
     }
 
