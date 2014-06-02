@@ -30,8 +30,9 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
-enum class Seasons      { summer,  winter };
-enum class Migration    { enter,  leave };
+// FIXME: GCC doesn't like enum class in MakeEventSource
+enum    { summer,  winter };
+enum    { enter,  leave };
 
 template <typename T>
 struct Incrementer { T operator()(Token,T v) const { return v+1; } };
@@ -53,10 +54,10 @@ public:
     SignalT<int>        TotalDays   = Iterate(NewDay, 0, Incrementer<int>());
     SignalT<int>        DayOfYear   = TotalDays % 365;
 
-    SignalT<Seasons> Season = MakeSignal(
+    SignalT<int> Season = MakeSignal(
         DayOfYear,
-        [] (int day) {
-            return day < 180 ? Seasons::winter : Seasons::summer;
+        [] (int day) -> int {
+            return day < 180 ? winter : summer;
         });
 };
 
@@ -71,19 +72,19 @@ public:
 
     BoundsT Bounds;
 
-    EventSourceT<Migration>    EnterOrLeave = MakeEventSource<D,Migration>();
+    EventSourceT<int>    EnterOrLeave = MakeEventSource<D,int>();
 
     SignalT<int> AnimalCount = Iterate(
         EnterOrLeave,
         0,
-        [] (Migration m, int count) {
-            return m == Migration::enter ? count + 1 : count - 1;
+        [] (int m, int count) {
+            return m == enter ? count + 1 : count - 1;
         });
 
     SignalT<int> FoodPerDay = MakeSignal(
         theTime.Season,
-        [] (Seasons season) {
-            return season == Seasons::summer ? 20 : 10;
+        [] (int season) {
+            return season == summer ? 20 : 10;
         });
 
     SignalT<int> FoodOutputPerDay = MakeSignal(
@@ -95,8 +96,8 @@ public:
     EventsT<int> FoodOutput = Pulse(theTime.NewDay, FoodOutputPerDay);
 
     Region(Time<D>& time, int x, int y) :
-        theTime( time ),
-        Bounds( x*10, x*10+9, y*10, y*10+9 )
+        Bounds( x*10, x*10+9, y*10, y*10+9 ),
+        theTime( time )
     {}
 
     PositionT Center() const
@@ -195,7 +196,7 @@ public:
     SignalT<PositionT>  Position;
     SignalT<Region<D>*> NewRegion;
 
-    EventsT<Region<D>*> RegionChanged   = Monitor(NewRegion);;
+    EventsT<Region<D>*> RegionChanged   = Monitor(NewRegion);
 
     SignalT<int>        Age             = Iterate(theTime.NewDay, 0, Incrementer<int>());
 
@@ -240,14 +241,14 @@ public:
                 })
         )
     {
-        initRegion->EnterOrLeave(Migration::enter);
+        initRegion->EnterOrLeave(enter);
 
         Observe(
             RegionChanged,
             With(CurrentRegion),
             [this] (Region<D>* newRegion, Region<D>* oldRegion) {
-                oldRegion->EnterOrLeave(Migration::leave);
-                newRegion->EnterOrLeave(Migration::enter);
+                oldRegion->EnterOrLeave(leave);
+                newRegion->EnterOrLeave(enter);
 
                 // Change region in continuation
                 CurrentRegion <<= newRegion;

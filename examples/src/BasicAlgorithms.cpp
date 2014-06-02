@@ -183,14 +183,14 @@ namespace example5
 
     REACTIVE_DOMAIN(D)
 
-    enum class ECmd { increment, decrement, reset };
+    enum ECmd { increment, decrement, reset };
 
     class Counter
     {
     public:
         USING_REACTIVE_DOMAIN(D)
 
-        EventSourceT<ECmd>  Update  = MakeEventSource<D,ECmd>();
+        EventSourceT<int>   Update  = MakeEventSource<D,int>();
         VarSignalT<int>     Delta   = MakeVar<D>(1);
         VarSignalT<int>     Start   = MakeVar<D>(0);
 
@@ -198,10 +198,10 @@ namespace example5
             Update,
             Start.Value(),
             With(Delta, Start),
-            [] (ECmd cmd, int oldCount, int delta, int start) {
-                if (cmd == ECmd::increment)
+            [] (int cmd, int oldCount, int delta, int start) {
+                if (cmd == increment)
                     return oldCount + delta;
-                else if (cmd == ECmd::decrement)
+                else if (cmd == decrement)
                     return oldCount - delta;
                 else
                     return start;
@@ -216,19 +216,19 @@ namespace example5
 
         cout << "Start: " << myCounter.Count() << endl; // output: 0
 
-        myCounter.Update(ECmd::increment);
-        myCounter.Update(ECmd::increment);
-        myCounter.Update(ECmd::increment);
+        myCounter.Update(increment);
+        myCounter.Update(increment);
+        myCounter.Update(increment);
 
         cout << "3x increment by 1: " << myCounter.Count() << endl; // output: 3
 
         myCounter.Delta <<= 5;
-        myCounter.Update(ECmd::decrement);
+        myCounter.Update(decrement);
 
         cout << "1x decrement by 5: " << myCounter.Count() << endl; // output: -2
 
         myCounter.Start <<= 100;
-        myCounter.Update(ECmd::reset);
+        myCounter.Update(reset);
 
         cout << "reset to 100: " << myCounter.Count() << endl; // output: 100
 
