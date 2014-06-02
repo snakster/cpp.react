@@ -21,13 +21,14 @@
 
 #include "tbb/concurrent_vector.h"
 
-#include "react/detail/IReactiveNode.h."
-#include "react/detail/Options.h."
+#include "react/detail/Options.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 using TurnIdT = uint;
 using TurnFlagsT = uint;
+
+struct IInputNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ContinuationInput
