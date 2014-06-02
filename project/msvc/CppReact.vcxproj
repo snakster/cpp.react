@@ -101,7 +101,7 @@
     <ClInclude Include="..\..\include\react\detail\ReactiveBase.h" />
     <ClInclude Include="..\..\include\react\detail\SignalBase.h" />
     <ClInclude Include="..\..\include\react\Domain.h" />
-    <ClInclude Include="..\..\include\react\engine\PulseCountEngine.h" />
+    <ClInclude Include="..\..\include\react\engine\PulsecountEngine.h" />
     <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h" />
     <ClInclude Include="..\..\include\react\engine\ToposortEngine.h" />
     <ClInclude Include="..\..\include\react\common\Concurrency.h" />

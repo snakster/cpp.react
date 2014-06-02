@@ -60,9 +60,6 @@
     <ClInclude Include="..\..\include\react\Reactor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\engine\PulseCountEngine.h">
-      <Filter>Header Files\engine</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
@@ -143,6 +140,9 @@
     </ClInclude>
     <ClInclude Include="..\..\include\react\common\Timing.h">
       <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\engine\PulsecountEngine.h">
+      <Filter>Header Files\engine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
