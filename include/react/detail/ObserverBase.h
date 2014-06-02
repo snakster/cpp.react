@@ -60,15 +60,15 @@ private:
     {
     public:
         Entry(std::unique_ptr<IObserver>&& nodePtr, const Observable<D>* subjectPtr) :
-            nodePtr_( std::move(nodePtr) ),
-            SubjectPtr( subjectPtr )
+            SubjectPtr( subjectPtr ),
+            nodePtr_( std::move(nodePtr) )
         {}
 
         Entry(const Entry&) = delete;
 
         Entry(Entry&& other) :
-            nodePtr_( std::move(other.nodePtr_) ),
-            SubjectPtr( other.SubjectPtr )
+            SubjectPtr( other.SubjectPtr ),
+            nodePtr_( std::move(other.nodePtr_) )
         {}
 
         const Observable<D>* SubjectPtr;
@@ -85,7 +85,7 @@ public:
         // Use raw ptr copy as index to find owned version of itself
         auto* rawObsPtr = obsPtr.get();
         
-        observerMap_.emplace(rawObsPtr, Entry{ std::move(obsPtr), subjectPtr });
+        observerMap_.emplace(rawObsPtr, Entry( std::move(obsPtr), subjectPtr ));
 
         return rawObsPtr;
     }

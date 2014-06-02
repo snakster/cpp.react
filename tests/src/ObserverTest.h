@@ -27,7 +27,7 @@ template <typename TEngine>
 class ObserverTest : public testing::Test
 {
 public:
-    REACTIVE_DOMAIN(MyDomain, TEngine);
+    REACTIVE_DOMAIN(MyDomain, TEngine)
 };
 
 TYPED_TEST_CASE_P(ObserverTest);

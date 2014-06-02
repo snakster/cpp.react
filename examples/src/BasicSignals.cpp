@@ -35,7 +35,7 @@ namespace example1
     // The concat function
     string concatFunc(string first, string second) {
         return first + string(" ") + second;
-    };
+    }
 
     // A signal that concatenates both words
     namespace v1

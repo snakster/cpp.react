@@ -37,7 +37,7 @@ template <typename TEngine>
 class OperationsTest : public testing::Test
 {
 public:
-    REACTIVE_DOMAIN(MyDomain, TEngine);
+    REACTIVE_DOMAIN(MyDomain, TEngine)
 };
 
 TYPED_TEST_CASE_P(OperationsTest);

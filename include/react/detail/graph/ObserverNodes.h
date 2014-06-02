@@ -284,8 +284,8 @@ private:
 
     std::weak_ptr<EventStreamNode<D,E>> subject_;
     
-    DepHolderT  deps_;
     TFunc       func_;
+    DepHolderT  deps_;
 
     virtual void detachObserver()
     {

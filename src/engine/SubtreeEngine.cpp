@@ -19,7 +19,6 @@ namespace subtree {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const uint chunk_size    = 8;
 static const uint dfs_threshold = 3;
-static const uint heavy_weight  = 1000;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
@@ -63,18 +62,18 @@ public:
     using BufferT = NodeBuffer<Node,chunk_size>;
 
     UpdaterTask(TTurn& turn, Node* node) :
-        turn_( turn ), // For now, GCC requires still parenthesis here
-        nodes_{ node }
+        turn_( turn ),
+        nodes_( node )
     {}
 
     UpdaterTask(UpdaterTask& other, SplitTag) :
         turn_( other.turn_ ),
-        nodes_{ other.nodes_, SplitTag{} }
+        nodes_( other.nodes_, SplitTag( ) )
     {}
 
     task* execute()
     {
-        int splitCount = 0;
+        uint splitCount = 0;
 
         while (!nodes_.IsEmpty())
         {

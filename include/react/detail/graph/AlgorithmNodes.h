@@ -245,8 +245,8 @@ private:
 
     std::shared_ptr<EventStreamNode<D,E>> events_;
     
-    DepHolderT  deps_;
     TFunc       func_;
+    DepHolderT  deps_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -345,8 +345,8 @@ private:
 
     std::shared_ptr<EventStreamNode<D,E>> events_;
     
-    DepHolderT  deps_;
     TFunc       func_;
+    DepHolderT  deps_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -588,7 +588,7 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        for (const auto& e : trigger_->Events())
+        for (uint i=0; i<trigger_->Events().size(); i++)
             this->events_.push_back(target_->ValueRef());
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(

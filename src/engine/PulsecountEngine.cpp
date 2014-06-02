@@ -19,7 +19,6 @@ namespace pulsecount {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const uint chunk_size    = 8;
 static const uint dfs_threshold = 3;
-static const uint heavy_weight  = 1000;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MarkerTask
@@ -31,16 +30,16 @@ public:
 
     template <typename TInput>
     MarkerTask(TInput srcBegin, TInput srcEnd) :
-        nodes_{ srcBegin, srcEnd }
+        nodes_( srcBegin, srcEnd )
     {}
 
     MarkerTask(MarkerTask& other, SplitTag) :
-        nodes_{ other.nodes_, SplitTag{} }
+        nodes_( other.nodes_, SplitTag( ) )
     {}
 
     task* execute()
     {
-        int splitCount = 0;
+        uint splitCount = 0;
 
         while (! nodes_.IsEmpty())
         {
@@ -88,18 +87,18 @@ public:
 
     template <typename TInput>
     UpdaterTask(TTurn& turn, TInput srcBegin, TInput srcEnd) :
-        turn_( turn ),  // For now, GCC requires still parenthesis here
-        nodes_{ srcBegin, srcEnd }
+        turn_( turn ),
+        nodes_( srcBegin, srcEnd )
     {}
 
     UpdaterTask(TTurn& turn, Node* node) :
         turn_( turn ),
-        nodes_{ node }
+        nodes_( node )
     {}
 
     UpdaterTask(UpdaterTask& other, SplitTag) :
         turn_( other.turn_ ),
-        nodes_{ other.nodes_, SplitTag{} }
+        nodes_( other.nodes_, SplitTag( ) )
     {}
 
     task* execute()
@@ -258,7 +257,7 @@ void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& tur
     bool shouldTick = false;
 
     {// parent.ShiftMutex (write)
-        NodeShiftMutexT::scoped_lock    lock(parent.ShiftMutex, true);
+        NodeShiftMutexT::scoped_lock lock(parent.ShiftMutex, true);
         
         parent.Successors.Add(node);
 
@@ -282,7 +281,7 @@ void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& tur
 template <typename TTurn>
 void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn)
 {// parent.ShiftMutex (write)
-    NodeShiftMutexT::scoped_lock    lock(parent.ShiftMutex, true);
+    NodeShiftMutexT::scoped_lock lock(parent.ShiftMutex, true);
 
     parent.Successors.Remove(node);
 }// ~parent.ShiftMutex (write)

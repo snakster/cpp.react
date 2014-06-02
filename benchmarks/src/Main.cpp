@@ -32,10 +32,10 @@ namespace {
 
 using namespace react;
 
-REACTIVE_DOMAIN(ToposortSTDomain, ToposortEngine<sequential>);
-REACTIVE_DOMAIN(ToposortDomain, ToposortEngine<parallel>);
-REACTIVE_DOMAIN(PulsecountDomain, PulsecountEngine<parallel>);
-REACTIVE_DOMAIN(SubtreeDomain, SubtreeEngine<parallel>);
+REACTIVE_DOMAIN(ToposortSTDomain, ToposortEngine<sequential>)
+REACTIVE_DOMAIN(ToposortDomain, ToposortEngine<parallel>)
+REACTIVE_DOMAIN(PulsecountDomain, PulsecountEngine<parallel>)
+REACTIVE_DOMAIN(SubtreeDomain, SubtreeEngine<parallel>)
 
 void runBenchmarkGrid(std::ostream& out)
 {

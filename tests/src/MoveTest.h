@@ -23,7 +23,7 @@ template <typename TEngine>
 class MoveTest : public testing::Test
 {
 public:
-    REACTIVE_DOMAIN(MyDomain, TEngine);
+    REACTIVE_DOMAIN(MyDomain, TEngine)
 
     struct Stats
     {

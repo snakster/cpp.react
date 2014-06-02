@@ -625,8 +625,8 @@ private:
 
     std::shared_ptr<EventStreamNode<D,TIn>>   source_;
 
-    DepHolderT  deps_;
     TFunc       func_;
+    DepHolderT  deps_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -719,8 +719,8 @@ private:
 
     std::shared_ptr<EventStreamNode<D,E>>   source_;
 
-    DepHolderT  deps_;
     TFunc       filter_;
+    DepHolderT  deps_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
