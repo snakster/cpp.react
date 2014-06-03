@@ -9,8 +9,6 @@
 
 #pragma once
 
-#ifndef REACT_DISABLE_REACTORS
-
 #include "react/detail/Defs.h"
 
 #include <cstdint>
@@ -37,19 +35,18 @@ template
 class ReactorNode :
     public ReactiveNode<D,void,void>
 {
-public:
-    using NodeBasePtrT = std::shared_ptr<NodeBase<D>>;
+    using Engine = typename ReactorNode::Engine;
 
-    using CoroutineT = boost::coroutines::coroutine<const NodeBasePtrT*>;
-    using LoopT = typename CoroutineT::pull_type;
-    using OutT = typename CoroutineT::push_type;
-    
+public:
+    using CoroutineT = boost::coroutines::coroutine<NodeBase<D>*>;
+    using PullT = typename CoroutineT::pull_type;
+    using PushT = typename CoroutineT::push_type;
     using TurnT = typename D::Engine::TurnT;
 
     template <typename F>
     ReactorNode(F&& func) :
-        ReactiveNode<D,void,void>(),
-        func_{ std::forward<F>(func) }
+        ReactorNode::ReactiveNode( ),
+        func_( std::forward<F>(func) )
     {
         Engine::OnNodeCreate(*this);
     }
@@ -61,17 +58,16 @@ public:
 
     void StartLoop()
     {
-        // Could already have started it in ctor,
-        // but lets make sure node is fully constructed before calls to
-        // context in coroutine can happen.
-        mainLoop_ = LoopT
+        mainLoop_ = PullT
         (
-            [&] (OutT& out)
+            [&] (PushT& out)
             {
                 curOutPtr_ = &out;
 
-                TContext ctx{ *this };
+                TContext ctx( *this );
 
+                // Start the loop function.
+                // It will reach it its first Await at some point.
                 while (true)
                 {
                     func_(ctx);
@@ -80,11 +76,12 @@ public:
         );
 
         // First blocking event is not initiated by Tick() but after loop creation.
-        const auto* p = mainLoop_.get();
+        NodeBase<D>* p = mainLoop_.get();
 
         REACT_ASSERT(p != nullptr, "StartLoop: first depPtr was null");
 
-        Engine::OnNodeAttach(*this, **p);
+        Engine::OnNodeAttach(*this, *p);
+
         ++depCount_;
     }
 
@@ -96,20 +93,22 @@ public:
     virtual void Tick(void* turnPtr) override
     {
         turnPtr_ = reinterpret_cast<TurnT*>(turnPtr);
-        REACT_SCOPE_EXIT{ turnPtr_ = nullptr; };
 
         mainLoop_();
 
-        if (mainLoop_.get() != nullptr)
-        {
-            const auto& depPtr = *mainLoop_.get();
-            Engine::OnDynamicNodeAttach(*this, *depPtr, *turnPtr_);
-            ++depCount_;
-            
-            return;
-        }
+        NodeBase<D>* p = mainLoop_.get();
 
-        offsets_.clear();
+        if (p != nullptr)
+        {
+            Engine::OnDynamicNodeAttach(*this, *p, *turnPtr_);
+            ++depCount_;
+        }
+        else
+        {
+            offsets_.clear();
+        }
+        
+        turnPtr_ = nullptr;
     }
 
     virtual int DependencyCount() const override
@@ -121,73 +120,73 @@ public:
     E& Await(const std::shared_ptr<EventStreamNode<D,E>>& events)
     {
         // First attach to target event node
-        (*curOutPtr_)(&std::static_pointer_cast<NodeBase<D>>(events));
+        (*curOutPtr_)(events.get());
 
-        while (! checkEvent<E>(events))
+        while (! checkEvent(events))
             (*curOutPtr_)(nullptr);
 
-        REACT_ASSERT(turnPtr_ != nullptr, "Take: turnPtr_ was null");
+        REACT_ASSERT(turnPtr_ != nullptr, "Await: turnPtr_ was null");
 
         Engine::OnDynamicNodeDetach(*this, *events, *turnPtr_);
         --depCount_;
 
-        return events->Events()[offsets_[reinterpret_cast<uintptr_t>(&events)]++];
+        auto index = offsets_[reinterpret_cast<uintptr_t>(events.get())]++;
+        return events->Events()[index];
     }
 
     template <typename E, typename F>
-    void RepeatUntil(const std::shared_ptr<EventStreamNode<D,E>>& events, F func)
+    void RepeatUntil(const std::shared_ptr<EventStreamNode<D,E>>& eventsPtr, const F& func)
     {
         // First attach to target event node
         if (turnPtr_ != nullptr)
         {
-            (*curOutPtr_)(&std::static_pointer_cast<NodeBase<D>>(events));
+            (*curOutPtr_)(eventsPtr.get());
         }
         else
         {
             // Non-dynamic attach in case first loop until is encountered before the loop was
             // suspended for the first time.
-            Engine::OnNodeAttach(*this, *events);
+            Engine::OnNodeAttach(*this, *eventsPtr);
             ++depCount_;
         }
 
-        // Detach when this function is exited
-        REACT_SCOPE_EXIT
-        {
-            if (turnPtr_ != nullptr)
-                Engine::OnDynamicNodeDetach(*this, *events, *turnPtr_);
-            else
-                Engine::OnNodeDetach(*this, *events);
-            --depCount_;
-        };
-
         // Don't enter loop if event already present
-        if (checkEvent<E>(events))
-            return;
-
-        auto* parentOutPtr = curOutPtr_;
-        REACT_SCOPE_EXIT{ curOutPtr_ = parentOutPtr; };
-
-        // Create and start loop
-        LoopT nestedLoop_
+        if (! checkEvent(eventsPtr))
         {
-            [&] (OutT& out)
+            auto* parentOutPtr = curOutPtr_;
+
+            // Create and start loop
+            PullT nestedLoop_
             {
-                curOutPtr_ = &out;
-                while (true)
-                    func();
-            }
-        };
+                [&] (PushT& out)
+                {
+                    curOutPtr_ = &out;
+                    while (true)
+                        func();
+                }
+            };
 
-        // First suspend from initial loop run
-        (*parentOutPtr)(nestedLoop_.get());
-
-        // Further iterations
-        while (! checkEvent<E>(events))
-        {
-            // Advance loop, forward blocking event to parent, and suspend
-            nestedLoop_(); 
+            // First suspend from initial loop run
             (*parentOutPtr)(nestedLoop_.get());
+
+            // Further iterations
+            while (! checkEvent(eventsPtr))
+            {
+                // Advance loop, forward blocking event to parent, and suspend
+                nestedLoop_(); 
+                (*parentOutPtr)(nestedLoop_.get());
+            }
+
+            curOutPtr_ = parentOutPtr;
         }
+
+        // Detach when this function is exited
+        if (turnPtr_ != nullptr)
+            Engine::OnDynamicNodeDetach(*this, *eventsPtr, *turnPtr_);
+        else
+            Engine::OnNodeDetach(*this, *eventsPtr);
+
+        --depCount_;
     }
 
 private:
@@ -198,23 +197,23 @@ private:
             return false;
 
         events->SetCurrentTurn(*turnPtr_);
-        return offsets_[reinterpret_cast<uintptr_t>(&events)] < events->Events().size();
+
+        auto index = reinterpret_cast<uintptr_t>(events.get());
+        return offsets_[index] < events->Events().size();
     }
 
-    std::function<void(TContext&)>    func_;
+    std::function<void(TContext)>    func_;
 
-    LoopT   mainLoop_;
+    PullT   mainLoop_;
     TurnT*  turnPtr_;
 
-    OutT*   curOutPtr_ = nullptr;
+    PushT*  curOutPtr_ = nullptr;
 
-    int depCount_ = 0;
+    uint    depCount_ = 0;
 
-    std::unordered_map<std::uintptr_t, std::size_t>    offsets_;
+    std::unordered_map<std::uintptr_t, size_t>    offsets_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
-
-#endif // REACT_DISABLE_REACTORS
 
 #endif // REACT_DETAIL_GRAPH_REACTORNODES_H_INCLUDED

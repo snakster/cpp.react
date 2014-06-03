@@ -13,6 +13,7 @@
 
 #include <functional>
 #include <memory>
+#include <utility>
 
 #include "react/common/Util.h"
 
@@ -23,7 +24,7 @@
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 template <typename D>
-class ReactiveLoop
+class Reactor
 {
 public:
     class Context;
@@ -40,13 +41,13 @@ public:
         template <typename E>
         E& Await(const Events<D,E>& evn)
         {
-            return node_.Await<E>(evn.NodePtr());
+            return node_.Await(evn.NodePtr());
         }
 
         template <typename E, typename F>
-        void RepeatUntil(const Events<D,E>& evn, F func)
+        void RepeatUntil(const Events<D,E>& evn, F&& func)
         {
-            node_.RepeatUntil<E>(evn.NodePtr(), func);
+            node_.RepeatUntil(evn.NodePtr(), std::forward<F>(func));
         }
 
     private:
@@ -54,7 +55,7 @@ public:
     };
 
     template <typename F>
-    ReactiveLoop(F&& func) :
+    explicit Reactor(F&& func) :
         nodePtr_( new REACT_IMPL::ReactorNode<D, Context>(std::forward<F>(func)) )
     {
         nodePtr_->StartLoop();

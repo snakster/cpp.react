@@ -32,9 +32,9 @@ namespace example1
     EventSourceT<PointT> mouseUp   = MakeEventSource<D,PointT>();
     EventSourceT<PointT> mouseMove = MakeEventSource<D,PointT>();
 
-    ReactiveLoopT loop
+    ReactorT loop
     {
-        [&] (ReactiveLoopT::Context& ctx)
+        [&] (ReactorT::Context ctx)
         {
             PathT points;
 
@@ -54,15 +54,15 @@ namespace example1
     {
         cout << "Example 1 - Creating reactive loops" << endl;
 
-        mouseDown << PointT(1,1);
-        mouseMove << PointT(2,2) << PointT(3,3) << PointT(4,4);
-        mouseUp   << PointT(5,5);
+        mouseDown << PointT( 1,1 );
+        mouseMove << PointT( 2,2 ) << PointT( 3,3 ) << PointT( 4,4 );
+        mouseUp   << PointT( 5,5 );
 
-        mouseMove << PointT(999,999);
+        mouseMove << PointT( 999,999 );
 
-        mouseDown << PointT(10,10);
-        mouseMove << PointT(20,20);
-        mouseUp   << PointT(30,30);
+        mouseDown << PointT( 10,10 );
+        mouseMove << PointT( 20,20 );
+        mouseUp   << PointT( 30,30 );
 
         for (const auto& path : paths)
         {

@@ -50,13 +50,13 @@ class TempEvents;
 enum class Token;
 
 template <typename D>
-class ReactiveLoop;
-
-template <typename D>
 class Observer;
 
 template <typename D>
 class ScopedObserver;
+
+template <typename D>
+class Reactor;
 
 using REACT_IMPL::TurnFlagsT;
 
@@ -109,7 +109,7 @@ public:
 
     using ScopedObserverT = ScopedObserver<D>;
 
-    using ReactiveLoopT = ReactiveLoop<D>;
+    using ReactorT = Reactor<D>;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     /// DoTransaction
@@ -201,6 +201,6 @@ public:
                                                                                             \
     using ScopedObserverT = ScopedObserver<name>;                                           \
                                                                                             \
-    using ReactiveLoopT = ReactiveLoop<name>;
+    using ReactorT = Reactor<name>;
 
 #endif // REACT_DOMAIN_H_INCLUDED
