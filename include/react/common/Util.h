@@ -11,7 +11,6 @@
 
 #include "react/detail/Defs.h"
 
-#include <functional>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -99,62 +98,6 @@ struct Identity
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// Generic RAII scope guard
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename F>
-class ScopeGuard
-{
-public:
-    explicit ScopeGuard(F func) :
-        func_( std::move(func) )
-    {
-    }
-
-    ~ScopeGuard() { func_(); }
-
-    ScopeGuard() = delete;
-    ScopeGuard(const ScopeGuard&) = delete;
-    ScopeGuard& operator=(const ScopeGuard&) = delete;
-
-private:
-    F    func_;
-};
-
-enum class ScopeGuardDummy_ {};
-
-template <typename F>
-ScopeGuard<F> operator+(ScopeGuardDummy_, F&& func)
-{
-    return ScopeGuard<F>(std::forward<F>(func));
-}
-
-// 
-
-template <typename T>
-class MoveBindWrapper
-{
-public:
-    explicit MoveBindWrapper(T&& v):
-        v_( std::forward<T>(v) )
-    {} 
-
-    template <typename ... U>
-    T&& operator()(U&& ...)
-    {
-        return std::forward<T>(v_); 
-    } 
-
-private:
-    T v_; 
-}; 
-
-template <typename T>
-MoveBindWrapper<T> MoveIntoBind(T&& t)
-{ 
-    return MoveBindWrapper<T>{std::forward<T>(t)}; 
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DontMove!
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct DontMove {};
@@ -200,34 +143,8 @@ struct AddDummyArgWrapper<TArg,F,void,TDepValues...>
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
-namespace std
-{ 
-    template <typename T> 
-    struct is_bind_expression<REACT_IMPL::MoveBindWrapper<T>> : std::true_type {}; 
-}
-
 // Expand args by wrapping them in a dummy function
 // Use comma operator to replace potential void return value with 0
 #define REACT_EXPAND_PACK(...) REACT_IMPL::pass((__VA_ARGS__ , 0) ...)
-
-// Concat
-#define REACT_CONCAT_(l, r) l##r
-#define REACT_CONCAT(l, r) REACT_CONCAT_(l, r)
-
-// Anon var
-#ifdef __COUNTER__
-#define REACT_ANON_VAR(prefix) \
-    REACT_CONCAT(prefix, __COUNTER__)
-#else
-#define REACT_ANON_VAR(s) \
-    REACT_CONCAT(prefix, __LINE__)
-#endif
-
-// Scope guard helper
-#define REACT_SCOPE_EXIT_PREFIX scopeExitGuard_
-
-#define REACT_SCOPE_EXIT \
-    auto REACT_ANON_VAR(REACT_SCOPE_EXIT_PREFIX) \
-        = REACT_IMPL::ScopeGuardDummy_() + [&]()
 
 #endif // REACT_COMMON_UTIL_H_INCLUDED
