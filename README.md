@@ -23,24 +23,30 @@ Cpp.React is a work-in-progress and should not be considered release quality yet
 The project has been actively developed for about 6 months and has seen a fair share of testing and tuning during that time, so it's in a usable state.
 
 ### Compiling
-At the moment, the only support build environment is Visual Studio 2013.
+Cpp.React has been tested to compile with
 
-You are welcome to try other C++11 compilers/platforms and report any issues you encounter.
+* Visual Studio 2013.2
+* GCC 4.8.2
+* Clang 3.4
 
-### Projects
-The VS solution contains the following pojects:
+To build with Visual Studio, use the pre-made solution found in `project/msvc/`.
 
-* `CppReact` - The library itself.
-* `CppReactBenchmark` - A number of benchmarks used to compare the different propagation strategies.
-* `CppReactTest` - The unit tests.
-* `CppReactSandbox` - A project containing several basic examples. You can use this to start experimenting with the library.
+To build with GCC or Clang, use [CMake](http://www.cmake.org/):
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+For more details, see [Build instructions]().
 
 ### Dependencies
 Cpp.React uses several external dependencies, but only one of them is mandatory:
 
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
 * [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the unit tests)
-* [Boost C++ Libraries](http://www.boost.org/) (optional, to use ReactiveLoop, which requires boost::coroutine)
+* [Boost 1.55 C++ Libraries](http://www.boost.org/) (optional, to include Reactor.h, which requires boost::coroutines)
 
 TBB is required, because it enables the parallel propagation strategies.
 Future plans are to separate the multi-threaded and single-threaded propagation engines more cleanly to remove the TBB dependency if parallelism is not used.
@@ -56,14 +62,15 @@ They can be combined to expressions to create new signals, which are automatical
 using namespace std;
 using namespace react;
 
-REACTIVE_DOMAIN(D);
+REACTIVE_DOMAIN(D)
+USING_REACTIVE_DOMAIN(D)
 
 // Two reactive variables that can be manipulated imperatively
-D::VarSignalT<int> width  = D::MakeVar(1);
-D::VarSignalT<int> height = D::MakeVar(2);
+VarSignalT<int> width  = MakeVar<D>(1);
+VarSignalT<int> height = MakeVar<D>(2);
 
 // A signal that depends on width and height and multiplies their values
-D::SignalT<int> area = MakeSignal(With(width, height),
+SignalT<int> area = MakeSignal(With(width, height),
     [] (int w, int h) {
         return w * h;
     });
@@ -79,7 +86,7 @@ cout << "area: " << area.Value() << endl; // => area: 20
 For expressions that use operators only, `MakeSignal` can be omitted completely:
 ```C++
 // Lift as reactive expression
-D::SignalT<int> area = width * height;
+SignalT<int> area = width * height;
 ```
 
 ## Events and Observers
@@ -91,14 +98,15 @@ They are first-class objects and can be merged, filtered, transformed or compose
 using namespace std;
 using namespace react;
 
-REACTIVE_DOMAIN(D);
+REACTIVE_DOMAIN(D)
+USING_REACTIVE_DOMAIN(D)
 
 // Two event sources
-D::EventSourceT<Token> leftClicked  = D::MakeEventSource();
-D::EventSourceT<Token> rightClicked = D::MakeEventSource();
+EventSourceT<Token> leftClicked  = MakeEventSource<D>();
+EventSourceT<Token> rightClicked = MakeEventSource<D>();
 
 // Merge both event streams
-D::EventsT<Token> merged = leftClicked | rightClicked;
+EventsT<Token> merged = leftClicked | rightClicked;
 
 // React to events
 auto obs = Observe(merged, [] (Token) {
@@ -121,11 +129,11 @@ using namespace react;
 
 // Sequential updating
 {
-    REACTIVE_DOMAIN(D, ToposortEngine<sequential>);
+    REACTIVE_DOMAIN(D, ToposortEngine<sequential>)
 
-    auto a = D::MakeVar(1);
-    auto b = D::MakeVar(2);
-    auto c = D::MakeVar(3);
+    auto a = MakeVar<D>(1);
+    auto b = MakeVar<D>(2);
+    auto c = MakeVar<D>(3);
 
     auto x = (a + b) * c;
 
@@ -134,9 +142,9 @@ using namespace react;
 
 // Parallel updating
 {
-    REACTIVE_DOMAIN(D, ToposortEngine<parallel>);
+    REACTIVE_DOMAIN(D, ToposortEngine<parallel>)
 
-    auto in = D::MakeVar(0);
+    auto in = MakeVar<D>(0);
 
     auto op1 = MakeSignal(in, [] (int in)
     {
@@ -159,9 +167,9 @@ using namespace react;
 
 ## More examples
 
-* [Examples](https://github.com/schlangster/cpp.react/blob/master/src/sandbox/Main.cpp)
-* [Test cases](https://github.com/schlangster/cpp.react/tree/master/src/test)
-* [Benchmark](https://github.com/schlangster/cpp.react/blob/master/src/benchmark/BenchmarkLifeSim.h)
+* [Examples](https://github.com/schlangster/cpp.react/tree/master/examples/src)
+* [Test cases](https://github.com/schlangster/cpp.react/tree/master/tests/src)
+* [Benchmarks](https://github.com/schlangster/cpp.react/blob/master/benchmarks/src/BenchmarkLifeSim.h)
 
 # Acknowledgements
 
