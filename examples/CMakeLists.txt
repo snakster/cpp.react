@@ -15,7 +15,15 @@ add_executable(Example_BasicObservers src/BasicObservers.cpp)
 target_link_libraries(Example_BasicObservers CppReact)
 
 ### Example_BasicReactors
-#add_executable(Example_BasicReactors src/BasicReactors.cpp)
+find_package(Boost 1.55 COMPONENTS coroutine context system)
+if(Boost_FOUND)
+	include_directories(${Boost_INCLUDE_DIRS}) 
+	add_executable(Example_BasicReactors src/BasicReactors.cpp)
+	target_link_libraries(Example_BasicReactors CppReact ${Boost_LIBRARIES})
+else()
+	message("boost::coroutine not found. Skipping build of Example_BasicReactors.")
+endif()
+#add_exyecutable(Example_BasicReactors src/BasicReactors.cpp)
 #target_link_libraries(Example_BasicReactors CppReact)
 
 ### Example_BasicSignals

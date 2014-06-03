@@ -1,3 +1,12 @@
+### Configuration
+if(DEFINED ENV{GTEST_DIR})
+	message("Using gtest found in $ENV{GTEST_DIR}.")
+else()
+	message("GTEST_DIR is not defined. You must tell CMake where to find the gtest source.")
+	return()
+endif()
+add_subdirectory($ENV{GTEST_DIR} ${CMAKE_CURRENT_BINARY_DIR}/gtest)
+
 ### CppReactTest
 add_executable(CppReactTest
 	src/EventStreamTest.cpp
