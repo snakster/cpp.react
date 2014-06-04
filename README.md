@@ -23,7 +23,7 @@ Cpp.React is a work-in-progress and should not be considered release quality yet
 The project has been actively developed for about 6 months and has seen a fair share of testing and tuning during that time, so it's in a usable state.
 
 ### Compiling
-Cpp.React has been tested to compile with
+Cpp.React has been tested with the following compilers:
 
 * Visual Studio 2013.2
 * GCC 4.8.2
@@ -39,7 +39,7 @@ cmake ..
 make
 ```
 
-For more details, see [Build instructions]().
+For more details, see [Build instructions](https://github.com/schlangster/cpp.react/wiki/Build-instructions).
 
 ### Dependencies
 Cpp.React uses several external dependencies, but only one of them is mandatory:
