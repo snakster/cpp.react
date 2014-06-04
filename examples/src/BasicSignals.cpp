@@ -44,7 +44,7 @@ namespace example1
         VarSignalT<string>  firstWord   = MakeVar<D>(string("Change"));
         VarSignalT<string>  secondWord  = MakeVar<D>(string("me!"));
 
-        SignalT<string>  bothWords = MakeSignal(With(firstWord,secondWord), &concatFunc);
+        SignalT<string>  bothWords = MakeSignal(With(firstWord,secondWord), concatFunc);
 
         void Run()
         {
@@ -164,9 +164,43 @@ namespace example3
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 4 - Complex signals
+/// Example 4 - Modifying signal values in place
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace example4
+{
+    using namespace std;
+    using namespace react;
+
+    REACTIVE_DOMAIN(D)
+    USING_REACTIVE_DOMAIN(D)
+
+    VarSignalT<vector<string>> data = MakeVar<D>(vector<string>{ });
+
+    void Run()
+    {
+        cout << "Example 4 - Modifying signal values in place" << endl;
+
+        data.Modify([] (vector<string>& data) {
+            data.push_back("Hello");
+        });
+
+        data.Modify([] (vector<string>& data) {
+            data.push_back("World");
+        });
+
+        for (const auto& s : data.Value())
+            cout << s << " ";
+        cout << endl;
+        // output: Hell World
+
+        cout << endl;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Example 5 - Complex signals
+///////////////////////////////////////////////////////////////////////////////////////////////////
+namespace example5
 {
     using namespace std;
     using namespace react;
@@ -233,7 +267,7 @@ namespace example4
 
         void Run()
         {
-            cout << "Example 4 - Complex signals (v1)" << endl;
+            cout << "Example 5 - Complex signals (v1)" << endl;
 
             Observe(expressions, printExpressions);
 
@@ -282,7 +316,7 @@ namespace example4
 
         void Run()
         {
-            cout << "Example 4 - Complex signals (v2)" << endl;
+            cout << "Example 5 - Complex signals (v2)" << endl;
 
             Observe(expressions, printExpressions);
 
@@ -324,7 +358,7 @@ namespace example4
 
         void Run()
         {
-            cout << "Example 4 - Complex signals (v3)" << endl;
+            cout << "Example 5 - Complex signals (v3)" << endl;
 
             Observe(expressions, printExpressions);
 
@@ -348,9 +382,11 @@ int main()
 
     example3::Run();
 
-    example4::v1::Run();
-    example4::v2::Run();
-    example4::v3::Run();
+    example4::Run();
+
+    example5::v1::Run();
+    example5::v2::Run();
+    example5::v3::Run();
 
     return 0;
 }
