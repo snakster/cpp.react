@@ -18,7 +18,6 @@ using namespace react;
 INSTANTIATE_TYPED_TEST_CASE_P(SeqToposort, TransactionTest, ToposortEngine<sequential_queue>);
 INSTANTIATE_TYPED_TEST_CASE_P(ParToposort, TransactionTest, ToposortEngine<parallel_queue>);
 INSTANTIATE_TYPED_TEST_CASE_P(Pulsecount, TransactionTest, PulsecountEngine<parallel_queue>);
-INSTANTIATE_TYPED_TEST_CASE_P(ParToposortP, TransactionTest, ToposortEngine<parallel_pipeline>);
 INSTANTIATE_TYPED_TEST_CASE_P(Subtree, TransactionTest, SubtreeEngine<parallel_queue>);
 
 } // ~namespace

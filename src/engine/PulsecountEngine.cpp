@@ -204,13 +204,13 @@ template <typename TTask, typename TIt, typename ... TArgs>
 void spawnHelper
 (
     task* rootTask, task_list& spawnList,
-    const int count, TIt start, TIt end,
+    const uint count, TIt start, TIt end,
     TArgs& ... args
 )
 {
     rootTask->set_ref_count(1 + count);
 
-    for (int i=0; i < (count - 1); i++)
+    for (uint i=0; i < (count - 1); i++)
     {
         spawnList.push_back(*new(rootTask->allocate_child())
             TTask(args ..., start, start + chunk_size));
@@ -228,7 +228,7 @@ void spawnHelper
 template <typename TTurn>
 void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
 {
-    const int initialTaskCount = (changedInputs_.size() - 1) / chunk_size + 1;
+    const uint initialTaskCount = (changedInputs_.size() - 1) / chunk_size + 1;
 
     spawnHelper<MarkerTask>(rootTask_, spawnList_, initialTaskCount,
         changedInputs_.begin(), changedInputs_.end());

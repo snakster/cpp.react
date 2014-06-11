@@ -209,156 +209,6 @@ class QueuingSeqEngine : public DefaultQueuingEngine<SeqEngineBase,ExclusiveSeqT
 class BasicParEngine : public ParEngineBase<ExclusiveParTurn> {};
 class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveParTurn> {};
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// PipeliningTurn
-///////////////////////////////////////////////////////////////////////////////////////////////////
-class PipeliningTurn : public TurnBase<true>
-{
-public:
-    using ConcNodeVectT = concurrent_vector<ParNode*>;
-    using NodeVectT = vector<ParNode*>;
-    using IntervalSetT = set<pair<int,int>>;
-    using DynRequestVectT = concurrent_vector<DynRequestData>;
-    using TopoQueueT = ConcurrentTopoQueue
-    <
-        ParNode*,
-        grain_size,
-        GetLevelFunctor<ParNode>,
-        GetWeightFunctor<ParNode>
-    >;
-
-    PipeliningTurn(TurnIdT id, TurnFlagsT flags);
-
-    int     CurrentLevel() const    { return currentLevel_; }
-
-    bool    AdvanceLevel();
-    void    SetMaxLevel(int level);
-    void    WaitForMaxLevel(int targetLevel);
-
-    void    UpdateSuccessor();
-
-    void    Append(PipeliningTurn* turn);
-
-    void    Remove();
-
-    void    AdjustUpperBound(int level);
-
-    template <typename F>
-    bool TryMerge(F&& inputFunc, BlockingCondition& caller)
-    {
-        if (!isMergeable_)
-            return false;
-
-        bool merged = false;
-        
-        {// advMutex_
-            std::lock_guard<std::mutex> scopedLock(advMutex_);
-
-            // Only merge if target is still blocked
-            if (currentLevel_ == -1)
-            {
-                merged = true;
-                caller.Block();
-                merged_.emplace_back(std::make_pair(std::forward<F>(inputFunc), &caller));
-            }
-        }// ~advMutex_
-
-        return merged;
-    }
-
-    void RunMergedInputs() const;
-
-    TopoQueueT          TopoQueue;
-    DynRequestVectT     DynRequests;
-
-private:
-    using MergedDataVectT = vector<pair<function<void()>,BlockingCondition*>>;
-
-    const bool          isMergeable_;
-    MergedDataVectT     merged_;
-
-    IntervalSetT        levelIntervals_;
-
-    PipeliningTurn*     predecessor_    { nullptr };
-    PipeliningTurn*     successor_      { nullptr };
-
-    int     currentLevel_   { -1 };
-
-    /// This turn may only advance up to maxLevel
-    int     maxLevel_       { (numeric_limits<int>::max)() };
-
-    /// successor.maxLevel = this.minLevel - 1
-    int     minLevel_       { -1 };                              
- 
-    int     curUpperBound_  { -1 };
-
-    mutex               advMutex_;
-    condition_variable  advCondition_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// PipeliningEngine
-///////////////////////////////////////////////////////////////////////////////////////////////////
-class PipeliningEngine : public IReactiveEngine<ParNode,PipeliningTurn>
-{
-public:
-    using SeqMutexT = queuing_rw_mutex;
-    using NodeSetT = set<ParNode*>;
-    using MaxDynamicLevelMutexT = spin_mutex;
-
-    void OnNodeAttach(ParNode& node, ParNode& parent);
-    void OnNodeDetach(ParNode& node, ParNode& parent);
-
-    void OnTurnAdmissionStart(PipeliningTurn& turn);
-    void OnTurnAdmissionEnd(PipeliningTurn& turn);
-    void OnTurnEnd(PipeliningTurn& turn);
-
-    void OnTurnInputChange(ParNode& node, PipeliningTurn& turn);
-    void OnNodePulse(ParNode& node, PipeliningTurn& turn);
-
-    void OnTurnPropagate(PipeliningTurn& turn);
-
-    void OnDynamicNodeAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
-    void OnDynamicNodeDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
-
-    template <typename F>
-    inline bool TryMerge(F&& inputFunc)
-    {
-        bool merged = false;
-
-        BlockingCondition caller;
-
-        {// seqMutex_
-            SeqMutexT::scoped_lock lock(seqMutex_);
-
-            if (tail_)
-                merged = tail_->TryMerge(std::forward<F>(inputFunc), caller);
-        }// ~seqMutex_
-
-        if (merged)
-            caller.WaitForUnblock();
-
-        return merged;
-    }
-
-private:
-    void applyDynamicAttach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
-    void applyDynamicDetach(ParNode& node, ParNode& parent, PipeliningTurn& turn);
-
-    void processChildren(ParNode& node, PipeliningTurn& turn);
-    void invalidateSuccessors(ParNode& node);
-
-    void advanceTurn(PipeliningTurn& turn);
-
-    SeqMutexT           seqMutex_;
-    PipeliningTurn*     tail_       { nullptr };
-
-    NodeSetT    dynamicNodes_;
-    int         maxDynamicLevel_;
-    
-    MaxDynamicLevelMutexT   maxDynamicLevelMutex_;
-};
-
 } // ~namespace toposort
 
 /****************************************/ REACT_IMPL_END /***************************************/
@@ -369,7 +219,6 @@ struct sequential;
 struct sequential_queue;
 struct parallel;
 struct parallel_queue;
-struct parallel_pipeline;
 
 template <typename TMode>
 class ToposortEngine;
@@ -386,9 +235,6 @@ template <> class ToposortEngine<parallel> :
 template <> class ToposortEngine<parallel_queue> :
     public REACT_IMPL::toposort::QueuingParEngine {};
 
-template <> class ToposortEngine<parallel_pipeline> :
-    public REACT_IMPL::toposort::PipeliningEngine {};
-
 /******************************************/ REACT_END /******************************************/
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
@@ -396,17 +242,14 @@ template <> class ToposortEngine<parallel_pipeline> :
 template <typename> struct EnableNodeUpdateTimer;
 template <> struct EnableNodeUpdateTimer<ToposortEngine<parallel>> : std::true_type {};
 template <> struct EnableNodeUpdateTimer<ToposortEngine<parallel_queue>> : std::true_type {};
-template <> struct EnableNodeUpdateTimer<ToposortEngine<parallel_pipeline>> : std::true_type {};
 
 template <typename> struct EnableParallelUpdating;
 template <> struct EnableParallelUpdating<ToposortEngine<parallel>> : std::true_type {};
 template <> struct EnableParallelUpdating<ToposortEngine<parallel_queue>> : std::true_type {};
-template <> struct EnableParallelUpdating<ToposortEngine<parallel_pipeline>> : std::true_type {};
 
 template <typename> struct EnableConcurrentInput;
 template <> struct EnableConcurrentInput<ToposortEngine<sequential_queue>> : std::true_type {};
 template <> struct EnableConcurrentInput<ToposortEngine<parallel_queue>> : std::true_type {};
-template <> struct EnableConcurrentInput<ToposortEngine<parallel_pipeline>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
