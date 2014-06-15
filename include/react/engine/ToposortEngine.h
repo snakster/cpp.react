@@ -12,20 +12,13 @@
 #include "react/detail/Defs.h"
 
 #include <atomic>
-#include <condition_variable>
-#include <functional>
-#include <limits>
-#include <mutex>
-#include <set>
 #include <utility>
 #include <type_traits>
 #include <vector>
 
 #include "tbb/concurrent_vector.h"
-#include "tbb/queuing_rw_mutex.h"
 #include "tbb/spin_mutex.h"
 
-#include "react/common/Concurrency.h"
 #include "react/common/Containers.h"
 #include "react/common/TopoQueue.h"
 #include "react/common/Types.h"
@@ -39,15 +32,8 @@ class TurnBase;
 namespace toposort {
 
 using std::atomic;
-using std::condition_variable;
-using std::function;
-using std::mutex;
-using std::numeric_limits;
-using std::pair;
-using std::set;
 using std::vector;
 using tbb::concurrent_vector;
-using tbb::queuing_rw_mutex;
 using tbb::spin_mutex;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -138,7 +124,7 @@ public:
     void OnNodeAttach(TNode& node, TNode& parent);
     void OnNodeDetach(TNode& node, TNode& parent);
 
-    void OnTurnInputChange(TNode& node, TTurn& turn);
+    void OnInputChange(TNode& node, TTurn& turn);
     void OnNodePulse(TNode& node, TTurn& turn);
 
 protected:
@@ -154,7 +140,7 @@ class SeqEngineBase : public EngineBase<SeqNode,TTurn>
 public:
     using TopoQueueT = TopoQueue<SeqNode*, GetLevelFunctor<SeqNode>>;
 
-    void OnTurnPropagate(TTurn& turn);
+    void Propagate(TTurn& turn);
 
     void OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, TTurn& turn);
     void OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, TTurn& turn);
@@ -183,7 +169,7 @@ public:
         GetWeightFunctor<ParNode>
     >;
 
-    void OnTurnPropagate(TTurn& turn);
+    void Propagate(TTurn& turn);
 
     void OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn);
     void OnDynamicNodeDetach(ParNode& node, ParNode& parent, TTurn& turn);

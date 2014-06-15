@@ -138,8 +138,8 @@ public:
     void OnNodeAttach(Node& node, Node& parent);
     void OnNodeDetach(Node& node, Node& parent);
 
-    void OnTurnInputChange(Node& node, TTurn& turn);
-    void OnTurnPropagate(TTurn& turn);
+    void OnInputChange(Node& node, TTurn& turn);
+    void Propagate(TTurn& turn);
 
     void OnNodePulse(Node& node, TTurn& turn);
     void OnNodeIdlePulse(Node& node, TTurn& turn);

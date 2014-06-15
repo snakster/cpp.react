@@ -59,6 +59,7 @@ template <typename D>
 class Reactor;
 
 using REACT_IMPL::TurnFlagsT;
+using REACT_IMPL::TransactionStatus;
 
 #ifdef REACT_ENABLE_LOGGING
     using REACT_IMPL::EventLog;
@@ -111,19 +112,56 @@ public:
 
     using ReactorT = Reactor<D>;
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     /// DoTransaction
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     template <typename F>
     static void DoTransaction(F&& func)
     {
-        REACT_IMPL::InputManager<D>::DoTransaction(0, std::forward<F>(func));
+        using REACT_IMPL::DomainSpecificInputManager;
+        DomainSpecificInputManager<D>::Instance().DoTransaction(0, std::forward<F>(func));
     }
 
     template <typename F>
     static void DoTransaction(TurnFlagsT flags, F&& func)
     {
-        REACT_IMPL::InputManager<D>::DoTransaction(flags, std::forward<F>(func));
+        using REACT_IMPL::DomainSpecificInputManager;
+        DomainSpecificInputManager<D>::Instance().DoTransaction(flags, std::forward<F>(func));
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    /// AsyncTransaction
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    template <typename F>
+    static void AsyncTransaction(F&& func)
+    {
+        using REACT_IMPL::DomainSpecificInputManager;
+        DomainSpecificInputManager<D>::Instance()
+            .AsyncTransaction(0, nullptr, std::forward<F>(func));
+    }
+
+    template <typename F>
+    static void AsyncTransaction(TurnFlagsT flags, F&& func)
+    {
+        using REACT_IMPL::DomainSpecificInputManager;
+        DomainSpecificInputManager<D>::Instance()
+            .AsyncTransaction(flags, nullptr, std::forward<F>(func));
+    }
+
+    template <typename F>
+    static void AsyncTransaction(TransactionStatus& status, F&& func)
+    {
+        using REACT_IMPL::DomainSpecificInputManager;
+        DomainSpecificInputManager<D>::Instance()
+            .AsyncTransaction(0, &status, std::forward<F>(func));
+    }
+
+    template <typename F>
+    static void AsyncTransaction(TurnFlagsT flags, TransactionStatus& status, F&& func)
+    {
+        using REACT_IMPL::DomainSpecificInputManager;
+        DomainSpecificInputManager<D>::Instance()
+            .AsyncTransaction(flags, &status, std::forward<F>(func));
     }
 
 #ifdef REACT_ENABLE_LOGGING
@@ -167,8 +205,9 @@ public:
         D::Log();
 #endif //REACT_ENABLE_LOGGING
 
-        D::Engine::Engine();
+        D::Engine::Instance();
         DomainSpecificObserverRegistry<D>::Instance();
+        DomainSpecificInputManager<D>::Instance();
     }
 };
 

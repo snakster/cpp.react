@@ -194,46 +194,46 @@ void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
 }
 
 template <typename TTurn>
-void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
+void EngineBase<TTurn>::OnInputChange(Node& node, TTurn& turn)
 {
     changedInputs_.push_back(&node);
     node.State = ENodeState::changed;
 }
 
 template <typename TTask, typename TIt, typename ... TArgs>
-void spawnHelper
+void spawnTasks
 (
-    task* rootTask, task_list& spawnList,
+    task& rootTask, task_list& spawnList,
     const uint count, TIt start, TIt end,
     TArgs& ... args
 )
 {
-    rootTask->set_ref_count(1 + count);
+    rootTask.set_ref_count(1 + count);
 
     for (uint i=0; i < (count - 1); i++)
     {
-        spawnList.push_back(*new(rootTask->allocate_child())
+        spawnList.push_back(*new(rootTask.allocate_child())
             TTask(args ..., start, start + chunk_size));
         start += chunk_size;
     }
 
-    spawnList.push_back(*new(rootTask->allocate_child())
+    spawnList.push_back(*new(rootTask.allocate_child())
         TTask(args ..., start, end));
 
-    rootTask->spawn_and_wait_for_all(spawnList);
+    rootTask.spawn_and_wait_for_all(spawnList);
 
     spawnList.clear();
 }
 
 template <typename TTurn>
-void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
+void EngineBase<TTurn>::Propagate(TTurn& turn)
 {
     const uint initialTaskCount = (changedInputs_.size() - 1) / chunk_size + 1;
 
-    spawnHelper<MarkerTask>(rootTask_, spawnList_, initialTaskCount,
+    spawnTasks<MarkerTask>(rootTask_, spawnList_, initialTaskCount,
         changedInputs_.begin(), changedInputs_.end());
 
-    spawnHelper<UpdaterTask<TTurn>>(rootTask_, spawnList_, initialTaskCount,
+    spawnTasks<UpdaterTask<TTurn>>(rootTask_, spawnList_, initialTaskCount,
         changedInputs_.begin(), changedInputs_.end(), turn);
 
     changedInputs_.clear();

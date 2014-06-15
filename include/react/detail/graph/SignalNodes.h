@@ -136,7 +136,7 @@ public:
             if (! Equals(this->value_, newValue_))
             {
                 this->value_ = std::move(newValue_);
-                Engine::OnTurnInputChange(*this, turn);
+                Engine::OnInputChange(*this, turn);
                 return true;
             }
             else
@@ -148,7 +148,7 @@ public:
         {            
             isInputModified_ = false;
 
-            Engine::OnTurnInputChange(*this, turn);
+            Engine::OnInputChange(*this, turn);
             return true;
         }
 

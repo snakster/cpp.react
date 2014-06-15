@@ -43,7 +43,7 @@ void EngineBase<TNode,TTurn>::OnNodeDetach(TNode& node, TNode& parent)
 }
 
 template <typename TNode, typename TTurn>
-void EngineBase<TNode,TTurn>::OnTurnInputChange(TNode& node, TTurn& turn)
+void EngineBase<TNode,TTurn>::OnInputChange(TNode& node, TTurn& turn)
 {
     processChildren(node, turn);
 }
@@ -64,7 +64,7 @@ template class EngineBase<ParNode,DefaultQueueableTurn<ExclusiveParTurn>>;
 /// SeqEngineBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TTurn>
-void SeqEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
+void SeqEngineBase<TTurn>::Propagate(TTurn& turn)
 {
     while (scheduledNodes_.FetchNext())
     {
@@ -134,7 +134,7 @@ template class SeqEngineBase<DefaultQueueableTurn<ExclusiveSeqTurn>>;
 /// ParEngineBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TTurn>
-void ParEngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
+void ParEngineBase<TTurn>::Propagate(TTurn& turn)
 {
     while (topoQueue_.FetchNext())
     {

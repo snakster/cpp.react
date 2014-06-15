@@ -144,7 +144,7 @@ public:
 
             this->SetCurrentTurn(turn, true, true);
             changedFlag_ = true;
-            Engine::OnTurnInputChange(*this, turn);
+            Engine::OnInputChange(*this, turn);
             return true;
         }
         else

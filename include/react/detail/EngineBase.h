@@ -185,22 +185,24 @@ public:
         inline void UnblockSuccessors()
         {
             for (const auto& e : merged_)
-                e.second->Unblock();
+                if (e.second != nullptr)
+                    e.second->Unblock();
 
             if (successor_)
                 successor_->blockCondition_.Unblock();
         }
 
         template <typename F>
-        inline bool TryMerge(F&& inputFunc, BlockingCondition& caller)
+        inline bool TryMerge(F&& inputFunc, BlockingCondition* caller)
         {
             if (!isMergeable_)
                 return false;
 
             // Only merge if target is still blocked
             bool merged = blockCondition_.RunIfBlocked([&] {
-                caller.Block();
-                merged_.emplace_back(std::make_pair(std::forward<F>(inputFunc), &caller));
+                if (caller)
+                    caller->Block();
+                merged_.emplace_back(std::make_pair(std::forward<F>(inputFunc), caller));
             });
 
             return merged;
@@ -230,7 +232,7 @@ public:
             SeqMutexT::scoped_lock lock(seqMutex_);
 
             if (tail_)
-                merged = tail_->TryMerge(std::forward<F>(inputFunc), caller);
+                merged = tail_->TryMerge(std::forward<F>(inputFunc), &caller);
         }// ~seqMutex_
 
         if (merged)
@@ -239,7 +241,22 @@ public:
         return merged;
     }
 
-    inline void StartTurn(QueueEntry& turn)
+    template <typename F>
+    inline bool TryMergeAsync(F&& inputFunc)
+    {
+        bool merged = false;
+
+        {// seqMutex_
+            SeqMutexT::scoped_lock lock(seqMutex_);
+
+            if (tail_)
+                merged = tail_->TryMerge(std::forward<F>(inputFunc), nullptr);
+        }// ~seqMutex_
+
+        return merged;
+    }
+
+    inline void EnterQueue(QueueEntry& turn)
     {
         {// seqMutex_
             SeqMutexT::scoped_lock lock(seqMutex_);
@@ -253,7 +270,7 @@ public:
         turn.WaitForUnblock();
     }
 
-    inline void EndTurn(QueueEntry& turn)
+    inline void ExitQueue(QueueEntry& turn)
     {// seqMutex_
         SeqMutexT::scoped_lock lock(seqMutex_);
 
@@ -273,10 +290,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DefaultQueueableTurn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename TTurnBase
->
+template <typename TTurnBase>
 class DefaultQueueableTurn :
     public TTurnBase,
     public TurnQueueManager::QueueEntry
@@ -301,29 +315,32 @@ class DefaultQueuingEngine : public TTEngineBase<DefaultQueueableTurn<TTurnBase>
 public:
     using TurnT = DefaultQueueableTurn<TTurnBase>;
 
-    void OnTurnAdmissionStart(TurnT& turn)
+    template <typename F>
+    bool TryMergeInput(F&& f, bool isBlocking)
     {
-        queueManager_.StartTurn(turn);
+        if (isBlocking)
+            return queueManager_.TryMerge(std::forward<F>(f));
+        else
+            return queueManager_.TryMergeAsync(std::forward<F>(f));
     }
 
-    void OnTurnAdmissionEnd(TurnT& turn)
+    void ApplyMergedInputs(TurnT& turn)
     {
         turn.RunMergedInputs();
     }
 
-    void OnTurnEnd(TurnT& turn)
+    void EnterTurnQueue(TurnT& turn)
     {
-        queueManager_.EndTurn(turn);
+        queueManager_.EnterQueue(turn);
     }
-
-    template <typename F>
-    bool TryMerge(F&& f)
+    
+    void ExitTurnQueue(TurnT& turn)
     {
-        return queueManager_.TryMerge(std::forward<F>(f));
+        queueManager_.ExitQueue(turn);
     }
 
 private:
-    TurnQueueManager    queueManager_;
+    TurnQueueManager        queueManager_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

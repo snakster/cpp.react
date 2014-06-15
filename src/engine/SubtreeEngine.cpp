@@ -47,7 +47,7 @@ void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
 }
 
 template <typename TTurn>
-void EngineBase<TTurn>::OnTurnInputChange(Node& node, TTurn& turn)
+void EngineBase<TTurn>::OnInputChange(Node& node, TTurn& turn)
 {
     processChildren(node, turn);
 }
@@ -148,7 +148,7 @@ private:
 };
 
 template <typename TTurn>
-void EngineBase<TTurn>::OnTurnPropagate(TTurn& turn)
+void EngineBase<TTurn>::Propagate(TTurn& turn)
 {
     // Phase 1
     while (scheduledNodes_.FetchNext())

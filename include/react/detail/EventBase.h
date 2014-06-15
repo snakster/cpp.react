@@ -42,7 +42,7 @@ protected:
     template <typename T>
     void emit(T&& e) const
     {
-        InputManager<D>::AddInput(
+        DomainSpecificInputManager<D>::Instance().AddInput(
             *reinterpret_cast<EventSourceNode<D,E>*>(this->ptr_.get()),
             std::forward<T>(e));
     }

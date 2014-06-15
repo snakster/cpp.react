@@ -47,7 +47,7 @@ protected:
     template <typename T>
     void setValue(T&& newValue) const
     {
-        InputManager<D>::AddInput(
+        DomainSpecificInputManager<D>::Instance().AddInput(
             *reinterpret_cast<VarNode<D,S>*>(this->ptr_.get()),
             std::forward<T>(newValue));
     }
@@ -55,7 +55,7 @@ protected:
     template <typename F>
     void modifyValue(const F& func) const
     {
-        InputManager<D>::ModifyInput(
+        DomainSpecificInputManager<D>::Instance().ModifyInput(
             *reinterpret_cast<VarNode<D,S>*>(this->ptr_.get()), func);
     }
 };
