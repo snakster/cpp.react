@@ -37,7 +37,7 @@
         <y:ShapeNode>
           <y:Geometry height="30.0" width="60.0" x="930.0" y="645.0"/>
           <y:Fill hasColor="false" transparent="false"/>
-          <y:BorderStyle color="#000000" type="line" width="2.0"/>
+          <y:BorderStyle color="#000000" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Consolas" fontSize="16" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" modelName="sides" modelPosition="s" textColor="#000000" visible="true" width="4.0" x="28.0" y="34.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Arial" fontSize="18" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="24.109375" modelName="custom" textColor="#000000" visible="true" width="14.0107421875" x="22.99462890625" y="2.9453125">a<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
@@ -55,7 +55,7 @@
         <y:ShapeNode>
           <y:Geometry height="30.0" width="60.0" x="1020.0" y="645.0"/>
           <y:Fill hasColor="false" transparent="false"/>
-          <y:BorderStyle color="#000000" type="line" width="2.0"/>
+          <y:BorderStyle color="#000000" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Consolas" fontSize="16" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" modelName="sides" modelPosition="s" textColor="#000000" visible="true" width="4.0" x="28.0" y="34.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Arial" fontSize="18" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="24.109375" modelName="custom" textColor="#000000" visible="true" width="14.0107421875" x="22.99462890625" y="2.9453125">b<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
@@ -73,7 +73,7 @@
         <y:ShapeNode>
           <y:Geometry height="30.0" width="60.0" x="1110.0" y="645.0"/>
           <y:Fill hasColor="false" transparent="false"/>
-          <y:BorderStyle color="#000000" type="line" width="2.0"/>
+          <y:BorderStyle color="#000000" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Consolas" fontSize="16" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" modelName="sides" modelPosition="s" textColor="#000000" visible="true" width="4.0" x="28.0" y="34.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Arial" fontSize="18" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="24.109375" modelName="custom" textColor="#000000" visible="true" width="13.0" x="23.5" y="2.9453125">c<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
@@ -91,7 +91,7 @@
         <y:ShapeNode>
           <y:Geometry height="30.0" width="60.0" x="975.0" y="705.0"/>
           <y:Fill hasColor="false" transparent="false"/>
-          <y:BorderStyle color="#000000" type="line" width="2.0"/>
+          <y:BorderStyle color="#000000" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Consolas" fontSize="16" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" modelName="sides" modelPosition="s" textColor="#000000" visible="true" width="4.0" x="28.0" y="34.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Arial" fontSize="18" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" modelName="custom" textColor="#000000" visible="true" width="4.0" x="28.0" y="13.0">
             <y:LabelModel>
@@ -110,7 +110,7 @@
         <y:ShapeNode>
           <y:Geometry height="30.0" width="60.0" x="1035.0" y="765.0"/>
           <y:Fill hasColor="false" transparent="false"/>
-          <y:BorderStyle color="#000000" type="line" width="2.0"/>
+          <y:BorderStyle color="#000000" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Consolas" fontSize="16" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" modelName="sides" modelPosition="s" textColor="#000000" visible="true" width="4.0" x="28.0" y="34.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Arial" fontSize="18" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="24.109375" modelName="custom" textColor="#000000" visible="true" width="13.0" x="23.5" y="2.9453125">x<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>

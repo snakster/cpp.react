@@ -46,10 +46,7 @@ Cpp.React uses several external dependencies, but only one of them is mandatory:
 
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
 * [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the unit tests)
-* [Boost 1.55 C++ Libraries](http://www.boost.org/) (optional, to include Reactor.h, which requires boost::coroutines)
-
-TBB is required, because it enables the parallel propagation strategies.
-Future plans are to separate the multi-threaded and single-threaded propagation engines more cleanly to remove the TBB dependency if parallelism is not used.
+* [Boost 1.55.0 C++ Libraries](http://www.boost.org/) (optional, to include Reactor.h, which requires `boost::coroutine`)
 
 # Features by example
 
