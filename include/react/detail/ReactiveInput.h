@@ -272,10 +272,9 @@ private:
     using AsyncQueueT = tbb::concurrent_bounded_queue<AsyncItem>;
     using ContinuationT = ContinuationData<D::uses_parallel_updating>;
 
-    struct TransactionState
+    struct TransactionData
     {
-        bool    Active = false;
-        std::vector<IInputNode*>    Inputs;
+        std::vector<IInputNode*>    ChangedInputs;
     };
 
 public:
@@ -314,10 +313,10 @@ public:
         ThreadLocalInputState<>::Context = EInputContext::none;
 
         // Phase 2 - Apply input node changes
-        for (auto* p : transactionState_.Inputs)
+        for (auto* p : transaction_.ChangedInputs)
             if (p->ApplyInput(&turn))
                 shouldPropagate = true;
-        transactionState_.Inputs.clear();
+        transaction_.ChangedInputs.clear();
 
         // Phase 3 - Propagate changes
         if (shouldPropagate)
@@ -359,7 +358,7 @@ public:
             // First try to merge to an existing synchronous item in the queue
             bool canMerge = (item.Flags & enable_input_merging) != 0;
             if (canMerge && Engine::TryMergeAsync(std::move(item.Func), item.StatusPtr))
-                return;
+                continue;
 
             bool shouldPropagate = false;
 
@@ -417,10 +416,10 @@ public:
             ThreadLocalInputState<>::Context = EInputContext::none;
 
             // Phase 2 - Apply input node changes
-            for (auto* p : transactionState_.Inputs)
+            for (auto* p : transaction_.ChangedInputs)
                 if (p->ApplyInput(&turn))
                     shouldPropagate = true;
-            transactionState_.Inputs.clear();
+            transaction_.ChangedInputs.clear();
 
             // Phase 3 - Propagate changes
             if (shouldPropagate)
@@ -538,21 +537,21 @@ private:
     void addTransactionInput(R& r, V&& v)
     {
         r.AddInput(std::forward<V>(v));
-        transactionState_.Inputs.push_back(&r);
+        transaction_.ChangedInputs.push_back(&r);
     }
 
     template <typename R, typename F>
     void modifyTransactionInput(R& r, const F& func)
     {
         r.ModifyInput(func);
-        transactionState_.Inputs.push_back(&r);
+        transaction_.ChangedInputs.push_back(&r);
     }
 
     // Input happened during a turn - buffer in continuation
     template <typename R, typename V>
     void addContinuationInput(R& r, const V& v)
     {
-        // Copy v
+        // Capture v by value to store it in lambda
         continuation_.AddInput(
             [this,&r,v] { addTransactionInput(r, std::move(v)); }
         );
@@ -561,7 +560,7 @@ private:
     template <typename R, typename F>
     void modifyContinuationInput(R& r, const F& func)
     {
-        // Copy func
+        // Capture func by value to store it in lambda
         continuation_.AddInput(
             [this,&r,func] { modifyTransactionInput(r, func); }
         );
@@ -590,10 +589,10 @@ private:
 
             ThreadLocalInputState<>::Context = EInputContext::none;
 
-            for (auto* p : transactionState_.Inputs)
+            for (auto* p : transaction_.ChangedInputs)
                 if (p->ApplyInput(&turn))
                     shouldPropagate = true;
-            transactionState_.Inputs.clear();
+            transaction_.ChangedInputs.clear();
 
             if (shouldPropagate)
                 Engine::Propagate(turn);
@@ -609,7 +608,7 @@ private:
 
     std::atomic<TurnIdT>    nextTurnId_ { 0 };
 
-    TransactionState        transactionState_;
+    TransactionData         transaction_;
     ContinuationT           continuation_;
 };
 
