@@ -17,7 +17,6 @@
 #include <utility>
 #include <vector>
 
-#include "tbb/concurrent_vector.h"
 #include "tbb/queuing_mutex.h"
 
 #include "react/common/Concurrency.h"
@@ -26,7 +25,6 @@
 #include "react/detail/IReactiveNode.h"
 #include "react/detail/IReactiveEngine.h"
 #include "react/detail/ObserverBase.h"
-#include "react/detail/Options.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -37,119 +35,14 @@ template <bool is_thread_safe>
 class TurnBase
 {
 public:
-    TurnBase(TurnIdT id, TurnFlagsT flags);
-
-    TurnIdT Id() const;
-
-    void QueueForDetach(IObserver& obs);
-
-    template <typename D>
-    friend class InputManager;
-
-    template <typename D>
-    friend class ContinuationHolder;
-
-private:
-    using ContinuationT =   ContinuationInput<is_thread_safe>;
-
-    template <typename D>
-    void detachObservers();
-};
-
-// Not thread-safe
-template <>
-class TurnBase<false>
-{
-public:
     TurnBase(TurnIdT id, TurnFlagsT flags) :
         id_( id )
     {}
 
     TurnIdT Id() const { return id_; }
 
-    void QueueForDetach(IObserver& obs)
-    {
-        detachedObservers_.push_back(&obs);
-    }
-
-    template <typename D>
-    friend class InputManager;
-
-    template <typename D>
-    friend class ContinuationHolder;
-
 private:
-    using ObsVectT =        std::vector<IObserver*>;
-    using ContinuationT =   ContinuationInput<false>;
-
     TurnIdT    id_;
-
-    template <typename D>
-    void detachObservers()
-    {
-
-        auto& registry = DomainSpecificObserverRegistry<D>::Instance();
-
-        for (auto* o : detachedObservers_)
-            registry.Unregister(o);
-
-        detachedObservers_.clear();
-    }
-
-    ObsVectT        detachedObservers_;
-    ContinuationT   continuation_;
-};
-
-// Thread-safe
-template <>
-class TurnBase<true>
-{
-public:
-    TurnBase(TurnIdT id, TurnFlagsT flags) :
-        id_( id )
-    {}
-
-    TurnIdT Id() const { return id_; }
-
-    void QueueForDetach(IObserver& obs)
-    {
-        // Allocation of concurrent vector is not cheap -> create on demand
-        std::call_once(detachedObserversInit_, [this] {
-            detachedObserversPtr_.reset(new ObsVectT());
-        });
-
-        detachedObserversPtr_->push_back(&obs);
-    }
-
-    template <typename D>
-    friend class InputManager;
-
-    template <typename D>
-    friend class ContinuationHolder;
-
-private:
-    using ObsVectT = tbb::concurrent_vector<IObserver*>;
-    using ContinuationT =  ContinuationInput<true>;
-
-    TurnIdT    id_;
-
-    template <typename D>
-    void detachObservers()
-    {
-        if (detachedObserversPtr_ != nullptr)
-        {
-            auto& registry = DomainSpecificObserverRegistry<D>::Instance();
-
-            for (auto* o : *detachedObserversPtr_)
-                registry.Unregister(o);
-
-            detachedObserversPtr_->clear();
-        }
-    }
-
-    std::once_flag              detachedObserversInit_;
-    std::unique_ptr<ObsVectT>   detachedObserversPtr_;
-    ContinuationT               continuation_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,21 +72,33 @@ public:
         inline void RunMergedInputs() const
         {
             for (const auto& e : merged_)
-                e.first();
+                e.InputFunc();
         }
 
         inline void UnblockSuccessors()
         {
+            // Release merged
             for (const auto& e : merged_)
-                if (e.second != nullptr)
-                    e.second->Unblock();
+            {
+                // Note: Since a merged input is either sync or async,
+                // either cond or status will be null
 
+                // Sync
+                if (e.Cond != nullptr)
+                    e.Cond->Unblock();
+
+                // Async
+                else if (e.Status != nullptr)
+                    TransactionStatusInterface::DecrementWaitCount(*e.Status);
+            }
+
+            // Release next thread in queue
             if (successor_)
                 successor_->blockCondition_.Unblock();
         }
 
         template <typename F>
-        inline bool TryMerge(F&& inputFunc, BlockingCondition* caller)
+        inline bool TryMerge(F&& inputFunc, BlockingCondition* caller, TransactionStatus* status)
         {
             if (!isMergeable_)
                 return false;
@@ -202,18 +107,32 @@ public:
             bool merged = blockCondition_.RunIfBlocked([&] {
                 if (caller)
                     caller->Block();
-                merged_.emplace_back(std::make_pair(std::forward<F>(inputFunc), caller));
+                merged_.emplace_back(std::forward<F>(inputFunc), caller, status);
             });
 
             return merged;
         }
 
     private:
-        using MergedDataVectT =
-            std::vector<
-                std::pair<
-                    std::function<void()>,
-                    BlockingCondition*>>;
+        struct MergedData
+        {
+            template <typename F>
+            MergedData(F&& func, BlockingCondition* cond, TransactionStatus* status) :
+                InputFunc( std::forward<F>(func) ),
+                Cond( cond ),
+                Status( status )
+            {}
+
+            std::function<void()>   InputFunc;
+
+            // Blocking condition variable for sync merged
+            BlockingCondition*      Cond;  
+
+            // Status for async merged
+            TransactionStatus*      Status;
+        };
+
+        using MergedDataVectT = std::vector<MergedData>;
 
         bool                isMergeable_;
         QueueEntry*         successor_ = nullptr;
@@ -222,7 +141,7 @@ public:
     };
 
     template <typename F>
-    inline bool TryMerge(F&& inputFunc)
+    inline bool TryMergeSync(F&& inputFunc)
     {
         bool merged = false;
 
@@ -232,7 +151,7 @@ public:
             SeqMutexT::scoped_lock lock(seqMutex_);
 
             if (tail_)
-                merged = tail_->TryMerge(std::forward<F>(inputFunc), &caller);
+                merged = tail_->TryMerge(std::forward<F>(inputFunc), &caller, nullptr);
         }// ~seqMutex_
 
         if (merged)
@@ -242,7 +161,7 @@ public:
     }
 
     template <typename F>
-    inline bool TryMergeAsync(F&& inputFunc)
+    inline bool TryMergeAsync(F&& inputFunc, TransactionStatus* status)
     {
         bool merged = false;
 
@@ -250,7 +169,7 @@ public:
             SeqMutexT::scoped_lock lock(seqMutex_);
 
             if (tail_)
-                merged = tail_->TryMerge(std::forward<F>(inputFunc), nullptr);
+                merged = tail_->TryMerge(std::forward<F>(inputFunc), nullptr, status);
         }// ~seqMutex_
 
         return merged;
@@ -316,12 +235,15 @@ public:
     using TurnT = DefaultQueueableTurn<TTurnBase>;
 
     template <typename F>
-    bool TryMergeInput(F&& f, bool isBlocking)
+    bool TryMergeSync(F&& f)
     {
-        if (isBlocking)
-            return queueManager_.TryMerge(std::forward<F>(f));
-        else
-            return queueManager_.TryMergeAsync(std::forward<F>(f));
+        return queueManager_.TryMergeSync(std::forward<F>(f));
+    }
+
+    template <typename F>
+    bool TryMergeAsync(F&& f, TransactionStatus* statusPtr)
+    {
+        return queueManager_.TryMergeAsync(std::forward<F>(f), statusPtr);
     }
 
     void ApplyMergedInputs(TurnT& turn)

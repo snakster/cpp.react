@@ -78,23 +78,26 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
+#ifdef REACT_ENABLE_LOGGING
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+#endif
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        GlobalObserverState<>::ShouldDetach = false;
+        ThreadLocalObserverState<>::ShouldDetach = false;
 
-        ContinuationHolder<D>::SetTurn(turn);
+        ThreadLocalInputState<>::Context = EInputContext::continuation;
 
         if (auto p = subject_.lock())
             func_(p->ValueRef());
 
-        ContinuationHolder<D>::Clear();
+        ThreadLocalInputState<>::Context = EInputContext::none;
 
-        if (GlobalObserverState<>::ShouldDetach)
-            turn.QueueForDetach(*this);
+        if (ThreadLocalObserverState<>::ShouldDetach)
+            DomainSpecificInputManager<D>::Instance().Continuation()
+                .QueueObserverForDetach(*this);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -151,15 +154,17 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
+#ifdef REACT_ENABLE_LOGGING
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+#endif
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
         
-        GlobalObserverState<>::ShouldDetach = false;
+        ThreadLocalObserverState<>::ShouldDetach = false;
 
-        ContinuationHolder<D>::SetTurn(turn);
+        ThreadLocalInputState<>::Context = EInputContext::continuation;
 
         if (auto p = subject_.lock())
         {
@@ -167,10 +172,11 @@ public:
                 func_(e);
         }
 
-        ContinuationHolder<D>::Clear();
+        ThreadLocalInputState<>::Context = EInputContext::none;
 
-        if (GlobalObserverState<>::ShouldDetach)
-            turn.QueueForDetach(*this);
+        if (ThreadLocalObserverState<>::ShouldDetach)
+            DomainSpecificInputManager<D>::Instance().Continuation()
+                .QueueObserverForDetach(*this);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -256,9 +262,9 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
         
-        GlobalObserverState<>::ShouldDetach = false;
+        ThreadLocalObserverState<>::ShouldDetach = false;
 
-        ContinuationHolder<D>::SetTurn(turn);
+        ThreadLocalInputState<>::Context = EInputContext::continuation;
 
         if (auto p = subject_.lock())
         {
@@ -270,10 +276,11 @@ public:
                 apply(EvalFunctor_{ e, func_ }, deps_);
         }
 
-        ContinuationHolder<D>::Clear();
+        ThreadLocalInputState<>::Context = EInputContext::none;
 
-        if (GlobalObserverState<>::ShouldDetach)
-            turn.QueueForDetach(*this);
+        if (ThreadLocalObserverState<>::ShouldDetach)
+            DomainSpecificInputManager<D>::Instance().Continuation()
+                .QueueObserverForDetach(*this);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));

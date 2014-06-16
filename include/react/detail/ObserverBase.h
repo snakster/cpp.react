@@ -40,13 +40,13 @@ private:
 
 // tbb tasks are non-preemptible, thread local flag for each worker
 template <typename = void>
-struct GlobalObserverState
+struct ThreadLocalObserverState
 {
     static REACT_TLS bool    ShouldDetach;
 };
 
 template <typename T>
-REACT_TLS bool GlobalObserverState<T>::ShouldDetach(false);
+REACT_TLS bool ThreadLocalObserverState<T>::ShouldDetach(false);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverRegistry

@@ -18,6 +18,11 @@
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Forward declarations
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class TransactionStatus;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -31,7 +36,10 @@ struct IReactiveEngine
     using TurnT = TTurn;
 
     template <typename F>
-    bool TryMergeInput(F&& f, bool isBlocking) { return false; }
+    bool TryMergeSync(F&& f) { return false; }
+
+    template <typename F>
+    bool TryMergeAsync(F&& f, TransactionStatus* status) { return false; }
 
     void ApplyMergedInputs(TurnT& turn) {}
 
@@ -78,9 +86,15 @@ struct EngineInterface
     }
 
     template <typename F>
-    static bool TryMergeInput(F&& f, bool isBlocking)
+    static bool TryMergeSync(F&& f)
     {
-        return Instance().TryMergeInput(std::forward<F>(f), isBlocking);
+        return Instance().TryMergeSync(std::forward<F>(f));
+    }
+
+    template <typename F>
+    static bool TryMergeAsync(F&& f, TransactionStatus* status)
+    {
+        return Instance().TryMergeAsync(std::forward<F>(f), status);
     }
 
     static void ApplyMergedInputs(TurnT& turn)
