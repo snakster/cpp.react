@@ -96,61 +96,9 @@ namespace example1
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 2 - Detaching observers manually (1)
+/// Example 2 - Detaching observers manually
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace example2
-{
-    using namespace std;
-    using namespace react;
-
-    REACTIVE_DOMAIN(D)
-
-    class DelayedExecutor
-    {
-    public:
-        USING_REACTIVE_DOMAIN(D)
-
-        template <typename F>
-        void ScheduleForExecution(const F& func)
-        {
-            Observe(trigger_, [=] (Token) { func(); });
-        }
-
-        void Execute()
-        {
-            trigger_.Emit();
-            DetachAllObservers(trigger_);
-        }
-
-    private:
-        EventSourceT<>    trigger_ = MakeEventSource<D>();
-    };
-
-    void Run()
-    {
-        cout << "Example 2 - Detaching observers manually (1)" << endl;
-
-        DelayedExecutor exec;
-
-        exec.ScheduleForExecution([] {
-            cout << "one" << endl;
-        });
-        exec.ScheduleForExecution([] {
-            cout << "two" << endl;
-        });
-
-        exec.Execute(); // output: one, two
-
-        exec.Execute(); // no output
-
-        cout << endl;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 3 - Detaching observers manually (2)
-///////////////////////////////////////////////////////////////////////////////////////////////////
-namespace example3
 {
     using namespace std;
     using namespace react;
@@ -162,7 +110,7 @@ namespace example3
 
     void Run()
     {
-        cout << "Example 3 - Detaching observers manually (2)" << endl;
+        cout << "Example 2 - Detaching observers manually" << endl;
 
         ObserverT obs = Observe(trigger, [] (Token) {
             cout << "Triggered!" << endl;
@@ -179,9 +127,9 @@ namespace example3
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 4 - Using scoped observers
+/// Example 3 - Using scoped observers
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-namespace example4
+namespace example3
 {
     using namespace std;
     using namespace react;
@@ -193,7 +141,7 @@ namespace example4
 
     void Run()
     {
-        cout << "Example 4 - Using scoped observers" << endl;
+        cout << "Example 3 - Using scoped observers" << endl;
 
         // Inner scope
         {
@@ -235,8 +183,6 @@ int main()
     example2::Run();
 
     example3::Run();
-
-    example4::Run();
 
     return 0;
 }

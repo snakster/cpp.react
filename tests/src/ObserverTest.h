@@ -62,7 +62,7 @@ TYPED_TEST_P(ObserverTest, Detach)
             ASSERT_TRUE(false);
     });
 
-    Observe(result, [&] (int v)
+    auto obs2 = Observe(result, [&] (int v)
     {
         observeCount2++;
 
@@ -74,7 +74,7 @@ TYPED_TEST_P(ObserverTest, Detach)
             ASSERT_TRUE(false);
     });
 
-    Observe(result, [&] (int v)
+    auto obs3 = Observe(result, [&] (int v)
     {
         observeCount3++;
 
@@ -100,7 +100,8 @@ TYPED_TEST_P(ObserverTest, Detach)
     ASSERT_EQ(observeCount3,2);
 
     phase = 2;
-    DetachAllObservers(result);
+    obs2.Detach();
+    obs3.Detach();
     a1 <<= 4;
     ASSERT_EQ(observeCount1,1);
     ASSERT_EQ(observeCount2,2);
