@@ -97,7 +97,6 @@
     <ClInclude Include="..\..\include\react\detail\graph\SignalNodes.h" />
     <ClInclude Include="..\..\include\react\detail\IReactiveEngine.h" />
     <ClInclude Include="..\..\include\react\detail\IReactiveNode.h" />
-    <ClInclude Include="..\..\include\react\detail\Options.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveBase.h" />
     <ClInclude Include="..\..\include\react\detail\SignalBase.h" />
     <ClInclude Include="..\..\include\react\Domain.h" />

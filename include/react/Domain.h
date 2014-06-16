@@ -14,7 +14,6 @@
 #include <utility>
 
 #include "react/detail/ReactiveInput.h"
-#include "react/detail/Options.h"
 
 #ifdef REACT_ENABLE_LOGGING
     #include "react/logging/EventLog.h"
@@ -60,6 +59,9 @@ class Reactor;
 
 using REACT_IMPL::TurnFlagsT;
 using REACT_IMPL::TransactionStatus;
+
+//ETurnFlags
+using REACT_IMPL::enable_input_merging;
 
 #ifdef REACT_ENABLE_LOGGING
     using REACT_IMPL::EventLog;

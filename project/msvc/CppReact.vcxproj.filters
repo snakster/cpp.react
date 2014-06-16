@@ -75,9 +75,6 @@
     <ClInclude Include="..\..\include\react\detail\IReactiveNode.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\Options.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\detail\ReactiveBase.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
