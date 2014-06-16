@@ -118,7 +118,7 @@ public:
 
 private:
     NodeVectT       changedInputs_;
-    empty_task&     rootTask_       { *new(task::allocate_root()) empty_task };
+    empty_task&     rootTask_       = *new(task::allocate_root()) empty_task;
     task_list       spawnList_;
 };
 
