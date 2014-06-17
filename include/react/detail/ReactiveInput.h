@@ -189,23 +189,18 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// TransactionStatus
+/// AsyncState
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class TransactionStatus
+class AsyncState
 {
 public:
-    TransactionStatus() = default;
-    TransactionStatus(const TransactionStatus&) = delete;
-    TransactionStatus(TransactionStatus&&) = delete;
-
     inline void Wait()
     {
         std::unique_lock<std::mutex> lock(mutex_);
         condition_.wait(lock, [this] { return !isWaiting_; });
     }
 
-private:
-    inline void incWaitCount()
+    inline void IncWaitCount()
     {
         auto oldVal = waitCount_.fetch_add(1, std::memory_order_relaxed);
 
@@ -216,8 +211,7 @@ private:
         }// ~mutex_
     }
 
-
-    inline void decWaitCount()
+    inline void DecWaitCount()
     {
         auto oldVal = waitCount_.fetch_sub(1, std::memory_order_relaxed);
 
@@ -228,30 +222,15 @@ private:
             condition_.notify_all();
         }// ~mutex_
     }
-    
 
+private:
     std::atomic<uint>           waitCount_{ 0 };
-
     std::condition_variable     condition_;
     std::mutex                  mutex_;
-    bool                        isWaiting_{ false };
-
-    friend class TransactionStatusInterface;
+    bool                        isWaiting_ = false;
 };
 
-class TransactionStatusInterface
-{
-public:
-    inline static void IncrementWaitCount(TransactionStatus& status)
-    {
-        status.incWaitCount();
-    }
-
-    inline static void DecrementWaitCount(TransactionStatus& status)
-    {
-        status.decWaitCount();
-    }
-};
+using AsyncStatePtrT = std::shared_ptr<AsyncState>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// InputManager
@@ -264,9 +243,9 @@ private:
 
     struct AsyncItem
     {
-        TurnFlagsT          Flags;
-        TransactionStatus*  StatusPtr;
-        TransactionFuncT    Func;
+        TurnFlagsT              Flags;
+        AsyncStatePtrT          StatusPtr;
+        TransactionFuncT        Func;
     };
 
     using AsyncQueueT = tbb::concurrent_bounded_queue<AsyncItem>;
@@ -328,10 +307,10 @@ public:
     }
 
     template <typename F>
-    void AsyncTransaction(TurnFlagsT flags, TransactionStatus* statusPtr, F&& func)
+    void AsyncTransaction(TurnFlagsT flags, const AsyncStatePtrT& statusPtr, F&& func)
     {
         if (statusPtr != nullptr)
-            TransactionStatusInterface::IncrementWaitCount(*statusPtr);
+            statusPtr->IncWaitCount();
 
         asyncQueue_.push(AsyncItem{ flags, statusPtr, func } );
     }
@@ -340,10 +319,10 @@ public:
     {
         AsyncItem item;
 
-        TransactionStatus*  savedStatusPtr = nullptr;
-        TurnFlagsT          savedFlags = 0;
+        AsyncStatePtrT  savedStatusPtr = nullptr;
+        TurnFlagsT      savedFlags = 0;
 
-        std::vector<TransactionStatus*> statusPtrStash;
+        std::vector<AsyncStatePtrT> statusPtrStash;
 
         bool skipPop = false;
 
@@ -357,7 +336,7 @@ public:
 
             // First try to merge to an existing synchronous item in the queue
             bool canMerge = (item.Flags & enable_input_merging) != 0;
-            if (canMerge && Engine::TryMergeAsync(std::move(item.Func), item.StatusPtr))
+            if (canMerge && Engine::TryMergeAsync(std::move(item.Func), std::move(item.StatusPtr)))
                 continue;
 
             bool shouldPropagate = false;
@@ -379,7 +358,7 @@ public:
             Engine::ApplyMergedInputs(turn);
 
             // Save data, because item might be re-used for next input
-            savedStatusPtr = item.StatusPtr;
+            savedStatusPtr = std::move(item.StatusPtr);
             savedFlags = item.Flags;
 
             // If the current item supports merging, try to add more mergeable inputs
@@ -394,7 +373,7 @@ public:
                     {
                         item.Func();
                         if (item.StatusPtr != nullptr)
-                            statusPtrStash.push_back(item.StatusPtr);
+                            statusPtrStash.push_back(std::move(item.StatusPtr));
 
                         ++extraCount;
                     }
@@ -431,10 +410,10 @@ public:
 
             // Decrement transaction status counts of processed items
             if (savedStatusPtr != nullptr)
-                TransactionStatusInterface::DecrementWaitCount(*savedStatusPtr);
+                savedStatusPtr->DecWaitCount();
 
-            for (auto* p : statusPtrStash)
-                TransactionStatusInterface::DecrementWaitCount(*p);
+            for (auto& p : statusPtrStash)
+                p->DecWaitCount();
             statusPtrStash.clear();
         }
     }

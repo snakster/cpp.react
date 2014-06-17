@@ -11,6 +11,7 @@
 
 #include "react/detail/Defs.h"
 
+#include <memory>
 #include <utility>
 
 #include "react/detail/ReactiveInput.h"
@@ -58,7 +59,6 @@ template <typename D>
 class Reactor;
 
 using REACT_IMPL::TurnFlagsT;
-using REACT_IMPL::TransactionStatus;
 
 //ETurnFlags
 using REACT_IMPL::enable_input_merging;
@@ -66,6 +66,45 @@ using REACT_IMPL::enable_input_merging;
 #ifdef REACT_ENABLE_LOGGING
     using REACT_IMPL::EventLog;
 #endif //REACT_ENABLE_LOGGING    
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// TransactionStatus
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class TransactionStatus
+{
+    using StateT = REACT_IMPL::AsyncState;
+
+public:
+    TransactionStatus() :
+        state_( std::make_shared<StateT>() )
+    {}
+
+    TransactionStatus(const TransactionStatus&) = default;
+
+    TransactionStatus(TransactionStatus&& other) :
+        state_( std::move(other.state_) )
+    {}
+
+    TransactionStatus& operator=(const TransactionStatus&) = default;
+
+    TransactionStatus& operator=(TransactionStatus&& other)
+    {
+        state_ = std::move(other.state_);
+        return *this;
+    }
+
+    inline void Wait()
+    {
+        assert(state_.get() != nullptr);
+        state_->Wait();
+    }
+
+private:
+    std::shared_ptr<StateT> state_;
+
+    template <typename D, typename TPolicy>
+    friend class DomainBase;
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DomainBase
@@ -154,8 +193,9 @@ public:
     static void AsyncTransaction(TransactionStatus& status, F&& func)
     {
         using REACT_IMPL::DomainSpecificInputManager;
+
         DomainSpecificInputManager<D>::Instance()
-            .AsyncTransaction(0, &status, std::forward<F>(func));
+            .AsyncTransaction(0, status.state_, std::forward<F>(func));
     }
 
     template <typename F>
@@ -163,7 +203,7 @@ public:
     {
         using REACT_IMPL::DomainSpecificInputManager;
         DomainSpecificInputManager<D>::Instance()
-            .AsyncTransaction(flags, &status, std::forward<F>(func));
+            .AsyncTransaction(flags, status.state_, std::forward<F>(func));
     }
 
 #ifdef REACT_ENABLE_LOGGING

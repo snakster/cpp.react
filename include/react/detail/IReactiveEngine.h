@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <memory>
 #include <utility>
 
 #include "react/detail/Defs.h"
@@ -20,7 +21,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class TransactionStatus;
+class AsyncState;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveEngine
@@ -39,7 +40,7 @@ struct IReactiveEngine
     bool TryMergeSync(F&& f) { return false; }
 
     template <typename F>
-    bool TryMergeAsync(F&& f, TransactionStatus* status) { return false; }
+    bool TryMergeAsync(F&& f, std::shared_ptr<AsyncState>&& statusPtr) { return false; }
 
     void ApplyMergedInputs(TurnT& turn) {}
 
@@ -92,9 +93,9 @@ struct EngineInterface
     }
 
     template <typename F>
-    static bool TryMergeAsync(F&& f, TransactionStatus* status)
+    static bool TryMergeAsync(F&& f, std::shared_ptr<AsyncState>&& statusPtr)
     {
-        return Instance().TryMergeAsync(std::forward<F>(f), status);
+        return Instance().TryMergeAsync(std::forward<F>(f), std::move(statusPtr));
     }
 
     static void ApplyMergedInputs(TurnT& turn)

@@ -88,8 +88,8 @@ public:
                     e.Cond->Unblock();
 
                 // Async
-                else if (e.Status != nullptr)
-                    TransactionStatusInterface::DecrementWaitCount(*e.Status);
+                else if (e.StatusPtr != nullptr)
+                    e.StatusPtr->DecWaitCount();
             }
 
             // Release next thread in queue
@@ -98,7 +98,7 @@ public:
         }
 
         template <typename F>
-        inline bool TryMerge(F&& inputFunc, BlockingCondition* caller, TransactionStatus* status)
+        inline bool TryMerge(F&& inputFunc, BlockingCondition* caller, AsyncStatePtrT&& statusPtr)
         {
             if (!isMergeable_)
                 return false;
@@ -107,7 +107,7 @@ public:
             bool merged = blockCondition_.RunIfBlocked([&] {
                 if (caller)
                     caller->Block();
-                merged_.emplace_back(std::forward<F>(inputFunc), caller, status);
+                merged_.emplace_back(std::forward<F>(inputFunc), caller, std::move(statusPtr));
             });
 
             return merged;
@@ -117,10 +117,10 @@ public:
         struct MergedData
         {
             template <typename F>
-            MergedData(F&& func, BlockingCondition* cond, TransactionStatus* status) :
+            MergedData(F&& func, BlockingCondition* cond, AsyncStatePtrT&& statusPtr) :
                 InputFunc( std::forward<F>(func) ),
                 Cond( cond ),
-                Status( status )
+                StatusPtr( std::move(statusPtr) )
             {}
 
             std::function<void()>   InputFunc;
@@ -129,7 +129,7 @@ public:
             BlockingCondition*      Cond;  
 
             // Status for async merged
-            TransactionStatus*      Status;
+            AsyncStatePtrT          StatusPtr;
         };
 
         using MergedDataVectT = std::vector<MergedData>;
@@ -161,7 +161,7 @@ public:
     }
 
     template <typename F>
-    inline bool TryMergeAsync(F&& inputFunc, TransactionStatus* status)
+    inline bool TryMergeAsync(F&& inputFunc, AsyncStatePtrT&& statusPtr)
     {
         bool merged = false;
 
@@ -169,7 +169,8 @@ public:
             SeqMutexT::scoped_lock lock(seqMutex_);
 
             if (tail_)
-                merged = tail_->TryMerge(std::forward<F>(inputFunc), nullptr, status);
+                merged = tail_->TryMerge(
+                    std::forward<F>(inputFunc), nullptr, std::move(statusPtr));
         }// ~seqMutex_
 
         return merged;
@@ -241,9 +242,9 @@ public:
     }
 
     template <typename F>
-    bool TryMergeAsync(F&& f, TransactionStatus* statusPtr)
+    bool TryMergeAsync(F&& f, std::shared_ptr<AsyncState>&& statusPtr)
     {
-        return queueManager_.TryMergeAsync(std::forward<F>(f), statusPtr);
+        return queueManager_.TryMergeAsync(std::forward<F>(f), std::move(statusPtr));
     }
 
     void ApplyMergedInputs(TurnT& turn)
