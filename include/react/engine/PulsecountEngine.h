@@ -57,7 +57,8 @@ enum class ENodeState
 {
     unchanged,
     changed,
-    deferred
+    dyn_defer,
+    dyn_repeat
 };
 
 class Node : public IReactiveNode

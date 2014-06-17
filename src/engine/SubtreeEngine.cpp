@@ -85,12 +85,23 @@ public:
             node.ClearInitialFlag();
             node.SetShouldUpdate(false);
 
-            // Skip deferred node
+            // Defer if node was dynamically attached to a predecessor that
+            // has not pulsed yet
             if (node.IsDeferred())
             {
                 node.ClearDeferredFlag();
                 continue;
             }
+
+            // Repeat the update if a node was dynamically attached to a
+            // predecessor that has already pulsed
+            while (node.IsRepeated())
+            {
+                node.ClearRepeatedFlag();
+                node.Tick(&turn_);
+            }
+
+            node.SetReadyCount(0);
 
             // Mark successors for update?
             bool update = node.IsChanged();
@@ -107,8 +118,6 @@ public:
                     if (succ->IncReadyCount())
                         continue;
 
-                    succ->SetReadyCount(0);
-
                     // Heavyweight - spawn new task
                     if (succ->IsHeavyweight())
                     {
@@ -124,11 +133,11 @@ public:
 
                         if (nodes_.IsFull())
                         {
-                            splitCount++;
+                            ++splitCount;
 
                             //Delegate half the work to new task
                             auto& t = *new(task::allocate_additional_child_of(*parent()))
-                                UpdaterTask(*this, SplitTag{});
+                                UpdaterTask(*this, SplitTag());
 
                             spawn(t);
                         }
@@ -171,24 +180,24 @@ void EngineBase<TTurn>::Propagate(TTurn& turn)
     // Phase 2
     isInPhase2_ = true;
 
-    rootTask_->set_ref_count(1 + subtreeRoots_.size());
+    rootTask_.set_ref_count(1 + subtreeRoots_.size());
 
     for (auto* node : subtreeRoots_)
     {
         // Ignore if root flag has been cleared because node was part of another subtree
         if (! node->IsRoot())
         {
-            rootTask_->decrement_ref_count();
+            rootTask_.decrement_ref_count();
             continue;
         }
 
-        spawnList_.push_back(*new(rootTask_->allocate_child())
+        spawnList_.push_back(*new(rootTask_.allocate_child())
             UpdaterTask<TTurn>(turn, node));
 
         node->ClearRootFlag();
     }
 
-    rootTask_->spawn_and_wait_for_all(spawnList_);
+    rootTask_.spawn_and_wait_for_all(spawnList_);
 
     subtreeRoots_.clear();
     spawnList_.clear();
@@ -242,36 +251,28 @@ void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& tur
 
 template <typename TTurn>
 void EngineBase<TTurn>::applyAsyncDynamicAttach(Node& node, Node& parent, TTurn& turn)
-{
-    bool shouldTick = false;
-
-    {// parent.ShiftMutex (write)
-        NodeShiftMutexT::scoped_lock    lock(parent.ShiftMutex, true);
+{// parent.ShiftMutex (write)
+    NodeShiftMutexT::scoped_lock    lock(parent.ShiftMutex, true);
         
-        parent.Successors.Add(node);
+    parent.Successors.Add(node);
 
-        // Level recalulation applied when added to topoqueue next time.
-        // During the async phase 2 it's not needed.
-        if (node.NewLevel <= parent.Level)
-            node.NewLevel = parent.Level + 1;
+    // Level recalulation applied when added to topoqueue next time.
+    // During the async phase 2 it's not needed.
+    if (node.NewLevel <= parent.Level)
+        node.NewLevel = parent.Level + 1;
 
-        // Has already nudged its neighbors?
-        if (! parent.IsMarked())
-        {
-            shouldTick = true;
-        }
-        else
-        {
-            node.SetDeferredFlag();
-            node.SetShouldUpdate(true);
-
-            node.WaitCount = 1;
-        }
-    }// ~parent.ShiftMutex (write)
-
-    if (shouldTick)
-        node.Tick(&turn);
-}
+    // Has already nudged its neighbors?
+    if (! parent.IsMarked())
+    {
+        node.SetRepeatedFlag();
+    }
+    else
+    {
+        node.SetDeferredFlag();
+        node.SetShouldUpdate(true);
+        node.DecReadyCount();
+    }
+}// ~parent.ShiftMutex (write)
 
 template <typename TTurn>
 void EngineBase<TTurn>::applyAsyncDynamicDetach(Node& node, Node& parent, TTurn& turn)

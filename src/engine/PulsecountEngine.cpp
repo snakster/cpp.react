@@ -112,8 +112,15 @@ public:
             if (node.Mark() == ENodeMark::should_update)
                 node.Tick(&turn_);
 
-            if (node.State == ENodeState::deferred)
+            // Defer if node was dynamically attached to a predecessor that
+            // has not pulsed yet
+            if (node.State == ENodeState::dyn_defer)
                 continue;
+
+            // Repeat the update if a node was dynamically attached to a
+            // predecessor that has already pulsed
+            while (node.State == ENodeState::dyn_repeat)
+                node.Tick(&turn_);
 
             // Mark successors for update?
             bool update = node.State == ENodeState::changed;
@@ -253,30 +260,23 @@ void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
 
 template <typename TTurn>
 void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn)
-{
-    bool shouldTick = false;
-
-    {// parent.ShiftMutex (write)
-        NodeShiftMutexT::scoped_lock lock(parent.ShiftMutex, true);
+{// parent.ShiftMutex (write)
+    NodeShiftMutexT::scoped_lock lock(parent.ShiftMutex, true);
         
-        parent.Successors.Add(node);
+    parent.Successors.Add(node);
 
-        // Has already nudged its neighbors?
-        if (parent.Mark() == ENodeMark::unmarked)
-        {
-            shouldTick = true;
-        }
-        else
-        {
-            node.State = ENodeState::deferred;
-            node.SetCounter(1);
-            node.SetMark(ENodeMark::should_update);
-        }
-    }// ~parent.ShiftMutex (write)
-
-    if (shouldTick)
-        node.Tick(&turn);
-}
+    // Has already nudged its neighbors?
+    if (parent.Mark() == ENodeMark::unmarked)
+    {
+        node.State = ENodeState::dyn_repeat;
+    }
+    else
+    {
+        node.State = ENodeState::dyn_defer;
+        node.IncCounter();
+        node.SetMark(ENodeMark::should_update);
+    }
+}// ~parent.ShiftMutex (write)
 
 template <typename TTurn>
 void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn)

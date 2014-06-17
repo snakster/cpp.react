@@ -67,6 +67,10 @@ public:
     inline void SetDeferredFlag()    { flags_.Set<flag_deferred>(); }
     inline void ClearDeferredFlag()  { flags_.Clear<flag_deferred>(); }
 
+    inline bool IsRepeated() const   { return flags_.Test<flag_repeated>(); }
+    inline void SetRepeatedFlag()    { flags_.Set<flag_repeated>(); }
+    inline void ClearRepeatedFlag()  { flags_.Clear<flag_repeated>(); }
+
     inline bool IsInitial() const   { return flags_.Test<flag_initial>(); }
     inline void SetInitialFlag()    { flags_.Set<flag_initial>(); }
     inline void ClearInitialFlag()  { flags_.Clear<flag_initial>(); }
@@ -96,9 +100,9 @@ public:
 
     NodeVector<Node>    Successors;
     ShiftMutexT         ShiftMutex;
-    uint16_t            Level       { 0 };
-    uint16_t            NewLevel    { 0 };
-    uint16_t            WaitCount   { 0 };
+    uint16_t            Level       = 0;
+    uint16_t            NewLevel    = 0;
+    uint16_t            WaitCount   = 0;
 
 private:
     enum EFlags : uint16_t
@@ -107,6 +111,7 @@ private:
         flag_marked,
         flag_changed,
         flag_deferred,
+        flag_repeated,
         flag_initial,
         flag_root
     };
@@ -159,10 +164,10 @@ private:
     TopoQueueT      scheduledNodes_;
     vector<Node*>   subtreeRoots_;
 
-    empty_task*     rootTask_   { new(task::allocate_root()) empty_task };
+    empty_task&     rootTask_   = *new(task::allocate_root()) empty_task;
     task_list       spawnList_;
 
-    bool            isInPhase2_ { false };
+    bool            isInPhase2_ = false;
 }; 
 
 class BasicEngine : public EngineBase<Turn> {};
