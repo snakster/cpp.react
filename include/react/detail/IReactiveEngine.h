@@ -197,9 +197,9 @@ struct EngineInterface
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Engine traits
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename> struct EnableNodeUpdateTimer : std::false_type {};
-template <typename> struct EnableParallelUpdating : std::false_type {};
-template <typename> struct EnableConcurrentInput : std::false_type {};
+template <typename> struct NodeUpdateTimerEnabled : std::false_type {};
+template <typename> struct IsParallelEngine : std::false_type {};
+template <typename> struct IsConcurrentEngine : std::false_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

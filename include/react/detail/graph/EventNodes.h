@@ -38,7 +38,7 @@ class SignalNode;
 // Note: Weird design due to empty base class optimization
 template <typename D>
 struct BufferClearAccessPolicy :
-    private ConditionalCriticalSection<tbb::spin_mutex, D::uses_parallel_updating>
+    private ConditionalCriticalSection<tbb::spin_mutex, D::is_parallel>
 {
     template <typename F>
     void AccessBufferForClearing(const F& f) { this->Access(f); }

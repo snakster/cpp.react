@@ -179,7 +179,7 @@ class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 struct parallel;
-struct parallel_queue;
+struct parallel_concurrent;
 
 template <typename TMode>
 class SubtreeEngine;
@@ -187,20 +187,23 @@ class SubtreeEngine;
 template <> class SubtreeEngine<parallel> :
     public REACT_IMPL::subtree::BasicEngine {};
 
-template <> class SubtreeEngine<parallel_queue> :
+template <> class SubtreeEngine<parallel_concurrent> :
     public REACT_IMPL::subtree::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename> struct EnableNodeUpdateTimer;
-template <> struct EnableNodeUpdateTimer<SubtreeEngine<parallel>> : std::true_type {};
-template <> struct EnableNodeUpdateTimer<SubtreeEngine<parallel_queue>> : std::true_type {};
+template <typename> struct NodeUpdateTimerEnabled;
+template <> struct NodeUpdateTimerEnabled<SubtreeEngine<parallel>> : std::true_type {};
+template <> struct NodeUpdateTimerEnabled<SubtreeEngine<parallel_concurrent>> : std::true_type {};
 
-template <typename> struct EnableParallelUpdating;
-template <> struct EnableParallelUpdating<SubtreeEngine<parallel>> : std::true_type {};
-template <> struct EnableParallelUpdating<SubtreeEngine<parallel_queue>> : std::true_type {};
+template <typename> struct IsParallelEngine;
+template <> struct IsParallelEngine<SubtreeEngine<parallel>> : std::true_type {};
+template <> struct IsParallelEngine<SubtreeEngine<parallel_concurrent>> : std::true_type {};
+
+template <typename> struct IsConcurrentEngine;
+template <> struct IsConcurrentEngine<SubtreeEngine<parallel_concurrent>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

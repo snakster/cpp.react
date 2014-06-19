@@ -88,7 +88,7 @@ public:
     ShiftMutexT         ShiftMutex;
     NodeVector<Node>    Successors;
     
-    ENodeState          State       { ENodeState::unchanged };
+    ENodeState          State       = ENodeState::unchanged;
 
 private:
     atomic<int>         counter_    { 0 };
@@ -132,7 +132,7 @@ class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 struct parallel;
-struct parallel_queue;
+struct parallel_concurrent;
 
 template <typename TMode>
 class PulsecountEngine;
@@ -140,20 +140,25 @@ class PulsecountEngine;
 template <> class PulsecountEngine<parallel> :
     public REACT_IMPL::pulsecount::BasicEngine {};
 
-template <> class PulsecountEngine<parallel_queue> :
+template <> class PulsecountEngine<parallel_concurrent> :
     public REACT_IMPL::pulsecount::QueuingEngine {};
 
 /******************************************/ REACT_END /******************************************/
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename> struct EnableNodeUpdateTimer;
-template <> struct EnableNodeUpdateTimer<PulsecountEngine<parallel>> : std::true_type {};
-template <> struct EnableNodeUpdateTimer<PulsecountEngine<parallel_queue>> : std::true_type {};
+template <typename> struct NodeUpdateTimerEnabled;
+template <> struct NodeUpdateTimerEnabled<PulsecountEngine<parallel>> : std::true_type {};
+template <> struct NodeUpdateTimerEnabled<PulsecountEngine<parallel_concurrent>> :
+    std::true_type {};
 
-template <typename> struct EnableParallelUpdating;
-template <> struct EnableParallelUpdating<PulsecountEngine<parallel>> : std::true_type {};
-template <> struct EnableParallelUpdating<PulsecountEngine<parallel_queue>> : std::true_type {};
+template <typename> struct IsParallelEngine;
+template <> struct IsParallelEngine<PulsecountEngine<parallel>> : std::true_type {};
+template <> struct IsParallelEngine<PulsecountEngine<parallel_concurrent>> : std::true_type {};
+
+template <typename> struct IsConcurrentEngine;
+template <> struct IsConcurrentEngine<PulsecountEngine<parallel>> : std::false_type {};
+template <> struct IsConcurrentEngine<PulsecountEngine<parallel_concurrent>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

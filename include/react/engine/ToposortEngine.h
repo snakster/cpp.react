@@ -202,9 +202,9 @@ class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveParT
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 struct sequential;
-struct sequential_queue;
+struct sequential_concurrent;
 struct parallel;
-struct parallel_queue;
+struct parallel_concurrent;
 
 template <typename TMode>
 class ToposortEngine;
@@ -212,30 +212,30 @@ class ToposortEngine;
 template <> class ToposortEngine<sequential> :
     public REACT_IMPL::toposort::BasicSeqEngine {};
 
-template <> class ToposortEngine<sequential_queue> :
+template <> class ToposortEngine<sequential_concurrent> :
     public REACT_IMPL::toposort::QueuingSeqEngine {};
 
 template <> class ToposortEngine<parallel> :
     public REACT_IMPL::toposort::BasicParEngine {};
 
-template <> class ToposortEngine<parallel_queue> :
+template <> class ToposortEngine<parallel_concurrent> :
     public REACT_IMPL::toposort::QueuingParEngine {};
 
 /******************************************/ REACT_END /******************************************/
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename> struct EnableNodeUpdateTimer;
-template <> struct EnableNodeUpdateTimer<ToposortEngine<parallel>> : std::true_type {};
-template <> struct EnableNodeUpdateTimer<ToposortEngine<parallel_queue>> : std::true_type {};
+template <typename> struct NodeUpdateTimerEnabled;
+template <> struct NodeUpdateTimerEnabled<ToposortEngine<parallel>> : std::true_type {};
+template <> struct NodeUpdateTimerEnabled<ToposortEngine<parallel_concurrent>> : std::true_type {};
 
-template <typename> struct EnableParallelUpdating;
-template <> struct EnableParallelUpdating<ToposortEngine<parallel>> : std::true_type {};
-template <> struct EnableParallelUpdating<ToposortEngine<parallel_queue>> : std::true_type {};
+template <typename> struct IsParallelEngine;
+template <> struct IsParallelEngine<ToposortEngine<parallel>> : std::true_type {};
+template <> struct IsParallelEngine<ToposortEngine<parallel_concurrent>> : std::true_type {};
 
-template <typename> struct EnableConcurrentInput;
-template <> struct EnableConcurrentInput<ToposortEngine<sequential_queue>> : std::true_type {};
-template <> struct EnableConcurrentInput<ToposortEngine<parallel_queue>> : std::true_type {};
+template <typename> struct IsConcurrentEngine;
+template <> struct IsConcurrentEngine<ToposortEngine<sequential_concurrent>> : std::true_type {};
+template <> struct IsConcurrentEngine<ToposortEngine<parallel_concurrent>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

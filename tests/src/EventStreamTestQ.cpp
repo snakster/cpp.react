@@ -15,9 +15,9 @@ namespace {
 
 using namespace react;
 
-INSTANTIATE_TYPED_TEST_CASE_P(SeqToposortQ, EventStreamTest, ToposortEngine<sequential_queue>);
-INSTANTIATE_TYPED_TEST_CASE_P(ParToposortQ, EventStreamTest, ToposortEngine<parallel_queue>);
-INSTANTIATE_TYPED_TEST_CASE_P(PulsecountQ, EventStreamTest, PulsecountEngine<parallel_queue>);
-INSTANTIATE_TYPED_TEST_CASE_P(SubtreeQ, EventStreamTest, SubtreeEngine<parallel_queue>);
+INSTANTIATE_TYPED_TEST_CASE_P(SeqToposortQ, EventStreamTest, ToposortEngine<sequential_concurrent>);
+INSTANTIATE_TYPED_TEST_CASE_P(ParToposortQ, EventStreamTest, ToposortEngine<parallel_concurrent>);
+INSTANTIATE_TYPED_TEST_CASE_P(PulsecountQ, EventStreamTest, PulsecountEngine<parallel_concurrent>);
+INSTANTIATE_TYPED_TEST_CASE_P(SubtreeQ, EventStreamTest, SubtreeEngine<parallel_concurrent>);
 
 } // ~namespace
