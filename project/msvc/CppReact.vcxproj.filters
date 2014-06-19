@@ -141,6 +141,9 @@
     <ClInclude Include="..\..\include\react\engine\PulsecountEngine.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\ContinuationNodes.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\logging\EventLog.cpp">

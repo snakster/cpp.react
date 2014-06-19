@@ -13,12 +13,14 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <deque>
 #include <functional>
 #include <limits>
 #include <memory>
 #include <mutex>
 #include <utility>
 #include <thread>
+#include <typeindex>
 #include <vector>
 
 #include "tbb/concurrent_queue.h"
@@ -39,17 +41,20 @@ class IObserver;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 using TurnIdT = uint;
 using TurnFlagsT = uint;
+using TransactionFuncT = std::function<void()>;
 
-enum ETurnFlags
+enum
 {
     enable_input_merging    = 1 << 0
 };
 
-enum class EInputContext
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// IContinuationTarget
+///////////////////////////////////////////////////////////////////////////////////////////////////
+struct IContinuationTarget
 {
-    none,
-    transaction,
-    continuation
+    virtual void DoContinuation(TransactionFuncT&&) = 0;
+    virtual void AsyncContinuation(TransactionFuncT&&) = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -58,11 +63,11 @@ enum class EInputContext
 template <typename = void>
 struct ThreadLocalInputState
 {
-    static REACT_TLS EInputContext      Context;
+    static REACT_TLS bool   IsTransactionActive;
 };
 
 template <typename T>
-REACT_TLS EInputContext ThreadLocalInputState<T>::Context(EInputContext::none);
+REACT_TLS bool ThreadLocalInputState<T>::IsTransactionActive(false);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ContinuationData
@@ -71,12 +76,11 @@ template <bool is_thread_safe>
 class ContinuationData
 {
 public:
-    bool HasInput() const;
+    bool HasNext() const;
 
-    template <typename F>
-    void AddInput(F&& input);
+    void StoreContinuation(IContinuationTarget& target, TransactionFuncT&& cont);
 
-    void CommitInput();
+    void RunNext();
 
     void QueueObserverForDetach(IObserver& obs);
 
@@ -88,29 +92,30 @@ public:
 template <>
 class ContinuationData<false>
 {
-    using InputClosureT = std::function<void()>;
-    using InputVectT    = std::vector<InputClosureT>;
+    using ContDataT     = std::pair<IContinuationTarget*,TransactionFuncT>;
+    using DataQueueT    = std::deque<ContDataT>;
     using ObsVectT      = std::vector<IObserver*>;
 
 public:
-    bool HasInput() const
+    bool HasNext() const
     {
-        return !bufferedInputs_.empty();
+        return !storedContinuations_.empty();
     }
 
-    template <typename F>
-    void AddInput(F&& input)
+    void StoreContinuation(IContinuationTarget& target, TransactionFuncT&& cont)
     {
-        bufferedInputs_.push_back(std::forward<F>(input));
+        storedContinuations_.emplace_back(&target, std::move(cont));
     }
 
-    void CommitInput()
+    void RunNext()
     {
-        for (auto& f : bufferedInputs_)
-            f();
-        bufferedInputs_.clear();
+        ContDataT t = std::move(storedContinuations_.front());
+        storedContinuations_.pop_front();
+
+        t.first->DoContinuation(std::move(t.second));
     }
 
+    // Todo: Move this somewhere else
     void QueueObserverForDetach(IObserver& obs)
     {
         detachedObservers_.push_back(&obs);
@@ -127,7 +132,7 @@ public:
     }
 
 private:
-    InputVectT  bufferedInputs_;
+    DataQueueT  storedContinuations_;
     ObsVectT    detachedObservers_;
 };
 
@@ -135,32 +140,36 @@ private:
 template <>
 class ContinuationData<true>
 {
-    using InputClosureT = std::function<void()>;
-    using InputVectT    = std::vector<InputClosureT>;
+    using ContDataT     = std::pair<IContinuationTarget*,TransactionFuncT>;
+    using DataQueueT    = std::deque<ContDataT>;
     using ObsVectT      = std::vector<IObserver*>;
 
 public:
-    bool HasInput() const
+    bool HasNext() const
     {
-        return hasInput_;
+        return contCount_ != 0;
     }
 
-    template <typename F>
-    void AddInput(F&& input)
+    void StoreContinuation(IContinuationTarget& target, TransactionFuncT&& cont)
     {
-        bufferedInputs_.local().push_back(std::forward<F>(input));
-        hasInput_ = true;
+        storedContinuations_.local().emplace_back(&target, std::move(cont));
+        ++contCount_;
     }
 
-    void CommitInput()
+    void RunNext()
     {
-        for (auto& v : bufferedInputs_)
+        for (auto& v : storedContinuations_)
         {
-            for (auto& f : v)
-                f();
-            v.clear();
+            if (v.size() == 0)
+                continue;
+
+            ContDataT t = std::move(v.front());
+            v.pop_front();
+            contCount_--;
+
+            t.first->DoContinuation(std::move(t.second));
+            break;
         }
-        hasInput_ = false;
     }
 
     void QueueObserverForDetach(IObserver& obs)
@@ -182,10 +191,10 @@ public:
     }
 
 private:
-    tbb::enumerable_thread_specific<InputVectT> bufferedInputs_;
+    tbb::enumerable_thread_specific<DataQueueT> storedContinuations_;
     tbb::enumerable_thread_specific<ObsVectT>   detachedObservers_;
 
-    bool hasInput_ = false;
+    size_t contCount_ = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -236,11 +245,10 @@ using AsyncStatePtrT = std::shared_ptr<AsyncState>;
 /// InputManager
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
-class InputManager
+class InputManager :
+    public IContinuationTarget
 {
 private:
-    using TransactionFuncT = std::function<void()>;
-
     struct AsyncItem
     {
         TurnFlagsT              Flags;
@@ -249,7 +257,7 @@ private:
     };
 
     using AsyncQueueT = tbb::concurrent_bounded_queue<AsyncItem>;
-    using ContinuationT = ContinuationData<D::uses_parallel_updating>;
+    using ContinuationT = ContinuationData<D::is_parallel>;
 
     struct TransactionData
     {
@@ -282,14 +290,14 @@ public:
         Engine::EnterTurnQueue(turn);
 
         // Phase 1 - Input admission
-        ThreadLocalInputState<>::Context = EInputContext::transaction;
+        ThreadLocalInputState<>::IsTransactionActive = true;
 
         Engine::OnTurnAdmissionStart(turn);
         func();
         Engine::ApplyMergedInputs(turn);
         Engine::OnTurnAdmissionEnd(turn);
 
-        ThreadLocalInputState<>::Context = EInputContext::none;
+        ThreadLocalInputState<>::IsTransactionActive = false;
 
         // Phase 2 - Apply input node changes
         for (auto* p : transaction_.ChangedInputs)
@@ -315,117 +323,10 @@ public:
         asyncQueue_.push(AsyncItem{ flags, statusPtr, func } );
     }
 
-    void processAsyncQueue()
-    {
-        AsyncItem item;
-
-        AsyncStatePtrT  savedStatusPtr = nullptr;
-        TurnFlagsT      savedFlags = 0;
-
-        std::vector<AsyncStatePtrT> statusPtrStash;
-
-        bool skipPop = false;
-
-        while (true)
-        {
-            // Blocks if queue is empty
-            if (!skipPop)
-                asyncQueue_.pop(item);
-            else
-                skipPop = false;
-
-            // First try to merge to an existing synchronous item in the queue
-            bool canMerge = (item.Flags & enable_input_merging) != 0;
-            if (canMerge && Engine::TryMergeAsync(std::move(item.Func), std::move(item.StatusPtr)))
-                continue;
-
-            bool shouldPropagate = false;
-
-            TurnT turn( nextTurnId(), item.Flags );
-
-            // Blocks until turn is at the front of the queue
-            Engine::EnterTurnQueue(turn);
-
-            // Phase 1 - Input admission
-            ThreadLocalInputState<>::Context = EInputContext::transaction;
-
-            Engine::OnTurnAdmissionStart(turn);
-
-            // Input of current item
-            item.Func();
-
-            // Merged inputs that arrived while this item was queued
-            Engine::ApplyMergedInputs(turn);
-
-            // Save data, because item might be re-used for next input
-            savedStatusPtr = std::move(item.StatusPtr);
-            savedFlags = item.Flags;
-
-            // If the current item supports merging, try to add more mergeable inputs
-            // to this turn
-            if (canMerge)
-            {
-                uint extraCount = 0;
-                while (extraCount < 100 && asyncQueue_.try_pop(item))
-                {
-                    bool canMergeNext = (item.Flags & enable_input_merging) != 0;
-                    if (canMergeNext)
-                    {
-                        item.Func();
-                        if (item.StatusPtr != nullptr)
-                            statusPtrStash.push_back(std::move(item.StatusPtr));
-
-                        ++extraCount;
-                    }
-                    else
-                    {
-                        // We already popped an item we could not merge
-                        // Process it in the next iteration
-                        skipPop = true;
-
-                        // Break at first item that cannot be merged.
-                        // We only allow merging of continuous ranges.
-                        break;
-                    }
-                }
-            }
-
-            Engine::OnTurnAdmissionEnd(turn);
-
-            ThreadLocalInputState<>::Context = EInputContext::none;
-
-            // Phase 2 - Apply input node changes
-            for (auto* p : transaction_.ChangedInputs)
-                if (p->ApplyInput(&turn))
-                    shouldPropagate = true;
-            transaction_.ChangedInputs.clear();
-
-            // Phase 3 - Propagate changes
-            if (shouldPropagate)
-                Engine::Propagate(turn);
-
-            Engine::ExitTurnQueue(turn);
-
-            processContinuationData(savedFlags);
-
-            // Decrement transaction status counts of processed items
-            if (savedStatusPtr != nullptr)
-                savedStatusPtr->DecWaitCount();
-
-            for (auto& p : statusPtrStash)
-                p->DecWaitCount();
-            statusPtrStash.clear();
-        }
-    }
-
     template <typename R, typename V>
     void AddInput(R& r, V&& v)
     {
-        if (ThreadLocalInputState<>::Context == EInputContext::continuation)
-        {
-            addContinuationInput(r, std::forward<V>(v));
-        }
-        else if (ThreadLocalInputState<>::Context == EInputContext::transaction)
+        if (ThreadLocalInputState<>::IsTransactionActive)
         {
             addTransactionInput(r, std::forward<V>(v));
         }
@@ -438,11 +339,7 @@ public:
     template <typename R, typename F>
     void ModifyInput(R& r, const F& func)
     {
-        if (ThreadLocalInputState<>::Context == EInputContext::continuation)
-        {
-            modifyContinuationInput(r, func);
-        }
-        else if (ThreadLocalInputState<>::Context == EInputContext::transaction)
+        if (ThreadLocalInputState<>::IsTransactionActive)
         {
             modifyTransactionInput(r, func);
         }
@@ -451,6 +348,18 @@ public:
             modifySimpleInput(r, func);
         }
     }
+
+    //IContinuationTarget
+    virtual void DoContinuation(TransactionFuncT&& cont) override
+    {
+        DoTransaction(0, std::move(cont));
+    }
+        
+    virtual void AsyncContinuation(TransactionFuncT&& cont) override
+    {
+        AsyncTransaction(0, nullptr, std::move(cont));
+    }
+    //~IContinuationTarget
 
     ContinuationT& Continuation()
     {
@@ -526,23 +435,107 @@ private:
         transaction_.ChangedInputs.push_back(&r);
     }
 
-    // Input happened during a turn - buffer in continuation
-    template <typename R, typename V>
-    void addContinuationInput(R& r, const V& v)
+    void processAsyncQueue()
     {
-        // Capture v by value to store it in lambda
-        continuation_.AddInput(
-            [this,&r,v] { addTransactionInput(r, std::move(v)); }
-        );
-    }
+        AsyncItem item;
 
-    template <typename R, typename F>
-    void modifyContinuationInput(R& r, const F& func)
-    {
-        // Capture func by value to store it in lambda
-        continuation_.AddInput(
-            [this,&r,func] { modifyTransactionInput(r, func); }
-        );
+        AsyncStatePtrT  savedStatusPtr = nullptr;
+        TurnFlagsT      savedFlags = 0;
+
+        std::vector<AsyncStatePtrT> statusPtrStash;
+
+        bool skipPop = false;
+
+        while (true)
+        {
+            // Blocks if queue is empty
+            if (!skipPop)
+                asyncQueue_.pop(item);
+            else
+                skipPop = false;
+
+            // First try to merge to an existing synchronous item in the queue
+            bool canMerge = (item.Flags & enable_input_merging) != 0;
+            if (canMerge && Engine::TryMergeAsync(std::move(item.Func), std::move(item.StatusPtr)))
+                continue;
+
+            bool shouldPropagate = false;
+
+            TurnT turn( nextTurnId(), item.Flags );
+
+            // Blocks until turn is at the front of the queue
+            Engine::EnterTurnQueue(turn);
+
+            // Phase 1 - Input admission
+            ThreadLocalInputState<>::IsTransactionActive = true;
+
+            Engine::OnTurnAdmissionStart(turn);
+
+            // Input of current item
+            item.Func();
+
+            // Merged inputs that arrived while this item was queued
+            Engine::ApplyMergedInputs(turn);
+
+            // Save data, because item might be re-used for next input
+            savedStatusPtr = std::move(item.StatusPtr);
+            savedFlags = item.Flags;
+
+            // If the current item supports merging, try to add more mergeable inputs
+            // to this turn
+            if (canMerge)
+            {
+                uint extraCount = 0;
+                while (extraCount < 100 && asyncQueue_.try_pop(item))
+                {
+                    bool canMergeNext = (item.Flags & enable_input_merging) != 0;
+                    if (canMergeNext)
+                    {
+                        item.Func();
+                        if (item.StatusPtr != nullptr)
+                            statusPtrStash.push_back(std::move(item.StatusPtr));
+
+                        ++extraCount;
+                    }
+                    else
+                    {
+                        // We already popped an item we could not merge
+                        // Process it in the next iteration
+                        skipPop = true;
+
+                        // Break at first item that cannot be merged.
+                        // We only allow merging of continuous ranges.
+                        break;
+                    }
+                }
+            }
+
+            Engine::OnTurnAdmissionEnd(turn);
+
+            ThreadLocalInputState<>::IsTransactionActive = false;
+
+            // Phase 2 - Apply input node changes
+            for (auto* p : transaction_.ChangedInputs)
+                if (p->ApplyInput(&turn))
+                    shouldPropagate = true;
+            transaction_.ChangedInputs.clear();
+
+            // Phase 3 - Propagate changes
+            if (shouldPropagate)
+                Engine::Propagate(turn);
+
+            Engine::ExitTurnQueue(turn);
+
+            processContinuationData(savedFlags);
+
+            // Decrement transaction status counts of processed items
+            if (savedStatusPtr != nullptr)
+                savedStatusPtr->DecWaitCount();
+
+            for (auto& p : statusPtrStash)
+                p->DecWaitCount();
+            statusPtrStash.clear();
+        }
     }
 
     void processContinuationData(TurnFlagsT flags)
@@ -552,32 +545,9 @@ private:
 
         continuation_.template DetachQueuedObservers<D>();
 
-        while (continuation_.HasInput())
+        while (continuation_.HasNext())
         {
-            bool shouldPropagate = false;
-            TurnT turn( nextTurnId(), flags );
-
-            Engine::EnterTurnQueue(turn);
-
-            ThreadLocalInputState<>::Context = EInputContext::transaction;
-
-            Engine::OnTurnAdmissionStart(turn);
-            continuation_.CommitInput();
-            Engine::ApplyMergedInputs(turn);
-            Engine::OnTurnAdmissionEnd(turn);
-
-            ThreadLocalInputState<>::Context = EInputContext::none;
-
-            for (auto* p : transaction_.ChangedInputs)
-                if (p->ApplyInput(&turn))
-                    shouldPropagate = true;
-            transaction_.ChangedInputs.clear();
-
-            if (shouldPropagate)
-                Engine::Propagate(turn);
-
-            Engine::ExitTurnQueue(turn);
-
+            continuation_.RunNext();
             continuation_.template DetachQueuedObservers<D>();
         }
     }
@@ -585,7 +555,7 @@ private:
     AsyncQueueT             asyncQueue_;
     std::thread             asyncWorker_;
 
-    std::atomic<TurnIdT>    nextTurnId_ { 0 };
+    std::atomic<TurnIdT>    nextTurnId_{ 0 };
 
     TransactionData         transaction_;
     ContinuationT           continuation_;

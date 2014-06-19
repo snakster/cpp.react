@@ -86,6 +86,7 @@
     <ClInclude Include="..\..\include\react\common\Timing.h" />
     <ClInclude Include="..\..\include\react\detail\EventBase.h" />
     <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h" />
+    <ClInclude Include="..\..\include\react\detail\graph\ContinuationNodes.h" />
     <ClInclude Include="..\..\include\react\detail\ObserverBase.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveInput.h" />
     <ClInclude Include="..\..\include\react\detail\Defs.h" />

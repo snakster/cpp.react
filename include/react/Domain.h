@@ -14,14 +14,15 @@
 #include <memory>
 #include <utility>
 
+#include "react/detail/IReactiveEngine.h"
 #include "react/detail/ReactiveInput.h"
+#include "react/detail/graph/ContinuationNodes.h"
 
 #ifdef REACT_ENABLE_LOGGING
     #include "react/logging/EventLog.h"
     #include "react/logging/EventRecords.h"
 #endif //REACT_ENABLE_LOGGING
 
-#include "react/detail/IReactiveEngine.h"
 #include "react/engine/ToposortEngine.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -57,6 +58,9 @@ class ScopedObserver;
 
 template <typename D>
 class Reactor;
+
+template <typename D, typename ... TValues>
+class SignalPack;
 
 using REACT_IMPL::TurnFlagsT;
 
@@ -124,13 +128,13 @@ public:
     /// Domain traits
     ///////////////////////////////////////////////////////////////////////////////////////////////
     static const bool uses_node_update_timer =
-        REACT_IMPL::EnableNodeUpdateTimer<typename Policy::Engine>::value;
+        REACT_IMPL::NodeUpdateTimerEnabled<typename Policy::Engine>::value;
 
-    static const bool uses_concurrent_input =
-        REACT_IMPL::EnableConcurrentInput<typename Policy::Engine>::value;
+    static const bool is_concurrent =
+        REACT_IMPL::IsConcurrentEngine<typename Policy::Engine>::value;
 
-    static const bool uses_parallel_updating =
-        REACT_IMPL::EnableParallelUpdating<typename Policy::Engine>::value;
+    static const bool is_parallel =
+        REACT_IMPL::IsParallelEngine<typename Policy::Engine>::value;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     /// Aliases for reactives of this domain
@@ -217,6 +221,130 @@ public:
     }
 #endif //REACT_ENABLE_LOGGING
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Continuation
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename TSourceDomain,
+    typename TTargetDomain
+>
+class Continuation
+{
+    using NodePtrT  = REACT_IMPL::NodeBasePtrT<TSourceDomain>;
+
+public:
+    using SourceDomainT = TSourceDomain;
+    using TargetDomainT = TTargetDomain;
+
+    Continuation() = default;
+    Continuation(const Continuation&) = delete;
+    Continuation& operator=(const Continuation&) = delete;
+
+    Continuation(Continuation&& other) :
+        nodePtr_( std::move(other.nodePtr_) )
+    {}
+
+    explicit Continuation(NodePtrT&& nodePtr) :
+        nodePtr_( std::move(nodePtr) )
+    {}    
+
+    Continuation& operator=(Continuation&& other)
+    {
+        nodePtr_ = std::move(other.nodePtr_);
+        return *this;
+    }
+
+private:
+    NodePtrT    nodePtr_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// MakeContinuation - Signals
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename DOut = D,
+    typename S,
+    typename FIn
+>
+auto MakeContinuation(const Signal<D,S>& trigger, FIn&& func)
+    -> Continuation<D,DOut>
+{
+    using REACT_IMPL::SignalContinuationNode;
+    using F = typename std::decay<FIn>::type;
+
+    return Continuation<D,DOut>(
+        std::make_shared<SignalContinuationNode<D,DOut,S,F>>(
+            trigger.NodePtr(), std::forward<FIn>(func)));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// MakeContinuation - Events
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename DOut = D,
+    typename E,
+    typename FIn
+>
+auto MakeContinuation(const Events<D,E>& trigger, FIn&& func)
+    -> Continuation<D,DOut>
+{
+    using REACT_IMPL::EventContinuationNode;
+    using F = typename std::decay<FIn>::type;
+
+    return Continuation<D,DOut>(
+        std::make_shared<EventContinuationNode<D,DOut,E,F>>(
+            trigger.NodePtr(), std::forward<FIn>(func)));
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// MakeContinuation - Synced
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename DOut = D,
+    typename E,
+    typename FIn,
+    typename ... TDepValues
+>
+auto MakeContinuation(const Events<D,E>& trigger,
+                      const SignalPack<D,TDepValues...>& depPack, FIn&& func)
+    -> Continuation<D,DOut>
+{
+    using REACT_IMPL::SyncedContinuationNode;
+    using F = typename std::decay<FIn>::type;
+
+    struct NodeBuilder_
+    {
+        NodeBuilder_(const Events<D,E>& trigger, FIn&& func) :
+            MyTrigger( trigger ),
+            MyFunc( std::forward<FIn>(func) )
+        {}
+
+        auto operator()(const Signal<D,TDepValues>& ... deps)
+            -> Continuation<D,DOut>
+        {
+            return Continuation<D,DOut>(
+                std::make_shared<SyncedContinuationNode<D,DOut,E,F,TDepValues...>>(
+                    MyTrigger.NodePtr(),
+                    std::forward<FIn>(MyFunc), deps.NodePtr() ...));
+        }
+
+        const Events<D,E>&  MyTrigger;
+        FIn                 MyFunc;
+    };
+
+    return REACT_IMPL::apply(
+        NodeBuilder_( trigger, std::forward<FIn>(func) ),
+        depPack.Data);
+}
 
 /******************************************/ REACT_END /******************************************/
 
