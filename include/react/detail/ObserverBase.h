@@ -20,6 +20,9 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Forward declarations
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
 class Observable;
 
@@ -37,16 +40,6 @@ private:
     template <typename D>
     friend class ObserverRegistry;
 };
-
-// tbb tasks are non-preemptible, thread local flag for each worker
-template <typename = void>
-struct ThreadLocalObserverState
-{
-    static REACT_TLS bool    ShouldDetach;
-};
-
-template <typename T>
-REACT_TLS bool ThreadLocalObserverState<T>::ShouldDetach(false);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverRegistry

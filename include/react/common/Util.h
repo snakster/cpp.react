@@ -141,6 +141,30 @@ struct AddDummyArgWrapper<TArg,F,void,TDepValues...>
     F MyFunc;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// AddDefaultReturnValueWrapper
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template 
+<
+    typename F,
+    typename TRet,
+    TRet return_value
+>
+struct AddDefaultReturnValueWrapper
+{
+    template <typename FIn>
+    AddDefaultReturnValueWrapper(FIn&& func) : MyFunc( std::forward<FIn>(func) ) {}
+
+    template <typename ... TArgs>
+    TRet operator()(TArgs&& ... args)
+    {
+        MyFunc(std::forward<TArgs>(args) ...);
+        return return_value;
+    }
+
+    F MyFunc;
+};
+
 /****************************************/ REACT_IMPL_END /***************************************/
 
 // Expand args by wrapping them in a dummy function

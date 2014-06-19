@@ -622,12 +622,12 @@ TYPED_TEST_P(SignalTest, Modify3)
 
     auto vect = MakeVar<D>(vector<int>{});
 
-    int obsCount = 0;
+    int count = 0;
 
     // Terrible, but lets test it
-    Observe(vect, [&] (const vector<int>& v)
+    auto cont = MakeContinuation(vect, [&] (const vector<int>& v)
     {    
-        if (obsCount == 0)
+        if (count == 0)
         {
             ASSERT_EQ(v[0], 30);
 
@@ -635,7 +635,7 @@ TYPED_TEST_P(SignalTest, Modify3)
                 v.push_back(50);
             });
         }
-        else if (obsCount == 1)
+        else if (count == 1)
         {
             ASSERT_EQ(v[1], 50);
 
@@ -648,14 +648,14 @@ TYPED_TEST_P(SignalTest, Modify3)
             ASSERT_EQ(v[2], 70);
         }
 
-        obsCount++;
+        count++;
     });
 
     vect.Modify([] (vector<int>& v) {
         v.push_back(30);
     });
 
-    ASSERT_EQ(obsCount, 3);
+    ASSERT_EQ(count, 3);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

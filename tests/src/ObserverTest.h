@@ -181,9 +181,9 @@ TYPED_TEST_P(ObserverTest, DetachThisObserver1)
 
     int count = 0;
 
-    Observe(src, [&] (Token) {
+    Observe(src, [&] (Token) -> ObserverAction {
         ++count;
-        DetachThisObserver();
+        return ObserverAction::stop_and_detach;
     });
 
     src.Emit();
@@ -211,9 +211,9 @@ TYPED_TEST_P(ObserverTest, DetachThisObserver2)
 
     int count = 0;
 
-    Observe(src, With(sum,prod,diff), [&] (Token, int sum, int prod, int diff) {
+    Observe(src, With(sum,prod,diff), [&] (Token, int sum, int prod, int diff) -> ObserverAction {
         ++count;
-        DetachThisObserver();
+        return ObserverAction::stop_and_detach;
     });
 
     in1 <<= 22;

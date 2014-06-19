@@ -315,65 +315,67 @@ TYPED_TEST_P(OperationsTest, SyncedTransform1)
     int obsCount1 = 0;
     int obsCount2 = 0;
 
-    Observe(out1, [&] (const tuple<int,int,int>& t) {
-        ++obsCount1;
+    {
+        auto obs1 = Observe(out1, [&] (const tuple<int,int,int>& t) {
+            ++obsCount1;
 
-        ASSERT_EQ(get<0>(t), 33);
-        ASSERT_EQ(get<1>(t), 242);
-        ASSERT_EQ(get<2>(t), 11);
+            ASSERT_EQ(get<0>(t), 33);
+            ASSERT_EQ(get<1>(t), 242);
+            ASSERT_EQ(get<2>(t), 11);
+        });
 
-        DetachThisObserver();
-    });
+        auto obs2 =  Observe(out2, [&] (const tuple<int,int,int,int>& t) {
+            ++obsCount2;
 
-    Observe(out2, [&] (const tuple<int,int,int,int>& t) {
-        ++obsCount2;
+            ASSERT_EQ(get<0>(t), 42);
+            ASSERT_EQ(get<1>(t), 33);
+            ASSERT_EQ(get<2>(t), 242);
+            ASSERT_EQ(get<3>(t), 11);
+        });
 
-        ASSERT_EQ(get<0>(t), 42);
-        ASSERT_EQ(get<1>(t), 33);
-        ASSERT_EQ(get<2>(t), 242);
-        ASSERT_EQ(get<3>(t), 11);
+        in1 <<= 22;
+        in2 <<= 11;
 
-        DetachThisObserver();
-    });
+        src1.Emit();
+        src2.Emit(42);
 
-    in1 <<= 22;
-    in2 <<= 11;
+        ASSERT_EQ(obsCount1, 1);
+        ASSERT_EQ(obsCount2, 1);
 
-    src1.Emit();
-    src2.Emit(42);
+        obs1.Detach();
+        obs2.Detach();
+    }
 
-    ASSERT_EQ(obsCount1, 1);
-    ASSERT_EQ(obsCount2, 1);
+    {
+        auto obs1 = Observe(out1, [&] (const tuple<int,int,int>& t) {
+            ++obsCount1;
 
-    Observe(out1, [&] (const tuple<int,int,int>& t) {
-        ++obsCount1;
+            ASSERT_EQ(get<0>(t), 330);
+            ASSERT_EQ(get<1>(t), 24200);
+            ASSERT_EQ(get<2>(t), 110);
+        });
 
-        ASSERT_EQ(get<0>(t), 330);
-        ASSERT_EQ(get<1>(t), 24200);
-        ASSERT_EQ(get<2>(t), 110);
+        auto obs2 = Observe(out2, [&] (const tuple<int,int,int,int>& t) {
+            ++obsCount2;
 
-        DetachThisObserver();
-    });
+            ASSERT_EQ(get<0>(t), 420);
+            ASSERT_EQ(get<1>(t), 330);
+            ASSERT_EQ(get<2>(t), 24200);
+            ASSERT_EQ(get<3>(t), 110);
+        });
 
-    Observe(out2, [&] (const tuple<int,int,int,int>& t) {
-        ++obsCount2;
+        in1 <<= 220;
+        in2 <<= 110;
 
-        ASSERT_EQ(get<0>(t), 420);
-        ASSERT_EQ(get<1>(t), 330);
-        ASSERT_EQ(get<2>(t), 24200);
-        ASSERT_EQ(get<3>(t), 110);
+        src1.Emit();
+        src2.Emit(420);
 
-        DetachThisObserver();
-    });
+        ASSERT_EQ(obsCount1, 2);
+        ASSERT_EQ(obsCount2, 2);
 
-    in1 <<= 220;
-    in2 <<= 110;
-
-    src1.Emit();
-    src2.Emit(420);
-
-    ASSERT_EQ(obsCount1, 2);
-    ASSERT_EQ(obsCount2, 2);
+        obs1.Detach();
+        obs2.Detach();
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -411,61 +413,63 @@ TYPED_TEST_P(OperationsTest, SyncedIterate1)
     int obsCount1 = 0;
     int obsCount2 = 0;
 
-    Observe(out1, [&] (const tuple<int,int>& t) {
-        ++obsCount1;
+    {
+        auto obs1 = Observe(out1, [&] (const tuple<int,int>& t) {
+            ++obsCount1;
 
-        ASSERT_EQ(get<0>(t), 33);
-        ASSERT_EQ(get<1>(t), 330);
+            ASSERT_EQ(get<0>(t), 33);
+            ASSERT_EQ(get<1>(t), 330);
+        });
 
-        DetachThisObserver();
-    });
+        auto obs2 = Observe(out2, [&] (const tuple<int,int,int>& t) {
+            ++obsCount2;
 
-    Observe(out2, [&] (const tuple<int,int,int>& t) {
-        ++obsCount2;
+            ASSERT_EQ(get<0>(t), 42);
+            ASSERT_EQ(get<1>(t), 33);
+            ASSERT_EQ(get<2>(t), 330);
+        });
 
-        ASSERT_EQ(get<0>(t), 42);
-        ASSERT_EQ(get<1>(t), 33);
-        ASSERT_EQ(get<2>(t), 330);
+        in1 <<= 22;
+        in2 <<= 11;
 
-        DetachThisObserver();
-    });
+        src1.Emit();
+        src2.Emit(42);
 
-    in1 <<= 22;
-    in2 <<= 11;
+        ASSERT_EQ(obsCount1, 1);
+        ASSERT_EQ(obsCount2, 1);
 
-    src1.Emit();
-    src2.Emit(42);
+        obs1.Detach();
+        obs2.Detach();
+    }
 
-    ASSERT_EQ(obsCount1, 1);
-    ASSERT_EQ(obsCount2, 1);
+    {
+        auto obs1 = Observe(out1, [&] (const tuple<int,int>& t) {
+            ++obsCount1;
 
-    Observe(out1, [&] (const tuple<int,int>& t) {
-        ++obsCount1;
+            ASSERT_EQ(get<0>(t), 33 + 330);
+            ASSERT_EQ(get<1>(t), 330 + 3300);
+        });
 
-        ASSERT_EQ(get<0>(t), 33 + 330);
-        ASSERT_EQ(get<1>(t), 330 + 3300);
+        auto obs2 = Observe(out2, [&] (const tuple<int,int,int>& t) {
+            ++obsCount2;
 
-        DetachThisObserver();
-    });
+            ASSERT_EQ(get<0>(t), 42 + 420);
+            ASSERT_EQ(get<1>(t), 33 + 330);
+            ASSERT_EQ(get<2>(t), 330 + 3300);
+        });
 
-    Observe(out2, [&] (const tuple<int,int,int>& t) {
-        ++obsCount2;
+        in1 <<= 220;
+        in2 <<= 110;
 
-        ASSERT_EQ(get<0>(t), 42 + 420);
-        ASSERT_EQ(get<1>(t), 33 + 330);
-        ASSERT_EQ(get<2>(t), 330 + 3300);
+        src1.Emit();
+        src2.Emit(420);
 
-        DetachThisObserver();
-    });
+        ASSERT_EQ(obsCount1, 2);
+        ASSERT_EQ(obsCount2, 2);
 
-    in1 <<= 220;
-    in2 <<= 110;
-
-    src1.Emit();
-    src2.Emit(420);
-
-    ASSERT_EQ(obsCount1, 2);
-    ASSERT_EQ(obsCount2, 2);
+        obs1.Detach();
+        obs2.Detach();
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -506,75 +510,77 @@ TYPED_TEST_P(OperationsTest, SyncedIterate2)
     int obsCount1 = 0;
     int obsCount2 = 0;
 
-    Observe(out1, [&] (const vector<int>& v) {
-        ++obsCount1;
+    {
+        auto obs1 = Observe(out1, [&] (const vector<int>& v) {
+            ++obsCount1;
 
-        ASSERT_EQ(v.size(), 2);
+            ASSERT_EQ(v.size(), 2);
 
-        ASSERT_EQ(v[0], 33);
-        ASSERT_EQ(v[1], 330);
+            ASSERT_EQ(v[0], 33);
+            ASSERT_EQ(v[1], 330);
+        });
 
-        DetachThisObserver();
-    });
+        auto obs2 = Observe(out2, [&] (const vector<int>& v) {
+            ++obsCount2;
 
-    Observe(out2, [&] (const vector<int>& v) {
-        ++obsCount2;
+            ASSERT_EQ(v.size(), 3);
 
-        ASSERT_EQ(v.size(), 3);
+            ASSERT_EQ(v[0], 42);
+            ASSERT_EQ(v[1], 33);
+            ASSERT_EQ(v[2], 330);
+        });
 
-        ASSERT_EQ(v[0], 42);
-        ASSERT_EQ(v[1], 33);
-        ASSERT_EQ(v[2], 330);
+        in1 <<= 22;
+        in2 <<= 11;
 
-        DetachThisObserver();
-    });
+        src1.Emit();
+        src2.Emit(42);
 
-    in1 <<= 22;
-    in2 <<= 11;
+        ASSERT_EQ(obsCount1, 1);
+        ASSERT_EQ(obsCount2, 1);
 
-    src1.Emit();
-    src2.Emit(42);
+        obs1.Detach();
+        obs2.Detach();
+    }
 
-    ASSERT_EQ(obsCount1, 1);
-    ASSERT_EQ(obsCount2, 1);
+    {
+        auto obs1 = Observe(out1, [&] (const vector<int>& v) {
+            ++obsCount1;
 
-    Observe(out1, [&] (const vector<int>& v) {
-        ++obsCount1;
+            ASSERT_EQ(v.size(), 4);
 
-        ASSERT_EQ(v.size(), 4);
+            ASSERT_EQ(v[0], 33);
+            ASSERT_EQ(v[1], 330);
+            ASSERT_EQ(v[2], 330);
+            ASSERT_EQ(v[3], 3300);
+        });
 
-        ASSERT_EQ(v[0], 33);
-        ASSERT_EQ(v[1], 330);
-        ASSERT_EQ(v[2], 330);
-        ASSERT_EQ(v[3], 3300);
+        auto obs2 = Observe(out2, [&] (const vector<int>& v) {
+            ++obsCount2;
 
-        DetachThisObserver();
-    });
+            ASSERT_EQ(v.size(), 6);
 
-    Observe(out2, [&] (const vector<int>& v) {
-        ++obsCount2;
+            ASSERT_EQ(v[0], 42);
+            ASSERT_EQ(v[1], 33);
+            ASSERT_EQ(v[2], 330);
 
-        ASSERT_EQ(v.size(), 6);
+            ASSERT_EQ(v[3], 420);
+            ASSERT_EQ(v[4], 330);
+            ASSERT_EQ(v[5], 3300);
+        });
 
-        ASSERT_EQ(v[0], 42);
-        ASSERT_EQ(v[1], 33);
-        ASSERT_EQ(v[2], 330);
+        in1 <<= 220;
+        in2 <<= 110;
 
-        ASSERT_EQ(v[3], 420);
-        ASSERT_EQ(v[4], 330);
-        ASSERT_EQ(v[5], 3300);
+        src1.Emit();
+        src2.Emit(420);
 
-        DetachThisObserver();
-    });
+        ASSERT_EQ(obsCount1, 2);
+        ASSERT_EQ(obsCount2, 2);
 
-    in1 <<= 220;
-    in2 <<= 110;
-
-    src1.Emit();
-    src2.Emit(420);
-
-    ASSERT_EQ(obsCount1, 2);
-    ASSERT_EQ(obsCount2, 2);
+        obs1.Detach();
+        obs2.Detach();
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

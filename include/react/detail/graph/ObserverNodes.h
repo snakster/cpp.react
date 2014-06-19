@@ -30,6 +30,15 @@ template <typename D, typename E>
 class EventStreamNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ObserverAction
+///////////////////////////////////////////////////////////////////////////////////////////////////
+enum class ObserverAction
+{
+    next,
+    stop_and_detach
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
@@ -86,16 +95,13 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        ThreadLocalObserverState<>::ShouldDetach = false;
-
-        ThreadLocalInputState<>::Context = EInputContext::continuation;
+        bool shouldDetach = false;
 
         if (auto p = subject_.lock())
-            func_(p->ValueRef());
+            if (func_(p->ValueRef()) == ObserverAction::stop_and_detach)
+                shouldDetach = true;
 
-        ThreadLocalInputState<>::Context = EInputContext::none;
-
-        if (ThreadLocalObserverState<>::ShouldDetach)
+        if (shouldDetach)
             DomainSpecificInputManager<D>::Instance().Continuation()
                 .QueueObserverForDetach(*this);
 
@@ -161,20 +167,22 @@ public:
 
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
-        
-        ThreadLocalObserverState<>::ShouldDetach = false;
 
-        ThreadLocalInputState<>::Context = EInputContext::continuation;
+        bool shouldDetach = false;
 
         if (auto p = subject_.lock())
         {
             for (const auto& e : p->Events())
-                func_(e);
+            {
+                if (func_(e) == ObserverAction::stop_and_detach)
+                {
+                    shouldDetach = true;
+                    break;
+                }
+            }
         }
 
-        ThreadLocalInputState<>::Context = EInputContext::none;
-
-        if (ThreadLocalObserverState<>::ShouldDetach)
+        if (shouldDetach)
             DomainSpecificInputManager<D>::Instance().Continuation()
                 .QueueObserverForDetach(*this);
 
@@ -247,9 +255,9 @@ public:
                 MyFunc( f )
             {}
 
-            void operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
+            ObserverAction operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
             {
-                MyFunc(MyEvent, args->ValueRef() ...);
+                return MyFunc(MyEvent, args->ValueRef() ...);
             }
 
             const E&    MyEvent;
@@ -262,9 +270,7 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
         
-        ThreadLocalObserverState<>::ShouldDetach = false;
-
-        ThreadLocalInputState<>::Context = EInputContext::continuation;
+        bool shouldDetach = false;
 
         if (auto p = subject_.lock())
         {
@@ -273,12 +279,16 @@ public:
             p->SetCurrentTurn(turn);
 
             for (const auto& e : p->Events())
-                apply(EvalFunctor_{ e, func_ }, deps_);
+            {
+                if (apply(EvalFunctor_( e, func_ ), deps_) == ObserverAction::stop_and_detach)
+                {
+                    shouldDetach = true;
+                    break;
+                }
+            }
         }
 
-        ThreadLocalInputState<>::Context = EInputContext::none;
-
-        if (ThreadLocalObserverState<>::ShouldDetach)
+        if (shouldDetach)
             DomainSpecificInputManager<D>::Instance().Continuation()
                 .QueueObserverForDetach(*this);
 

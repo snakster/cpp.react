@@ -33,6 +33,8 @@ class SignalPack;
 template <typename D, typename E>
 class Events;
 
+using REACT_IMPL::ObserverAction;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Observer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,7 +91,7 @@ private:
     NodeT*      nodePtr_;
 
     // While the observer handle exists, the subject is not destroyed
-    SubjectT    subject_;    
+    SubjectT    subject_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -141,17 +143,27 @@ auto Observe(const Signal<D,S>& subject, FIn&& func)
     using REACT_IMPL::IObserver;
     using REACT_IMPL::SignalObserverNode;
     using REACT_IMPL::DomainSpecificObserverRegistry;
+    using REACT_IMPL::AddDefaultReturnValueWrapper;
 
     using F = typename std::decay<FIn>::type;
+    using R = typename std::result_of<FIn(S)>::type;
+    using WrapperT = AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>;
 
-    std::unique_ptr<IObserver> obsPtr{
-        new SignalObserverNode<D,S,F>{
-            subject.NodePtr(), std::forward<FIn>(func)}};
+    // If return value of passed function is void, add ObserverAction::next as
+    // default return value.
+    using TNode = typename std::conditional<
+        std::is_same<void,R>::value,
+        SignalObserverNode<D,S,WrapperT>,
+        SignalObserverNode<D,S,F>
+            >::type;
+
+    std::unique_ptr<IObserver> obsPtr(new TNode(
+        subject.NodePtr(), std::forward<FIn>(func)));
 
     auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
         .Register(std::move(obsPtr), subject.NodePtr().get());
 
-    return Observer<D>{ rawObsPtr, subject.NodePtr() };
+    return Observer<D>( rawObsPtr, subject.NodePtr() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -169,12 +181,22 @@ auto Observe(const Events<D,E>& subject, FIn&& func)
     using REACT_IMPL::IObserver;
     using REACT_IMPL::EventObserverNode;
     using REACT_IMPL::DomainSpecificObserverRegistry;
+    using REACT_IMPL::AddDefaultReturnValueWrapper;
 
     using F = typename std::decay<FIn>::type;
+    using R = typename std::result_of<FIn(E)>::type;
+    using WrapperT = AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>;
 
-    std::unique_ptr<IObserver> obsPtr{
-        new EventObserverNode<D,E,F>{
-            subject.NodePtr(), std::forward<FIn>(func)}};
+    // If return value of passed function is void, add ObserverAction::next as
+    // default return value.
+    using TNode = typename std::conditional<
+        std::is_same<void,R>::value,
+        EventObserverNode<D,E,WrapperT>,
+        EventObserverNode<D,E,F>
+            >::type;
+    
+    std::unique_ptr<IObserver> obsPtr(new TNode(
+        subject.NodePtr(), std::forward<FIn>(func)));
 
     auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
         .Register(std::move(obsPtr), subject.NodePtr().get());
@@ -199,8 +221,19 @@ auto Observe(const Events<D,E>& subject,
     using REACT_IMPL::IObserver;
     using REACT_IMPL::SyncedObserverNode;
     using REACT_IMPL::DomainSpecificObserverRegistry;
+    using REACT_IMPL::AddDefaultReturnValueWrapper;
 
     using F = typename std::decay<FIn>::type;
+    using R = typename std::result_of<FIn(E,TDepValues...)>::type;
+    using WrapperT = AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>;
+
+    // If return value of passed function is void, add ObserverAction::next as
+    // default return value.
+    using TNode = typename std::conditional<
+        std::is_same<void,R>::value,
+        SyncedObserverNode<D,E,WrapperT,TDepValues ...>,
+        SyncedObserverNode<D,E,F,TDepValues ...>
+            >::type;
 
     struct NodeBuilder_
     {
@@ -212,9 +245,9 @@ auto Observe(const Events<D,E>& subject,
         auto operator()(const Signal<D,TDepValues>& ... deps)
             -> std::unique_ptr<IObserver>
         {
-            return std::unique_ptr<IObserver> {
-                new SyncedObserverNode<D,E,F,TDepValues ...> {
-                    MySubject.NodePtr(), std::forward<FIn>(MyFunc), deps.NodePtr() ...}};
+            return std::unique_ptr<IObserver>(
+                new TNode(
+                    MySubject.NodePtr(), std::forward<FIn>(MyFunc), deps.NodePtr() ... ));
         }
 
         const Events<D,E>& MySubject;
@@ -229,14 +262,6 @@ auto Observe(const Events<D,E>& subject,
         .Register(std::move(obsPtr), subject.NodePtr().get());
 
     return Observer<D>(rawObsPtr, subject.NodePtr());
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// DetachThisObserver
-///////////////////////////////////////////////////////////////////////////////////////////////////
-inline void DetachThisObserver()
-{
-    REACT_IMPL::ThreadLocalObserverState<>::ShouldDetach = true;
 }
 
 /******************************************/ REACT_END /******************************************/
