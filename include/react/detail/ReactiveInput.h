@@ -20,7 +20,6 @@
 #include <mutex>
 #include <utility>
 #include <thread>
-#include <typeindex>
 #include <vector>
 
 #include "tbb/concurrent_queue.h"
@@ -320,7 +319,7 @@ public:
         if (statusPtr != nullptr)
             statusPtr->IncWaitCount();
 
-        asyncQueue_.push(AsyncItem{ flags, statusPtr, func } );
+        asyncQueue_.push(AsyncItem{ flags, statusPtr, std::forward<F>(func) } );
     }
 
     template <typename R, typename V>
