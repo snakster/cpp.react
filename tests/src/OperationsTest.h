@@ -584,6 +584,92 @@ TYPED_TEST_P(OperationsTest, SyncedIterate2)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventFilter1
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, SyncedEventFilter1)
+{
+    using D = typename SyncedEventFilter1::MyDomain;
+
+    using std::string;
+
+    std::queue<string> results;
+
+    auto in = MakeEventSource<D,string>();
+
+    auto sig1 = MakeVar<D>(1338);
+    auto sig2 = MakeVar<D>(1336);
+
+    auto filtered = Filter(
+        in,
+        With(sig1, sig2),
+        [] (const string& s, int sig1, int sig2) {
+            return s == "Hello World" && sig1 > sig2;
+        });
+
+
+    Observe(filtered, [&] (const string& s)
+    {
+        results.push(s);
+    });
+
+    in << string("Hello Worlt") << string("Hello World") << string("Hello Vorld");
+    sig1 <<= 1335;
+    in << string("Hello Vorld");
+
+    ASSERT_FALSE(results.empty());
+    ASSERT_EQ(results.front(), "Hello World");
+    results.pop();
+
+    ASSERT_TRUE(results.empty());
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventTransform1
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, SyncedEventTransform1)
+{
+    using D = typename SyncedEventTransform1::MyDomain;
+
+    using std::string;
+
+    std::vector<string> results;
+
+    auto in1 = MakeEventSource<D,string>();
+    auto in2 = MakeEventSource<D,string>();
+
+    auto merged = Merge(in1, in2);
+
+    auto first = MakeVar<D>(string("Ace"));
+    auto last = MakeVar<D>(string("McSteele"));
+
+    auto transformed = Transform(
+        merged,
+        With(first, last),
+        [] (string s, const string& first, const string& last) -> string {
+            std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+            s += string(", ") + first + string(" ") + last;
+            return s;
+        });
+
+    Observe(transformed, [&] (const string& s) {
+        results.push_back(s);
+    });
+
+    in1 << string("Hello Worlt") << string("Hello World");
+
+    D::DoTransaction([&] {
+        in2 << string("Hello Vorld");
+        first.Set(string("Alice"));
+        last.Set(string("Anderson"));
+    });
+
+    ASSERT_EQ(results.size(), 3);
+    ASSERT_TRUE(std::find(results.begin(), results.end(), "HELLO WORLT, Ace McSteele") != results.end());
+    ASSERT_TRUE(std::find(results.begin(), results.end(), "HELLO WORLD, Ace McSteele") != results.end());
+    ASSERT_TRUE(std::find(results.begin(), results.end(), "HELLO VORLD, Alice Anderson") != results.end());
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     OperationsTest,
@@ -598,7 +684,9 @@ REGISTER_TYPED_TEST_CASE_P
     IterateByRef2,
     SyncedTransform1,
     SyncedIterate1,
-    SyncedIterate2
+    SyncedIterate2,
+    SyncedEventFilter1,
+    SyncedEventTransform1
 );
 
 } // ~namespace
