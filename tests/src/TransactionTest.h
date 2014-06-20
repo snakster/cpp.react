@@ -14,6 +14,9 @@
 
 #include "react/Domain.h"
 #include "react/Signal.h"
+#include "react/Event.h"
+#include "react/Observer.h"
+#include "react/Algorithm.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {
@@ -397,6 +400,110 @@ TYPED_TEST_P(TransactionTest, AsyncMerging1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Continuation1
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(TransactionTest, Continuation1)
+{
+    using D = typename Continuation1::MyDomain;
+
+    std::vector<int> results;
+
+    auto in = MakeVar<D>(0);
+
+    auto cont = MakeContinuation(in, [&] (int v) {
+        results.push_back(v);
+
+        if (v < 10)
+            in <<= v + 1;
+    });
+
+    in <<= 1;
+
+    ASSERT_EQ(results.size(), 10);
+    for (int i=0; i<10; i++)
+        ASSERT_TRUE(results[i] == i+1);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Continuation2
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(TransactionTest, Continuation2)
+{
+    using L = typename Continuation2::MyDomain;
+
+    REACTIVE_DOMAIN(R)
+
+    std::vector<int> results;
+
+    auto srcL = MakeVar<L>(0);
+    auto srcR = MakeVar<R>(0);
+
+    auto contL = MakeContinuation<L,R>(srcL, [&] (int v) {
+        results.push_back(v);
+        if (v < 10)
+            srcR <<= v+1;
+    });
+
+    auto contR = MakeContinuation<R,L>(Monitor(srcR), [&] (int v) {
+        results.push_back(v);
+        if (v < 10)
+            srcL <<= v+1;
+    });
+
+    srcL <<= 1;
+
+    ASSERT_EQ(results.size(), 10);
+    for (int i=0; i<10; i++)
+        ASSERT_TRUE(results[i] == i+1);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Continuation3
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(TransactionTest, Continuation3)
+{
+    using L = typename Continuation3::MyDomain;
+
+    REACTIVE_DOMAIN(R)
+
+    std::vector<int> results;
+
+    auto srcL = MakeVar<L>(0);
+    auto depL1 = MakeVar<L>(100);
+    auto depL2 = MakeVar<L>(10);
+    auto srcR = MakeVar<R>(0);
+
+    auto contL = MakeContinuation<L,R>(
+        Monitor(srcL),
+        With(depL1, depL2),
+        [&] (int v, int depL1, int depL2) {
+            ASSERT_EQ(depL1, v*100);
+            ASSERT_EQ(depL2, v*10);
+            results.push_back(v);
+            if (v < 10)
+                srcR <<= v+1;
+        });
+
+    auto contR = MakeContinuation<R,L>(
+        Monitor(srcR),
+        [&] (int v) {
+            results.push_back(v);
+
+            v++;
+            depL1 <<= v*100;
+            depL2 <<= v*10;
+            if (v < 10)
+                srcL <<= v;
+        });
+
+    srcL <<= 1;
+
+    ASSERT_EQ(results.size(), 10);
+    for (int i=0; i<10; i++)
+        ASSERT_TRUE(results[i] == i+1);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     TransactionTest,
@@ -405,7 +512,10 @@ REGISTER_TYPED_TEST_CASE_P
     Concurrent3,
     Merging1,
     Async1,
-    AsyncMerging1
+    AsyncMerging1,
+    Continuation1,
+    Continuation2,
+    Continuation3
 );
 
 } // ~namespace
