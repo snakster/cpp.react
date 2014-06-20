@@ -258,8 +258,7 @@ TYPED_TEST_P(TransactionTest, Merging1)
     auto n1 = MakeVar<D>(1);
     auto n2 = n1 ->* f;
 
-    Observe(n2, [&] (int v)
-    {
+    Observe(n2, [&] (int v) {
         results.push_back(v);
     });
 
@@ -302,6 +301,100 @@ TYPED_TEST_P(TransactionTest, Merging1)
     ASSERT_TRUE(results[1] == 5);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Async1
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(TransactionTest, Async1)
+{
+    using D = typename Async1::MyDomain;
+
+    std::vector<int> results;
+
+    auto in = MakeVar<D>(1);
+    auto s1 = in * 1000;
+
+    Observe(s1, [&] (int v) {
+        results.push_back(v);
+    });
+
+    TransactionStatus st;
+
+    D::AsyncTransaction(st, [&] {
+        in <<= 10;
+    });
+
+    D::AsyncTransaction(st, [&] {
+        in <<= 20;
+    });
+
+    D::AsyncTransaction(st, [&] {
+        in <<= 30;
+    });
+
+    st.Wait();
+
+    ASSERT_EQ(results.size(), 3);
+    ASSERT_TRUE(results[0] == 10000);
+    ASSERT_TRUE(results[1] == 20000);
+    ASSERT_TRUE(results[2] == 30000);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// AsyncMerging1
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(TransactionTest, AsyncMerging1)
+{
+    using D = typename AsyncMerging1::MyDomain;
+
+    std::vector<int> results;
+
+    auto in = MakeVar<D>(1);
+    auto s1 = in * 1000;
+
+    Observe(s1, [&] (int v) {
+        results.push_back(v);
+    });
+
+    TransactionStatus st;
+
+    D::AsyncTransaction(enable_input_merging, st, [&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        in <<= 10;
+    });
+
+    // Make sure other async transaction gets to start
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    // These two can still be pulled in after the first input function is done
+    D::AsyncTransaction(enable_input_merging, st, [&] {
+        in <<= 20;
+    });
+
+    D::AsyncTransaction(enable_input_merging, st, [&] {
+        in <<= 30;
+    });
+
+    // Can't be merged
+    D::AsyncTransaction(st, [&] {
+        in <<= 40;
+    });
+
+    // These two should be merged again
+    D::AsyncTransaction(enable_input_merging, st, [&] {
+        in <<= 50;
+    });
+
+    D::AsyncTransaction(enable_input_merging, st, [&] {
+        in <<= 60;
+    });
+
+    st.Wait();
+
+    ASSERT_EQ(results.size(), 3);
+    ASSERT_TRUE(results[0] == 30000);
+    ASSERT_TRUE(results[1] == 40000);
+    ASSERT_TRUE(results[2] == 60000);
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
@@ -310,7 +403,9 @@ REGISTER_TYPED_TEST_CASE_P
     Concurrent1,
     Concurrent2,
     Concurrent3,
-    Merging1
+    Merging1,
+    Async1,
+    AsyncMerging1
 );
 
 } // ~namespace
