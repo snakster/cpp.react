@@ -39,8 +39,9 @@ public:
     class ScopedUpdateTimer : private ScopedTimer
     {
     public:
-        ScopedUpdateTimer(UpdateTimingPolicy& parent) :
-            ScopedTimer( parent ) {}
+        ScopedUpdateTimer(UpdateTimingPolicy& parent, const size_t& count) :
+            ScopedTimer( parent, count )
+        {}
     };
 
     bool IsUpdateThresholdExceeded() const { return this->IsThresholdExceeded(); }

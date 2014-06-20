@@ -29,7 +29,9 @@ template
     typename E,
     typename TFunc
 >
-class IterateNode : public SignalNode<D,S>
+class IterateNode :
+    public SignalNode<D,S>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename IterateNode::Engine;
 
@@ -58,26 +60,40 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        S newValue = this->value_;
-        for (const auto& e : events_->Events())
-            newValue = func_(e, newValue);
+        bool changed = false;
+
+        {// timer
+            using TimerT = typename IterateNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, events_->Events().size() );
+
+            S newValue = this->value_;
+            
+            for (const auto& e : events_->Events())
+                newValue = func_(e, newValue);
+
+            if (! Equals(newValue, this->value_))
+            {
+                this->value_ = std::move(newValue);
+                changed = true;
+            }
+        }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
 
-        if (! Equals(newValue, this->value_))
-        {
-            this->value_ = std::move(newValue);
+        if (changed)
             Engine::OnNodePulse(*this, turn);
-        }
         else
-        {
             Engine::OnNodeIdlePulse(*this, turn);
-        }
     }
 
-    virtual const char* GetNodeType() const override    { return "IterateNode"; }
-    virtual int DependencyCount() const override        { return 1; }
+    virtual const char* GetNodeType() const override        { return "IterateNode"; }
+    virtual int         DependencyCount() const override    { return 1; }
+
+    virtual bool IsHeavyweight() const override
+    {
+        return this->IsUpdateThresholdExceeded();
+    }
 
 private:
     std::shared_ptr<EventStreamNode<D,E>> events_;
@@ -95,7 +111,9 @@ template
     typename E,
     typename TFunc
 >
-class IterateByRefNode : public SignalNode<D,S>
+class IterateByRefNode :
+    public SignalNode<D,S>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename IterateByRefNode::Engine;
 
@@ -124,8 +142,13 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        for (const auto& e : events_->Events())
-            func_(e, this->value_);
+        {// timer
+            using TimerT = typename IterateByRefNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, events_->Events().size() );
+
+            for (const auto& e : events_->Events())
+                func_(e, this->value_);
+        }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -136,6 +159,11 @@ public:
 
     virtual const char* GetNodeType() const override        { return "IterateByRefNode"; }
     virtual int         DependencyCount() const override    { return 1; }
+
+    virtual bool IsHeavyweight() const override
+    {
+        return this->IsUpdateThresholdExceeded();
+    }
 
 protected:
     TFunc   func_;
@@ -154,7 +182,9 @@ template
     typename TFunc,
     typename ... TDepValues
 >
-class SyncedIterateNode : public SignalNode<D,S>
+class SyncedIterateNode :
+    public SignalNode<D,S>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename SyncedIterateNode::Engine;
 
@@ -215,7 +245,10 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (! events_->Events().empty())
-        {
+        {// timer
+            using TimerT = typename SyncedIterateNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, events_->Events().size() );
+
             S newValue = this->value_;
 
             for (const auto& e : events_->Events())
@@ -226,7 +259,7 @@ public:
                 changed = true;
                 this->value_ = std::move(newValue);
             }            
-        }
+        }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -239,6 +272,11 @@ public:
 
     virtual const char* GetNodeType() const override        { return "SyncedIterateNode"; }
     virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+
+    virtual bool IsHeavyweight() const override
+    {
+        return this->IsUpdateThresholdExceeded();
+    }
 
 private:
     using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
@@ -260,7 +298,9 @@ template
     typename TFunc,
     typename ... TDepValues
 >
-class SyncedIterateByRefNode : public SignalNode<D,S>
+class SyncedIterateByRefNode :
+    public SignalNode<D,S>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename SyncedIterateByRefNode::Engine;
 
@@ -321,12 +361,15 @@ public:
             GetObjectId(*this), turn.Id()));
 
         if (! events_->Events().empty())
-        {
+        {// timer
+            using TimerT = typename SyncedIterateByRefNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, events_->Events().size() );
+
             for (const auto& e : events_->Events())
                 apply(EvalFunctor_( e, this->value_, func_ ), deps_);
 
             changed = true;
-        }
+        }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -339,6 +382,11 @@ public:
 
     virtual const char* GetNodeType() const override        { return "SyncedIterateByRefNode"; }
     virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+
+    virtual bool IsHeavyweight() const override
+    {
+        return this->IsUpdateThresholdExceeded();
+    }
 
 private:
     using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
@@ -409,7 +457,7 @@ public:
             Engine::OnNodeIdlePulse(*this, turn);
     }
 
-    virtual int DependencyCount() const override    { return 1; }
+    virtual int     DependencyCount() const override    { return 1; }
 
 private:
     const std::shared_ptr<EventStreamNode<D,S>>    events_;
@@ -447,9 +495,6 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override        { return "SnapshotNode"; }
-    virtual int         DependencyCount() const override    { return 2; }
-
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
@@ -481,6 +526,9 @@ public:
         else
             Engine::OnNodeIdlePulse(*this, turn);
     }
+
+    virtual const char* GetNodeType() const override        { return "SnapshotNode"; }
+    virtual int         DependencyCount() const override    { return 2; }
 
 private:
     const std::shared_ptr<SignalNode<D,S>>      target_;
@@ -514,9 +562,6 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override        { return "MonitorNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
-
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
@@ -537,6 +582,9 @@ public:
         else
             Engine::OnNodeIdlePulse(*this, turn);
     }
+
+    virtual const char* GetNodeType() const override        { return "MonitorNode"; }
+    virtual int         DependencyCount() const override    { return 1; }
 
 private:
     const std::shared_ptr<SignalNode<D,E>>    target_;
@@ -574,9 +622,6 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override        { return "PulseNode"; }
-    virtual int         DependencyCount() const override    { return 2; }
-
     virtual void Tick(void* turnPtr) override
     {
         typedef typename D::Engine::TurnT TurnT;
@@ -599,6 +644,9 @@ public:
         else
             Engine::OnNodeIdlePulse(*this, turn);
     }
+
+    virtual const char* GetNodeType() const override        { return "PulseNode"; }
+    virtual int         DependencyCount() const override    { return 2; }
 
 private:
     const std::shared_ptr<SignalNode<D,S>>      target_;

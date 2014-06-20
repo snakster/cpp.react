@@ -21,6 +21,7 @@
 
 #include "GraphBase.h"
 #include "EventNodes.h"
+#include "SignalNodes.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -78,7 +79,7 @@ public:
         // First blocking event is not initiated by Tick() but after loop creation.
         NodeBase<D>* p = mainLoop_.get();
 
-        REACT_ASSERT(p != nullptr, "StartLoop: first depPtr was null");
+        assert(p != nullptr);
 
         Engine::OnNodeAttach(*this, *p);
 
@@ -125,7 +126,7 @@ public:
         while (! checkEvent(events))
             (*curOutPtr_)(nullptr);
 
-        REACT_ASSERT(turnPtr_ != nullptr, "Await: turnPtr_ was null");
+        assert(turnPtr_ != nullptr);
 
         Engine::OnDynamicNodeDetach(*this, *events, *turnPtr_);
         --depCount_;
@@ -188,6 +189,19 @@ public:
 
         --depCount_;
     }
+
+    //template <typename S>
+    //S& Get(const std::shared_ptr<SignalNode<D,S>>& sig)
+    //{
+    //    // Attach to target signal node
+    //    (*curOutPtr_)(sig.get());
+
+    //    Engine::OnDynamicNodeDetach(*this, *events, *turnPtr_);
+    //    --depCount_;
+
+    //    auto index = offsets_[reinterpret_cast<uintptr_t>(events.get())]++;
+    //    return events->Events()[index];
+    //}
 
 private:
     template <typename E>

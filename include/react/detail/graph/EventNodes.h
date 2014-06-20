@@ -384,7 +384,9 @@ template
     typename E,
     typename TOp
 >
-class EventOpNode : public EventStreamNode<D,E>
+class EventOpNode :
+    public EventStreamNode<D,E>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename EventOpNode::Engine;
 
@@ -405,9 +407,6 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override        { return "EventOpNode"; }
-    virtual int         DependencyCount() const override    { return TOp::dependency_count; }
-
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
@@ -418,7 +417,17 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        op_.Collect(turn, EventCollector{ this->events_ });
+        {// timer
+            size_t count = 0;
+            using TimerT = typename EventOpNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, count );
+
+            op_.Collect(turn, EventCollector( this->events_ ));
+
+            // Note: Count was passed by reference, so we can still change before the dtor
+            // of the scoped timer is called
+            count = this->events_.size();
+        }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -427,6 +436,14 @@ public:
             Engine::OnNodePulse(*this, turn);
         else
             Engine::OnNodeIdlePulse(*this, turn);
+    }
+
+    virtual const char* GetNodeType() const override        { return "EventOpNode"; }
+    virtual int         DependencyCount() const override    { return TOp::dependency_count; }
+
+    virtual bool IsHeavyweight() const override
+    {
+        return this->IsUpdateThresholdExceeded();
     }
 
     TOp StealOp()
@@ -546,7 +563,9 @@ template
     typename TFunc,
     typename ... TDepValues
 >
-class SyncedEventTransformNode : public EventStreamNode<D,TOut>
+class SyncedEventTransformNode :
+    public EventStreamNode<D,TOut>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename SyncedEventTransformNode::Engine;
 
@@ -575,9 +594,6 @@ public:
 
         Engine::OnNodeDestroy(*this);
     }
-
-    virtual const char* GetNodeType() const override        { return "SyncedEventTransformNode"; }
-    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
 
     virtual void Tick(void* turnPtr) override
     {
@@ -608,8 +624,13 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        for (const auto& e : source_->Events())
-            this->events_.push_back(apply(EvalFunctor_( e, func_ ), deps_));
+        {// timer
+            using TimerT = typename SyncedEventTransformNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, source_->Events().size() );
+
+            for (const auto& e : source_->Events())
+                this->events_.push_back(apply(EvalFunctor_( e, func_ ), deps_));
+        }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -618,6 +639,14 @@ public:
             Engine::OnNodePulse(*this, turn);
         else
             Engine::OnNodeIdlePulse(*this, turn);
+    }
+
+    virtual const char* GetNodeType() const override        { return "SyncedEventTransformNode"; }
+    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+
+    virtual bool IsHeavyweight() const override
+    {
+        return this->IsUpdateThresholdExceeded();
     }
 
 private:
@@ -639,7 +668,9 @@ template
     typename TFunc,
     typename ... TDepValues
 >
-class SyncedEventFilterNode : public EventStreamNode<D,E>
+class SyncedEventFilterNode :
+    public EventStreamNode<D,E>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename SyncedEventFilterNode::Engine;
 
@@ -668,9 +699,6 @@ public:
 
         Engine::OnNodeDestroy(*this);
     }
-
-    virtual const char* GetNodeType() const override        { return "SyncedEventFilterNode"; }
-    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
 
     virtual void Tick(void* turnPtr) override
     {
@@ -701,9 +729,14 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
-        for (const auto& e : source_->Events())
-            if (apply(EvalFunctor_( e, filter_ ), deps_))
-                this->events_.push_back(e);
+        {// timer
+            using TimerT = typename SyncedEventFilterNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, source_->Events().size() );
+
+            for (const auto& e : source_->Events())
+                if (apply(EvalFunctor_( e, filter_ ), deps_))
+                    this->events_.push_back(e);
+        }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
             GetObjectId(*this), turn.Id()));
@@ -712,6 +745,14 @@ public:
             Engine::OnNodePulse(*this, turn);
         else
             Engine::OnNodeIdlePulse(*this, turn);
+    }
+
+    virtual const char* GetNodeType() const override        { return "SyncedEventFilterNode"; }
+    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+
+    virtual bool IsHeavyweight() const override
+    {
+        return this->IsUpdateThresholdExceeded();
     }
 
 private:

@@ -257,9 +257,6 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override        { return "SignalOpNode"; }
-    virtual int         DependencyCount() const override    { return TOp::dependency_count; }
-
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
@@ -272,7 +269,7 @@ public:
 
         {// timer
             using TimerT = typename SignalOpNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this );
+            TimerT scopedTimer( *this, 1 );
 
             S newValue = op_.Evaluate();
 
@@ -291,6 +288,9 @@ public:
         else
             Engine::OnNodeIdlePulse(*this, turn);
     }
+
+    virtual const char* GetNodeType() const override        { return "SignalOpNode"; }
+    virtual int         DependencyCount() const override    { return TOp::dependency_count; }
 
     virtual bool IsHeavyweight() const override
     {
@@ -342,10 +342,6 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual const char* GetNodeType() const override        { return "FlattenNode"; }
-    virtual bool        IsDynamicNode() const override      { return true; }
-    virtual int         DependencyCount() const override    { return 2; }
-
     virtual void Tick(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
@@ -381,6 +377,10 @@ public:
             Engine::OnNodeIdlePulse(*this, turn);
         }
     }
+
+    virtual const char* GetNodeType() const override        { return "FlattenNode"; }
+    virtual bool        IsDynamicNode() const override      { return true; }
+    virtual int         DependencyCount() const override    { return 2; }
 
 private:
     std::shared_ptr<SignalNode<D,TOuter>>   outer_;

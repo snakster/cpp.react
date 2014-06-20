@@ -61,7 +61,9 @@ public:
     class ScopedTimer
     {
     public:
-        ScopedTimer(const ConditionalTimer&);
+        // Note:
+        // Count is passed by ref so it can be set later if it's not known at time of creation
+        ScopedTimer(const ConditionalTimer&, const size_t& count);
     };
 
     bool IsThresholdExceeded() const;
@@ -79,7 +81,7 @@ public:
     class ScopedTimer
     {
     public:
-        ScopedTimer(const ConditionalTimer&) {}
+        ScopedTimer(const ConditionalTimer&, const size_t& count) {}
     };
 
     bool IsThresholdExceeded() const { return false; }
@@ -103,8 +105,9 @@ public:
     class ScopedTimer
     {
     public:
-        ScopedTimer(ConditionalTimer& parent) :
-            parent_( parent )
+        ScopedTimer(ConditionalTimer& parent, const size_t& count) :
+            parent_( parent ),
+            count_( count )
         {
             if (!parent_.shouldMeasure_)
                 return;
@@ -139,18 +142,19 @@ public:
             durationUS.QuadPart *= 1000000;
             durationUS.QuadPart /= GetPerformanceFrequency().QuadPart;
 
-            parent_.isThresholdExceeded_ = durationUS.QuadPart > threshold;
+            parent_.isThresholdExceeded_ = durationUS.QuadPart > (threshold * count_);
 #else
             using std::chrono::duration_cast;
             using std::chrono::microseconds;
 
             parent_.isThresholdExceeded_ =
-                duration_cast<microseconds>(now() - startTime_).count() > threshold;      
+                duration_cast<microseconds>(now() - startTime_).count() > (threshold * count_);
 #endif
         }
 
         ConditionalTimer&   parent_;
         TimestampT          startTime_;  
+        const size_t&       count_;
     };
 
     static TimestampT now()

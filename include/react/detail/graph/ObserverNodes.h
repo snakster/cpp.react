@@ -61,7 +61,9 @@ template
     typename S,
     typename TFunc
 >
-class SignalObserverNode : public ObserverNode<D>
+class SignalObserverNode :
+    public ObserverNode<D>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename SignalObserverNode::Engine;
 
@@ -98,8 +100,13 @@ public:
         bool shouldDetach = false;
 
         if (auto p = subject_.lock())
+        {// timer
+            using TimerT = typename SignalObserverNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, 1 );
+            
             if (func_(p->ValueRef()) == ObserverAction::stop_and_detach)
                 shouldDetach = true;
+        }// ~timer
 
         if (shouldDetach)
             DomainSpecificInputManager<D>::Instance().Continuation()
@@ -134,7 +141,9 @@ template
     typename E,
     typename TFunc
 >
-class EventObserverNode : public ObserverNode<D>
+class EventObserverNode :
+    public ObserverNode<D>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename EventObserverNode::Engine;
 
@@ -171,7 +180,10 @@ public:
         bool shouldDetach = false;
 
         if (auto p = subject_.lock())
-        {
+        {// timer
+            using TimerT = typename EventObserverNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, p->Events().size() );
+            
             for (const auto& e : p->Events())
             {
                 if (func_(e) == ObserverAction::stop_and_detach)
@@ -180,7 +192,7 @@ public:
                     break;
                 }
             }
-        }
+        }// ~timer
 
         if (shouldDetach)
             DomainSpecificInputManager<D>::Instance().Continuation()
@@ -217,7 +229,9 @@ template
     typename TFunc,
     typename ... TDepValues
 >
-class SyncedObserverNode : public ObserverNode<D>
+class SyncedObserverNode :
+    public ObserverNode<D>,
+    public UpdateTimingPolicy<D,500>
 {
     using Engine = typename SyncedObserverNode::Engine;
 
@@ -278,14 +292,19 @@ public:
             // so make sure source doesnt contain events from last turn
             p->SetCurrentTurn(turn);
 
-            for (const auto& e : p->Events())
-            {
-                if (apply(EvalFunctor_( e, func_ ), deps_) == ObserverAction::stop_and_detach)
+            {// timer
+                using TimerT = typename SyncedObserverNode::ScopedUpdateTimer;
+                TimerT scopedTimer( *this, p->Events().size() );
+            
+                for (const auto& e : p->Events())
                 {
-                    shouldDetach = true;
-                    break;
+                    if (apply(EvalFunctor_( e, func_ ), deps_) == ObserverAction::stop_and_detach)
+                    {
+                        shouldDetach = true;
+                        break;
+                    }
                 }
-            }
+            }// ~timer
         }
 
         if (shouldDetach)
