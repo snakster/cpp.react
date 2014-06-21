@@ -268,25 +268,25 @@ TYPED_TEST_P(TransactionTest, Merging1)
     // Todo: improve this as it'll fail occasionally
     shouldSpin = true;
     std::thread t1([&] {
-        D::DoTransaction(enable_input_merging, [&] {
+        D::DoTransaction(allow_merging, [&] {
             n1 <<= 2;
         });
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     std::thread t2([&] {
-        D::DoTransaction(enable_input_merging, [&] {
+        D::DoTransaction(allow_merging, [&] {
             n1 <<= 3;
         });
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     std::thread t3([&] {
-        D::DoTransaction(enable_input_merging, [&] {
+        D::DoTransaction(allow_merging, [&] {
             n1 <<= 4;
         });
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     std::thread t4([&] {
-        D::DoTransaction(enable_input_merging, [&] {
+        D::DoTransaction(allow_merging, [&] {
             n1 <<= 5;
         });
         
@@ -360,7 +360,7 @@ TYPED_TEST_P(TransactionTest, AsyncMerging1)
 
     TransactionStatus st;
 
-    D::AsyncTransaction(enable_input_merging, st, [&] {
+    D::AsyncTransaction(allow_merging, st, [&] {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         in <<= 10;
     });
@@ -369,11 +369,11 @@ TYPED_TEST_P(TransactionTest, AsyncMerging1)
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     // These two can still be pulled in after the first input function is done
-    D::AsyncTransaction(enable_input_merging, st, [&] {
+    D::AsyncTransaction(allow_merging, st, [&] {
         in <<= 20;
     });
 
-    D::AsyncTransaction(enable_input_merging, st, [&] {
+    D::AsyncTransaction(allow_merging, st, [&] {
         in <<= 30;
     });
 
@@ -383,11 +383,11 @@ TYPED_TEST_P(TransactionTest, AsyncMerging1)
     });
 
     // These two should be merged again
-    D::AsyncTransaction(enable_input_merging, st, [&] {
+    D::AsyncTransaction(allow_merging, st, [&] {
         in <<= 50;
     });
 
-    D::AsyncTransaction(enable_input_merging, st, [&] {
+    D::AsyncTransaction(allow_merging, st, [&] {
         in <<= 60;
     });
 

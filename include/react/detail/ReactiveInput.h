@@ -44,7 +44,7 @@ using TransactionFuncT = std::function<void()>;
 
 enum
 {
-    enable_input_merging    = 1 << 0
+    allow_merging    = 1 << 0
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -278,7 +278,7 @@ public:
     {
         // Attempt to add input to another turn.
         // If successful, blocks until other turn is done and returns.
-        bool canMerge = (flags & enable_input_merging) != 0;
+        bool canMerge = (flags & allow_merging) != 0;
         if (canMerge && Engine::TryMergeSync(std::forward<F>(func)))
             return;
 
@@ -454,7 +454,7 @@ private:
                 skipPop = false;
 
             // First try to merge to an existing synchronous item in the queue
-            bool canMerge = (item.Flags & enable_input_merging) != 0;
+            bool canMerge = (item.Flags & allow_merging) != 0;
             if (canMerge && Engine::TryMergeAsync(std::move(item.Func), std::move(item.StatusPtr)))
                 continue;
 
@@ -487,7 +487,7 @@ private:
                 uint extraCount = 0;
                 while (extraCount < 100 && asyncQueue_.try_pop(item))
                 {
-                    bool canMergeNext = (item.Flags & enable_input_merging) != 0;
+                    bool canMergeNext = (item.Flags & allow_merging) != 0;
                     if (canMergeNext)
                     {
                         item.Func();
@@ -540,7 +540,7 @@ private:
     void processContinuationData(TurnFlagsT flags)
     {
         // No merging for continuations
-        flags &= ~enable_input_merging;
+        flags &= ~allow_merging;
 
         continuation_.template DetachQueuedObservers<D>();
 

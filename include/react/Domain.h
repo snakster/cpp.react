@@ -65,7 +65,7 @@ class SignalPack;
 using REACT_IMPL::TurnFlagsT;
 
 //ETurnFlags
-using REACT_IMPL::enable_input_merging;
+using REACT_IMPL::allow_merging;
 
 #ifdef REACT_ENABLE_LOGGING
     using REACT_IMPL::EventLog;
