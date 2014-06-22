@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "MoveTest.h"
+#include "TestUtil.h"
 
 #include "react/engine/ToposortEngine.h"
 
@@ -13,6 +14,8 @@ namespace {
 
 using namespace react;
 
-INSTANTIATE_TYPED_TEST_CASE_P(SeqToposort, MoveTest, ToposortEngine<sequential>);
+using P1 = DomainParams<sequential,ToposortEngine>;
+
+INSTANTIATE_TYPED_TEST_CASE_P(SeqToposort, MoveTest, P1);
 
 } // ~namespace

@@ -22,11 +22,14 @@ using namespace react;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventStreamTest fixture
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TEngine>
+template <typename TParams>
 class EventStreamTest : public testing::Test
 {
 public:
-    REACTIVE_DOMAIN(MyDomain, TEngine)
+    template <EPropagationMode mode>
+    class MyEngine : public TParams::template EngineT<mode> {};
+
+    REACTIVE_DOMAIN(MyDomain, TParams::mode, MyEngine)
 };
 
 TYPED_TEST_CASE_P(EventStreamTest);

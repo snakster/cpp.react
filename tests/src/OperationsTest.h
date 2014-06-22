@@ -33,11 +33,14 @@ struct Decrementer { T operator()(Token, T v) const { return v-1; } };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventStreamTest fixture
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TEngine>
+template <typename TParams>
 class OperationsTest : public testing::Test
 {
 public:
-    REACTIVE_DOMAIN(MyDomain, TEngine)
+    template <EPropagationMode mode>
+    class MyEngine : public TParams::template EngineT<mode> {};
+
+    REACTIVE_DOMAIN(MyDomain, TParams::mode, MyEngine)
 };
 
 TYPED_TEST_CASE_P(OperationsTest);

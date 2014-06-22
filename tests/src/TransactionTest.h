@@ -26,11 +26,14 @@ using namespace react;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalTest fixture
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TEngine>
+template <typename TParams>
 class TransactionTest : public testing::Test
 {
 public:
-    REACTIVE_DOMAIN(MyDomain, TEngine)
+    template <EPropagationMode mode>
+    class MyEngine : public TParams::template EngineT<mode> {};
+
+    REACTIVE_DOMAIN(MyDomain, TParams::mode, MyEngine)
 };
 
 TYPED_TEST_CASE_P(TransactionTest);
@@ -431,7 +434,7 @@ TYPED_TEST_P(TransactionTest, Continuation2)
 {
     using L = typename Continuation2::MyDomain;
 
-    REACTIVE_DOMAIN(R)
+    REACTIVE_DOMAIN(R, sequential)
 
     std::vector<int> results;
 
@@ -464,7 +467,7 @@ TYPED_TEST_P(TransactionTest, Continuation3)
 {
     using L = typename Continuation3::MyDomain;
 
-    REACTIVE_DOMAIN(R)
+    REACTIVE_DOMAIN(R, sequential)
 
     std::vector<int> results;
 

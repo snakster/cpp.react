@@ -19,11 +19,14 @@ using namespace react;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MoveTest fixture
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TEngine>
+template <typename TParams>
 class MoveTest : public testing::Test
 {
 public:
-    REACTIVE_DOMAIN(MyDomain, TEngine)
+    template <EPropagationMode mode>
+    class MyEngine : public TParams::template EngineT<mode> {};
+
+    REACTIVE_DOMAIN(MyDomain, TParams::mode, MyEngine)
 
     struct Stats
     {

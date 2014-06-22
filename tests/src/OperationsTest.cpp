@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "OperationsTest.h"
+#include "TestUtil.h"
 
 #include "react/engine/PulsecountEngine.h"
 #include "react/engine/ToposortEngine.h"
@@ -15,9 +16,14 @@ namespace {
 
 using namespace react;
 
-INSTANTIATE_TYPED_TEST_CASE_P(SeqToposort, OperationsTest, ToposortEngine<sequential>);
-INSTANTIATE_TYPED_TEST_CASE_P(ParToposort, OperationsTest, ToposortEngine<parallel>);
-INSTANTIATE_TYPED_TEST_CASE_P(Pulsecount, OperationsTest, PulsecountEngine<parallel>);
-INSTANTIATE_TYPED_TEST_CASE_P(Subtree, OperationsTest, SubtreeEngine<parallel>);
+using P1 = DomainParams<sequential,ToposortEngine>;
+using P2 = DomainParams<parallel,ToposortEngine>;
+using P3 = DomainParams<parallel,PulsecountEngine>;
+using P4 = DomainParams<parallel,SubtreeEngine>;
+
+INSTANTIATE_TYPED_TEST_CASE_P(SeqToposort, OperationsTest, P1);
+INSTANTIATE_TYPED_TEST_CASE_P(ParToposort, OperationsTest, P2);
+INSTANTIATE_TYPED_TEST_CASE_P(Pulsecount, OperationsTest, P3);
+INSTANTIATE_TYPED_TEST_CASE_P(Subtree, OperationsTest, P4);
 
 } // ~namespace
