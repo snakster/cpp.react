@@ -4,7 +4,7 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#define REACT_ENABLE_LOGGING
+//#define REACT_ENABLE_LOGGING
 
 #include "tbb/tick_count.h"
 #include "tbb/tbbmalloc_proxy.h"
@@ -32,10 +32,10 @@ namespace {
 
 using namespace react;
 
-REACTIVE_DOMAIN(ToposortSTDomain, ToposortEngine<sequential>)
-REACTIVE_DOMAIN(ToposortDomain, ToposortEngine<parallel>)
-REACTIVE_DOMAIN(PulsecountDomain, PulsecountEngine<parallel>)
-REACTIVE_DOMAIN(SubtreeDomain, SubtreeEngine<parallel>)
+REACTIVE_DOMAIN(ToposortSTDomain, sequential, ToposortEngine)
+REACTIVE_DOMAIN(ToposortDomain, parallel, ToposortEngine)
+REACTIVE_DOMAIN(PulsecountDomain, parallel, PulsecountEngine)
+REACTIVE_DOMAIN(SubtreeDomain, parallel, SubtreeEngine)
 
 void runBenchmarkGrid(std::ostream& out)
 {
@@ -216,15 +216,15 @@ void debugBenchmarks()
 
 void profileBenchmark()
 {
-    //RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(100, 10000),
-    //    PulsecountDomain);
+    RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
+        ToposortSTDomain);
         //ToposortSTDomain, ToposortDomain, PulsecountDomain, SubtreeDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
-    //    SourceSetDomain);
+        //SourceSetDomain);
 
-    RUN_BENCHMARK(std::cout, 3, Benchmark_Random, BenchmarkParams_Random(20, 11, 100, 0, 1, 40, 40, false, 41556, 21624),
-        SubtreeDomain);
+    //RUN_BENCHMARK(std::cout, 3, Benchmark_Random, BenchmarkParams_Random(20, 11, 100, 0, 1, 40, 40, false, 41556, 21624),
+        //SubtreeDomain);
         //ToposortSTDomain, ToposortDomain, PulsecountDomain, SubtreeDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
@@ -236,6 +236,6 @@ void profileBenchmark()
 int main()
 {
     //runBenchmarks();
-    debugBenchmarks();    
-    //profileBenchmark();
+    //debugBenchmarks();    
+    profileBenchmark();
 }

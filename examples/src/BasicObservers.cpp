@@ -21,7 +21,7 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     auto x = MakeVar<D>(1);
@@ -103,7 +103,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     EventSourceT<> trigger = MakeEventSource<D>();
@@ -134,7 +134,7 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     EventSourceT<> trigger = MakeEventSource<D>();

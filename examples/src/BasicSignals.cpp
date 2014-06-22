@@ -26,7 +26,7 @@ namespace example1
     // Defines a domain.
     // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
     // Reactives of different domains can not be combined.
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
 
     // Define type aliases for the given domain in this namespace.
     // Now we can use VarSignalT instead of D::VarSignalT.
@@ -102,7 +102,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     VarSignalT<int> x    = MakeVar<D>(1);
@@ -133,7 +133,7 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     VarSignalT<int> a = MakeVar<D>(1);
@@ -171,7 +171,7 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     VarSignalT<vector<string>> data = MakeVar<D>(vector<string>{ });
@@ -205,7 +205,7 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     // Helpers

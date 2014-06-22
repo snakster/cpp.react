@@ -23,7 +23,7 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
 
     class Sensor
     {
@@ -62,7 +62,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
 
     class Employee
     {
@@ -100,7 +100,7 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
 
     class Counter
     {
@@ -142,7 +142,7 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
 
     class Sensor
     {
@@ -181,7 +181,7 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
 
     enum ECmd { increment, decrement, reset };
 
@@ -244,7 +244,7 @@ namespace example6
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
 
     class Sensor
     {

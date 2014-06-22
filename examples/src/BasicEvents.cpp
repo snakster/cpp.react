@@ -23,7 +23,7 @@ namespace example1
     // Defines a domain.
     // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
     // Reactives of different domains can not be combined.
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
 
     // Define type aliases for the given domain in this namespace.
     // Now we can use EventSourceT instead of D::EventSourceT.
@@ -90,7 +90,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     // An event stream that merges both sources
@@ -152,7 +152,7 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     EventSourceT<int> numbers = MakeEventSource<D,int>();
@@ -183,7 +183,7 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     // Data types
@@ -225,7 +225,7 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     EventSourceT<int> src = MakeEventSource<D,int>();

@@ -20,7 +20,7 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D)
+    REACTIVE_DOMAIN(D, sequential)
     USING_REACTIVE_DOMAIN(D)
 
     using PointT = pair<int,int>;
