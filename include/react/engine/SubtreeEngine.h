@@ -37,7 +37,7 @@ using tbb::spin_rw_mutex;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Turn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class Turn : public TurnBase<true>
+class Turn : public TurnBase
 {
 public:
     Turn(TurnIdT id, TurnFlagsT flags);
@@ -133,8 +133,7 @@ struct GetLevelFunctor
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EngineBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurn>
-class EngineBase : public IReactiveEngine<Node,TTurn>
+class EngineBase : public IReactiveEngine<Node,Turn>
 {
 public:
     using TopoQueueT = TopoQueue<Node*, GetLevelFunctor<Node>>;
@@ -143,21 +142,21 @@ public:
     void OnNodeAttach(Node& node, Node& parent);
     void OnNodeDetach(Node& node, Node& parent);
 
-    void OnInputChange(Node& node, TTurn& turn);
-    void Propagate(TTurn& turn);
+    void OnInputChange(Node& node, Turn& turn);
+    void Propagate(Turn& turn);
 
-    void OnNodePulse(Node& node, TTurn& turn);
-    void OnNodeIdlePulse(Node& node, TTurn& turn);
+    void OnNodePulse(Node& node, Turn& turn);
+    void OnNodeIdlePulse(Node& node, Turn& turn);
 
-    void OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn);
-    void OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn);
+    void OnDynamicNodeAttach(Node& node, Node& parent, Turn& turn);
+    void OnDynamicNodeDetach(Node& node, Node& parent, Turn& turn);
 
 private:
-    void applyAsyncDynamicAttach(Node& node, Node& parent, TTurn& turn);
-    void applyAsyncDynamicDetach(Node& node, Node& parent, TTurn& turn);
+    void applyAsyncDynamicAttach(Node& node, Node& parent, Turn& turn);
+    void applyAsyncDynamicDetach(Node& node, Node& parent, Turn& turn);
 
     void invalidateSuccessors(Node& node);
-    void processChildren(Node& node, TTurn& turn);
+    void processChildren(Node& node, Turn& turn);
 
     void markSubtree(Node& root);
 
@@ -170,40 +169,25 @@ private:
     bool            isInPhase2_ = false;
 }; 
 
-class BasicEngine : public EngineBase<Turn> {};
-class QueuingEngine : public DefaultQueuingEngine<EngineBase,Turn> {};
-
 } // ~namespace subtree
 /****************************************/ REACT_IMPL_END /***************************************/
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
-struct parallel;
-struct parallel_concurrent;
-
-template <typename TMode>
+template <REACT_IMPL::EPropagationMode>
 class SubtreeEngine;
 
-template <> class SubtreeEngine<parallel> :
-    public REACT_IMPL::subtree::BasicEngine {};
-
-template <> class SubtreeEngine<parallel_concurrent> :
-    public REACT_IMPL::subtree::QueuingEngine {};
+template <>
+class SubtreeEngine<REACT_IMPL::parallel_propagation> :
+    public REACT_IMPL::subtree::EngineBase
+{};
 
 /******************************************/ REACT_END /******************************************/
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename> struct NodeUpdateTimerEnabled;
-template <> struct NodeUpdateTimerEnabled<SubtreeEngine<parallel>> : std::true_type {};
-template <> struct NodeUpdateTimerEnabled<SubtreeEngine<parallel_concurrent>> : std::true_type {};
-
-template <typename> struct IsParallelEngine;
-template <> struct IsParallelEngine<SubtreeEngine<parallel>> : std::true_type {};
-template <> struct IsParallelEngine<SubtreeEngine<parallel_concurrent>> : std::true_type {};
-
-template <typename> struct IsConcurrentEngine;
-template <> struct IsConcurrentEngine<SubtreeEngine<parallel_concurrent>> : std::true_type {};
+template <>
+struct NodeUpdateTimerEnabled<SubtreeEngine<parallel_propagation>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

@@ -98,7 +98,7 @@ public:
             }
         );
 
-        DomainSpecificInputManager<D>::Instance().Continuation()
+        DomainSpecificInputManager<D>::Instance()
             .StoreContinuation(
                 DomainSpecificInputManager<DOut>::Instance(),
                 std::move(cont));
@@ -171,7 +171,7 @@ public:
 
         TransactionFuncT cont2 = [] { return; };
 
-        DomainSpecificInputManager<D>::Instance().Continuation()
+        DomainSpecificInputManager<D>::Instance()
             .StoreContinuation(
                 DomainSpecificInputManager<DOut>::Instance(),
                 std::move(cont));
@@ -289,7 +289,7 @@ public:
             }
         };
 
-        DomainSpecificInputManager<D>::Instance().Continuation()
+        DomainSpecificInputManager<D>::Instance()
             .StoreContinuation(
                 DomainSpecificInputManager<DOut>::Instance(),
                 std::move(cont));

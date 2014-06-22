@@ -11,17 +11,17 @@
 namespace toposort {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ExclusiveSeqTurn
+/// SeqTurn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-ExclusiveSeqTurn::ExclusiveSeqTurn(TurnIdT id, TurnFlagsT flags) :
-    TurnBase(id, flags)
+SeqTurn::SeqTurn(TurnIdT id, TurnFlagsT flags) :
+    TurnBase( id, flags )
 {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ExclusiveParTurn
+/// ParTurn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-ExclusiveParTurn::ExclusiveParTurn(TurnIdT id, TurnFlagsT flags) :
-    TurnBase(id, flags)
+ParTurn::ParTurn(TurnIdT id, TurnFlagsT flags) :
+    TurnBase( id, flags )
 {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,16 +55,13 @@ void EngineBase<TNode,TTurn>::OnNodePulse(TNode& node, TTurn& turn)
 }
 
 // Explicit instantiation
-template class EngineBase<SeqNode,ExclusiveSeqTurn>;
-template class EngineBase<ParNode,ExclusiveParTurn>;
-template class EngineBase<SeqNode,DefaultQueueableTurn<ExclusiveSeqTurn>>;
-template class EngineBase<ParNode,DefaultQueueableTurn<ExclusiveParTurn>>;
+template class EngineBase<SeqNode,SeqTurn>;
+template class EngineBase<ParNode,ParTurn>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SeqEngineBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurn>
-void SeqEngineBase<TTurn>::Propagate(TTurn& turn)
+void SeqEngineBase::Propagate(SeqTurn& turn)
 {
     while (scheduledNodes_.FetchNext())
     {
@@ -84,8 +81,7 @@ void SeqEngineBase<TTurn>::Propagate(TTurn& turn)
     }
 }
 
-template <typename TTurn>
-void SeqEngineBase<TTurn>::OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, TTurn& turn)
+void SeqEngineBase::OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, SeqTurn& turn)
 {
     this->OnNodeAttach(node, parent);
     
@@ -96,14 +92,12 @@ void SeqEngineBase<TTurn>::OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, T
     scheduledNodes_.Push(&node);
 }
 
-template <typename TTurn>
-void SeqEngineBase<TTurn>::OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, TTurn& turn)
+void SeqEngineBase::OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, SeqTurn& turn)
 {
     this->OnNodeDetach(node, parent);
 }
 
-template <typename TTurn>
-void SeqEngineBase<TTurn>::processChildren(SeqNode& node, TTurn& turn)
+void SeqEngineBase::processChildren(SeqNode& node, SeqTurn& turn)
 {
     // Add children to queue
     for (auto* succ : node.Successors)
@@ -116,8 +110,7 @@ void SeqEngineBase<TTurn>::processChildren(SeqNode& node, TTurn& turn)
     }
 }
 
-template <typename TTurn>
-void SeqEngineBase<TTurn>::invalidateSuccessors(SeqNode& node)
+void SeqEngineBase::invalidateSuccessors(SeqNode& node)
 {
     for (auto* succ : node.Successors)
     {
@@ -126,15 +119,10 @@ void SeqEngineBase<TTurn>::invalidateSuccessors(SeqNode& node)
     }
 }
 
-// Explicit instantiation
-template class SeqEngineBase<ExclusiveSeqTurn>;
-template class SeqEngineBase<DefaultQueueableTurn<ExclusiveSeqTurn>>;
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ParEngineBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurn>
-void ParEngineBase<TTurn>::Propagate(TTurn& turn)
+void ParEngineBase::Propagate(ParTurn& turn)
 {
     while (topoQueue_.FetchNext())
     {
@@ -180,22 +168,19 @@ void ParEngineBase<TTurn>::Propagate(TTurn& turn)
     }
 }
 
-template <typename TTurn>
-void ParEngineBase<TTurn>::OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn)
+void ParEngineBase::OnDynamicNodeAttach(ParNode& node, ParNode& parent, ParTurn& turn)
 {
     DynRequestData data{ true, &node, &parent };
     dynRequests_.push_back(data);
 }
 
-template <typename TTurn>
-void ParEngineBase<TTurn>::OnDynamicNodeDetach(ParNode& node, ParNode& parent, TTurn& turn)
+void ParEngineBase::OnDynamicNodeDetach(ParNode& node, ParNode& parent, ParTurn& turn)
 {
     DynRequestData data{ false, &node, &parent };
     dynRequests_.push_back(data);
 }
 
-template <typename TTurn>
-void ParEngineBase<TTurn>::applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn)
+void ParEngineBase::applyDynamicAttach(ParNode& node, ParNode& parent, ParTurn& turn)
 {
     this->OnNodeAttach(node, parent);
 
@@ -206,14 +191,12 @@ void ParEngineBase<TTurn>::applyDynamicAttach(ParNode& node, ParNode& parent, TT
     topoQueue_.Push(&node);
 }
 
-template <typename TTurn>
-void ParEngineBase<TTurn>::applyDynamicDetach(ParNode& node, ParNode& parent, TTurn& turn)
+void ParEngineBase::applyDynamicDetach(ParNode& node, ParNode& parent, ParTurn& turn)
 {
     this->OnNodeDetach(node, parent);
 }
 
-template <typename TTurn>
-void ParEngineBase<TTurn>::processChildren(ParNode& node, TTurn& turn)
+void ParEngineBase::processChildren(ParNode& node, ParTurn& turn)
 {
     // Add children to queue
     for (auto* succ : node.Successors)
@@ -221,8 +204,7 @@ void ParEngineBase<TTurn>::processChildren(ParNode& node, TTurn& turn)
             topoQueue_.Push(succ);
 }
 
-template <typename TTurn>
-void ParEngineBase<TTurn>::invalidateSuccessors(ParNode& node)
+void ParEngineBase::invalidateSuccessors(ParNode& node)
 {
     for (auto* succ : node.Successors)
     {// succ->InvalidateMutex
@@ -232,10 +214,6 @@ void ParEngineBase<TTurn>::invalidateSuccessors(ParNode& node)
             succ->NewLevel = node.Level + 1;
     }// ~succ->InvalidateMutex
 }
-
-// Explicit instantiation
-template class ParEngineBase<ExclusiveParTurn>;
-template class ParEngineBase<DefaultQueueableTurn<ExclusiveParTurn>>;
 
 } // ~namespace toposort
 /****************************************/ REACT_IMPL_END /***************************************/

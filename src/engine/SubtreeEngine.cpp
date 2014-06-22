@@ -24,15 +24,14 @@ static const uint dfs_threshold = 3;
 /// Turn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
-    TurnBase(id, flags)
+    TurnBase( id, flags )
 {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PulsecountEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
+void EngineBase::OnNodeAttach(Node& node, Node& parent)
 {
     parent.Successors.Add(node);
 
@@ -40,14 +39,12 @@ void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
         node.Level = parent.Level + 1;
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
+void EngineBase::OnNodeDetach(Node& node, Node& parent)
 {
     parent.Successors.Remove(node);
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnInputChange(Node& node, TTurn& turn)
+void EngineBase::OnInputChange(Node& node, Turn& turn)
 {
     processChildren(node, turn);
 }
@@ -55,13 +52,12 @@ void EngineBase<TTurn>::OnInputChange(Node& node, TTurn& turn)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// UpdaterTask
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurn>
 class UpdaterTask: public task
 {
 public:
     using BufferT = NodeBuffer<Node,chunk_size>;
 
-    UpdaterTask(TTurn& turn, Node* node) :
+    UpdaterTask(Turn& turn, Node* node) :
         turn_( turn ),
         nodes_( node )
     {}
@@ -152,12 +148,14 @@ public:
     }
 
 private:
-    TTurn&  turn_;
+    Turn&   turn_;
     BufferT nodes_;
 };
 
-template <typename TTurn>
-void EngineBase<TTurn>::Propagate(TTurn& turn)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EngineBase
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void EngineBase::Propagate(Turn& turn)
 {
     // Phase 1
     while (scheduledNodes_.FetchNext())
@@ -192,7 +190,7 @@ void EngineBase<TTurn>::Propagate(TTurn& turn)
         }
 
         spawnList_.push_back(*new(rootTask_.allocate_child())
-            UpdaterTask<TTurn>(turn, node));
+            UpdaterTask(turn, node));
 
         node->ClearRootFlag();
     }
@@ -205,8 +203,7 @@ void EngineBase<TTurn>::Propagate(TTurn& turn)
     isInPhase2_ = false;
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
+void EngineBase::OnNodePulse(Node& node, Turn& turn)
 {
     if (isInPhase2_)
         node.SetChangedFlag();
@@ -214,15 +211,13 @@ void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
         processChildren(node, turn);
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
+void EngineBase::OnNodeIdlePulse(Node& node, Turn& turn)
 {
     if (isInPhase2_)
         node.ClearChangedFlag();
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn)
+void EngineBase::OnDynamicNodeAttach(Node& node, Node& parent, Turn& turn)
 {
     if (isInPhase2_)
     {
@@ -240,8 +235,7 @@ void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& tur
     }
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn)
+void EngineBase::OnDynamicNodeDetach(Node& node, Node& parent, Turn& turn)
 {
     if (isInPhase2_)
         applyAsyncDynamicDetach(node, parent, turn);
@@ -249,8 +243,7 @@ void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& tur
         OnNodeDetach(node, parent);
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::applyAsyncDynamicAttach(Node& node, Node& parent, TTurn& turn)
+void EngineBase::applyAsyncDynamicAttach(Node& node, Node& parent, Turn& turn)
 {// parent.ShiftMutex (write)
     NodeShiftMutexT::scoped_lock    lock(parent.ShiftMutex, true);
         
@@ -274,16 +267,14 @@ void EngineBase<TTurn>::applyAsyncDynamicAttach(Node& node, Node& parent, TTurn&
     }
 }// ~parent.ShiftMutex (write)
 
-template <typename TTurn>
-void EngineBase<TTurn>::applyAsyncDynamicDetach(Node& node, Node& parent, TTurn& turn)
+void EngineBase::applyAsyncDynamicDetach(Node& node, Node& parent, Turn& turn)
 {// parent.ShiftMutex (write)
     NodeShiftMutexT::scoped_lock    lock(parent.ShiftMutex, true);
 
     parent.Successors.Remove(node);
 }// ~parent.ShiftMutex (write)
 
-template <typename TTurn>
-void EngineBase<TTurn>::processChildren(Node& node, TTurn& turn)
+void EngineBase::processChildren(Node& node, Turn& turn)
 {
     // Add children to queue
     for (auto* succ : node.Successors)
@@ -319,8 +310,7 @@ void EngineBase<TTurn>::processChildren(Node& node, TTurn& turn)
     }
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::markSubtree(Node& root)
+void EngineBase::markSubtree(Node& root)
 {
     root.SetMarkedFlag();
     root.WaitCount = 0;
@@ -338,8 +328,7 @@ void EngineBase<TTurn>::markSubtree(Node& root)
     }
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::invalidateSuccessors(Node& node)
+void EngineBase::invalidateSuccessors(Node& node)
 {
     for (auto* succ : node.Successors)
     {
@@ -347,10 +336,6 @@ void EngineBase<TTurn>::invalidateSuccessors(Node& node)
             succ->NewLevel = node.Level + 1;
     }
 }
-
-// Explicit instantiation
-template class EngineBase<Turn>;
-template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace subtree
 /****************************************/ REACT_IMPL_END /***************************************/

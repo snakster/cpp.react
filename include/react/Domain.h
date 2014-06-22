@@ -23,6 +23,9 @@
     #include "react/logging/EventRecords.h"
 #endif //REACT_ENABLE_LOGGING
 
+// Include all engines for convenience
+#include "react/engine/PulsecountEngine.h"
+#include "react/engine/SubtreeEngine.h"
 #include "react/engine/ToposortEngine.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -62,14 +65,32 @@ class Reactor;
 template <typename D, typename ... TValues>
 class SignalPack;
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Common types & constants
+///////////////////////////////////////////////////////////////////////////////////////////////////
 using REACT_IMPL::TurnFlagsT;
 
-//ETurnFlags
+// ETurnFlags
+using REACT_IMPL::ETurnFlags;
 using REACT_IMPL::allow_merging;
 
 #ifdef REACT_ENABLE_LOGGING
     using REACT_IMPL::EventLog;
-#endif //REACT_ENABLE_LOGGING    
+#endif //REACT_ENABLE_LOGGING
+
+// Domain modes
+enum EDomainMode
+{
+    sequential,
+    sequential_concurrent,
+    parallel,
+    parallel_concurrent
+};
+
+// Expose enum types so aliases for engines can be declared, but don't
+// expose the actual enum values as they are reserved for internal use.
+using REACT_IMPL::EInputMode;
+using REACT_IMPL::EPropagationMode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TransactionStatus
@@ -131,10 +152,10 @@ public:
         REACT_IMPL::NodeUpdateTimerEnabled<typename Policy::Engine>::value;
 
     static const bool is_concurrent =
-        REACT_IMPL::IsConcurrentEngine<typename Policy::Engine>::value;
+        Policy::input_mode == REACT_IMPL::concurrent_input;
 
     static const bool is_parallel =
-        REACT_IMPL::IsParallelEngine<typename Policy::Engine>::value;
+        Policy::propagation_mode == REACT_IMPL::parallel_propagation;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     /// Aliases for reactives of this domain
@@ -350,15 +371,98 @@ auto MakeContinuation(const Events<D,E>& trigger,
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Policy
+/// ModeSelector - Translate domain mode to individual propagation and input modes
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <EDomainMode>
+struct ModeSelector;
+
+template <>
+struct ModeSelector<sequential>
+{
+    static const EInputMode         input       = consecutive_input;
+    static const EPropagationMode   propagation = sequential_propagation;
+};
+
+template <>
+struct ModeSelector<sequential_concurrent>
+{
+    static const EInputMode         input       = concurrent_input;
+    static const EPropagationMode   propagation = sequential_propagation;
+};
+
+template <>
+struct ModeSelector<parallel>
+{
+    static const EInputMode         input       = consecutive_input;
+    static const EPropagationMode   propagation = parallel_propagation;
+};
+
+template <>
+struct ModeSelector<parallel_concurrent>
+{
+    static const EInputMode         input       = concurrent_input;
+    static const EPropagationMode   propagation = parallel_propagation;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// GetDefaultEngine - Get default engine type for given propagation mode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <EPropagationMode>
+struct GetDefaultEngine;
+
+template <>
+struct GetDefaultEngine<sequential_propagation>
+{
+    using Type = ToposortEngine<sequential_propagation>;
+};
+
+template <>
+struct GetDefaultEngine<parallel_propagation>
+{
+    using Type = SubtreeEngine<parallel_propagation>;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EngineTypeBuilder - Instantiate the given template engine type with mode.
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <EPropagationMode>
+struct DefaultEnginePlaceholder;
+
+// Concrete engine template type
+template
+<
+    EPropagationMode mode,
+    template <EPropagationMode> class TTEngine
+>
+struct EngineTypeBuilder
+{
+    using Type = TTEngine<mode>;
+};
+
+// Placeholder engine type - use default engine for given mode
+template
+<
+    EPropagationMode mode
+>
+struct EngineTypeBuilder<mode,DefaultEnginePlaceholder>
+{
+    using Type = typename GetDefaultEngine<mode>::Type;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// DomainPolicy
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename TEngine = ToposortEngine<sequential>
+    EDomainMode mode,
+    template <EPropagationMode> class TTEngine = DefaultEnginePlaceholder
 >
 struct DomainPolicy
 {
-    using Engine = TEngine;
+    static const EInputMode         input_mode          = ModeSelector<mode>::input;
+    static const EPropagationMode   propagation_mode    = ModeSelector<mode>::propagation;
+
+    using Engine = typename EngineTypeBuilder<propagation_mode,TTEngine>::Type;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -385,9 +489,10 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Domain definition macro
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#define REACTIVE_DOMAIN(name, ...) \
-    struct name : public REACT::DomainBase<name, REACT_IMPL::DomainPolicy<__VA_ARGS__ >> {}; \
-    REACT_IMPL::DomainInitializer< name > name ## _initializer_;
+#define REACTIVE_DOMAIN(name, ...)                                                          \
+    struct name :                                                                           \
+        public REACT::DomainBase<name, REACT_IMPL::DomainPolicy< __VA_ARGS__ >> {};         \
+    REACT_IMPL::DomainInitializer<name> name ## _initializer_;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Define type aliases for given domain

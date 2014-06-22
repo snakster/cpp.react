@@ -79,19 +79,18 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// UpdaterTask
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurn>
 class UpdaterTask: public task
 {
 public:
     using BufferT = NodeBuffer<Node,chunk_size>;
 
     template <typename TInput>
-    UpdaterTask(TTurn& turn, TInput srcBegin, TInput srcEnd) :
+    UpdaterTask(Turn& turn, TInput srcBegin, TInput srcEnd) :
         turn_( turn ),
         nodes_( srcBegin, srcEnd )
     {}
 
-    UpdaterTask(TTurn& turn, Node* node) :
+    UpdaterTask(Turn& turn, Node* node) :
         turn_( turn ),
         nodes_( node )
     {}
@@ -103,7 +102,7 @@ public:
 
     task* execute()
     {
-        int splitCount = 0;
+        uint splitCount = 0;
 
         while (!nodes_.IsEmpty())
         {
@@ -172,7 +171,7 @@ public:
     }
 
 private:
-    TTurn&  turn_;
+    Turn&   turn_;
     BufferT nodes_;
 };
 
@@ -181,27 +180,24 @@ private:
 /// Turn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Turn::Turn(TurnIdT id, TurnFlagsT flags) :
-    TurnBase(id, flags)
+    TurnBase( id, flags )
 {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PulsecountEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnNodeAttach(Node& node, Node& parent)
+void EngineBase::OnNodeAttach(Node& node, Node& parent)
 {
     parent.Successors.Add(node);
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnNodeDetach(Node& node, Node& parent)
+void EngineBase::OnNodeDetach(Node& node, Node& parent)
 {
     parent.Successors.Remove(node);
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnInputChange(Node& node, TTurn& turn)
+void EngineBase::OnInputChange(Node& node, Turn& turn)
 {
     changedInputs_.push_back(&node);
     node.State = ENodeState::changed;
@@ -232,34 +228,30 @@ void spawnTasks
     spawnList.clear();
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::Propagate(TTurn& turn)
+void EngineBase::Propagate(Turn& turn)
 {
     const uint initialTaskCount = (changedInputs_.size() - 1) / chunk_size + 1;
 
     spawnTasks<MarkerTask>(rootTask_, spawnList_, initialTaskCount,
         changedInputs_.begin(), changedInputs_.end());
 
-    spawnTasks<UpdaterTask<TTurn>>(rootTask_, spawnList_, initialTaskCount,
+    spawnTasks<UpdaterTask>(rootTask_, spawnList_, initialTaskCount,
         changedInputs_.begin(), changedInputs_.end(), turn);
 
     changedInputs_.clear();
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnNodePulse(Node& node, TTurn& turn)
+void EngineBase::OnNodePulse(Node& node, Turn& turn)
 {
     node.State = ENodeState::changed;
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnNodeIdlePulse(Node& node, TTurn& turn)
+void EngineBase::OnNodeIdlePulse(Node& node, Turn& turn)
 {
     node.State = ENodeState::unchanged;
 }
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& turn)
+void EngineBase::OnDynamicNodeAttach(Node& node, Node& parent, Turn& turn)
 {// parent.ShiftMutex (write)
     NodeShiftMutexT::scoped_lock lock(parent.ShiftMutex, true);
         
@@ -278,17 +270,12 @@ void EngineBase<TTurn>::OnDynamicNodeAttach(Node& node, Node& parent, TTurn& tur
     }
 }// ~parent.ShiftMutex (write)
 
-template <typename TTurn>
-void EngineBase<TTurn>::OnDynamicNodeDetach(Node& node, Node& parent, TTurn& turn)
+void EngineBase::OnDynamicNodeDetach(Node& node, Node& parent, Turn& turn)
 {// parent.ShiftMutex (write)
     NodeShiftMutexT::scoped_lock lock(parent.ShiftMutex, true);
 
     parent.Successors.Remove(node);
 }// ~parent.ShiftMutex (write)
-
-// Explicit instantiation
-template class EngineBase<Turn>;
-template class EngineBase<DefaultQueueableTurn<Turn>>;
 
 } // ~namespace pulsecount
 /****************************************/ REACT_IMPL_END /***************************************/

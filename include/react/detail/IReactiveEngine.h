@@ -19,11 +19,6 @@
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Forward declarations
-///////////////////////////////////////////////////////////////////////////////////////////////////
-class AsyncState;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -35,17 +30,6 @@ struct IReactiveEngine
 {
     using NodeT = TNode;
     using TurnT = TTurn;
-
-    template <typename F>
-    bool TryMergeSync(F&& f) { return false; }
-
-    template <typename F>
-    bool TryMergeAsync(F&& f, std::shared_ptr<AsyncState>&& statusPtr) { return false; }
-
-    void ApplyMergedInputs(TurnT& turn) {}
-
-    void EnterTurnQueue(TurnT& turn)    {}
-    void ExitTurnQueue(TurnT& turn)     {}
 
     void OnTurnAdmissionStart(TurnT& turn)  {}
     void OnTurnAdmissionEnd(TurnT& turn)    {}
@@ -84,35 +68,6 @@ struct EngineInterface
     {
         static TEngine engine;
         return engine;
-    }
-
-    template <typename F>
-    static bool TryMergeSync(F&& f)
-    {
-        return Instance().TryMergeSync(std::forward<F>(f));
-    }
-
-    template <typename F>
-    static bool TryMergeAsync(F&& f, std::shared_ptr<AsyncState>&& statusPtr)
-    {
-        return Instance().TryMergeAsync(std::forward<F>(f), std::move(statusPtr));
-    }
-
-    static void ApplyMergedInputs(TurnT& turn)
-    {
-        Instance().ApplyMergedInputs(turn);
-    }
-
-    static void EnterTurnQueue(TurnT& turn)
-    {
-        REACT_LOG(D::Log().template Append<TransactionBeginEvent>(turn.Id()));
-        Instance().EnterTurnQueue(turn);
-    }
-
-    static void ExitTurnQueue(TurnT& turn)
-    {
-        REACT_LOG(D::Log().template Append<TransactionEndEvent>(turn.Id()));
-        Instance().ExitTurnQueue(turn);
     }
 
     static void OnTurnAdmissionStart(TurnT& turn)
@@ -198,8 +153,15 @@ struct EngineInterface
 /// Engine traits
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename> struct NodeUpdateTimerEnabled : std::false_type {};
-template <typename> struct IsParallelEngine : std::false_type {};
-template <typename> struct IsConcurrentEngine : std::false_type {};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EPropagationMode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+enum EPropagationMode
+{
+    sequential_propagation,
+    parallel_propagation
+};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

@@ -109,7 +109,7 @@ public:
         }// ~timer
 
         if (shouldDetach)
-            DomainSpecificInputManager<D>::Instance().Continuation()
+            DomainSpecificInputManager<D>::Instance()
                 .QueueObserverForDetach(*this);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
@@ -195,7 +195,7 @@ public:
         }// ~timer
 
         if (shouldDetach)
-            DomainSpecificInputManager<D>::Instance().Continuation()
+            DomainSpecificInputManager<D>::Instance()
                 .QueueObserverForDetach(*this);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
@@ -308,7 +308,7 @@ public:
         }
 
         if (shouldDetach)
-            DomainSpecificInputManager<D>::Instance().Continuation()
+            DomainSpecificInputManager<D>::Instance()
                 .QueueObserverForDetach(*this);
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(

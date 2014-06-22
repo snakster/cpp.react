@@ -26,9 +26,6 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <bool is_thread_safe>
-class TurnBase;
-
 namespace toposort {
 
 using std::atomic;
@@ -84,19 +81,19 @@ struct DynRequestData
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ExclusiveSeqTurn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class ExclusiveSeqTurn : public REACT_IMPL::TurnBase<false>
+class SeqTurn : public TurnBase
 {
 public:
-    ExclusiveSeqTurn(TurnIdT id, TurnFlagsT flags);
+    SeqTurn(TurnIdT id, TurnFlagsT flags);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ExclusiveParTurn
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class ExclusiveParTurn : public REACT_IMPL::TurnBase<true>
+class ParTurn : public TurnBase
 {
 public:
-    ExclusiveParTurn(TurnIdT id, TurnFlagsT flags);
+    ParTurn(TurnIdT id, TurnFlagsT flags);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -134,21 +131,20 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SeqEngineBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurn>
-class SeqEngineBase : public EngineBase<SeqNode,TTurn>
+class SeqEngineBase : public EngineBase<SeqNode,SeqTurn>
 {
 public:
     using TopoQueueT = TopoQueue<SeqNode*, GetLevelFunctor<SeqNode>>;
 
-    void Propagate(TTurn& turn);
+    void Propagate(SeqTurn& turn);
 
-    void OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, TTurn& turn);
-    void OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, TTurn& turn);
+    void OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, SeqTurn& turn);
+    void OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, SeqTurn& turn);
 
 private:
     void invalidateSuccessors(SeqNode& node);
 
-    virtual void processChildren(SeqNode& node, TTurn& turn) override;
+    virtual void processChildren(SeqNode& node, SeqTurn& turn) override;
 
     TopoQueueT    scheduledNodes_;
 };
@@ -156,8 +152,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ParEngineBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TTurn>
-class ParEngineBase : public EngineBase<ParNode,TTurn>
+class ParEngineBase : public EngineBase<ParNode,ParTurn>
 {
 public:
     using DynRequestVectT = concurrent_vector<DynRequestData>;
@@ -169,31 +164,22 @@ public:
         GetWeightFunctor<ParNode>
     >;
 
-    void Propagate(TTurn& turn);
+    void Propagate(ParTurn& turn);
 
-    void OnDynamicNodeAttach(ParNode& node, ParNode& parent, TTurn& turn);
-    void OnDynamicNodeDetach(ParNode& node, ParNode& parent, TTurn& turn);
+    void OnDynamicNodeAttach(ParNode& node, ParNode& parent, ParTurn& turn);
+    void OnDynamicNodeDetach(ParNode& node, ParNode& parent, ParTurn& turn);
 
 private:
-    void applyDynamicAttach(ParNode& node, ParNode& parent, TTurn& turn);
-    void applyDynamicDetach(ParNode& node, ParNode& parent, TTurn& turn);
+    void applyDynamicAttach(ParNode& node, ParNode& parent, ParTurn& turn);
+    void applyDynamicDetach(ParNode& node, ParNode& parent, ParTurn& turn);
 
     void invalidateSuccessors(ParNode& node);
 
-    virtual void processChildren(ParNode& node, TTurn& turn) override;
+    virtual void processChildren(ParNode& node, ParTurn& turn) override;
 
     TopoQueueT          topoQueue_;
     DynRequestVectT     dynRequests_;
 };
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Concrete engines
-///////////////////////////////////////////////////////////////////////////////////////////////////
-class BasicSeqEngine : public SeqEngineBase<ExclusiveSeqTurn> {};
-class QueuingSeqEngine : public DefaultQueuingEngine<SeqEngineBase,ExclusiveSeqTurn> {};
-
-class BasicParEngine : public ParEngineBase<ExclusiveParTurn> {};
-class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveParTurn> {};
 
 } // ~namespace toposort
 
@@ -201,41 +187,23 @@ class QueuingParEngine : public DefaultQueuingEngine<ParEngineBase,ExclusiveParT
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
-struct sequential;
-struct sequential_concurrent;
-struct parallel;
-struct parallel_concurrent;
-
-template <typename TMode>
+template <REACT_IMPL::EPropagationMode>
 class ToposortEngine;
 
-template <> class ToposortEngine<sequential> :
-    public REACT_IMPL::toposort::BasicSeqEngine {};
+template <> class ToposortEngine<REACT_IMPL::sequential_propagation> :
+    public REACT_IMPL::toposort::SeqEngineBase
+{};
 
-template <> class ToposortEngine<sequential_concurrent> :
-    public REACT_IMPL::toposort::QueuingSeqEngine {};
-
-template <> class ToposortEngine<parallel> :
-    public REACT_IMPL::toposort::BasicParEngine {};
-
-template <> class ToposortEngine<parallel_concurrent> :
-    public REACT_IMPL::toposort::QueuingParEngine {};
+template <> class ToposortEngine<REACT_IMPL::parallel_propagation> :
+    public REACT_IMPL::toposort::ParEngineBase
+{};
 
 /******************************************/ REACT_END /******************************************/
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename> struct NodeUpdateTimerEnabled;
-template <> struct NodeUpdateTimerEnabled<ToposortEngine<parallel>> : std::true_type {};
-template <> struct NodeUpdateTimerEnabled<ToposortEngine<parallel_concurrent>> : std::true_type {};
-
-template <typename> struct IsParallelEngine;
-template <> struct IsParallelEngine<ToposortEngine<parallel>> : std::true_type {};
-template <> struct IsParallelEngine<ToposortEngine<parallel_concurrent>> : std::true_type {};
-
-template <typename> struct IsConcurrentEngine;
-template <> struct IsConcurrentEngine<ToposortEngine<sequential_concurrent>> : std::true_type {};
-template <> struct IsConcurrentEngine<ToposortEngine<parallel_concurrent>> : std::true_type {};
+template <>
+struct NodeUpdateTimerEnabled<ToposortEngine<parallel_propagation>> : std::true_type {};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
