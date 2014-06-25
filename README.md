@@ -1,18 +1,27 @@
 # Introduction
-Cpp.React is an experimental [Reactive Programming](http://en.wikipedia.org/wiki/Reactive_programming) library for C++11.
+Cpp.React is reactive programming library for C++11.
+Generally speaking, it provides abstractions to handle change propagation and data processing for a push-based event model.
+It is an alternative to implementing imperative change propagation manually through callback functions and side-effects.
 
-It provides abstractions to simplify the implementation of reactive behaviour.
+The two core features of the library are
 
-To react to changing data, reactive variables are declared in terms of functions that calcuate their values, rather than manipulating them directly.
-A runtime engine will automatically handle the change propagation by re-calculating data if its dependencies have been modified.
+* **signals**, reactive variables that are automatically re-calculated when their dependencies change, and
+* **event streams** as composable first class objects.
 
-To react to events, event streams are provided as composable first class objects with value semantics.
+Signals specifically deal with aspects of time-varying state, whereas event streams facilitate generic processing.
+A set of operations and algorithms can be used to combine signals and events.
+Together, these abstractions enable intuitive modeling of dataflow systems in a declarative manner.
 
-For seamless integration with existing code, _reactive domains_ encapsulate a reactive sub-system, with an input interface to trigger changes imperatively, and an output interface to apply side effects.
+In this case, declarative means that the programer defines how values are calculated through functional composition of other values.
+Applying these calcuations is implicitely handled by a so-called propagation engine as changes are propagated through the dataflow graph.
 
-As an alternative to implementing change propagation or callback-based approaches manually, using Cpp.React results in less boilerplate code and better scalability due to the guarentees of avoiding unnecessary recalculations and glitches.
-Furthermore, since functional purity is maintained in each reactive domain, the propagation engine can safely support implicit parallelism for the updating process.
-Behind the scenes, task-based programming and dynamic chunking based on collected timing data are employed to optimize parallel utilization.
+Since the engine has the "whole picture", it can schedule updates efficiently, so that:
+
+* No value is re-calculated or processed unnecessarily;
+* intermediate results are cached to avoid redundant calculations;
+* no glitches will occur (i.e. no inconsistent sets of input values).
+
+It can even implicitly parallelize calculations, while automatically taking care of potential data-races and effective utilization of available parallel hardware.
 
 # Documentation
 The documentation is still incomplete, but it already contains plenty of useful information and examples.
@@ -42,8 +51,6 @@ make
 For more details, see [Build instructions](https://github.com/schlangster/cpp.react/wiki/Build-instructions).
 
 ### Dependencies
-Cpp.React uses several external dependencies, but only one of them is mandatory:
-
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
 * [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the unit tests)
 * [Boost 1.55.0 C++ Libraries](http://www.boost.org/) (optional, to include Reactor.h, which requires `boost::coroutine`)
@@ -59,7 +66,11 @@ They can be combined to expressions to create new signals, which are automatical
 using namespace std;
 using namespace react;
 
-REACTIVE_DOMAIN(D)
+// Define a reactive domain that uses single-threaded, sequential updating
+REACTIVE_DOMAIN(D, sequential)
+
+// Define aliases for types of the given domain,
+// e.g. using VarSignalT<X> = VarSignal<D,X>
 USING_REACTIVE_DOMAIN(D)
 
 // Two reactive variables that can be manipulated imperatively
@@ -67,11 +78,14 @@ VarSignalT<int> width  = MakeVar<D>(1);
 VarSignalT<int> height = MakeVar<D>(2);
 
 // A signal that depends on width and height and multiplies their values
-SignalT<int> area = MakeSignal(With(width, height),
+SignalT<int> area = MakeSignal(
+    With(width, height),
     [] (int w, int h) {
         return w * h;
     });
-
+```
+```
+// Signal values can be accessed imperativly at any time, but only VarSignals can be directly manipulated.
 cout << "area: " << area.Value() << endl; // => area: 2
 
 // Width changed, so area is re-calculated automatically
@@ -80,22 +94,19 @@ width.Set(10);
 cout << "area: " << area.Value() << endl; // => area: 20
 ```
 
-For expressions that use operators only, `MakeSignal` can be omitted completely:
+Overloaded operators for signal types allow to omit `MakeSignal` in this case for a more concise syntax:
 ```C++
-// Lift as reactive expression
+// Lift as reactive expression - equivalent to previous example
 SignalT<int> area = width * height;
 ```
 
 ## Events and Observers
 
-Event streams represent flows of discrete values.
-They are first-class objects and can be merged, filtered, transformed or composed to more complex types:
-
 ```C++
 using namespace std;
 using namespace react;
 
-REACTIVE_DOMAIN(D)
+REACTIVE_DOMAIN(D, sequential)
 USING_REACTIVE_DOMAIN(D)
 
 // Two event sources
@@ -109,15 +120,14 @@ EventsT<Token> merged = leftClicked | rightClicked;
 auto obs = Observe(merged, [] (Token) {
     cout << "clicked!" << endl;
 });
-
-// ...
-
+```
+```
 rightClicked.Emit(); // => clicked!
 ```
 
-## Implicit parallelism
+## Parallelism and concurrency
 
-The change propagation is handled implicitly by a _propagation engine_.
+The change propagation is handled implicitly by a propagation engine.
 Depending on the selected engine, updates can be parallelized:
 
 ```C++
@@ -126,7 +136,7 @@ using namespace react;
 
 // Sequential updating
 {
-    REACTIVE_DOMAIN(D, ToposortEngine<sequential>)
+    REACTIVE_DOMAIN(D, sequential)
 
     auto a = MakeVar<D>(1);
     auto b = MakeVar<D>(2);
@@ -139,7 +149,7 @@ using namespace react;
 
 // Parallel updating
 {
-    REACTIVE_DOMAIN(D, ToposortEngine<parallel>)
+    REACTIVE_DOMAIN(D, parallel)
 
     auto in = MakeVar<D>(0);
 
