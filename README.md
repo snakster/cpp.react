@@ -1,7 +1,6 @@
 # Introduction
 Cpp.React is reactive programming library for C++11.
 Generally speaking, it provides abstractions to handle change propagation and data processing for a push-based event model.
-It is an alternative to implementing imperative change propagation manually through callback functions and side-effects.
 
 The two core features of the library are
 
@@ -22,6 +21,8 @@ Since the engine has the "whole picture", it can schedule updates efficiently, s
 * no glitches will occur (i.e. no inconsistent sets of input values).
 
 It can even implicitly parallelize calculations, while automatically taking care of potential data-races and effective utilization of available parallel hardware.
+
+This makes using Cpp.React an alternative to implementing imperative change propagation manually through callback functions and side-effects.
 
 # Documentation
 The documentation is still incomplete, but it already contains plenty of useful information and examples.
