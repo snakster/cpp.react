@@ -86,7 +86,8 @@ SignalT<int> area = MakeSignal(
     });
 ```
 ```
-// Signal values can be accessed imperativly at any time, but only VarSignals can be directly manipulated.
+// Signal values can be accessed imperativly at any time,
+// but only VarSignals can be directly manipulated.
 cout << "area: " << area.Value() << endl; // => area: 2
 
 // Width changed, so area is re-calculated automatically
@@ -102,6 +103,8 @@ SignalT<int> area = width * height;
 ```
 
 ## Events and Observers
+
+Event streams represent flows of discrete values. They are first-class objects and can be merged, filtered, transformed or composed to more complex types:
 
 ```C++
 using namespace std;
