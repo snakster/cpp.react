@@ -1,0 +1,37 @@
+body {
+  color: black; background-color: white;
+  font-family: sans-serif;
+  margin: 0.5em; padding: 0.5em;
+}
+
+div#top_bar {
+  float: top;
+  margin: 0; padding: 0.5em;
+  border-top: 2px solid black;
+}
+
+
+div#left_navigation {
+  float: left; width: 20em;
+  margin: 0; padding: 0.5em;
+  border-top: 2px solid black;
+}
+
+ul {
+  list-style: none;
+  margin: 0; padding: 0.5em;
+}
+
+div#right_navigation {
+  float: right; width: 20em;
+  margin: 0; padding: 0.5em;
+  border-top: 2px solid black;
+
+}
+
+div#content {
+  margin: 0 22em 0 22em;
+  padding: 0 0;
+  border-top: 2px solid black;
+  min-width: 1em;
+}
