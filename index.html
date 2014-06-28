@@ -4,78 +4,82 @@
 <head>
   <title>Cpp.React</title>
   <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/design.css">
   <script src="scripts/jquery-1.11.1.min.js"></script>
   <script src="scripts/jquery.fastLiveFilter.js"></script>
 </head>
 
-<div id="top_bar">
+<div id="top_panel">
   
 </div>
 
 <body>
-<div id="left_navigation">
-  <input id="search_input" placeholder="Type to filter">
+<div id="left_panel">
+  <span class="panel_title">Overview</span>
+  <div class="panel_body">
+    <input id="search_input" placeholder="Type to filter">
 
-  <ul id="api_list">
-    <li class="api_group">Algorithm.h</li>
-    <li class="api_subgroup">Functions</li>
-    <li> -- Iterate</li>
-    <li> -- Hold</li>
-    <li> -- Snapshot</li>
-    <li> -- Monitor</li>
-    <li> -- Pulse</li>
-    <li> -- OnChanged</li>
-    <li> -- OnChangedTo</li>
+    <ul id="api_list">
+      <li class="api_group">Algorithm.h</li>
+      <!-- <li class="api_subgroup">Functions</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Iterate</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Hold</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Snapshot</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Monitor</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Pulse</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> OnChanged</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> OnChangedTo</li>
 
-    <li class="api_group">Domain.h</li>
-    <li class="api_subgroup">Classes</li>
-    <li> -- DomainBase</li>
-    <li> -- Continuation</li>
-    <li class="api_subgroup">Functions</li>
-    <li> -- MakeContinuation</li>
-    <li class="api_subgroup">Macros</li>
-    <li> -- REACTIVE_DOMAIN</li>
-    <li> -- USING_REACTIVE_DOMAIN</li>
+      <li class="api_group">Domain.h</li>
+      <!-- <li class="api_subgroup">Classes</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> DomainBase</li>
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> Continuation</li>
+      <!-- <li class="api_subgroup">Functions</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> MakeContinuation</li>
+      <!-- <li class="api_subgroup">Macros</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_macro.png" /> REACTIVE_DOMAIN</li>
+      <li><img style="vertical-align:middle" src="media/icon_macro.png" /> USING_REACTIVE_DOMAIN</li>
 
-    <li class="api_group">Event.h</li>
-    <li class="api_subgroup">Constants</li>
-    <li> -- Token</li>
-    <li class="api_subgroup">Classes</li>
-    <li> -- Events</li>
-    <li> -- EventSource</li>
-    <li> -- TempEvents</li>
-    <li class="api_subgroup">Functions</li>
-    <li> -- MakeEventSource</li>
-    <li> -- Merge</li>
-    <li> -- Filter</li>
-    <li> -- Transform</li>
-    <li> -- Flatten</li>
-    <li> -- Tokenize</li>
+      <li class="api_group">Event.h</li>
+      <!-- <li class="api_subgroup">Constants</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_enum.png" /> Token</li>
+      <!-- <li class="api_subgroup">Classes</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> Events</li>
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> EventSource</li>
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> TempEvents</li>
+      <!-- <li class="api_subgroup">Functions</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> MakeEventSource</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Merge</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Filter</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Transform</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Flatten</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Tokenize</li>
 
-    <li class="api_group">Observer.h</li>
-    <li class="api_subgroup">Constants</li>
-    <li> -- ObserverAction</li>
-    <li class="api_subgroup">Classes</li>
-    <li> -- Observer</li>
-    <li> -- ScopedObserver</li>
-    <li class="api_subgroup">Functions</li>
-    <li> -- Observe</li>
+      <li class="api_group">Observer.h</li>
+      <!-- <li class="api_subgroup">Constants</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_enum.png" /> ObserverAction</li>
+      <!-- <li class="api_subgroup">Classes</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> Observer</li>
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> ScopedObserver</li>
+      <!-- <li class="api_subgroup">Functions</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Observe</li>
 
-    <li class="api_group">Reactor.h</li>
+      <li class="api_group">Reactor.h</li>
 
-    <li class="api_group">Signal.h</li>
-    <li class="api_subgroup">Classes</li>
-    <li> -- Signal</li>
-    <li> -- VarSignal</li>
-    <li> -- TempSignal</li>
-    <li class="api_subgroup">Functions</li>
-    <li> -- MakeVar</li>
-    <li> -- MakeSignal</li>
-    <li> -- Flatten</li>
+      <li class="api_group">Signal.h</li>
+      <!-- <li class="api_subgroup">Classes</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> Signal</li>
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> VarSignal</li>
+      <li><img style="vertical-align:middle" src="media/icon_class.png" /> TempSignal</li>
+      <!-- <li class="api_subgroup">Functions</li> -->
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> MakeVar</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> MakeSignal</li>
+      <li><img style="vertical-align:middle" src="media/icon_func.png" /> Flatten</li>
 
-    <li> -- TypeTraits.h</li>
+      <li class="api_group">TypeTraits.h</li>
 
-  </ul>
+    </ul>
+  </div>
 </div>
 
 <script>
@@ -88,20 +92,26 @@
     });
 </script>
 
-<div id="right_navigation">
-  <ul>
-    <li> -- asdf</li>
-    <li> -- asdf</li>
-    <li> -- asdf</li>
-    <li> -- asdf</li>
-    <li> -- asdf</li>
-  </ul>
+<div id="right_panel">
+  <span class="panel_title">Outline</span>
+  <div class="panel_body">
+    <ul>
+      <li> -- asdf</li>
+      <li> -- asdf</li>
+      <li> -- asdf</li>
+      <li> -- asdf</li>
+      <li> -- asdf</li>
+    </ul>
+  </div>
 </div>
 
 
 
-<div id="content">
-  <h1>Content</h1>
+<div id="content_panel">
+  <span class="panel_title">Signal.h &#8658; MakeSignal</span>
+  <div class="panel_body">
+    <h1>Content
+  </div>
 </div>
 
 

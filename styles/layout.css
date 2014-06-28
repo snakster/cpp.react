@@ -1,37 +1,21 @@
-body {
-  color: black; background-color: white;
-  font-family: sans-serif;
-  margin: 0.5em; padding: 0.5em;
-}
-
-div#top_bar {
+div#top_panel {
   float: top;
   margin: 0; padding: 0.5em;
   border-top: 2px solid black;
 }
 
-
-div#left_navigation {
+div#left_panel {
   float: left; width: 20em;
-  margin: 0; padding: 0.5em;
-  border-top: 2px solid black;
+  margin: 0; padding: 0;
 }
 
-ul {
-  list-style: none;
-  margin: 0; padding: 0.5em;
-}
-
-div#right_navigation {
+div#right_panel {
   float: right; width: 20em;
-  margin: 0; padding: 0.5em;
-  border-top: 2px solid black;
-
+  margin: 0; padding: 0;
 }
 
-div#content {
+div#content_panel {
   margin: 0 22em 0 22em;
-  padding: 0 0;
-  border-top: 2px solid black;
+  padding: 0;
   min-width: 1em;
 }

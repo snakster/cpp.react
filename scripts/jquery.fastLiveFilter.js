@@ -169,8 +169,6 @@ jQuery.fn.fastLiveFilter = function(listStr, options)
 		// Unwind stack
 		while (stackIndex > 0)
 			groupPop();
-
-		return false;
 	};
 
 	input.keydown(
