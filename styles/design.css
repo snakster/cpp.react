@@ -24,7 +24,7 @@ li.api_group {
 
 div.panel_body {
   margin: 0; padding: 0.5em;
-  border-top: 2px solid black;
+  border-top: 2px solid;
 }
 
 .panel_title {
