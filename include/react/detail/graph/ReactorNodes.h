@@ -78,10 +78,7 @@ public:
 
         // First blocking event is not initiated by Tick() but after loop creation.
         NodeBase<D>* p = mainLoop_.get();
-
-        assert(p != nullptr);
-
-        Engine::OnNodeAttach(*this, *p);
+        doAttach(p);
 
         ++depCount_;
     }
@@ -101,8 +98,7 @@ public:
 
         if (p != nullptr)
         {
-            Engine::OnDynamicNodeAttach(*this, *p, *turnPtr_);
-            ++depCount_;
+            doDynAttach(p);
         }
         else
         {
@@ -126,10 +122,7 @@ public:
         while (! checkEvent(events))
             (*curOutPtr_)(nullptr);
 
-        assert(turnPtr_ != nullptr);
-
-        Engine::OnDynamicNodeDetach(*this, *events, *turnPtr_);
-        --depCount_;
+        doDynDetach(events.get());
 
         auto index = offsets_[reinterpret_cast<uintptr_t>(events.get())]++;
         return events->Events()[index];
@@ -147,8 +140,7 @@ public:
         {
             // Non-dynamic attach in case first loop until is encountered before the loop was
             // suspended for the first time.
-            Engine::OnNodeAttach(*this, *eventsPtr);
-            ++depCount_;
+            doAttach(eventsPtr.get());
         }
 
         // Don't enter loop if event already present
@@ -190,18 +182,20 @@ public:
         --depCount_;
     }
 
-    //template <typename S>
-    //S& Get(const std::shared_ptr<SignalNode<D,S>>& sig)
-    //{
-    //    // Attach to target signal node
-    //    (*curOutPtr_)(sig.get());
+    template <typename S>
+    const S& Get(const std::shared_ptr<SignalNode<D,S>>& sigPtr)
+    {
+        // Do dynamic attach followed by attach if Get() happens during a turn.
+        if (turnPtr_ != nullptr)
+        {
+            // Request attach
+            (*curOutPtr_)(sigPtr.get());
 
-    //    Engine::OnDynamicNodeDetach(*this, *events, *turnPtr_);
-    //    --depCount_;
+            doDynDetach(sigPtr.get());
+        }
 
-    //    auto index = offsets_[reinterpret_cast<uintptr_t>(events.get())]++;
-    //    return events->Events()[index];
-    //}
+        return sigPtr->ValueRef();
+    }
 
 private:
     template <typename E>
@@ -214,6 +208,38 @@ private:
 
         auto index = reinterpret_cast<uintptr_t>(events.get());
         return offsets_[index] < events->Events().size();
+    }
+
+    void doAttach(NodeBase<D>* nodePtr)
+    {
+        assert(nodePtr != nullptr);
+        assert(turnPtr_ == nullptr);
+        Engine::OnNodeAttach(*this, *nodePtr);
+        ++depCount_;
+    }
+
+    void doDetach(NodeBase<D>* nodePtr)
+    {
+        assert(nodePtr != nullptr);
+        assert(turnPtr_ == nullptr);
+        Engine::OnNodeDetach(*this, *nodePtr);
+        --depCount_;
+    }
+
+    void doDynAttach(NodeBase<D>* nodePtr)
+    {
+        assert(nodePtr != nullptr);
+        assert(turnPtr_ != nullptr);
+        Engine::OnDynamicNodeAttach(*this, *nodePtr, *turnPtr_);
+        ++depCount_;
+    }
+
+    void doDynDetach(NodeBase<D>* nodePtr)
+    {
+        assert(nodePtr != nullptr);
+        assert(turnPtr_ != nullptr);
+        Engine::OnDynamicNodeDetach(*this, *nodePtr, *turnPtr_);
+        --depCount_;
     }
 
     std::function<void(TContext)>    func_;

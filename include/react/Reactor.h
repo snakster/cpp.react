@@ -50,6 +50,12 @@ public:
             node_.RepeatUntil(evn.NodePtr(), std::forward<F>(func));
         }
 
+        template <typename S>
+        const S& Get(const Signal<D,S>& sig)
+        {
+            return node_.Get(sig.NodePtr());
+        }
+
     private:
         NodeT&    node_;
     };
