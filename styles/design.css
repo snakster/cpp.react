@@ -24,7 +24,10 @@ li.api_group {
 
 div.panel_body {
   margin: 0; padding: 0.5em;
-  border-top: 2px solid;
+  border-top: 4px solid;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height:90vh
 }
 
 .panel_title {
@@ -33,4 +36,16 @@ div.panel_body {
   padding: 0em;
   font-size: 120%;
   font-weight: bold;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: black;
+}
+
+::-webkit-scrollbar-track-piece  {
+  background-color: rgba(0, 0, 0, 0.05);
 }
