@@ -48,7 +48,7 @@ The signature of `func` should be equivalent to:
 
 ## Graph
 (1a) <br/>
-<img src="/media/flow_iterate.png" width="500px" />
+<img src="{{ site.baseurl }}/media/flow_iterate.png" width="500px" />
 
 (2a) <br/>
-<img src="/media/flow_iterate2.png" width="500px" />
+<img src="{{ site.baseurl }}/media/flow_iterate2.png" width="500px" />
