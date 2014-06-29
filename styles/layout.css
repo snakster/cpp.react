@@ -1,9 +1,3 @@
-div#top_panel {
-  float: top;
-  margin: 0; padding: 0.5em;
-  border-top: 2px solid;
-}
-
 div#left_panel {
   float: left; width: 20em;
   margin: 0; padding: 0;

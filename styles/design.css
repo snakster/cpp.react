@@ -25,6 +25,7 @@ li.api_group {
 div.panel_body {
   margin: 0; padding: 0.5em;
   border-top: 4px solid;
+  border-bottom: 4px solid;
   overflow-y: auto;
   overflow-x: hidden;
   height:90vh
