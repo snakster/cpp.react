@@ -3,7 +3,6 @@
 
 <head>
   <title>Cpp.React</title>
-  <link rel="stylesheet" href="{{ site.baseurl }}/styles/layout.css">
   <link rel="stylesheet" href="{{ site.baseurl }}/styles/design.css">
   <link rel="stylesheet" href="{{ site.baseurl }}/styles/syntax.css">
   <script src="{{ site.baseurl }}/scripts/jquery-1.11.1.min.js"></script>
@@ -11,69 +10,69 @@
 </head>
 
 <body>
-<div id="left_panel">
-  <span class="panel_title">Overview</span>
-  <div class="panel_body">
-    <input id="search_input" placeholder="Type to filter">
-
+<div id="left_panel_container">
+  <div id="left_search_holder">
+    <input class="search_input" placeholder="Type to filter">
+  </div>
+  <div id="left_panel_body">
     <ul id="api_list">
-      <li class="api_group">Algorithm.h</li>
+      <li class="api_group"><a class="group_link" href="">Algorithm.h</a></li>
       <!-- <li class="api_subgroup">Functions</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Iterate</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Hold</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Snapshot</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Monitor</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Pulse</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> OnChanged</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> OnChangedTo</li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_func.png" /> Iterate</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_func.png" /> Hold</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_func.png" /> Snapshot</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_func.png" /> Monitor</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_func.png" /> Pulse</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_func.png" /> OnChanged</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_func.png" /> OnChangedTo</a></li>
 
-      <li class="api_group">Domain.h</li>
+      <li class="api_group"><a class="group_link" href="">Domain.h</a></li>
       <!-- <li class="api_subgroup">Classes</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> DomainBase</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> Continuation</li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> DomainBase</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> Continuation</a></li>
       <!-- <li class="api_subgroup">Functions</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> MakeContinuation</li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_func.png" /> MakeContinuation</a></li>
       <!-- <li class="api_subgroup">Macros</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_macro.png" /> REACTIVE_DOMAIN</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_macro.png" /> USING_REACTIVE_DOMAIN</li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_macro.png" /> REACTIVE_DOMAIN</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_macro.png" /> USING_REACTIVE_DOMAIN</a></li>
 
-      <li class="api_group">Event.h</li>
+      <li class="api_group"><a class="group_link" href="">Event.h</a></li>
       <!-- <li class="api_subgroup">Constants</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_enum.png" /> Token</li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_enum.png" /> Token</a></li>
       <!-- <li class="api_subgroup">Classes</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> Events</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> EventSource</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> TempEvents</li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> Events</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> EventSource</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> TempEvents</a></li>
       <!-- <li class="api_subgroup">Functions</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> MakeEventSource</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Merge</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Filter</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Transform</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Flatten</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Tokenize</li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> MakeEventSource</a></li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> Merge</a></li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> Filter</a></li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> Transform</a></li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> Flatten</a></li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> Tokenize</a></li>
 
-      <li class="api_group">Observer.h</li>
+      <li class="api_group"><a class="group_link" href="">Observer.h</a></li>
       <!-- <li class="api_subgroup">Constants</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_enum.png" /> ObserverAction</li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_enum.png" /> ObserverAction</a></li>
       <!-- <li class="api_subgroup">Classes</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> Observer</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> ScopedObserver</li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> Observer</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> ScopedObserver</a></li>
       <!-- <li class="api_subgroup">Functions</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Observe</li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> Observe</a></li>
 
-      <li class="api_group">Reactor.h</li>
+      <li class="api_group"><a class="group_link" href="">Reactor.h</a></li>
 
-      <li class="api_group">Signal.h</li>
+      <li class="api_group"><a class="group_link" href="">Signal.h</a></li>
       <!-- <li class="api_subgroup">Classes</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> Signal</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> VarSignal</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_class.png" /> TempSignal</li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> Signal</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> VarSignal</a></li>
+      <li><a class="ref_link" href=""><img class="entity_icon" src="media/icon_class.png" /> TempSignal</a></li>
       <!-- <li class="api_subgroup">Functions</li> -->
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> MakeVar</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> MakeSignal</li>
-      <li><img style="vertical-align:middle" src="{{ site.baseurl }}/media/icon_func.png" /> Flatten</li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> MakeVar</a></li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> MakeSignal</a></li>
+      <li><a class="ref_link"><img class="entity_icon" src="media/icon_func.png" /> Flatten</a></li>
 
-      <li class="api_group">TypeTraits.h</li>
+      <li class="api_group"><a class="group_link" href="">TypeTraits.h</a></li>
 
     </ul>
   </div>
@@ -89,8 +88,7 @@
     });
 </script>
 
-<div id="right_panel">
-  <span class="panel_title">Outline</span>
+<div id="right_panel_container">
   <div class="panel_body">
     <ul>
       <li> -- asdf</li>
@@ -104,13 +102,11 @@
 
 
 
-<div id="content_panel">
-  <span class="panel_title">Signal.h &#8640; MakeSignal</span>
+<div id="content_panel_container">
   <div class="panel_body">
     {{ content }}
   </div>
 </div>
-
 
 </body>
 
