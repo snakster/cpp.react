@@ -12,7 +12,7 @@
 <body>
 <div id="left_panel_container">
   <div id="left_search_holder">
-    <input class="search_input" placeholder="Type to filter">
+    <input id="api_search" class="search_input" placeholder="Type to filter">
   </div>
   <div id="left_panel_body">
     <ul id="api_list">
@@ -80,7 +80,7 @@
 
 <script>
     $(function() {
-        $("#search_input").fastLiveFilter(
+        $("#api_search").fastLiveFilter(
           "#api_list",
           {
             groups: ["api_group", "api_subgroup"]
