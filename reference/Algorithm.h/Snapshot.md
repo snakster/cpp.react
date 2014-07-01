@@ -1,8 +1,9 @@
 ---
 layout: default
 ---
-## Snapshot
-###### Syntax
+# Snapshot
+
+## Syntax
 {% highlight C++ %}
 template
 <
@@ -13,9 +14,10 @@ template
 Signal<D,S> Snapshot(const Events<D,E>& trigger, const Signal<D,S>& target);
 {% endhighlight %}
 
-###### Graph
-<img src="{{ site.url }}/images/flow_snapshot.png" alt="Drawing" width="500px"/>
-
-###### Semantics
+## Semantics
 Creates a signal with value `v = target.Value()`.
 The value is set on construction and updated **only** when receiving an event from `trigger`.
+
+## Graph
+<img src="{{ site.baseurl }}/media/flow_snapshot.png" alt="Drawing" width="500px"/>
+

@@ -1,8 +1,9 @@
 ---
 layout: default
 ---
-## Pulse
-###### Syntax
+# Pulse
+
+## Syntax
 {% highlight C++ %}
 template
 <
@@ -13,9 +14,9 @@ template
 Events<D,S> Pulse(const Events<D,E>& trigger, const Signal<D,S>& target);
 {% endhighlight %}
 
-###### Semantics
+## Semantics
 Creates an event stream that emits `target.Value()` when receiving an event from `trigger`
 The values of the received events are irrelevant.
 
-###### Graph
-<img src="{{ site.url }}/images/flow_pulse.png" alt="Drawing" width="500px"/>
+## Graph
+<img src="{{ site.baseurl }}/media//flow_pulse.png" alt="Drawing" width="500px"/>

@@ -1,8 +1,9 @@
 ---
 layout: default
 ---
-## Hold
-###### Syntax
+# Hold
+
+## Syntax
 {% highlight C++ %}
 template
 <
@@ -13,6 +14,6 @@ template
 Signal<D,T> Hold(const Events<D,T>& events, V&& init);
 {% endhighlight %}
 
-###### Semantics
+## Semantics
 Creates a signal with an initial value `v = init`.
 For received event values `e1, e2, ... eN` in `events`, it is updated to `v = eN`.
