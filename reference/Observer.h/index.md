@@ -1,7 +1,7 @@
 ---
 layout: default
+title: Observer.h
 ---
-# Observer.h
 Contains the observer template classes and functions.
 
 ## Header

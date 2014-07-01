@@ -1,7 +1,7 @@
 ---
 layout: default
+title: Signal.h
 ---
-# Observer.h
 Contains the signal template classes and functions.
 
 ## Header

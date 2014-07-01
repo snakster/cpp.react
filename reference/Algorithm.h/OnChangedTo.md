@@ -1,8 +1,8 @@
 ---
 layout: default
+title: OnChangedTo
+type_tag: function
 ---
-# OnChangedTo
-
 ## Syntax
 {% highlight C++ %}
 template

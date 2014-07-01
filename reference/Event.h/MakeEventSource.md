@@ -1,15 +1,17 @@
 ---
 layout: default
+title: MakeEventSource
+type_tag: function
 ---
-# MakeEventSource
-
 ## Syntax
 {% highlight C++ %}
+// (1)
 template <typename D, typename E>
-EventSource<D,E> MakeEventSource();     // (1)
+EventSource<D,E> MakeEventSource();
 
+// (2)
 template <typename D>
-EventSource<D,Token> MakeEventSource(); // (2)
+EventSource<D,Token> MakeEventSource();
 {% endhighlight %}
 
 ## Semantics

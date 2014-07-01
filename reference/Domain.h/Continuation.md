@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Continuation
+type_tag: class
 ---
-# Continuation
-
 This class manages ownership of a continuation. A continuation is a link between two domains (including from a domain to itself).
 
 ## Synopsis

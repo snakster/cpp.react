@@ -1,8 +1,8 @@
 ---
 layout: default
+title: EventSource
+type_tag: class
 ---
-# EventSource
-
 An event source extends the immutable `Events` interface with functions that support imperative event input.
 
 ## Synopsis

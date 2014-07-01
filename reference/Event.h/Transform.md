@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Transform
+type_tag: function
 ---
-# Transform
-
 ## Syntax
 {% highlight C++ %}
 // (1)

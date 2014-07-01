@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Events
+type_tag: class
 ---
-# Events
-
 An instance of this class acts as a proxy to an event stream node.
 It takes shared ownership of the node, so while it exists, the node will not be destroyed.
 Copy, move and assignment semantics are similar to `std::shared_ptr`.

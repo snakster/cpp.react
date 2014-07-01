@@ -1,7 +1,8 @@
 ---
 layout: default
+title: TempSignal
+type_tag: class
 ---
-# TempSignal
 This class exposes additional type information of the linked node, which enables r-value based node merging at compile time.
 
 This is motivated by the difference between using `MakeSignal` and implicit lifting with operators:

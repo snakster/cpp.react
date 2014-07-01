@@ -1,8 +1,8 @@
 ---
 layout: default
+title: USING_REACTIVE_DOMAIN
+type_tag: macro
 ---
-# USING_REACTIVE_DOMAIN
-
 ## Syntax
 {% highlight C++ %}
 USING_REACTIVE_DOMAIN(name)

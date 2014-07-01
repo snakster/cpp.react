@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Filter
+type_tag: function
 ---
-# Filter
-
 ## Syntax
 {% highlight C++ %}
 // (1)

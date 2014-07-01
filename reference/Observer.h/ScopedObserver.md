@@ -1,8 +1,8 @@
 ---
 layout: default
+title: ScopedObserver
+type_tag: class
 ---
-# ScopedObserver
-
 Takes ownership of an observer and automatically detaches it on scope exit.
 
 ## Synopsis

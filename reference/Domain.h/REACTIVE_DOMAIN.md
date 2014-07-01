@@ -1,8 +1,8 @@
 ---
 layout: default
+title: REACTIVE_DOMAIN
+type_tag: macro
 ---
-# REACTIVE_DOMAIN
-
 ## Syntax
 {% highlight C++ %}
 #define REACTIVE_DOMAIN(name, ...)

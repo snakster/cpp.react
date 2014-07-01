@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Signal
+type_tag: class
 ---
-# Signal
-
 A signal is a reactive variable that can propagate its changes to dependents and react to changes of its dependencies.
 Dataflow between signals is modeled as a directed acyclic graph, where each signal is a node and edges denote a dependency relation.
 If an edge exists from `v1` to `v2` that means `v1` will propagate its changes to `v2`.

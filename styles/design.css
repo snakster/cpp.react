@@ -112,6 +112,18 @@ p code {
   padding: 0 4px 0 4px;
 }
 
+span.type_tag {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  color: rgba(0, 0, 0, 0.4);
+  vertical-align: middle;
+  text-align: right;
+  font-size: 14px;
+  padding: 0 2px 0 2px;
+}
+
 img.entity_icon {
   vertical-align: middle;
 }

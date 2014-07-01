@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>Cpp.React</title>
+  <title>{{ page.title }}</title>
   <link rel="stylesheet" href="{{ site.baseurl }}/styles/design.css">
   <link rel="stylesheet" href="{{ site.baseurl }}/styles/syntax.css">
   <script src="{{ site.baseurl }}/scripts/jquery-1.11.1.min.js"></script>
@@ -106,6 +106,7 @@
 
 <div id="content_panel_container">
   <div class="panel_body">
+    <h1>{{ page.title }} <span class="type_tag">{{ page.type_tag }}</span></h1>
     {{ content }}
   </div>
 </div>

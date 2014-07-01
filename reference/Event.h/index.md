@@ -1,7 +1,7 @@
 ---
 layout: default
+title: Event.h
 ---
-# Event.h
 Contains the event stream template classes and functions.
 
 ## Header

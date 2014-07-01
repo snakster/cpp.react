@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Merge
+type_tag: function
 ---
-# Merge
-
 ## Syntax
 {% highlight C++ %}
 template

@@ -1,8 +1,7 @@
 ---
 layout: default
+title: Domain.h
 ---
-# Domain.h
-
 Contains the base class for reactive domains and the macro to define them.
 
 ## Header

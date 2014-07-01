@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Iterate
+type_tag: function
 ---
-# Iterate
-
 ## Syntax
 {% highlight C++ %}
 // (1)

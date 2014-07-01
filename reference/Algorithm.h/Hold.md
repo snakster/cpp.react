@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Hold
+type_tag: function
 ---
-# Hold
-
 ## Syntax
 {% highlight C++ %}
 template

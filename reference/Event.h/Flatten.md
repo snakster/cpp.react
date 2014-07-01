@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Flatten
+type_tag: function
 ---
-# Flatten
-
 ## Syntax
 {% highlight C++ %}
 template

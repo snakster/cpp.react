@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Pulse
+type_tag: function
 ---
-# Pulse
-
 ## Syntax
 {% highlight C++ %}
 template

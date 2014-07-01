@@ -1,6 +1,5 @@
 ---
 layout: default
+title: TypeTraits.h
 ---
-# TypeTraits.h
-
 Todo

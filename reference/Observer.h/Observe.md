@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Observe
+type_tag: function
 ---
-# Observe
-
 ## Syntax
 {% highlight C++ %}
 // (1)

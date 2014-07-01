@@ -1,8 +1,8 @@
 ---
 layout: default
+title: ObserverAction
+type_tag: enum class
 ---
-# ObserverAction
-
 Observer functions can return values of this type to control further processing.
 
 ## Definition

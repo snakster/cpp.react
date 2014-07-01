@@ -1,8 +1,8 @@
 ---
 layout: default
+title: DoTransaction
+type_tag: function
 ---
-# DoTransaction
-
 ## Syntax
 {% highlight C++ %}
 // (1)

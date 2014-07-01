@@ -1,8 +1,8 @@
 ---
 layout: default
+title: MakeVar
+type_tag: function
 ---
-# MakeVar
-
 ## Syntax
 {% highlight C++ %}
 template

@@ -1,8 +1,8 @@
 ---
 layout: default
+title: TempEvents
+type_tag: class
 ---
-# TempEvents
-
 This class exposes additional type information of the linked node, which enables r-value based node merging at compile time.
 `TempEvents` is usually not used as an l-value type, but instead implicitly converted to `Events`.
 

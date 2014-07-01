@@ -1,8 +1,8 @@
 ---
 layout: default
+title: MakeContinuation
+type_tag: function
 ---
-# MakeContinuation
-
 ## Syntax
 {% highlight C++ %}
 // (1)

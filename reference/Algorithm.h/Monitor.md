@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Monitor
+type_tag: function
 ---
-# Monitor
-
 ## Syntax
 {% highlight C++ %}
 template

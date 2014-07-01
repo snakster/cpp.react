@@ -1,8 +1,8 @@
 ---
 layout: default
+title: DomainBase
+type_tag: class
 ---
-# DomainBase
-
 This class contains the functionality for domains defined with `REACTIVE_DOMAIN`.
 A domain cannot be instantiated. It is used to group domain-specific type aliases and static functions.
 

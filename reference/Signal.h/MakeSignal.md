@@ -1,8 +1,8 @@
 ---
 layout: default
+title: MakeSignal
+type_tag: function
 ---
-# MakeSignal
-
 ## Syntax
 {% highlight C++ %}
 template

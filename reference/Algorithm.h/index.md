@@ -1,8 +1,7 @@
 ---
 layout: default
+title: Algorithm.h
 ---
-# Algorithm.h
-
 Contains various reactive operations to combine and convert signals and events.
 
 ## Header

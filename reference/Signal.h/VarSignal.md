@@ -1,7 +1,8 @@
 ---
 layout: default
+title: VarSignal
+type_tag: class
 ---
-# VarSignal
 `VarSignal` extends the immutable `Signal` interface with functions that support imperative value input.
 In the dataflow graph, input signals are sources. As such, they don't have any predecessors.
 

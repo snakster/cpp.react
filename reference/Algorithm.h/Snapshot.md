@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Snapshot
+type_tag: function
 ---
-# Snapshot
-
 ## Syntax
 {% highlight C++ %}
 template
