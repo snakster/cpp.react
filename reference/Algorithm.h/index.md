@@ -1,13 +1,16 @@
 ---
 layout: default
 ---
-### Header
-`#include "react/Algorithm.h"`
+# Algorithm.h
 
-### Summary
 Contains various reactive operations to combine and convert signals and events.
 
-# Functions
+## Header
+`#include "react/Algorithm.h"`
+
+## Synopsis
+
+### Functions
 {% highlight C++ %}
 namespace react
 {

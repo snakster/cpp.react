@@ -4,7 +4,6 @@ layout: default
 # OnChanged
 
 ## Syntax
-
 {% highlight C++ %}
 template
 <
