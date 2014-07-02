@@ -2,6 +2,10 @@
 layout: default
 title: Monitor
 type_tag: function
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Algorithm.h, url: 'reference/Algorithm.h/'}
 ---
 ## Syntax
 {% highlight C++ %}

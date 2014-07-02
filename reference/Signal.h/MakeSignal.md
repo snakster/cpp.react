@@ -2,6 +2,10 @@
 layout: default
 title: MakeSignal
 type_tag: function
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Signal.h, url: 'reference/Signal.h/'}
 ---
 ## Syntax
 {% highlight C++ %}

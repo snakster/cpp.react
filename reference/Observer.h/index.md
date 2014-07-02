@@ -1,6 +1,9 @@
 ---
 layout: default
 title: Observer.h
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
 ---
 Contains the observer template classes and functions.
 

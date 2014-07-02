@@ -2,6 +2,10 @@
 layout: default
 title: Signal
 type_tag: class
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Signal.h, url: 'reference/Signal.h/'}
 ---
 A signal is a reactive variable that can propagate its changes to dependents and react to changes of its dependencies.
 Dataflow between signals is modeled as a directed acyclic graph, where each signal is a node and edges denote a dependency relation.

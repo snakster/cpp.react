@@ -2,6 +2,10 @@
 layout: default
 title: Flatten
 type_tag: function
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Event.h, url: 'reference/Event.h/'}
 ---
 ## Syntax
 {% highlight C++ %}

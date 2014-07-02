@@ -1,6 +1,9 @@
 ---
 layout: default
 title: Event.h
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
 ---
 Contains the event stream template classes and functions.
 

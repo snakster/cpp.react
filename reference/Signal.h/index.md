@@ -1,6 +1,9 @@
 ---
 layout: default
 title: Signal.h
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
 ---
 Contains the signal template classes and functions.
 

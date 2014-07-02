@@ -1,6 +1,9 @@
 ---
 layout: default
 title: Domain.h
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
 ---
 Contains the base class for reactive domains and the macro to define them.
 

@@ -2,6 +2,10 @@
 layout: default
 title: DomainBase
 type_tag: class
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Domain.h, url: 'reference/Domain.h/'}
 ---
 This class contains the functionality for domains defined with `REACTIVE_DOMAIN`.
 A domain cannot be instantiated.

@@ -2,6 +2,10 @@
 layout: default
 title: MakeContinuation
 type_tag: function
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Domain.h, url: 'reference/Domain.h/'}
 ---
 ## Syntax
 {% highlight C++ %}

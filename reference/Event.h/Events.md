@@ -2,6 +2,10 @@
 layout: default
 title: Events
 type_tag: class
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Event.h, url: 'reference/Event.h/'}
 ---
 An instance of this class acts as a proxy to an event stream node.
 It takes shared ownership of the node, so while it exists, the node will not be destroyed.

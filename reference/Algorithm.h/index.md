@@ -1,6 +1,9 @@
 ---
 layout: default
 title: Algorithm.h
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
 ---
 Contains various reactive operations to combine and convert signals and events.
 

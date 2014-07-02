@@ -92,7 +92,12 @@
 
 <div id="content_panel_container">
   <div id="content_panel_header">
-    <span class="header_text">Home  &#8640; Reference &#8640; Signal.h &#8640; MakeSignal</span>
+    <span class="header_text">
+{% for group in page.groups %}
+      <a href="{{ site.baseurl }}/{{ group.url }}">{{ group.name }}</a> &#8640;
+{% endfor %}
+      {{ page.title }}
+    </span>
   </div>
   <div class="content_panel_body">
     <h1>{{ page.title }} <span class="type_tag">{{ page.type_tag }}</span></h1>

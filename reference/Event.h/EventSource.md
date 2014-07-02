@@ -2,6 +2,10 @@
 layout: default
 title: EventSource
 type_tag: class
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Event.h, url: 'reference/Event.h/'}
 ---
 An event source extends the immutable `Events` interface with functions that support imperative input.
 

@@ -138,13 +138,17 @@ img.entity_icon {
   vertical-align: middle;
 }
 
-a {
-  font-family: monospace;
+ a {
+  font-family: helvetica;
   color: black;
-  text-decoration: none;
+  text-decoration: underline;
+  color: black;
 }
 
 a.ref_link {
+  font-family: monospace;
+  color: black;
+  text-decoration: none;
   display: block;
   padding: 2px 0px 2px 20px;
 }
@@ -157,7 +161,9 @@ a.ref_link:hover {
 
 a.group_link {
   display: block;
+  color: black;
   font-family: helvetica;
+  text-decoration: none;
   font-size: 18px;
   font-weight: bold;
   padding: 4px 0px 2px 4px;

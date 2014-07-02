@@ -2,6 +2,10 @@
 layout: default
 title: Observe
 type_tag: function
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Observer.h, url: 'reference/Observer.h/'}
 ---
 ## Syntax
 {% highlight C++ %}

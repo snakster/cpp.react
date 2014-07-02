@@ -1,5 +1,5 @@
 ---
 layout: default
+title: Home
 ---
-
-todo
+Todo

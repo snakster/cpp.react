@@ -2,6 +2,10 @@
 layout: default
 title: ScopedObserver
 type_tag: class
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Observer.h, url: 'reference/Observer.h/'}
 ---
 Takes ownership of an observer and automatically detaches it on scope exit.
 

@@ -2,6 +2,10 @@
 layout: default
 title: Continuation
 type_tag: class
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Domain.h, url: 'reference/Domain.h/'}
 ---
 This class manages ownership of a continuation. A continuation is a link between two domains (including from a domain to itself).
 

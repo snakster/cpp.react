@@ -2,6 +2,10 @@
 layout: default
 title: TempSignal
 type_tag: class
+groups: 
+ - {name: Home, url: ''}
+ - {name: Reference , url: 'reference/'}
+ - {name: Signal.h, url: 'reference/Signal.h/'}
 ---
 This class exposes additional type information of the linked node, which enables r-value based node merging at compile time.
 
