@@ -7,8 +7,5 @@ This class is used as value type of token streams, which emit events without any
 
 ## Definition
 {% highlight C++ %}
-namespace react
-{
-    enum class Token { value };
-}
+enum class Token { value };
 {% endhighlight %}

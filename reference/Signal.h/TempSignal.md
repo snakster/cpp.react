@@ -53,30 +53,28 @@ Without the `std::move`, there would be no merging, as `t` may be a `TempSignal`
 
 ##### Synopsis
 {% highlight C++ %}
-namespace
+template
+<
+    typename D,
+    typename S,
+    typename TOp
+>
+class TempSignal : public Signal<D,S>
 {
-    template
-    <
-        typename D,
-        typename S,
-        typename TOp
-    >
-    class TempSignal : public Signal<D,S>
-    {
-    public:
-        // Constructor
-        TempSignal();
-        TempSignal(const TempSignal&);
-        TempSignal(TempSignal&&);
+public:
+    // Constructor
+    TempSignal();
+    TempSignal(const TempSignal&);
+    TempSignal(TempSignal&&);
 
-        // Assignment
-        TempSignal& operator=(const TempSignal&);
-        TempSignal& operator=(TempSignal&& other);
-    };
-}
+    // Assignment
+    TempSignal& operator=(const TempSignal&);
+    TempSignal& operator=(TempSignal&& other);
+};
 {% endhighlight %}
 
-### Member functions
+-----
 
-#### (Constructor), operator `=`
+<h1>Constructor, operator= <span class="type_tag">member function</span></h1>
+
 Analogously defined to [Signal](#signal).

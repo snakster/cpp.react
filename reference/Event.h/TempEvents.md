@@ -8,30 +8,29 @@ This class exposes additional type information of the linked node, which enables
 
 ## Synopsis
 {% highlight C++ %}
-namespace react
+template
+<
+    typename D,
+    typename E,
+    typename TOp
+>
+class TempEvents : public Events<D,E>
 {
-    template
-    <
-        typename D,
-        typename E,
-        typename TOp
-    >
-    class TempEvents : public Events<D,E>
-    {
-    public:
-        // Constructor
-        TempEvents();
-        TempEvents(const TempEvents&);
-        TempEvents(TempEvents&&);
+public:
+    // Constructor
+    TempEvents();
+    TempEvents(const TempEvents&);
+    TempEvents(TempEvents&&);
 
-        // Assignemnt
-        TempEvents& operator=(const TempEvents&);
-        TempEvents& operator=(TempEvents&& other);
-    };
-}
+    // Assignemnt
+    TempEvents& operator=(const TempEvents&);
+    TempEvents& operator=(TempEvents&& other);
+};
 {% endhighlight %}
 
-## Member functions
 
-### (Constructor)
+-----
+
+<h1>Constructor <span class="type_tag">member function</span></h1>
+
 Analogously defined to constructor of [Events](#events).

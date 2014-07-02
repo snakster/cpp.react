@@ -51,46 +51,43 @@ The propagation engine is responsible for calling `Update` on successors.
 
 Constructing a `Signal` instance and linking it to a a node is done with `MakeSignal` or other operations that returns a signal.
 
-##### Synopsis
+## Synopsis
 {% highlight C++ %}
-namespace react
+template
+<
+    typename D,
+    typename S
+>
+class Signal
 {
-    template
-    <
-        typename D,
-        typename S
-    >
-    class Signal
-    {
-    public:
-        using ValueT = S;
+public:
+    using ValueT = S;
 
-        // Constructor
-        Signal();
-        Signal(const Signal&);
-        Signal(Signal&&);
+    // Constructor
+    Signal();
+    Signal(const Signal&);
+    Signal(Signal&&);
 
-        // Assignment
-        Signal& operator=(const Signal&);
-        Signal& operator=(Signal&& other);
+    // Assignment
+    Signal& operator=(const Signal&);
+    Signal& operator=(Signal&& other);
 
-        // Tests if two Signal instances are equal
-        bool Equals(const Signal& other) const;
+    // Tests if two Signal instances are equal
+    bool Equals(const Signal& other) const;
 
-        // Tests if this instance is linked to a node
-        bool IsValid() const;
+    // Tests if this instance is linked to a node
+    bool IsValid() const;
 
-        // Returns the current signal value
-        const S& Value() const;
-        const S& operator()() const;
+    // Returns the current signal value
+    const S& Value() const;
+    const S& operator()() const;
 
-        // Equivalent to react::Flatten(*this)
-        S Flatten() const;
-    };
-}
+    // Equivalent to react::Flatten(*this)
+    S Flatten() const;
+};
 {% endhighlight %}
 
-### Template parameters
+## Template parameters
 <table>
 <tr>
 <td>D</td>
@@ -102,16 +99,29 @@ namespace react
 </tr>
 </table>
 
-### Member functions
+<table class="wide_table">
+    <tr>
+        <td class="descriptor_cell">D</td>
+        <td>The domain this signal belongs to.</td>
+    </tr>
+    <tr>
+        <td class="descriptor_cell">E</td>
+        <td>Signal value type. Aliased as member type <code>ValueT</code>.</td>
+    </tr>
+</table>
 
-#### (Constructor)
-###### Syntax
+-----
+
+<h1>Constructor <span class="type_tag">member function</span></h1>
+
+## Syntax
 {% highlight C++ %}
 Signal();                    // (1)
 Signal(const Signal& other); // (2)
 Signal(Signal&& other);      // (3)
 {% endhighlight %}
-###### Semantics
+
+## Semantics
 (1) Creates an invalid signal that is not linked to a signal node.
 
 (2) Creates a signal that links to the same signal node as `other`.
@@ -122,40 +132,52 @@ As a result, `other` becomes invalid.
 **Note:** The default constructor creates an invalid signal, which is equivalent to `std::shared_ptr(nullptr)`.
 This is potentially dangerous and considering the declarative nature of signals, it should be avoided if possible.
 
-#### Equals
-###### Syntax
+-----
+
+<h1>Equals <span class="type_tag">member function</span></h1>
+
+## Syntax
 {% highlight C++ %}
 bool Equals(const Signal& other) const;
 {% endhighlight %}
 
-###### Semantics
+## Semantics
 Returns true, if both `this` and `other` link to the same signal node.
 This function is used to compare two signals, because `==` is used as a combination operator instead.
 
-#### IsValid
-###### Syntax
+-----
+
+<h1>IsValid <span class="type_tag">member function</span></h1>
+
+## Syntax
 {% highlight C++ %}
 bool IsValid() const;
 {% endhighlight %}
 
-###### Semantics
+## Semantics
 Returns true, if `this` is linked to a signal node.
 
-#### Value, operator `()`
-###### Syntax
+-----
+
+<h1>Value, operator() <span class="type_tag">member function</span></h1>
+
+## Syntax
 {% highlight C++ %}
 const S& Value() const;
 const S& operator()() const;
 {% endhighlight %}
 
-###### Semantics
+## Semantics
 Returns a const reference to the current signal value.
 
-#### Flatten
-###### Syntax
+-----
+
+<h1>Flatten, <span class="type_tag">member function</span></h1>
+
+## Syntax
 {% highlight C++ %}
 S Flatten() const;
 {% endhighlight %}
 
-###### Semantics
+## Semantics
 Semantically equivalent to the respective free function in namespace `react`.

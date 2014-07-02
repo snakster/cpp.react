@@ -43,7 +43,7 @@ Continuation<D,D2>
 (1) When the signal value `s` of `trigger` changes, `func(s)` is executed in a transaction of domain `D2`.
 In pseudo code:
 {% highlight C++ %}
-D2::DoTransaction([func, s] {
+DoTransaction<D2>([func, s] {
     func(s)
 });
 {% endhighlight %}
@@ -52,7 +52,7 @@ D2::DoTransaction([func, s] {
 Multiple events from the same turn are captured in a single transaction.
 In pseudo code:
 {% highlight C++ %}
-D2::DoTransaction([func, events] {
+DoTransaction<D2>([func, events] {
     for (const auto& e : events)
         func(e);
 });
@@ -62,7 +62,7 @@ D2::DoTransaction([func, events] {
 Changes of signals in `depPack` do not trigger an update - only received events do.
 In pseudo code:
 {% highlight C++ %}
-D2::DoTransaction([func, events, depValues...] {
+DoTransaction<D2>([func, events, depValues...] {
     for (const auto& e : events)
         func(e, depValues ...);
 });
@@ -75,7 +75,7 @@ The signature of `func` should be equivalent to:
 * (3) `void func(const E&, const TDepValues& ...)`
 
 {% highlight C++ %}
-D2::DoTransaction([func, events, depValues...] {
+DoTransaction<D2>([func, events, depValues...] {
     for (const auto& e : events)
         func(e, depValues ...);
 });

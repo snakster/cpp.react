@@ -5,7 +5,7 @@ type_tag: macro
 ---
 ## Syntax
 {% highlight C++ %}
-USING_REACTIVE_DOMAIN(name)
+#define USING_REACTIVE_DOMAIN(name)
 {% endhighlight %}
 
 ## Semantics

@@ -10,22 +10,19 @@ If the handle is destroyed without calling `Detach()`, the lifetime of the obser
 
 ## Synopsis
 {% highlight C++ %}
-namespace react
+template <typename D>
+class Observer
 {
-    template <typename D>
-    class Observer
-    {
-    public:
-        // Constructor
-        Observer();
-        Observer(Observer&& other);
+public:
+    // Constructor
+    Observer();
+    Observer(Observer&& other);
 
-        // Assignemnt
-        Observer& operator=(Observer&& other)
+    // Assignemnt
+    Observer& operator=(Observer&& other)
 
-        bool IsValid() const;
+    bool IsValid() const;
 
-        void Detach();
-    };
-}
+    void Detach();
+};
 {% endhighlight %}

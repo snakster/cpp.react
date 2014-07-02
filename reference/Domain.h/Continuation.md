@@ -7,37 +7,34 @@ This class manages ownership of a continuation. A continuation is a link between
 
 ## Synopsis
 {% highlight C++ %}
-namespace react
+template
+<
+    typename D,
+    typename D2
+>
+class Continuation
 {
-    template
-    <
-        typename D,
-        typename D2
-    >
-    class Continuation
-    {
-        // Type aliases
-        using SourceDomainT = D;
-        using TargetDomainT = D2;
+    // Type aliases
+    using SourceDomainT = D;
+    using TargetDomainT = D2;
 
-        // Constructor
-        Continuation();
-        Continuation(Continuation&& other);
+    // Constructor
+    Continuation();
+    Continuation(Continuation&& other);
 
-        // Assignemnt
-        Continuation& operator=(Continuation&& other);
-    };
-}
+    // Assignemnt
+    Continuation& operator=(Continuation&& other);
+};
 {% endhighlight %}
 
 ## Template parameters
-<table>
+<table class="wide_table">
 <tr>
-<td>D</td>
+<td class="descriptor_cell">D</td>
 <td>The domain this continuation belongs to. Aliased as member type <code>SourceDomainT</code>.</td>
 </tr>
 <tr>
-<td>D2</td>
+<td class="descriptor_cell">D2</td>
 <td>Signal value type. Aliased as member type <code>TargetDomainT</code>.</td>
 </tr>
 </table>

@@ -10,11 +10,11 @@
 </head>
 
 <body>
-<div id="left_panel_container">
-  <div id="left_search_holder">
+<div id="nav_panel_container">
+  <div id="nav_panel_header">
     <input id="api_search" class="search_input" placeholder="Type to filter">
   </div>
-  <div id="left_panel_body">
+  <div id="nav_panel_body">
     <ul id="api_list">
       <li class="api_group"><a class="group_link" href="{{ site.baseurl }}/reference/Algorithm.h/">Algorithm.h</a></li>
       <!-- <li class="api_subgroup">Functions</li> -->
@@ -90,22 +90,11 @@
     });
 </script>
 
-<div id="right_panel_container">
-  <div class="panel_body">
-    <ul>
-      <li> -- asdf</li>
-      <li> -- asdf</li>
-      <li> -- asdf</li>
-      <li> -- asdf</li>
-      <li> -- asdf</li>
-    </ul>
-  </div>
-</div>
-
-
-
 <div id="content_panel_container">
-  <div class="panel_body">
+  <div id="content_panel_header">
+    <span class="header_text">Home  &#8640; Reference &#8640; Signal.h &#8640; MakeSignal</span>
+  </div>
+  <div class="content_panel_body">
     <h1>{{ page.title }} <span class="type_tag">{{ page.type_tag }}</span></h1>
     {{ content }}
   </div>
