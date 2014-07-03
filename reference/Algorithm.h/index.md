@@ -13,30 +13,74 @@ Contains various reactive operations to combine and convert signals and events.
 ## Synopsis
 
 ### Functions
-{% highlight C++ %}
+
+<div class="highlight"><pre><code class="c++"><span class="k">namespace</span> <span class="n">react</span>
+<span class="p">{</span>
+    <span class="c1">// Hold the most recent event in a signal</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Algorithm.h/Hold.html">Hold</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">events</span><span class="p">,</span> <span class="n">V</span><span class="o">&amp;&amp;</span> <span class="n">init</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">T</span><span class="o">&gt;</span>
+
+    <span class="c1">// Emits value changes of target signal</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Algorithm.h/Monitor.html">Monitor</a><span class="p">(</span><span class="k">const</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;&amp;</span> <span class="n">target</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;</span>
+
+    <span class="c1">// Iteratively combines signal value with values from event stream</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Algorithm.h/Iterate.html">Iterate</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="o">&gt;&amp;</span> <span class="n">events</span><span class="p">,</span> <span class="n">V</span><span class="o">&amp;&amp;</span> <span class="n">init</span><span class="p">,</span> <span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">func</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Algorithm.h/Iterate.html">Iterate</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="o">&gt;&amp;</span> <span class="n">events</span><span class="p">,</span> <span class="n">V</span><span class="o">&amp;&amp;</span> <span class="n">init</span><span class="p">,</span>
+            <span class="k">const</span> <span class="n">SignalPack</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">TDepValues</span><span class="p">...</span><span class="o">&gt;&amp;</span> <span class="n">depPack</span><span class="p">,</span> <span class="n">FIn</span><span class="o">&amp;&amp;</span> <span class="n">func</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;</span>
+
+    <span class="c1">// Sets signal value to value of target when event is received</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Algorithm.h/Snapshot.html">Snapshot</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="o">&gt;&amp;</span> <span class="n">trigger</span><span class="p">,</span> <span class="k">const</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;&amp;</span> <span class="n">target</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;</span>
+
+    <span class="c1">// Emits value of target signal when event is received</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Algorithm.h/Pulse.html">Pulse</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="o">&gt;&amp;</span> <span class="n">trigger</span><span class="p">,</span> <span class="k">const</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;&amp;</span> <span class="n">target</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;</span>
+
+    <span class="c1">// Emits token when target signal was changed</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Algorithm.h/OnChanged.html">OnChanged</a><span class="p">(</span><span class="k">const</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;&amp;</span> <span class="n">target</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">Token</span><span class="o">&gt;</span>
+
+    <span class="c1">// Emits token when target signal was changed to value</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Algorithm.h/OnChangedTo.html">OnChangedTo</a><span class="p">(</span><span class="k">const</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;&amp;</span> <span class="n">target</span><span class="p">,</span> <span class="n">V</span><span class="o">&amp;&amp;</span> <span class="n">value</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">Token</span><span class="o">&gt;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<!--
 namespace react
 {
     // Iteratively combines signal value with values from event stream
-    Signal<D,S> Iterate(const Events<D,E>& events, V&& init, F&& func);
-    Signal<D,S> Iterate(const Events<D,E>& events, V&& init,
-                        const SignalPack<D,TDepValues...>& depPack, FIn&& func);
+    Iterate(const Events<D,E>& events, V&& init, F&& func)
+      -> Signal<D,S>
+    Iterate(const Events<D,E>& events, V&& init,
+            const SignalPack<D,TDepValues...>& depPack, FIn&& func)
+      -> Signal<D,S>
 
     // Hold the most recent event in a signal
-    Signal<D,T> Hold(const Events<D,T>& events, V&& init);
+    Hold(const Events<D,T>& events, V&& init)
+      -> Signal<D,T>
 
     // Sets signal value to value of target when event is received
-    Signal<D,S> Snapshot(const Events<D,E>& trigger, const Signal<D,S>& target);
+    Snapshot(const Events<D,E>& trigger, const Signal<D,S>& target)
+      -> Signal<D,S>
 
     // Emits value changes of target signal
-    Events<D,S> Monitor(const Signal<D,S>& target);
+    Monitor(const Signal<D,S>& target)
+      -> Events<D,S>
 
     // Emits value of target signal when event is received
-    Events<D,S> Pulse(const Events<D,E>& trigger, const Signal<D,S>& target);
+    Pulse(const Events<D,E>& trigger, const Signal<D,S>& target)
+      -> Events<D,S>
 
     // Emits token when target signal was changed
-    Events<D,Token> OnChanged(const Signal<D,S>& target);
+    OnChanged(const Signal<D,S>& target)
+      -> Events<D,Token>
 
     // Emits token when target signal was changed to value
-    Events<D,Token> OnChangedTo(const Signal<D,S>& target, V&& value);
+    OnChangedTo(const Signal<D,S>& target, V&& value)
+      -> Events<D,Token>
 }
-{% endhighlight %}
+-->

@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>{{ page.title }}</title>
+  <title>{{ page.title }} | C++React</title>
   <link rel="icon" type="image/png" href="{{ site.baseurl }}/media/favicon.png">
   <link rel="stylesheet" href="{{ site.baseurl }}/styles/design.css">
   <link rel="stylesheet" href="{{ site.baseurl }}/styles/syntax.css">
@@ -19,10 +19,10 @@
     <ul id="api_list">
       <li class="api_group"><a class="group_link" href="{{ site.baseurl }}/reference/Algorithm.h/">Algorithm.h</a></li>
       <!-- <li class="api_subgroup">Functions</li> -->
-      <li><a class="ref_link" href="{{ site.baseurl }}/reference/Algorithm.h/Iterate.html"><img class="entity_icon" src="{{ site.baseurl }}/media/icon_func.png" /> Iterate</a></li>
       <li><a class="ref_link" href="{{ site.baseurl }}/reference/Algorithm.h/Hold.html"><img class="entity_icon" src="{{ site.baseurl }}/media/icon_func.png" /> Hold</a></li>
-      <li><a class="ref_link" href="{{ site.baseurl }}/reference/Algorithm.h/Snapshot.html"><img class="entity_icon" src="{{ site.baseurl }}/media/icon_func.png" /> Snapshot</a></li>
       <li><a class="ref_link" href="{{ site.baseurl }}/reference/Algorithm.h/Monitor.html"><img class="entity_icon" src="{{ site.baseurl }}/media/icon_func.png" /> Monitor</a></li>
+      <li><a class="ref_link" href="{{ site.baseurl }}/reference/Algorithm.h/Iterate.html"><img class="entity_icon" src="{{ site.baseurl }}/media/icon_func.png" /> Iterate</a></li>
+      <li><a class="ref_link" href="{{ site.baseurl }}/reference/Algorithm.h/Snapshot.html"><img class="entity_icon" src="{{ site.baseurl }}/media/icon_func.png" /> Snapshot</a></li>
       <li><a class="ref_link" href="{{ site.baseurl }}/reference/Algorithm.h/Pulse.html"><img class="entity_icon" src="{{ site.baseurl }}/media/icon_func.png" /> Pulse</a></li>
       <li><a class="ref_link" href="{{ site.baseurl }}/reference/Algorithm.h/OnChanged.html"><img class="entity_icon" src="{{ site.baseurl }}/media/icon_func.png" /> OnChanged</a></li>
       <li><a class="ref_link" href="{{ site.baseurl }}/reference/Algorithm.h/OnChangedTo.html"><img class="entity_icon" src="{{ site.baseurl }}/media/icon_func.png" /> OnChangedTo</a></li>
@@ -94,14 +94,20 @@
 <div id="content_panel_container">
   <div id="content_panel_header">
     <span class="header_text">
+
 {% for group in page.groups %}
       <a href="{{ site.baseurl }}/{{ group.url }}">{{ group.name }}</a> &#8640;
 {% endfor %}
+
       {{ page.title }}
     </span>
   </div>
   <div class="content_panel_body">
-    <h1>{{ page.title }} <span class="type_tag">{{ page.type_tag }}</span></h1>
+
+{% if page.no_title != true %}
+  <h1>{{ page.title }} <span class="type_tag">{{ page.type_tag }}</span></h1>
+{% endif %}
+    
     {{ content }}
   </div>
 </div>

@@ -153,6 +153,10 @@ a.ref_link {
   padding: 2px 0px 2px 20px;
 }
 
+a.code_link {
+  font-family: monospace;
+}
+
 a.ref_link:hover {
     background: rgba(0, 0, 0, 0.2);
     text-decoration: none;

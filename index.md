@@ -1,9 +1,12 @@
 ---
 layout: default
 title: Home
+no_title: true
 ---
-![]({{ site.baseurl }}/media/logo_banner.png)
+# ![C++React]({{ site.baseurl }}/media/logo_banner3.png)
 
-![]({{ site.baseurl }}/media/logo_banner2.png)
+### Tutorials
 
-![]({{ site.baseurl }}/media/logo_banner3.png)
+### User Guide
+
+### [Reference]({{ site.baseurl }}/reference/)
