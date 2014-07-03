@@ -31,6 +31,9 @@ Contains the observer template classes and functions.
 {% highlight C++ %}
 namespace react
 {
+    // ObserverAction
+    class ObserverAction
+    
     // Observer
     class Observer<D>;
 

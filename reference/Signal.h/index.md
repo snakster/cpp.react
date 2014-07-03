@@ -13,35 +13,72 @@ Contains the signal template classes and functions.
 ## Synopsis
 
 ### Classes
+
+<div class="highlight"><pre><code class="c++"><span class="k">namespace</span> <span class="n">react</span>
+<span class="p">{</span>
+    <span class="c1">// Signal</span>
+    <span class="k">class</span> <a class="code_link" href="{{ site.baseurl }}/reference/Signal.h/Signal.html">Signal</a><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;</span>
+
+    <span class="c1">// VarSignal</span>
+    <span class="k">class</span> <a class="code_link" href="{{ site.baseurl }}/reference/Signal.h/VarSignal.html">VarSignal</a><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;</span>
+
+    <span class="c1">// TempSignal</span>
+    <span class="k">class</span> <a class="code_link" href="{{ site.baseurl }}/reference/Signal.h/TempSignal.html">TempSignal</a><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="cm">/*unspecified*/</span><span class="o">&gt;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<!--
 {% highlight C++ %}
 namespace react
 {
     // Signal
-    class Signal<D,S>;
+    class Signal<D,S>
 
     // VarSignal
-    class VarSignal<D,S>;
+    class VarSignal<D,S>
 
     // TempSignal
-    class TempSignal<D,S,/*unspecified*/>;
+    class TempSignal<D,S,/*unspecified*/>
 }
 {% endhighlight %}
+-->
 
 ### Functions
+
+<div class="highlight"><pre><code class="c++"><span class="k">namespace</span> <span class="n">react</span>
+<span class="p">{</span>
+    <span class="c1">//Creates a new variable signal</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Signal.h/MakeVar.html">MakeVar</a><span class="p">(</span><span class="n">V</span><span class="o">&amp;&amp;</span> <span class="n">init</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">VarSignal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="o">&gt;</span>
+
+    <span class="c1">// Creates a signal as a function of other signals</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Signal.h/MakeSignal.html">MakeSignal</a><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">func</span><span class="p">,</span> <span class="k">const</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">TValues</span><span class="o">&gt;&amp;</span> <span class="p">...</span> <span class="n">args</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">TempSignal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="cm">/*unspecified*/</span><span class="o">&gt;</span>
+
+    <span class="c1">// Creates a new signal by flattening a signal of a signal</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Signal.h/Flatten.html">Flatten</a><span class="p">(</span><span class="k">const</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span> <span class="n">other</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">T</span><span class="o">&gt;</span>
+<span class="p">}</span> 
+</code></pre></div>
+
+<!--
 {% highlight C++ %}
 namespace react
 {
     //Creates a new variable signal
-    VarSignal<D,S> MakeVar(V&& init);
+    MakeVar(V&& init)
+      -> VarSignal<D,S>
 
     // Creates a signal as a function of other signals
-    TempSignal<D,S,/*unspecified*/>
-        MakeSignal(F&& func, const Signal<D,TValues>& ... args);
+    MakeSignal(F&& func, const Signal<D,TValues>& ... args)
+      -> TempSignal<D,S,/*unspecified*/>
 
     // Creates a new signal by flattening a signal of a signal
-    Signal<D,T> Flatten(const Signal<D,Signal<D,T>>& other);
+    Flatten(const Signal<D,Signal<D,T>>& other)
+      -> Signal<D,T>
 } 
 {% endhighlight %}
+-->
 
 ### Operators
 {% highlight C++ %}
@@ -55,12 +92,12 @@ namespace react
     //
 
     // OP <Signal>
-    TempSignal<D,S,/*unspecified*/>
-        OP(const TSignal& arg)
+    OP(const TSignal& arg)
+      -> TempSignal<D,S,/*unspecified*/>
 
     // OP <TempSignal>
-    TempSignal<D,S,/*unspecified*/>
-        OP(TempSignal<D,TVal,/*unspecified*/>&& arg);
+    OP(TempSignal<D,TVal,/*unspecified*/>&& arg)
+      -> TempSignal<D,S,/*unspecified*/>
 
     //
     // Overloaded binary operators
@@ -73,42 +110,41 @@ namespace react
     //      Bitwise shift:  <<  >>
     //
 
-
     // <Signal> BIN_OP <Signal>
-    TempSignal<D,S,/*unspecified*/>
-        BIN_OP(const TLeftSignal& lhs, const TRightSignal& rhs)
+    BIN_OP(const TLeftSignal& lhs, const TRightSignal& rhs)
+      -> TempSignal<D,S,/*unspecified*/>
 
     // <Signal> BIN_OP <NonSignal>
-    TempSignal<D,S,/*unspecified*/>
-        BIN_OP(const TLeftSignal& lhs, TRightVal&& rhs);
+    BIN_OP(const TLeftSignal& lhs, TRightVal&& rhs)
+      -> TempSignal<D,S,/*unspecified*/>
 
     // <NonSignal> BIN_OP <Signal>
-    TempSignal<D,S,/*unspecified*/>
-        BIN_OP(TLeftVal&& lhs, const TRightSignal& rhs);
+    BIN_OP(TLeftVal&& lhs, const TRightSignal& rhs)
+      -> TempSignal<D,S,/*unspecified*/>
 
     // <TempSignal> BIN_OP <TempSignal>
-    TempSignal<D,S,/*unspecified*/>
-        BIN_OP(TempSignal<D,TLeftVal,/*unspecified*/>&& lhs,
-               TempSignal<D,TRightVal,/*unspecified*/>&& rhs);
+    BIN_OP(TempSignal<D,TLeftVal,/*unspecified*/>&& lhs,
+           TempSignal<D,TRightVal,/*unspecified*/>&& rhs)
+      -> TempSignal<D,S,/*unspecified*/>
 
     // <TempSignal> BIN_OP <Signal>
-    TempSignal<D,S,/*unspecified*/>
-        BIN_OP(TempSignal<D,TLeftVal,/*unspecified*/>&& lhs,
-               const TRightSignal& rhs);
+    BIN_OP(TempSignal<D,TLeftVal,/*unspecified*/>&& lhs,
+           const TRightSignal& rhs)
+      -> TempSignal<D,S,/*unspecified*/>
 
     // <Signal> BIN_OP <TempSignal>
-    TempSignal<D,S,/*unspecified*/>
-        BIN_OP(const TLeftSignal& lhs,
-               TempSignal<D,TRightVal,/*unspecified*/>&& rhs)
+    BIN_OP(const TLeftSignal& lhs,
+           TempSignal<D,TRightVal,/*unspecified*/>&& rhs)
+      -> TempSignal<D,S,/*unspecified*/>
 
     // <TempSignal> BIN_OP <NonSignal>
-    TempSignal<D,S,/*unspecified*/>
-        BIN_OP(TempSignal<D,TLeftVal,/*unspecified*/>&& lhs,
-               TRightVal&& rhs);
+    BIN_OP(TempSignal<D,TLeftVal,/*unspecified*/>&& lhs,
+           TRightVal&& rhs)
+      -> TempSignal<D,S,/*unspecified*/>
 
     // <NonSignal> BIN_OP <TempSignal>
-    TempSignal<D,S,/*unspecified*/>
-        BIN_OP(TLeftVal&& lhs,
-               TempSignal<D,TRightVal,/*unspecified*/>&& rhs);
+    BIN_OP(TLeftVal&& lhs,
+           TempSignal<D,TRightVal,/*unspecified*/>&& rhs)
+      -> TempSignal<D,S,/*unspecified*/>
 }
 {% endhighlight %}
