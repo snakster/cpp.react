@@ -92,17 +92,6 @@ public:
 {% endhighlight %}
 
 ## Template parameters
-<table>
-<tr>
-<td>D</td>
-<td>The domain this signal belongs to.</td>
-</tr>
-<tr>
-<td>S</td>
-<td>Signal value type. Aliased as member type <code>ValueT</code>.</td>
-</tr>
-</table>
-
 <table class="wide_table">
     <tr>
         <td class="descriptor_cell">D</td>
