@@ -176,7 +176,7 @@ Returns a const reference to the current signal value.
 
 -----
 
-<h1>Flatten, <span class="type_tag">member function</span></h1>
+<h1>Flatten <span class="type_tag">member function</span></h1>
 
 ## Syntax
 {% highlight C++ %}
