@@ -2,4 +2,4 @@
 layout: default
 title: Home
 ---
-Todo
+![]({{ site.baseurl }}/media/logo_banner.png)
