@@ -107,15 +107,15 @@ input.search_input {
 
 p code {
   margin: 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
   background-color: rgba(0, 0, 0, 0.05);
   font-size: 13px;
   padding: 0 4px 0 4px;
 }
 
 span.type_tag {
-  border: 1px solid rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(0, 0, 0, 0.2);
   background-color: rgba(0, 0, 0, 0.05);
   border-radius: 4px;

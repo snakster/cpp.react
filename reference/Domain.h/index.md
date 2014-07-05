@@ -8,7 +8,9 @@ groups:
 Contains the base class for reactive domains and the macro to define them.
 
 ## Header
+{% highlight C++ %}
 `#include "react/Domain.h"`
+{% endhighlight %}
 
 ## Synopsis
 

@@ -8,7 +8,9 @@ groups:
 Contains the signal template classes and functions.
 
 ## Header
+{% highlight C++ %}
 `#include "react/Signal.h"`
+{% endhighlight %}
 
 ## Synopsis
 

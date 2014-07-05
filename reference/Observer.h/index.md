@@ -8,7 +8,9 @@ groups:
 Contains the observer template classes and functions.
 
 ## Header
+{% highlight C++ %}
 `#include "react/Observer.h"`
+{% endhighlight %}
 
 ## Synopsis
 

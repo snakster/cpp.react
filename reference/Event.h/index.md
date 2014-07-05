@@ -8,7 +8,9 @@ groups:
 Contains the event stream template classes and functions.
 
 ## Header
+{% highlight C++ %}
 `#include "react/Event.h"`
+{% endhighlight %}
 
 ## Synopsis
 
