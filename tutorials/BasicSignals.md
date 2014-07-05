@@ -14,15 +14,22 @@ groups:
 - [Modifying inputs in-place](#modifying-inputs-in-place)
 
 ## Preface
+
 This tutorial demonstrates basic usage of signals.
 
 The following code examples are kept fairly brief to focus on the presented features.
 Repeated definitions are omitted and we assume that the used types and functions from the standard library, i.e. `std::string` or `std::cout`, are available in the current namespace.
 Working source code to accompany this tutorial can be found [here]().
 
+
 ## Defining a domain
 
-Reactive values are grouped by logical domains.
+Each reactive value belongs to a logical domains. Their purpose is
+
+* grouping related reactive values together and encapsulating them;
+* allowing different concurrency policies for different domains;
+* simplifying management of dependency relations by splitting up the dependency graph into smaller pieces.
+
 Hence, the first thing we do is defining a domain:
 
 {% highlight C++ %}
@@ -34,25 +41,20 @@ REACTIVE_DOMAIN(MyDomain, sequential)
 {% endhighlight %}
 
 The first parameter of the `REACTIVE_DOMAIN` macro is the domain name.
-Technically, a domain is a type, so it can be aliased with `using`/`typedef` or used as a type parameter for templates.
+Technically, a domain is a type, so it can be aliased or used as a type parameter for templates.
 Think of it as being declared as `class MyDomain : /*...*/`.
 
 The second parameter specifies the concurrency policy, which controls
 
-* (1) concurrent input and
-* (2) parallel updating.
+* concurrent input, and
+* parallel updating.
 
-For this tutorial, neither is needed, so we use `sequential`.
+For this tutorial, neither is relevant, so we use `sequential`.
 
-The purpose of domains is
-
-* grouping related reactive values together and encapsulating them;
-* allowing different concurrency policies for different domains;
-* simplifying management of dependency relations by splitting up the respective graph into smaller pieces.
 
 ## Hello world
 
-Next, we are going to create a simple signal that holds the string `Hello world`:
+Next, we create a simple signal that holds the string `"Hello world"`:
 {% highlight C++ %}
 #include "react/Domain.h"
 #include "react/Signal.h"
@@ -64,15 +66,15 @@ REACTIVE_DOMAIN(D, sequential)
 VarSignal<D,string> myString = MakeVar<D>(string( "Hello world" ));
 {% endhighlight %}
 
-`D` was used as the domain name for its shortness, as it will be for the remainder of this tutorial.
+`D` is used as the domain name for its shortness, as it will be for the remainder of this tutorial.
 
 Conceptionally, an instance of type `Signal<D,S>` is a reactive container that holds a single value of type `S` and belongs to domain `D`.
-`myString` was declared as a `VarSignal`, which allows you to modify its value later; declaring it as `Signal` would've made it read-only.
+`myString` is declared as a `VarSignal`, which allows us to modify its value later; declaring it as `Signal` would've made it read-only.
 
-The `MakeVar<D>` function takes a value of type `S` and returns a new `VarSignal<D,S>`, which initially holds that value.
+The `MakeVar<D>` function takes a value of type `S` and returns a new `VarSignal<D,S>`, which initially holds the given value.
 
-`myString` is similar to an "ordinary" variable; its value can be read imperatively with `myString.Value()` and changed with `myString.Set(x)`.
-An alternative to `Set(x)` is the overloaded `<<=` operator, i.e. `myString <<= x`.
+`myString` is similar to an ordinary variable; its value can be read imperatively with `Value()` and changed with `Set(x)`.
+An alternative to `myString.Set(x)` is the overloaded `<<=` operator, i.e. `myString <<= x`.
 This should not be mixed up with the assignment operator, which is reserved to assign the signal itself, not the inner value.
 
 So far that's not very reactive - let's make it more interesting.
@@ -101,9 +103,9 @@ SignalT<string> bothWords =
 The macro `USING_REACTIVE_DOMAIN(name)` defines aliases for reactive types of the given domain in the current scope.
 This allows us to use `VarSignalT<S>` instead of `VarSignal<D,S>`.
 
-`firstWord` and `secondWord` are two `VarSignals` we can change later.
+`firstWord` and `secondWord` are two `VarSignals` that can be changed later.
 
-With `MakeSignal`, we have connected the values of the signals in the `With(...)` expression to the function arguments of `concatFunc`.
+`MakeSignal` connects the values of the signals in the `With(...)` expression to the function arguments of `concatFunc`.
 The value type of the created signal matches the return type of the function.
 The value of `bothWords` is automatically set by calling `concatFunc(firstWord.Value(), secondWord.Value())`.
 This happens to set the initial value and when `firstWord` or `secondWord` have been changed.
@@ -118,7 +120,7 @@ secondWord <<= string( "world" );
 cout << bothWords.Value() << endl; // output: "Hello world"
 {% endhighlight %}
 
-`MakeSignal` accepts any type of function, including lambdas:
+`MakeSignal` accepts any type of function, including lambdas or `std::bind` expressions:
 {% highlight C++ %}
 SignalT<string> bothWords =
     MakeSignal(
@@ -149,11 +151,11 @@ Either the value of a signal is a function of its dependent signals, or its valu
 
 ## Reacting to value changes
 
-In the previous example, we first pushed new values with `<<=`, then pulled a result with `Value()`.
+In the previous example, new values were pushed with `<<=`, then the result was pulled `Value()`.
 There are some issues with this approach:
 
 * Concurrent pushes and pulls are not thread-safe, so they have to be coordinated somehow;
-* `Value()` is not suitable if we want to react to value changes.
+* `Value()` is not suitable to react to value changes.
 
 There can be situations where the use of `Value()` is appropriate and we used it in the initial examples to demonstrate the basic idea behind signals.
 However, in most cases a push-based approach should be preferred.
