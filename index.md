@@ -5,8 +5,8 @@ no_title: true
 ---
 # ![C++React]({{ site.baseurl }}/media/logo_banner3.png)
 
-### Tutorials
+### [Tutorials]({{ site.baseurl }}/tutorials/)
 
-### User Guide
+### [User Guide]({{ site.baseurl }}/guides/)
 
 ### [Reference]({{ site.baseurl }}/reference/)
