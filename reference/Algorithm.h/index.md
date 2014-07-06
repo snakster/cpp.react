@@ -9,7 +9,7 @@ Contains various reactive operations to combine and convert signals and events.
 
 ## Header
 {% highlight C++ %}
-`#include "react/Algorithm.h"`
+#include "react/Algorithm.h"
 {% endhighlight %}
 
 ## Synopsis
