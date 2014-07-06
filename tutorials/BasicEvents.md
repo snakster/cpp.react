@@ -32,7 +32,7 @@ EventSourceT<string> mySource = MakeEventSource<D,string>();
 {% endhighlight %}
 `EventSource` and  `Events` are the respective counterparts of `VarSignal` and `Signal`.
 
-Analogously to VarSignalT<S>, `EventSourceT<E>` is an alias for `EventSource<D,E>` defined by `USING_REACTIVE_DOMAIN`.
+Analogously to `VarSignalT<S>`, `EventSourceT<E>` is an alias for `EventSource<D,E>` defined by `USING_REACTIVE_DOMAIN`.
 
 Unlike signals, event streams are purely push-based.
 They forward values to be processed, but don't hold on to them.
