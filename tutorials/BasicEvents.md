@@ -6,17 +6,10 @@ groups:
  - {name: Tutorials , url: 'tutorials/'}
 ---
 
-- [Preface](#preface)
 - [Hello world](#hello-world)
 - [Merging event streams](#merging-event-streams)
 - [Processing events](#filtering-events)
 - [Changing multiple inputs](#changing-multiple-inputs)
-
-## Preface
-
-This tutorial covers the event basics.
-It's assumed that the previous tutorial on signals has been understood.
-
 
 ## Hello World
 
@@ -36,7 +29,7 @@ Analogously to `VarSignalT<S>`, `EventSourceT<E>` is an alias for `EventSource<D
 
 Unlike signals, event streams are purely push-based.
 They forward values to be processed, but don't hold on to them.
-There is no equivalent to the `Value()` accessor of `Signals`.
+There is no equivalent to the `Value()` accessor of `Signal`.
 
 This means to do anything useful with `mySource`, we have to add an observer:
 
@@ -69,7 +62,7 @@ It's not uncommon that the value type transported by an event stream is irreleva
 For instance, when a button has been clicked. In this case, the value type can be omitted.
 We create a second version of the "Hello world" program to demonstrate this:
 {% highlight C++ %}
-D::EventSourceT<> helloWorldTrigger = MakeEventSource<D>();
+EventSourceT<> helloWorldTrigger = MakeEventSource<D>();
 {% endhighlight %}
 {% highlight C++ %}
 Observe(helloWorldTrigger, [] (Token) {
@@ -113,7 +106,7 @@ rightClick.Emit(); // output: clicked
 {% endhighlight %}
 `Merge` takes a variable number of arguments, so more than two streams can be merged at once.
 
-An alternative is using the overloaded `|` for merging:
+An alternative is using the overloaded `|` operator for merging:
 {% highlight C++ %}
 EventsT<> anyClick = leftClick | rightClick;
 {% endhighlight %}
@@ -141,8 +134,7 @@ numbers << 5 << 11 << 7 << 100; // output: 11, 100
 {% endhighlight %}
 If the filter predicate function returns true for the passed value, it will be forwarded. Otherwise, it's filtered out.
 
-Events can be transformed with `Transform`.
-
+Events can also be transformed with `Transform`. In other functional programming languages this operation would be called map, but we stick to the naming of `std::transform`.
 For example, we can transform a stream of numbers into a `std::pair` of the number and a tag that indicates whether the former exceeded a certain threshold:
 {% highlight C++ %}
 enum Tag { normal, critical };
@@ -160,9 +152,9 @@ EventsT<TaggedNum> tagged  = Transform(numbers, [] (int n) {
 {% highlight C++ %}
 Observe(tagged, [] (const TaggedNum& t) {
     if (t.first == critical)
-        cout << "(critical) " << t.second << std::endl;
+        cout << "(critical) " << t.second << endl;
     else
-        cout << "(normal)  " << t.second << std::endl;
+        cout << "(normal)  " << t.second << endl;
 });
 {% endhighlight %}
 {% highlight C++ %}

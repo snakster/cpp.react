@@ -24,7 +24,7 @@ Working source code to accompany this tutorial can be found [here]().
 
 ## Defining a domain
 
-Each reactive value belongs to a logical domains. Their purpose is
+Each reactive value belongs to a logical domain. The purpose of a domain is
 
 * grouping related reactive values together and encapsulating them;
 * allowing different concurrency policies for different domains;
@@ -131,7 +131,7 @@ SignalT<string> bothWords =
 {% endhighlight %}
 
 The `With` utility function creates a `SignalPack` from a variable number of given signals.
-A single signal can be used directly as the first argument, but multiple signals are usually wrapped in `SignalPack` instead of passing them directly.
+A single signal can be used directly as the first argument, but multiple signals are wrapped by `With` instead of passing them directly.
 
 The example can be made more concise, because the body of `concatFunc` consists of operators only:
 {% highlight C++ %}
@@ -151,11 +151,11 @@ Either the value of a signal is a function of its dependent signals, or its valu
 
 ## Reacting to value changes
 
-In the previous example, new values were pushed with `<<=`, then the result was pulled `Value()`.
+In the previous example, new values were pushed with `<<=`, then the result was pulled with `Value()`.
 There are some issues with this approach:
 
 * Concurrent pushes and pulls are not thread-safe, so they have to be coordinated somehow;
-* `Value()` is not suitable to react to value changes.
+* `Value()` provides no means to react to value changes (unless you count in polling).
 
 There can be situations where the use of `Value()` is appropriate and we used it in the initial examples to demonstrate the basic idea behind signals.
 However, in most cases a push-based approach should be preferred.
@@ -236,16 +236,17 @@ a <<= 2;
 
 How many outputs does this generate?
 
-After `a` is changed, the change is propagated to `x` and `y`.
+When `a` is changed, the new value is propagated to `x` and `y`.
 `z` depends on both of them, so it could be updated twice.
 But there is just going to be a single observable output: z changed to 6.
 
+Here's why:
 After each input (e.g. `a <<= 2`), the resulting changes are propagated to all dependent signals until all values are consistent again.
 This process is called a `turn`.
-Propagation is guaranteed to be _update-minimal_, which means that during a **single** turn, no value is going to be re-calculated more than once,
-and no observer is going be called more than once.
+Propagation is guaranteed to be _update-minimal_, which means that during a **single** turn, no value is going to be re-calculated more than once.
+This includes that no observer is going be called more than once.
 
-Returning to the Hello world example, we can see that changing both inputs separately results in two turns:
+Returning to the previous example, we can see that changing both inputs separately results in two turns:
 {% highlight C++ %}
 firstWord  <<= string( "Hello" ); // Turn #1
 secondWord <<= string( "world" ); // Turn #2
@@ -261,7 +262,7 @@ DoTransaction<D>([] {
 {% endhighlight %}
 
 Input inside the function passed to `DoTransaction` does not immediately start a turn, but rather waits until the function returns.
-Then the changes of all inputs are propagated in a single turn.
+Then, the changes of all inputs are propagated in a single turn.
 Besides avoiding redundant calculations, this allows to process related inputs together.
 
 If there are multiple inputs to the same signal in a single transaction, only the last one is applied:
@@ -281,15 +282,13 @@ DoTransaction<D>([] {
 `VarSignals` require imperative input.
 So far, we've used `Set` (or the `<<=` equivalent notation) to do that, but there might be situations where we want to modify the current signal value rather than replacing it:
 {% highlight C++ %}
-using std::vector;
-
 VarSignalT<vector<string>> data = 
     MakeVar<D>(vector<string>{ });
 {% endhighlight %}
 {% highlight C++ %}
 auto v = data.Value(); // Copy
 v.push_back("Hello");  // Change
-data <<= std::move(v); // Replace (using move to avoid extra copy)
+data <<= std::move(v); // Replace (using move to avoid the extra copy)
 {% endhighlight %}
 Using this method, the new and old values will be compared internally, so in summary thats one copy, one comparison and two moves (one for the input, one after the comparison to apply the new value).
 

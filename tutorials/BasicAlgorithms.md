@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Algorithm basics
+title: Algorithms
 groups: 
  - {name: Home, url: ''}
  - {name: Tutorials , url: 'tutorials/'}
@@ -9,29 +9,17 @@ groups:
 - [Folding event streams into signals](#folding-event-streams-into-signals)
 - [Synchronized signal access](#folding-event-streams-into-signals)
 
-## Preface
-
-We assume the following headers to be included for the coming examples:
-{% highlight C++ %}
-#include "react/Domain.h"
-#include "react/Signal.h"
-#include "react/Event.h"
-#include "react/Observer.h"
-#include "react/Algorithm.h"
-{% endhighlight %}
-
-Further, the following domain definition is used:
-{% highlight C++ %}
-REACTIVE_DOMAIN(D, sequential)
-{% endhighlight %}
-
-
 ## Converting between events and signals
 
 So far, signals and event streams have been viewed separately, but it's possible to combine them with a set of generic functions.
 
 First, we use `Hold` to store the most recent event as a signal value:
 {% highlight C++ %}
+#include "react/Algorithm.h"
+// Note: Include other react headers as required
+
+REACTIVE_DOMAIN(D, sequential)
+
 class Sensor
 {
 public:
@@ -52,7 +40,7 @@ Observe(mySensor.LastSample, [] (int v) {
 mySensor.Samples << 20 << 21 << 21 << 22;
 // output: 20, 21, 22
 {% endhighlight %}
-It should be noted, that signal observers are only notified if the signal value changes, hence the second `21` event doesn't produce output.
+Note that signal observers are only notified if the signal value changes, hence the second `21` event doesn't produce output.
 
 If a stream emits multiple events during a single turn, only the last one is stored by `Hold`:
 {% highlight C++ %}
@@ -62,7 +50,7 @@ DoTransaction<D>([&] {
 // output: 22
 {% endhighlight %}
 
-In the other direction, with `Monitor` we can generate an event stream from signal changes:
+To convert in the opposite direction, `Monitor` generates an event stream from signal changes:
 {% highlight C++ %}
 class Entity
 {
@@ -83,9 +71,9 @@ This is similar to observing a signal, but by turning the changes into an event 
 
 While signals are stateful in the sense that they store their current value,
 all dependent signals (i.e. not `VarSignals`) could be expressed as pure functions of their predecessors.
-With `Iterate`, we can create signals that calculate their new value as a function of their current value.
+The `Iterate` function allows us to create signals that use their current state to calculate the next value.
 
-This is demonstrated on the example of a reactive counter:
+A simple application that makes use of this is a signal-based counter:
 {% highlight C++ %}
 class Counter
 {
@@ -115,10 +103,9 @@ cout << myCounter.Count() << endl;
  // output: 3
 {% endhighlight %}
 
-
-`Iterate` is semantically equivalent to the higher order functions fold/reduce you might know from other functional languages.
+`Iterate` is semantically equivalent to the higher order functions fold/reduce known from other functional languages.
 In this example, the signal is first initialized with zero;
-then, for every received increment event, the given function is called with the event value (a token in this case) and the current value of the signal.
+then, for every received increment event, the given iteration function is called with the event value (a token in this case) and the current value of the signal.
 The return value of the function is used as the new signal value.
 
 The event value can also be used in the computation. To show this, we calculate the average of measured samples:
@@ -128,7 +115,7 @@ class Sensor
 public:
     USING_REACTIVE_DOMAIN(D)
 
-    EventSourceT<int>   Input = MakeEventSource<D,int>();
+    EventSourceT<int> Input = MakeEventSource<D,int>();
     
     SignalT<float> Average = Iterate(
         Input,
@@ -143,7 +130,7 @@ public:
 
 However, when considering performance, this could be problematic.
 Updating a signal usually involves copying its current value, moving the copy into the passed function and comparing the result to the old value to decide whether it has been changed.
-For some types, like `std::vector` in this case, these operations are rather expensive as they result in allocations and repeated element-wise copying and comparing.
+For some types, e.g. `std::vector`, these operations are rather expensive as they result in allocations and repeated element-wise copying and comparing.
 
 To avoid this, `Iterate` also supports pass-by non-const reference. To enable this, we change the parameter type accordingly and return `void` instead of the new value:
 {% highlight C++ %}
@@ -156,14 +143,14 @@ public:
     
     SignalT<vector<int>> AllSamples = Iterate(
         Input,
-        vector<int>{},
+        vector<int>{ },
         [] (int input, vector<int>& v) {
             v.push_back(input);
         });
 
     SignalT<vector<int>> CriticalSamples = Iterate(
         Input,
-        vector<int>{},
+        vector<int>{ },
         [] (int input, vector<int>& v) {
             if (input > 10)
                 v.push_back(input);
@@ -171,7 +158,7 @@ public:
 };
 {% endhighlight %}
 
-Similar to `Signal.Modify()`, the downside is that since the new and old values can no longer be compared, the signal will always assume a change.
+Similar to `Signal.Modify()`, the downside is that since the new and old values can no longer be compared, hence the signal will always assume a change.
 
 
 ## Synchronized signal access
@@ -215,7 +202,7 @@ The proper way of accessing `Threshold` is by passing an additional signal pack 
 SignalT<vector<int>> CriticalSamples = Iterate(
     Input,
     With(Threshold),
-    vector<int>{},
+    vector<int>{ },
     [] (int input, vector<int>& v, int threshold) {
         if (input > threshold)
             v.push_back(input);
@@ -223,6 +210,44 @@ SignalT<vector<int>> CriticalSamples = Iterate(
 {% endhighlight %}
 
 The current values of the signal pack constructed by `With(...)` are passed as additional arguments to the iteration function.
-In this case, that's only `Threshold`.
 Changes of the synchronized signals do _not_ lead to calls to iteration function.
 It's still events from the first event stream argument that triggers them (in this case, that would be `Input`).
+
+Besides `Iterate`, there are more functions that support synchronized access to signal values. Namely those are
+
+* `Observe` for event streams,
+* `Filter`, and
+* `Transform`.
+
+Here's another example for `Observe`:
+{% highlight C++ %}
+class Person
+{
+public:
+    USING_REACTIVE_DOMAIN(D)
+
+    VarSignalT<string>  Name;
+    VarSignalT<string>  Occupation;
+    VarSignalT<int>     Age;
+
+    Person(string name, string occupation, int age) :
+        Name( MakeVar<D>(name) ),
+        Occupation( MakeVar<D>(occupation) ),
+        Age( MakeVar(age) )
+    {}
+};
+{% endhighlight %}
+
+{% highlight C++ %}
+Person joe( "Joe", "Plumber", 42 );
+
+auto obs = Observe(
+    Monitor(joe.Age),
+    With(joe.Name, joe.Occupation),
+    [] (int age, string name, string occupation) {
+        cout << name << " the " << occupation << " turned " << age << endl;
+    });
+
+joe.Age <<= joe.Age.Value() + 1;
+// output: Joe the Plumber turned 43
+{% endhighlight %}

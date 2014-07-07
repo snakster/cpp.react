@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Observer basics
+title: Observers
 groups: 
  - {name: Home, url: ''}
  - {name: Tutorials , url: 'tutorials/'}
@@ -34,7 +34,7 @@ void testFunc()
 {% endhighlight %}
 After leaving `testFunc`, `trigger` is destroyed.
 This automatically detaches and destroys the observer as well.
-We don't have to worry about resource leaks or that the existence of an observer prevents subject from being destroyed.
+We don't have to worry about resource leaks or that the existence of an observer might prevent the subject from being destroyed.
 
 
 ## Detaching observers manually
@@ -64,9 +64,9 @@ void testFunc()
 The observer handle returned by `Observe` is stored and by calling its `Detach` member function, the underlying observer node is destroyed and the handle becomes invalid.
 
 While it exists and has not been invalidated, an observer handle also takes shared ownership of the observed subject, i.e. by saving it, we state our continued interest in subject.
-This behaviour comes in handy later.
+This behaviour comes in handy as shown later.
 
-To detach an observer from the inside, the return value of the observer function is changed from  `void` to `ObserverAction`:
+To create self-detaching observers, the return value of the observer function is changed from  `void` to `ObserverAction`:
 {% highlight C++ %}
 void testFunc()
 {
