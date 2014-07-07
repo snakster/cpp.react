@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Signal basics
+title: Signals
 groups: 
  - {name: Home, url: ''}
  - {name: Tutorials , url: 'tutorials/'}

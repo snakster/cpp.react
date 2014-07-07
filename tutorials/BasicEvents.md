@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Event basics
+title: Event streams
 groups: 
  - {name: Home, url: ''}
  - {name: Tutorials , url: 'tutorials/'}
