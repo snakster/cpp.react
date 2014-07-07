@@ -78,7 +78,7 @@ An alternative to `myString.Set(x)` is the overloaded `<<=` operator, i.e. `mySt
 This should not be mixed up with the assignment operator, which is reserved to assign the signal itself, not the inner value.
 
 So far that's not very reactive - let's make it more interesting.
-First, we define a helper function to concatenate two strings and add whitespace in between them:
+First, we define a helper function to concatenate two strings and add whitespace in between:
 {% highlight C++ %}
 string concatFunc(string first, string second) {
     return first + string(" ") + second;
@@ -103,14 +103,14 @@ SignalT<string> bothWords =
 The macro `USING_REACTIVE_DOMAIN(name)` defines aliases for reactive types of the given domain in the current scope.
 This allows us to use `VarSignalT<S>` instead of `VarSignal<D,S>`.
 
-`firstWord` and `secondWord` are two `VarSignals` that can be changed later.
-
 `MakeSignal` connects the values of the signals in the `With(...)` expression to the function arguments of `concatFunc`.
 The value type of the created signal matches the return type of the function.
-The value of `bothWords` is automatically set by calling `concatFunc(firstWord.Value(), secondWord.Value())`.
-This happens to set the initial value and when `firstWord` or `secondWord` have been changed.
+It's set by implicitly calling `concatFunc(firstWord.Value(), secondWord.Value())`. This happens
 
-This code demonstrates how `bothWords` is updated automatically:
+- to set the initial value upon initialization of `bothWords`, and
+- when `firstWord` or `secondWord` have been changed.
+
+Here's a demonstration:
 {% highlight C++ %}
 cout << bothWords.Value() << endl; // output: "Change me!"
 
