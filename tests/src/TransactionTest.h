@@ -271,25 +271,25 @@ TYPED_TEST_P(TransactionTest, Merging1)
     // Todo: improve this as it'll fail occasionally
     shouldSpin = true;
     std::thread t1([&] {
-        D::DoTransaction(allow_merging, [&] {
+        DoTransaction<D>(allow_merging, [&] {
             n1 <<= 2;
         });
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     std::thread t2([&] {
-        D::DoTransaction(allow_merging, [&] {
+        DoTransaction<D>(allow_merging, [&] {
             n1 <<= 3;
         });
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     std::thread t3([&] {
-        D::DoTransaction(allow_merging, [&] {
+        DoTransaction<D>(allow_merging, [&] {
             n1 <<= 4;
         });
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     std::thread t4([&] {
-        D::DoTransaction(allow_merging, [&] {
+        DoTransaction<D>(allow_merging, [&] {
             n1 <<= 5;
         });
         
@@ -325,15 +325,15 @@ TYPED_TEST_P(TransactionTest, Async1)
 
     TransactionStatus st;
 
-    D::AsyncTransaction(st, [&] {
+    AsyncTransaction<D>(st, [&] {
         in <<= 10;
     });
 
-    D::AsyncTransaction(st, [&] {
+    AsyncTransaction<D>(st, [&] {
         in <<= 20;
     });
 
-    D::AsyncTransaction(st, [&] {
+    AsyncTransaction<D>(st, [&] {
         in <<= 30;
     });
 
@@ -363,7 +363,7 @@ TYPED_TEST_P(TransactionTest, AsyncMerging1)
 
     TransactionStatus st;
 
-    D::AsyncTransaction(allow_merging, st, [&] {
+    AsyncTransaction<D>(allow_merging, st, [&] {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         in <<= 10;
     });
@@ -372,25 +372,25 @@ TYPED_TEST_P(TransactionTest, AsyncMerging1)
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     // These two can still be pulled in after the first input function is done
-    D::AsyncTransaction(allow_merging, st, [&] {
+    AsyncTransaction<D>(allow_merging, st, [&] {
         in <<= 20;
     });
 
-    D::AsyncTransaction(allow_merging, st, [&] {
+    AsyncTransaction<D>(allow_merging, st, [&] {
         in <<= 30;
     });
 
     // Can't be merged
-    D::AsyncTransaction(st, [&] {
+    AsyncTransaction<D>(st, [&] {
         in <<= 40;
     });
 
     // These two should be merged again
-    D::AsyncTransaction(allow_merging, st, [&] {
+    AsyncTransaction<D>(allow_merging, st, [&] {
         in <<= 50;
     });
 
-    D::AsyncTransaction(allow_merging, st, [&] {
+    AsyncTransaction<D>(allow_merging, st, [&] {
         in <<= 60;
     });
 
@@ -434,7 +434,7 @@ TYPED_TEST_P(TransactionTest, Continuation2)
 {
     using L = typename Continuation2::MyDomain;
 
-    REACTIVE_DOMAIN(R, sequential)
+    REACTIVE_DOMAIN(R, sequential_concurrent)
 
     std::vector<int> results;
 
@@ -467,7 +467,7 @@ TYPED_TEST_P(TransactionTest, Continuation3)
 {
     using L = typename Continuation3::MyDomain;
 
-    REACTIVE_DOMAIN(R, sequential)
+    REACTIVE_DOMAIN(R, sequential_concurrent)
 
     std::vector<int> results;
 
@@ -507,6 +507,52 @@ TYPED_TEST_P(TransactionTest, Continuation3)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Continuation4 test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(TransactionTest, Continuation4)
+{
+    using D = typename Continuation4::MyDomain;
+
+    using std::vector;
+
+    auto vect = MakeVar<D>(vector<int>{});
+
+    int count = 0;
+
+    auto cont = MakeContinuation(vect, [&] (const vector<int>& v)
+    {    
+        if (count == 0)
+        {
+            ASSERT_EQ(v[0], 30);
+
+            vect.Modify([] (vector<int>& v) {
+                v.push_back(50);
+            });
+        }
+        else if (count == 1)
+        {
+            ASSERT_EQ(v[1], 50);
+
+            vect.Modify([] (vector<int>& v) {
+                v.push_back(70);
+            });
+        }
+        else
+        {
+            ASSERT_EQ(v[2], 70);
+        }
+
+        count++;
+    });
+
+    vect.Modify([] (vector<int>& v) {
+        v.push_back(30);
+    });
+
+    ASSERT_EQ(count, 3);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     TransactionTest,
@@ -518,7 +564,8 @@ REGISTER_TYPED_TEST_CASE_P
     AsyncMerging1,
     Continuation1,
     Continuation2,
-    Continuation3
+    Continuation3,
+    Continuation4
 );
 
 } // ~namespace

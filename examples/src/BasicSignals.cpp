@@ -154,7 +154,7 @@ namespace example3
         a <<= 2; // output: z changed to 6
         b <<= 2; // output: z changed to 8
 
-        D::DoTransaction([] {
+        DoTransaction<D>([] {
             a <<= 4;
             b <<= 4; 
         }); // output: z changed to 16

@@ -46,7 +46,7 @@ namespace example1
 
         mySensor.Samples << 20 << 21 << 21 << 22; // output: 20, 21, 22
 
-        D::DoTransaction([&] {
+        DoTransaction<D>([&] {
             mySensor.Samples << 30 << 31 << 31 << 32;
         }); // output: 32
 

@@ -226,7 +226,7 @@ TYPED_TEST_P(SignalTest, Signals3)
 
     ASSERT_EQ(result(),6);
 
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         a1 <<= 2;
         a2 <<= 2;
     });
@@ -421,7 +421,7 @@ TYPED_TEST_P(SignalTest, Flatten2)
     ASSERT_EQ(result(), 100 + 300);
     ASSERT_EQ(observeCount, 2);
 
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         a0 <<= 5000;
         a1 <<= 6000;
     });
@@ -462,7 +462,7 @@ TYPED_TEST_P(SignalTest, Flatten3)
     ASSERT_EQ(result(), 10 + 30);
     ASSERT_EQ(observeCount, 0);
 
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         inner1 <<= 1000;
         a0 <<= 200000;
         a1 <<= 50000;
@@ -472,7 +472,7 @@ TYPED_TEST_P(SignalTest, Flatten3)
     ASSERT_EQ(result(), 50000 + 200000);
     ASSERT_EQ(observeCount, 1);
 
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         a0 <<= 667;
         a1 <<= 776;
     });
@@ -480,7 +480,7 @@ TYPED_TEST_P(SignalTest, Flatten3)
     ASSERT_EQ(result(), 776 + 667);
     ASSERT_EQ(observeCount, 2);
 
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         inner1 <<= 999;
         a0 <<= 888;
     });
@@ -516,7 +516,7 @@ TYPED_TEST_P(SignalTest, Flatten4)
         results.push_back(v);
     });
 
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         a3 <<= 400;
         outer <<= inner2;
     });
@@ -596,7 +596,7 @@ TYPED_TEST_P(SignalTest, Modify2)
         obsCount++;
     });
     
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         v.Modify([] (vector<int>& v) {
             v.push_back(30);
         });
@@ -625,53 +625,6 @@ TYPED_TEST_P(SignalTest, Modify3)
 
     auto vect = MakeVar<D>(vector<int>{});
 
-    int count = 0;
-
-    // Terrible, but lets test it
-    auto cont = MakeContinuation(vect, [&] (const vector<int>& v)
-    {    
-        if (count == 0)
-        {
-            ASSERT_EQ(v[0], 30);
-
-            vect.Modify([] (vector<int>& v) {
-                v.push_back(50);
-            });
-        }
-        else if (count == 1)
-        {
-            ASSERT_EQ(v[1], 50);
-
-            vect.Modify([] (vector<int>& v) {
-                v.push_back(70);
-            });
-        }
-        else
-        {
-            ASSERT_EQ(v[2], 70);
-        }
-
-        count++;
-    });
-
-    vect.Modify([] (vector<int>& v) {
-        v.push_back(30);
-    });
-
-    ASSERT_EQ(count, 3);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Modify4 test
-///////////////////////////////////////////////////////////////////////////////////////////////////
-TYPED_TEST_P(SignalTest, Modify4)
-{
-    using D = typename Modify4::MyDomain;
-
-    using std::vector;
-
-    auto vect = MakeVar<D>(vector<int>{});
-
     int obsCount = 0;
 
     Observe(vect, [&] (const vector<int>& v) {
@@ -683,7 +636,7 @@ TYPED_TEST_P(SignalTest, Modify4)
     });
     
     // Also terrible
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
 
         vect.Set(vector<int>{ 30, 50 });
 
@@ -704,7 +657,7 @@ REGISTER_TYPED_TEST_CASE_P
     FunctionBind1, FunctionBind2,
     Flatten1, Flatten2, Flatten3, Flatten4,
     Member1,
-    Modify1, Modify2, Modify3, Modify4
+    Modify1, Modify2, Modify3
 
 );
 

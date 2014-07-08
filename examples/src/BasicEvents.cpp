@@ -238,7 +238,7 @@ namespace example5
             cout << v << endl;
         }); // output: 1, 2, 3, 4
 
-        D::DoTransaction([] {
+        DoTransaction<D>([] {
             src << 1 << 2 << 3;
             src << 4;
         });

@@ -46,7 +46,7 @@ namespace example1
             cout << "Size changed to " << newValue << endl;
         });
 
-        D::DoTransaction([&] {
+        DoTransaction<D>([&] {
             myShape.Width  <<= 4;
             myShape.Height <<= 4; 
         }); // output: Size changed to 16

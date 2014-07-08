@@ -127,8 +127,11 @@ public:
 private:
     std::shared_ptr<StateT> state_;
 
-    template <typename D, typename TPolicy>
-    friend class DomainBase;
+    template <typename D, typename F>
+    friend void AsyncTransaction(TransactionStatus& status, F&& func);
+
+    template <typename D, typename F>
+    friend void AsyncTransaction(TurnFlagsT flags, TransactionStatus& status, F&& func);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -177,59 +180,6 @@ public:
     using ScopedObserverT = ScopedObserver<D>;
 
     using ReactorT = Reactor<D>;
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    /// DoTransaction
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    template <typename F>
-    static void DoTransaction(F&& func)
-    {
-        using REACT_IMPL::DomainSpecificInputManager;
-        DomainSpecificInputManager<D>::Instance().DoTransaction(0, std::forward<F>(func));
-    }
-
-    template <typename F>
-    static void DoTransaction(TurnFlagsT flags, F&& func)
-    {
-        using REACT_IMPL::DomainSpecificInputManager;
-        DomainSpecificInputManager<D>::Instance().DoTransaction(flags, std::forward<F>(func));
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    /// AsyncTransaction
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    template <typename F>
-    static void AsyncTransaction(F&& func)
-    {
-        using REACT_IMPL::DomainSpecificInputManager;
-        DomainSpecificInputManager<D>::Instance()
-            .AsyncTransaction(0, nullptr, std::forward<F>(func));
-    }
-
-    template <typename F>
-    static void AsyncTransaction(TurnFlagsT flags, F&& func)
-    {
-        using REACT_IMPL::DomainSpecificInputManager;
-        DomainSpecificInputManager<D>::Instance()
-            .AsyncTransaction(flags, nullptr, std::forward<F>(func));
-    }
-
-    template <typename F>
-    static void AsyncTransaction(TransactionStatus& status, F&& func)
-    {
-        using REACT_IMPL::DomainSpecificInputManager;
-
-        DomainSpecificInputManager<D>::Instance()
-            .AsyncTransaction(0, status.state_, std::forward<F>(func));
-    }
-
-    template <typename F>
-    static void AsyncTransaction(TurnFlagsT flags, TransactionStatus& status, F&& func)
-    {
-        using REACT_IMPL::DomainSpecificInputManager;
-        DomainSpecificInputManager<D>::Instance()
-            .AsyncTransaction(flags, status.state_, std::forward<F>(func));
-    }
 
 #ifdef REACT_ENABLE_LOGGING
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -294,6 +244,8 @@ template
 auto MakeContinuation(const Signal<D,S>& trigger, FIn&& func)
     -> Continuation<D,DOut>
 {
+    static_assert(DOut::is_concurrent, "MakeContinuation requires concurrent target domain.");
+
     using REACT_IMPL::SignalContinuationNode;
     using F = typename std::decay<FIn>::type;
 
@@ -315,6 +267,8 @@ template
 auto MakeContinuation(const Events<D,E>& trigger, FIn&& func)
     -> Continuation<D,DOut>
 {
+    static_assert(DOut::is_concurrent, "MakeContinuation requires concurrent target domain.");
+
     using REACT_IMPL::EventContinuationNode;
     using F = typename std::decay<FIn>::type;
 
@@ -338,6 +292,8 @@ auto MakeContinuation(const Events<D,E>& trigger,
                       const SignalPack<D,TDepValues...>& depPack, FIn&& func)
     -> Continuation<D,DOut>
 {
+    static_assert(DOut::is_concurrent, "MakeContinuation requires concurrent target domain.");
+
     using REACT_IMPL::SyncedContinuationNode;
     using F = typename std::decay<FIn>::type;
 
@@ -364,6 +320,67 @@ auto MakeContinuation(const Events<D,E>& trigger,
     return REACT_IMPL::apply(
         NodeBuilder_( trigger, std::forward<FIn>(func) ),
         depPack.Data);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+/// DoTransaction
+///////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename F>
+void DoTransaction(F&& func)
+{
+    using REACT_IMPL::DomainSpecificInputManager;
+    DomainSpecificInputManager<D>::Instance().DoTransaction(0, std::forward<F>(func));
+}
+
+template <typename D, typename F>
+void DoTransaction(TurnFlagsT flags, F&& func)
+{
+    using REACT_IMPL::DomainSpecificInputManager;
+    DomainSpecificInputManager<D>::Instance().DoTransaction(flags, std::forward<F>(func));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+/// AsyncTransaction
+///////////////////////////////////////////////////////////////////////////////////////////////
+template <typename D, typename F>
+void AsyncTransaction(F&& func)
+{
+    static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
+
+    using REACT_IMPL::DomainSpecificInputManager;
+    DomainSpecificInputManager<D>::Instance()
+        .AsyncTransaction(0, nullptr, std::forward<F>(func));
+}
+
+template <typename D, typename F>
+void AsyncTransaction(TurnFlagsT flags, F&& func)
+{
+    static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
+
+    using REACT_IMPL::DomainSpecificInputManager;
+    DomainSpecificInputManager<D>::Instance()
+        .AsyncTransaction(flags, nullptr, std::forward<F>(func));
+}
+
+template <typename D, typename F>
+void AsyncTransaction(TransactionStatus& status, F&& func)
+{
+    static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
+
+    using REACT_IMPL::DomainSpecificInputManager;
+
+    DomainSpecificInputManager<D>::Instance()
+        .AsyncTransaction(0, status.state_, std::forward<F>(func));
+}
+
+template <typename D, typename F>
+void AsyncTransaction(TurnFlagsT flags, TransactionStatus& status, F&& func)
+{
+    static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
+
+    using REACT_IMPL::DomainSpecificInputManager;
+    DomainSpecificInputManager<D>::Instance()
+        .AsyncTransaction(flags, status.state_, std::forward<F>(func));
 }
 
 /******************************************/ REACT_END /******************************************/

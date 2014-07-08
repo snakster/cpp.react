@@ -21,10 +21,12 @@ using namespace react;
 // Defines a domain.
 // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
 // Reactives of different domains can not be combined.
-REACTIVE_DOMAIN(D, sequential)
+
 
 void SignalExample3()
 {
+    REACTIVE_DOMAIN(D, sequential_concurrent)
+
     cout << "Signal Example 3" << endl;
 
     auto src = MakeVar<D>(0);
@@ -109,6 +111,8 @@ void SignalExample5()
 
 void testme()
 {
+    REACTIVE_DOMAIN(D, sequential_concurrent)
+
     std::vector<int> results;
 
     auto f_0 = [] (int a) -> int
@@ -159,21 +163,21 @@ void testme()
 
     for (int i=0; i<10000; i++)
     {
-        D::AsyncTransaction(st, [&,i] {
+        AsyncTransaction<D>(st, [&,i] {
             n1 <<= 1+i;
         });
     }
 
     for (int i=0; i<10000; i++)
     {
-        D::AsyncTransaction(st, [&,i] {
+        AsyncTransaction<D>(st, [&,i] {
             n1 <<= 20000+i;
         });
     }
 
     for (int i=0; i<10000; i++)
     {
-        D::AsyncTransaction(st, [&,i] {
+        AsyncTransaction<D>(st, [&,i] {
             n1 <<= 100000+i;
         });
     }

@@ -93,7 +93,7 @@ TYPED_TEST_P(OperationsTest, Iterate2)
         ASSERT_EQ(v, 5050);
     });
 
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         for (auto i=1; i<=100; i++)
             numSrc << i;
     });
@@ -660,7 +660,7 @@ TYPED_TEST_P(OperationsTest, SyncedEventTransform1)
 
     in1 << string("Hello Worlt") << string("Hello World");
 
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         in2 << string("Hello Vorld");
         first.Set(string("Alice"));
         last.Set(string("Anderson"));

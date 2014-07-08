@@ -111,7 +111,7 @@ TYPED_TEST_P(EventStreamTest, EventMerge1)
         results.push_back(v);
     });
     
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         a1 << 10;
         a2 << 20;
         a3 << 30;
@@ -147,7 +147,7 @@ TYPED_TEST_P(EventStreamTest, EventMerge2)
     std::string s2("two");
     std::string s3("three");
 
-    D::DoTransaction([&] {
+    DoTransaction<D>([&] {
         a1 << s1;
         a2 << s2;
         a3 << s3;
