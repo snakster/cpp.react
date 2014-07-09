@@ -13,15 +13,6 @@ groups:
 - [Changing multiple inputs](#changing-multiple-inputs)
 - [Modifying inputs in-place](#modifying-inputs-in-place)
 
-## Preface
-
-This tutorial demonstrates basic usage of signals.
-
-The following code examples are kept fairly brief to focus on the presented features.
-Repeated definitions are omitted and we assume that the used types and functions from the standard library, i.e. `std::string` or `std::cout`, are available in the current namespace.
-Working source code to accompany this tutorial can be found [here]().
-
-
 ## Defining a domain
 
 Each reactive value belongs to a logical domain. The purpose of a domain is
