@@ -1,5 +1,3 @@
-# Introduction
-
 # ![C++React](http://schlangster.github.io/cpp.react//media/logo_banner3.png)
 
 C++React is reactive programming library for C++11.
