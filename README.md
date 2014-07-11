@@ -196,7 +196,7 @@ using namespace react;
 
 ## Acknowledgements
 
-The API of Cpp.React has been inspired by the following two research papers:
+The API of C++React has been inspired by the following two research papers:
 
 * [Deprecating the Observer Pattern with Scala.React](http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf)
 * [REScala: Bridging Between Object-oriented and Functional Style in Reactive Applications](http://www.stg.tu-darmstadt.de/media/st/research/rescala_folder/REScala-Bridging-The-Gap-Between-Object-Oriented-And-Functional-Style-In-Reactive-Applications.pdf)
