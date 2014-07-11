@@ -1,39 +1,50 @@
 # Introduction
-Cpp.React is reactive programming library for C++11.
+
+# ![C++React](http://schlangster.github.io/cpp.react//media/logo_banner3.png)
+
+C++React is reactive programming library for C++11.
+
 Generally speaking, it provides abstractions to handle change propagation and data processing for a push-based event model.
+A more practical description is that it enables coordinated, multi-layered - and potentially parallel - execution of callbacks.
+All this happens implicitly, based on declarative definitions, with guarantees regarding
 
-The two core features of the library are
+- update-minimality - nothing is re-calculated or processed unnecessarily;
+- glitch-freedom - no transiently inconsistent data sets;
+- thread-safety - no data races for parallel execution.
 
-* **signals**, reactive variables that are automatically re-calculated when their dependencies change, and
-* **event streams** as composable first class objects.
+The core abstractions of the library are
 
-Signals specifically deal with aspects of time-varying state, whereas event streams facilitate generic processing.
-A set of operations and algorithms can be used to combine signals and events.
-Together, these abstractions enable intuitive modeling of dataflow systems in a declarative manner.
+- **signals**, reactive variables that are automatically re-calculated when their dependencies change, and
+- **event streams** as composable first class objects.
 
-In this case, declarative means that the programer defines how values are calculated through functional composition of other values.
-Applying these calcuations is implicitely handled by a so-called propagation engine as changes are propagated through the dataflow graph.
+Signals specifically deal with aspects of time-varying state, whereas event streams facilitate event processing in general.
 
-Since the engine has the "whole picture", it can schedule updates efficiently, so that:
+Additional features include
 
-* No value is re-calculated or processed unnecessarily;
-* intermediate results are cached to avoid redundant calculations;
-* no glitches will occur (i.e. no inconsistent sets of input values).
+- a publish/subscribe mechanism for callbacks with side-effects;
+- a set of operations and algorithms to combine signals and events;
+- a domain model to encapsulate multiple reactive systems;
+- transactions to group related events, supporting both synchronous and asynchrounous execution.
 
-It can even implicitly parallelize calculations, while automatically taking care of potential data-races and effective utilization of available parallel hardware.
-
-This makes using Cpp.React an alternative to implementing imperative change propagation manually through callback functions and side-effects.
 
 # Documentation
-The documentation is still incomplete, but it already contains plenty of useful information and examples.
-It can be found in the [wiki](https://github.com/schlangster/cpp.react/wiki).
+
+If you're interested in learning about C++React, [have a look at its documentation](http://schlangster.github.io/cpp.react/).
+
+It's still incomplete, but it already contains plenty of useful information and examples.
+
 
 # Development
-Cpp.React is a work-in-progress and should not be considered release quality yet.
-The project has been actively developed for about 6 months and has seen a fair share of testing and tuning during that time, so it's in a usable state.
+
+This library is still a work-in-progress and should not be considered release quality yet.
+
+Don't let this statement stop you from giving it a try though!
+It's in a usable state and has already seen a fair share of testing and tuning during it's development so far.
+
 
 ### Compiling
-Cpp.React has been tested with the following compilers:
+
+The following compilers are supported at the moment:
 
 * Visual Studio 2013.2
 * GCC 4.8.2
@@ -51,10 +62,13 @@ make
 
 For more details, see [Build instructions](https://github.com/schlangster/cpp.react/wiki/Build-instructions).
 
+
 ### Dependencies
+
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
 * [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the unit tests)
 * [Boost 1.55.0 C++ Libraries](http://www.boost.org/) (optional, to include Reactor.h, which requires `boost::coroutine`)
+
 
 # Features by example
 
