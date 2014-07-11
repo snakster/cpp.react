@@ -25,14 +25,14 @@ Additional features include
 - transactions to group related events, supporting both synchronous and asynchrounous execution.
 
 
-# Documentation
+## Documentation
 
 If you're interested in learning about C++React, [have a look at its documentation](http://schlangster.github.io/cpp.react/).
 
 It's still incomplete, but it already contains plenty of useful information and examples.
 
 
-# Development
+## Development
 
 This library is still a work-in-progress and should not be considered release quality yet.
 
@@ -68,9 +68,9 @@ For more details, see [Build instructions](https://github.com/schlangster/cpp.re
 * [Boost 1.55.0 C++ Libraries](http://www.boost.org/) (optional, to include Reactor.h, which requires `boost::coroutine`)
 
 
-# Features by example
+## Features by example
 
-## Signals
+### Signals
 
 Signals are self-updating reactive variables.
 They can be combined to expressions to create new signals, which are automatically re-calculated whenever one of their data dependencies changes.
@@ -114,7 +114,7 @@ Overloaded operators for signal types allow to omit `MakeSignal` in this case fo
 SignalT<int> area = width * height;
 ```
 
-## Events and Observers
+### Event streams and Observers
 
 Event streams represent flows of discrete values. They are first-class objects and can be merged, filtered, transformed or composed to more complex types:
 
@@ -141,7 +141,7 @@ auto obs = Observe(merged, [] (Token) {
 rightClicked.Emit(); // => clicked!
 ```
 
-## Parallelism and concurrency
+### Parallelism and concurrency
 
 The change propagation is handled implicitly by a propagation engine.
 Depending on the selected engine, updates can be parallelized:
@@ -188,13 +188,13 @@ using namespace react;
 }
 ```
 
-## More examples
+### More examples
 
 * [Examples](https://github.com/schlangster/cpp.react/tree/master/examples/src)
 * [Test cases](https://github.com/schlangster/cpp.react/tree/master/tests/src)
 * [Benchmarks](https://github.com/schlangster/cpp.react/blob/master/benchmarks/src/BenchmarkLifeSim.h)
 
-# Acknowledgements
+## Acknowledgements
 
 The API of Cpp.React has been inspired by the following two research papers:
 
