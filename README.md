@@ -34,10 +34,9 @@ It's still incomplete, but it already contains plenty of useful information and 
 
 ## Development
 
-This library is still a work-in-progress and should not be considered release quality yet.
-
-Don't let this statement stop you from giving it a try though!
-It's in a usable state and has already seen a fair share of testing and tuning during it's development so far.
+This library is a work-in-progress and should not be considered release quality yet.
+Don't let this statement stop you from giving it a try though.
+It's in a usable state and has already received a fair amount of testing and tuning.
 
 
 ### Compiling
@@ -98,12 +97,12 @@ SignalT<int> area = MakeSignal(
     });
 ```
 ```
-// Signal values can be accessed imperativly at any time,
-// but only VarSignals can be directly manipulated.
+// Signal values can be accessed imperativly
 cout << "area: " << area.Value() << endl; // => area: 2
 
-// Width changed, so area is re-calculated automatically
+// VarSignals can be manipulated imperatively
 width.Set(10);
+// Width changed, so area is re-calculated automatically
 
 cout << "area: " << area.Value() << endl; // => area: 20
 ```
@@ -143,8 +142,8 @@ rightClicked.Emit(); // => clicked!
 
 ### Parallelism and concurrency
 
-The change propagation is handled implicitly by a propagation engine.
-Depending on the selected engine, updates can be parallelized:
+The change propagation is handled implicitly.
+Depending on the selected concurrency policy, updates can be parallelized:
 
 ```C++
 using namespace react;
@@ -192,7 +191,6 @@ using namespace react;
 
 * [Examples](https://github.com/schlangster/cpp.react/tree/master/examples/src)
 * [Test cases](https://github.com/schlangster/cpp.react/tree/master/tests/src)
-* [Benchmarks](https://github.com/schlangster/cpp.react/blob/master/benchmarks/src/BenchmarkLifeSim.h)
 
 ## Acknowledgements
 
