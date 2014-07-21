@@ -83,6 +83,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\react\common\RefCounting.h" />
     <ClInclude Include="..\..\include\react\common\Timing.h" />
     <ClInclude Include="..\..\include\react\detail\EventBase.h" />
     <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h" />

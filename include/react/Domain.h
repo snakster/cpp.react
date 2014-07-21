@@ -97,35 +97,36 @@ using REACT_IMPL::EPropagationMode;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class TransactionStatus
 {
-    using StateT = REACT_IMPL::AsyncState;
+    using StateT = REACT_IMPL::SharedWaitingState;
+    using PtrT = REACT_IMPL::WaitingStatePtrT;
 
 public:
     TransactionStatus() :
-        state_( std::make_shared<StateT>() )
+        statePtr_( StateT::Create() )
     {}
 
     TransactionStatus(const TransactionStatus&) = default;
 
     TransactionStatus(TransactionStatus&& other) :
-        state_( std::move(other.state_) )
+        statePtr_( std::move(other.statePtr_) )
     {}
 
     TransactionStatus& operator=(const TransactionStatus&) = default;
 
     TransactionStatus& operator=(TransactionStatus&& other)
     {
-        state_ = std::move(other.state_);
+        statePtr_ = std::move(other.statePtr_);
         return *this;
     }
 
     inline void Wait()
     {
-        assert(state_.get() != nullptr);
-        state_->Wait();
+        assert(statePtr_.Get() != nullptr);
+        statePtr_->Wait();
     }
 
 private:
-    std::shared_ptr<StateT> state_;
+    PtrT statePtr_;
 
     template <typename D, typename F>
     friend void AsyncTransaction(TransactionStatus& status, F&& func);
@@ -241,17 +242,31 @@ template
     typename S,
     typename FIn
 >
-auto MakeContinuation(const Signal<D,S>& trigger, FIn&& func)
+auto MakeContinuation(TurnFlagsT flags, const Signal<D,S>& trigger, FIn&& func)
     -> Continuation<D,DOut>
 {
-    static_assert(DOut::is_concurrent, "MakeContinuation requires concurrent target domain.");
+    static_assert(DOut::is_concurrent,
+        "MakeContinuation requires support for concurrent input to target domain.");
 
     using REACT_IMPL::SignalContinuationNode;
     using F = typename std::decay<FIn>::type;
 
     return Continuation<D,DOut>(
         std::make_shared<SignalContinuationNode<D,DOut,S,F>>(
-            trigger.NodePtr(), std::forward<FIn>(func)));
+            flags, trigger.NodePtr(), std::forward<FIn>(func)));
+}
+
+template
+<
+    typename D,
+    typename DOut = D,
+    typename S,
+    typename FIn
+>
+auto MakeContinuation(const Signal<D,S>& trigger, FIn&& func)
+    -> Continuation<D,DOut>
+{
+    return MakeContinuation<D,DOut>(0, trigger, std::forward<FIn>(func));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -264,17 +279,31 @@ template
     typename E,
     typename FIn
 >
-auto MakeContinuation(const Events<D,E>& trigger, FIn&& func)
+auto MakeContinuation(TurnFlagsT flags, const Events<D,E>& trigger, FIn&& func)
     -> Continuation<D,DOut>
 {
-    static_assert(DOut::is_concurrent, "MakeContinuation requires concurrent target domain.");
+    static_assert(DOut::is_concurrent,
+        "MakeContinuation requires support for concurrent input to target domain.");
 
     using REACT_IMPL::EventContinuationNode;
     using F = typename std::decay<FIn>::type;
 
     return Continuation<D,DOut>(
         std::make_shared<EventContinuationNode<D,DOut,E,F>>(
-            trigger.NodePtr(), std::forward<FIn>(func)));
+            flags, trigger.NodePtr(), std::forward<FIn>(func)));
+}
+
+template
+<
+    typename D,
+    typename DOut = D,
+    typename E,
+    typename FIn
+>
+auto MakeContinuation(const Events<D,E>& trigger, FIn&& func)
+    -> Continuation<D,DOut>
+{
+    return MakeContinuation<D,DOut>(0, trigger, std::forward<FIn>(func));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -288,18 +317,20 @@ template
     typename FIn,
     typename ... TDepValues
 >
-auto MakeContinuation(const Events<D,E>& trigger,
+auto MakeContinuation(TurnFlagsT flags, const Events<D,E>& trigger,
                       const SignalPack<D,TDepValues...>& depPack, FIn&& func)
     -> Continuation<D,DOut>
 {
-    static_assert(DOut::is_concurrent, "MakeContinuation requires concurrent target domain.");
+    static_assert(DOut::is_concurrent,
+        "MakeContinuation requires support for concurrent input to target domain.");
 
     using REACT_IMPL::SyncedContinuationNode;
     using F = typename std::decay<FIn>::type;
 
     struct NodeBuilder_
     {
-        NodeBuilder_(const Events<D,E>& trigger, FIn&& func) :
+        NodeBuilder_(TurnFlagsT flags, const Events<D,E>& trigger, FIn&& func) :
+            MyFlags( flags ),
             MyTrigger( trigger ),
             MyFunc( std::forward<FIn>(func) )
         {}
@@ -309,17 +340,34 @@ auto MakeContinuation(const Events<D,E>& trigger,
         {
             return Continuation<D,DOut>(
                 std::make_shared<SyncedContinuationNode<D,DOut,E,F,TDepValues...>>(
+                    MyFlags,
                     MyTrigger.NodePtr(),
                     std::forward<FIn>(MyFunc), deps.NodePtr() ...));
         }
 
+        TurnFlagsT          MyFlags;
         const Events<D,E>&  MyTrigger;
         FIn                 MyFunc;
     };
 
     return REACT_IMPL::apply(
-        NodeBuilder_( trigger, std::forward<FIn>(func) ),
+        NodeBuilder_( flags, trigger, std::forward<FIn>(func) ),
         depPack.Data);
+}
+
+template
+<
+    typename D,
+    typename DOut = D,
+    typename E,
+    typename FIn,
+    typename ... TDepValues
+>
+auto MakeContinuation(const Events<D,E>& trigger,
+                      const SignalPack<D,TDepValues...>& depPack, FIn&& func)
+    -> Continuation<D,DOut>
+{
+    return MakeContinuation<D,DOut>(0, trigger, depPack, std::forward<FIn>(func));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -370,7 +418,7 @@ void AsyncTransaction(TransactionStatus& status, F&& func)
     using REACT_IMPL::DomainSpecificInputManager;
 
     DomainSpecificInputManager<D>::Instance()
-        .AsyncTransaction(0, status.state_, std::forward<F>(func));
+        .AsyncTransaction(0, status.statePtr_, std::forward<F>(func));
 }
 
 template <typename D, typename F>
@@ -380,7 +428,7 @@ void AsyncTransaction(TurnFlagsT flags, TransactionStatus& status, F&& func)
 
     using REACT_IMPL::DomainSpecificInputManager;
     DomainSpecificInputManager<D>::Instance()
-        .AsyncTransaction(flags, status.state_, std::forward<F>(func));
+        .AsyncTransaction(flags, status.statePtr_, std::forward<F>(func));
 }
 
 /******************************************/ REACT_END /******************************************/

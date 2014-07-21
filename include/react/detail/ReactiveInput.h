@@ -20,6 +20,7 @@
 #include <mutex>
 #include <utility>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 #include "tbb/concurrent_queue.h"
@@ -42,13 +43,14 @@ class IObserver;
 /// Common types & constants
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 using TurnIdT = uint;
-using TurnFlagsT = uint;
 using TransactionFuncT = std::function<void()>;
 
 enum ETurnFlags
 {
     allow_merging    = 1 << 0
 };
+
+using TurnFlagsT = std::underlying_type<ETurnFlags>::type;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EInputMode
@@ -64,7 +66,7 @@ enum EInputMode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct IContinuationTarget
 {
-    virtual void AsyncContinuation(TransactionFuncT&&) = 0;
+    virtual void AsyncContinuation(TurnFlagsT, const WaitingStatePtrT&, TransactionFuncT&&) = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,10 +89,10 @@ template <EPropagationMode>
 class ContinuationManager
 {
 public:
-    void StoreContinuation(IContinuationTarget& target, TransactionFuncT&& cont);
+    void StoreContinuation(IContinuationTarget& target, TurnFlagsT flags, TransactionFuncT&& cont);
 
-    bool HasNext() const;
-    void ProcessNext();
+    bool HasContinuations() const;
+    void StartContinuations(const WaitingStatePtrT& waitingStatePtr);
 
     void QueueObserverForDetach(IObserver& obs);
 
@@ -102,27 +104,39 @@ public:
 template <>
 class ContinuationManager<sequential_propagation>
 {
-    using ContDataT     = std::pair<IContinuationTarget*,TransactionFuncT>;
-    using DataQueueT    = std::deque<ContDataT>;
-    using ObsVectT      = std::vector<IObserver*>;
+    struct Data_
+    {
+        Data_(IContinuationTarget* target, TurnFlagsT flags, TransactionFuncT&& func) :
+            Target( target ),
+            Flags( flags ),
+            Func( func )
+        {}
+
+        IContinuationTarget*    Target;
+        TurnFlagsT              Flags;
+        TransactionFuncT        Func;
+    };
+
+    using DataVectT = std::vector<Data_>;
+    using ObsVectT  = std::vector<IObserver*>;
 
 public:
-    void StoreContinuation(IContinuationTarget& target, TransactionFuncT&& cont)
+    void StoreContinuation(IContinuationTarget& target, TurnFlagsT flags, TransactionFuncT&& cont)
     {
-        storedContinuations_.emplace_back(&target, std::move(cont));
+        storedContinuations_.emplace_back(&target, flags, std::move(cont));
     }
 
-    bool HasNext() const
+    bool HasContinuations() const
     {
         return !storedContinuations_.empty();
     }
 
-    void ProcessNext()
+    void StartContinuations(const WaitingStatePtrT& waitingStatePtr)
     {
-        ContDataT t = std::move(storedContinuations_.front());
-        storedContinuations_.pop_front();
+        for (auto& t : storedContinuations_)
+            t.Target->AsyncContinuation(t.Flags, waitingStatePtr, std::move(t.Func));
 
-        t.first->AsyncContinuation(std::move(t.second));
+        storedContinuations_.clear();
     }
 
     // Todo: Move this somewhere else
@@ -142,7 +156,7 @@ public:
     }
 
 private:
-    DataQueueT  storedContinuations_;
+    DataVectT   storedContinuations_;
     ObsVectT    detachedObservers_;
 };
 
@@ -150,36 +164,42 @@ private:
 template <>
 class ContinuationManager<parallel_propagation>
 {
-    using ContDataT     = std::pair<IContinuationTarget*,TransactionFuncT>;
-    using DataQueueT    = std::deque<ContDataT>;
-    using ObsVectT      = std::vector<IObserver*>;
+    struct Data_
+    {
+        Data_(IContinuationTarget* target, TurnFlagsT flags, TransactionFuncT&& func) :
+            Target( target ),
+            Flags( flags ),
+            Func( func )
+        {}
+
+        IContinuationTarget*    Target;
+        TurnFlagsT              Flags;
+        TransactionFuncT        Func;
+    };
+
+    using DataVecT  = std::vector<Data_>;
+    using ObsVectT  = std::vector<IObserver*>;
 
 public:
-    void StoreContinuation(IContinuationTarget& target, TransactionFuncT&& cont)
+    void StoreContinuation(IContinuationTarget& target, TurnFlagsT flags, TransactionFuncT&& cont)
     {
-        storedContinuations_.local().emplace_back(&target, std::move(cont));
+        storedContinuations_.local().emplace_back(&target, flags, std::move(cont));
         ++contCount_;
     }
 
-    bool HasNext() const
+    bool HasContinuations() const
     {
         return contCount_ != 0;
     }
 
-    void ProcessNext()
+    void StartContinuations(const WaitingStatePtrT& waitingStatePtr)
     {
         for (auto& v : storedContinuations_)
-        {
-            if (v.size() == 0)
-                continue;
+            for (auto& t : v)
+                t.Target->AsyncContinuation(t.Flags, waitingStatePtr, std::move(t.Func));
 
-            ContDataT t = std::move(v.front());
-            v.pop_front();
-            contCount_--;
-
-            t.first->AsyncContinuation(std::move(t.second));
-            break;
-        }
+        storedContinuations_.clear();
+        contCount_ = 0;
     }
 
     void QueueObserverForDetach(IObserver& obs)
@@ -201,55 +221,11 @@ public:
     }
 
 private:
-    tbb::enumerable_thread_specific<DataQueueT> storedContinuations_;
+    tbb::enumerable_thread_specific<DataVecT>   storedContinuations_;
     tbb::enumerable_thread_specific<ObsVectT>   detachedObservers_;
 
     size_t contCount_ = 0;
 };
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// AsyncState
-///////////////////////////////////////////////////////////////////////////////////////////////////
-class AsyncState
-{
-public:
-    inline void Wait()
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-        condition_.wait(lock, [this] { return !isWaiting_; });
-    }
-
-    inline void IncWaitCount()
-    {
-        auto oldVal = waitCount_.fetch_add(1, std::memory_order_relaxed);
-
-        if (oldVal == 0)
-        {// mutex_
-            std::lock_guard<std::mutex> scopedLock(mutex_);
-            isWaiting_ = true;
-        }// ~mutex_
-    }
-
-    inline void DecWaitCount()
-    {
-        auto oldVal = waitCount_.fetch_sub(1, std::memory_order_relaxed);
-
-        if (oldVal == 1)
-        {// mutex_
-            std::lock_guard<std::mutex> scopedLock(mutex_);
-            isWaiting_ = false;
-            condition_.notify_all();
-        }// ~mutex_
-    }
-
-private:
-    std::atomic<uint>           waitCount_{ 0 };
-    std::condition_variable     condition_;
-    std::mutex                  mutex_;
-    bool                        isWaiting_ = false;
-};
-
-using AsyncStatePtrT = std::shared_ptr<AsyncState>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TransactionQueue
@@ -263,14 +239,22 @@ public:
     {
     public:
         explicit QueueEntry(TurnFlagsT flags);
+
         void RunMergedInputs();
+
+        size_t  GetWaitingStatePtrCount() const;
+        void    MoveWaitingStatePtrs(std::vector<WaitingStatePtrT>& out);
+
+        void Release();
+
+        bool IsAsync() const;
     };
 
     template <typename F>
     bool TryMergeSync(F&& inputFunc);
 
     template <typename F>
-    bool TryMergeAsync(F&& inputFunc, AsyncStatePtrT&& statusPtr);
+    bool TryMergeAsync(F&& inputFunc, WaitingStatePtrT&& waitingStatePtr);
 
     void EnterQueue(QueueEntry& turn);
     void ExitQueue(QueueEntry& turn);
@@ -284,15 +268,23 @@ public:
     class QueueEntry
     {
     public:
-        explicit QueueEntry(TurnFlagsT flags)   {}
-        void RunMergedInputs()                  {}
+        explicit QueueEntry(TurnFlagsT flags) {}
+
+        void RunMergedInputs()  {}
+
+        size_t  GetWaitingStatePtrCount() const    { return 0; }
+        void    MoveWaitingStatePtrs(std::vector<WaitingStatePtrT>& out)  {}
+
+        void Release()  {}
+
+        bool IsAsync() const { return false; }
     };
 
     template <typename F>
     bool TryMergeSync(F&& inputFunc) { return false; }
 
     template <typename F>
-    bool TryMergeAsync(F&& inputFunc, AsyncStatePtrT&& statusPtr) { return false; }
+    bool TryMergeAsync(F&& inputFunc, WaitingStatePtrT&& waitingStatePtr) { return false; }
 
     void EnterQueue(QueueEntry& turn)   {}
     void ExitQueue(QueueEntry& turn)    {}
@@ -313,12 +305,13 @@ public:
         void Append(QueueEntry& tr)
         {
             successor_ = &tr;
-            tr.blockCondition_.Block();
+            tr.waitingState_.IncWaitCount();
+            ++waitingStatePtrCount_;
         }
 
         void WaitForUnblock()
         {
-            blockCondition_.WaitForUnblock();
+            waitingState_.Wait();
         }
 
         void RunMergedInputs() const
@@ -327,39 +320,67 @@ public:
                 e.InputFunc();
         }
 
-        void UnblockSuccessors()
+        size_t GetWaitingStatePtrCount() const
         {
+            return waitingStatePtrCount_;
+        }
+
+        void MoveWaitingStatePtrs(std::vector<WaitingStatePtrT>& out)
+        {
+            if (waitingStatePtrCount_ == 0)
+                return;
+
+            for (const auto& e : merged_)
+                if (e.WaitingStatePtr != nullptr)
+                    out.push_back(std::move(e.WaitingStatePtr));
+
+            if (successor_)
+            {
+                out.push_back(WaitingStatePtrT( &successor_->waitingState_ ));
+
+                // Ownership of successors waiting state has been transfered,
+                // we no longer need it
+                successor_ = nullptr;
+            }
+
+            waitingStatePtrCount_ = 0;
+        }
+
+        void Release()
+        {
+            if (waitingStatePtrCount_ == 0)
+                return;
+
             // Release merged
             for (const auto& e : merged_)
-            {
-                // Note: Since a merged input is either sync or async,
-                // either cond or status will be null
+                if (e.WaitingStatePtr != nullptr)
+                    e.WaitingStatePtr->DecWaitCount();
 
-                // Sync
-                if (e.Cond != nullptr)
-                    e.Cond->Unblock();
-
-                // Async
-                else if (e.StatusPtr != nullptr)
-                    e.StatusPtr->DecWaitCount();
-            }
+            // Waiting state ptrs may point to stack of waiting threads.
+            // After decwaitcount, they may start running and terminate.
+            // Thus, clear merged ASAP because it now contains invalid ptrs.
+            merged_.clear();
 
             // Release next thread in queue
             if (successor_)
-                successor_->blockCondition_.Unblock();
+                successor_->waitingState_.DecWaitCount();
         }
 
-        template <typename F>
-        bool TryMerge(F&& inputFunc, BlockingCondition* caller, AsyncStatePtrT&& statusPtr)
+        template <typename F, typename P>
+        bool TryMerge(F&& inputFunc, P&& waitingStatePtr)
         {
             if (!isMergeable_)
                 return false;
 
-            // Only merge if target is still blocked
-            bool merged = blockCondition_.RunIfBlocked([&] {
-                if (caller)
-                    caller->Block();
-                merged_.emplace_back(std::forward<F>(inputFunc), caller, std::move(statusPtr));
+            // Only merge if target is still waiting
+            bool merged = waitingState_.RunIfWaiting([&] {
+                if (waitingStatePtr != nullptr)
+                {
+                    waitingStatePtr->IncWaitCount();
+                    ++waitingStatePtrCount_;
+                }
+
+                merged_.emplace_back(std::forward<F>(inputFunc), std::forward<P>(waitingStatePtr));
             });
 
             return merged;
@@ -368,28 +389,23 @@ public:
     private:
         struct MergedData
         {
-            template <typename F>
-            MergedData(F&& func, BlockingCondition* cond, AsyncStatePtrT&& statusPtr) :
+            template <typename F, typename P>
+            MergedData(F&& func, P&& waitingStatePtr) :
                 InputFunc( std::forward<F>(func) ),
-                Cond( cond ),
-                StatusPtr( std::move(statusPtr) )
+                WaitingStatePtr( std::forward<P>(waitingStatePtr) )
             {}
 
             std::function<void()>   InputFunc;
-
-            // Blocking condition variable for sync merged
-            BlockingCondition*      Cond;  
-
-            // Status for async merged
-            AsyncStatePtrT          StatusPtr;
+            WaitingStatePtrT        WaitingStatePtr;
         };
 
         using MergedDataVectT = std::vector<MergedData>;
 
         bool                isMergeable_;
-        QueueEntry*         successor_ = nullptr;
+        QueueEntry*         successor_      = nullptr;
         MergedDataVectT     merged_;
-        BlockingCondition   blockCondition_;
+        UniqueWaitingState  waitingState_;
+        size_t              waitingStatePtrCount_ = 0;
     };
 
     template <typename F>
@@ -397,23 +413,24 @@ public:
     {
         bool merged = false;
 
-        BlockingCondition caller;
+        UniqueWaitingState st;
+        WaitingStatePtrT p( &st );
 
         {// seqMutex_
             SeqMutexT::scoped_lock lock(seqMutex_);
 
             if (tail_)
-                merged = tail_->TryMerge(std::forward<F>(inputFunc), &caller, nullptr);
+                merged = tail_->TryMerge(std::forward<F>(inputFunc), p);
         }// ~seqMutex_
 
         if (merged)
-            caller.WaitForUnblock();
+            p->Wait();
 
         return merged;
     }
 
     template <typename F>
-    bool TryMergeAsync(F&& inputFunc, AsyncStatePtrT&& statusPtr)
+    bool TryMergeAsync(F&& inputFunc, WaitingStatePtrT&& waitingStatePtr)
     {
         bool merged = false;
 
@@ -421,36 +438,37 @@ public:
             SeqMutexT::scoped_lock lock(seqMutex_);
 
             if (tail_)
-                merged = tail_->TryMerge(
-                    std::forward<F>(inputFunc), nullptr, std::move(statusPtr));
+                merged = tail_->TryMerge(std::forward<F>(inputFunc), std::move(waitingStatePtr));
         }// ~seqMutex_
 
         return merged;
     }
 
-    void EnterQueue(QueueEntry& turn)
+    void EnterQueue(QueueEntry& tr)
     {
         {// seqMutex_
             SeqMutexT::scoped_lock lock(seqMutex_);
 
             if (tail_)
-                tail_->Append(turn);
+                tail_->Append(tr);
 
-            tail_ = &turn;
+            tail_ = &tr;
         }// ~seqMutex_
 
-        turn.WaitForUnblock();
+        tr.WaitForUnblock();
     }
 
-    void ExitQueue(QueueEntry& turn)
-    {// seqMutex_
-        SeqMutexT::scoped_lock lock(seqMutex_);
+    void ExitQueue(QueueEntry& tr)
+    {
+        {// seqMutex_
+            SeqMutexT::scoped_lock lock(seqMutex_);
 
-        turn.UnblockSuccessors();
+            if (tail_ == &tr)
+                tail_ = nullptr;
+        }// ~seqMutex_
 
-        if (tail_ == &turn)
-            tail_ = nullptr;
-    }// ~seqMutex_
+        tr.Release();
+    }
 
 private:
     using SeqMutexT = tbb::queuing_mutex;
@@ -470,7 +488,7 @@ private:
     struct AsyncItem
     {
         TurnFlagsT              Flags;
-        AsyncStatePtrT          StatusPtr;
+        WaitingStatePtrT        WaitingStatePtr;
         TransactionFuncT        Func;
     };
 
@@ -479,6 +497,8 @@ private:
     // Select between thread-safe and non thread-safe implementations
     using TransactionQueueT = TransactionQueue<D::Policy::input_mode>;
     using ContinuationManagerT = ContinuationManager<D::Policy::propagation_mode>;
+
+    using QueueEntryT = typename TransactionQueueT::QueueEntry;
 
 public:
     using TurnT = typename D::TurnT;
@@ -501,7 +521,8 @@ public:
 
         bool shouldPropagate = false;
         
-        typename TransactionQueueT::QueueEntry tr( flags );
+        QueueEntryT tr( flags );
+
         transactionQueue_.EnterQueue(tr);
 
         // Phase 1 - Input admission
@@ -525,18 +546,16 @@ public:
         if (shouldPropagate)
             Engine::Propagate(turn);
 
-        transactionQueue_.ExitQueue(tr);
-
-        processContinuations(flags);
+        finalizeSyncTransaction(tr);
     }
 
     template <typename F>
-    void AsyncTransaction(TurnFlagsT flags, const AsyncStatePtrT& statusPtr, F&& func)
+    void AsyncTransaction(TurnFlagsT flags, const WaitingStatePtrT& waitingStatePtr, F&& func)
     {
-        if (statusPtr != nullptr)
-            statusPtr->IncWaitCount();
+        if (waitingStatePtr != nullptr)
+            waitingStatePtr->IncWaitCount();
 
-        asyncQueue_.push(AsyncItem{ flags, statusPtr, std::forward<F>(func) } );
+        asyncQueue_.push(AsyncItem{ flags, waitingStatePtr, std::forward<F>(func) } );
     }
 
     template <typename R, typename V>
@@ -566,17 +585,16 @@ public:
     }
 
     //IContinuationTarget        
-    virtual void AsyncContinuation(TransactionFuncT&& cont) override
+    virtual void AsyncContinuation(TurnFlagsT flags, const WaitingStatePtrT& waitingStatePtr,
+                                   TransactionFuncT&& cont) override
     {
-        DoTransaction(0, std::move(cont));
-        // Todo: fixme
-        //AsyncTransaction(0, nullptr, std::move(cont));
+        AsyncTransaction(flags, waitingStatePtr, std::move(cont));
     }
     //~IContinuationTarget
 
-    void StoreContinuation(IContinuationTarget& target, TransactionFuncT&& cont)
+    void StoreContinuation(IContinuationTarget& target, TurnFlagsT flags, TransactionFuncT&& cont)
     {
-        continuationManager_.StoreContinuation(target, std::move(cont));
+        continuationManager_.StoreContinuation(target, flags, std::move(cont));
     }
 
     void QueueObserverForDetach(IObserver& obs)
@@ -599,7 +617,7 @@ private:
     template <typename R, typename V>
     void addSimpleInput(R& r, V&& v)
     {
-        typename TransactionQueueT::QueueEntry tr( 0 );
+        QueueEntryT tr( 0 );
 
         transactionQueue_.EnterQueue(tr);
 
@@ -612,15 +630,13 @@ private:
         if (r.ApplyInput(&turn))
             Engine::Propagate(turn);
 
-        transactionQueue_.ExitQueue(tr);
-
-        processContinuations(0);
+        finalizeSyncTransaction(tr);
     }
 
     template <typename R, typename F>
     void modifySimpleInput(R& r, const F& func)
     {
-        typename TransactionQueueT::QueueEntry tr( 0 );
+        QueueEntryT tr( 0 );
 
         transactionQueue_.EnterQueue(tr);
 
@@ -634,9 +650,28 @@ private:
 
         Engine::Propagate(turn);
 
-        transactionQueue_.ExitQueue(tr);
+        finalizeSyncTransaction(tr);
+    }
 
-        processContinuations(0);
+    void finalizeSyncTransaction(QueueEntryT& tr)
+    {
+        continuationManager_.template DetachQueuedObservers<D>();
+
+        if (continuationManager_.HasContinuations())
+        {
+            UniqueWaitingState st;
+            WaitingStatePtrT p( &st );
+
+            continuationManager_.StartContinuations(p);
+
+            transactionQueue_.ExitQueue(tr);
+
+            p->Wait();
+        }
+        else
+        {
+            transactionQueue_.ExitQueue(tr);
+        }
     }
 
     // This input is part of an active transaction
@@ -656,12 +691,11 @@ private:
 
     void processAsyncQueue()
     {
-        AsyncItem item;
+        AsyncItem   item;
+        
+        TurnFlagsT  savedFlags = 0;
 
-        AsyncStatePtrT  savedStatusPtr = nullptr;
-        TurnFlagsT      savedFlags = 0;
-
-        std::vector<AsyncStatePtrT> statusPtrStash;
+        std::vector<WaitingStatePtrT> waitingStatePtrs;
 
         bool skipPop = false;
 
@@ -677,13 +711,14 @@ private:
             bool canMerge = (item.Flags & allow_merging) != 0;
             if (canMerge && transactionQueue_.TryMergeAsync(
                     std::move(item.Func),
-                    std::move(item.StatusPtr)))
+                    std::move(item.WaitingStatePtr)))
                 continue;
 
             bool shouldPropagate = false;
+            
+            QueueEntryT tr( item.Flags );
 
             // Blocks until turn is at the front of the queue
-            typename TransactionQueueT::QueueEntry tr( item.Flags );
             transactionQueue_.EnterQueue(tr);
 
             TurnT turn( nextTurnId(), item.Flags );
@@ -696,11 +731,13 @@ private:
             // Input of current item
             item.Func();
 
-            // Merged inputs that arrived while this item was queued
-            tr.RunMergedInputs();
+            // Merged sync inputs that arrived while this item was queued
+            // Commented out, because thats no longer possible
+            //tr.RunMergedInputs(); 
 
-            // Save data, because item might be re-used for next input
-            savedStatusPtr = std::move(item.StatusPtr);
+            // Save data, item might be re-used for next input
+            if (item.WaitingStatePtr != nullptr)
+                waitingStatePtrs.push_back(std::move(item.WaitingStatePtr));
             savedFlags = item.Flags;
 
             // If the current item supports merging, try to add more mergeable inputs
@@ -714,8 +751,9 @@ private:
                     if (canMergeNext)
                     {
                         item.Func();
-                        if (item.StatusPtr != nullptr)
-                            statusPtrStash.push_back(std::move(item.StatusPtr));
+
+                        if (item.WaitingStatePtr != nullptr)
+                            waitingStatePtrs.push_back(std::move(item.WaitingStatePtr));
 
                         ++extraCount;
                     }
@@ -746,31 +784,61 @@ private:
             if (shouldPropagate)
                 Engine::Propagate(turn);
 
-            transactionQueue_.ExitQueue(tr);
-
-            processContinuations(savedFlags);
-
-            // Decrement transaction status counts of processed items
-            if (savedStatusPtr != nullptr)
-                savedStatusPtr->DecWaitCount();
-
-            for (auto& p : statusPtrStash)
-                p->DecWaitCount();
-            statusPtrStash.clear();
-        }
-    }
-
-    void processContinuations(TurnFlagsT flags)
-    {
-        // No merging for continuations
-        flags &= ~allow_merging;
-
-        continuationManager_.template DetachQueuedObservers<D>();
-
-        while (continuationManager_.HasNext())
-        {
-            continuationManager_.ProcessNext();
             continuationManager_.template DetachQueuedObservers<D>();
+
+            //printf("1\n");
+            //for (const auto& p : waitingStatePtrs)
+            //    printf("%08X\n", p.Get());
+
+            // Has continuations? If so, status ptrs have to be passed on to
+            // continuation transactions
+            if (continuationManager_.HasContinuations())
+            {
+                // Merge all waiting state ptrs for this transaction into a single vector
+                tr.MoveWaitingStatePtrs(waitingStatePtrs);
+
+                // More than 1 waiting state -> create collection from vector
+                if (waitingStatePtrs.size() > 1)
+                {
+  /*                  printf("2\n");
+                    for (const auto& p : waitingStatePtrs)
+                        printf("%08X\n", p.Get());*/
+
+                    WaitingStatePtrT p
+                    (
+                        SharedWaitingStateCollection::Create(std::move(waitingStatePtrs))
+                    );
+
+                    continuationManager_.StartContinuations(p);
+
+                    transactionQueue_.ExitQueue(tr);
+                    p->DecWaitCount();
+                }
+                // Exactly one status ptr -> pass it on directly
+                else if (waitingStatePtrs.size() == 1)
+                {
+                    WaitingStatePtrT p( std::move(waitingStatePtrs[0]) );
+
+                    continuationManager_.StartContinuations(p);
+
+                    transactionQueue_.ExitQueue(tr);
+                    p->DecWaitCount();
+                }
+                // No status ptrs
+                else
+                {
+                    continuationManager_.StartContinuations(nullptr);
+                }
+            }
+            else
+            {
+                transactionQueue_.ExitQueue(tr);
+
+                for (auto& p : waitingStatePtrs)
+                    p->DecWaitCount();
+            }
+
+            waitingStatePtrs.clear();
         }
     }
 

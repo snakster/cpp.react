@@ -38,9 +38,14 @@ class ContinuationNode :
     public ReactiveNode<D,void,void>
 {
 public:
-    ContinuationNode() = default;
+    ContinuationNode(TurnFlagsT turnFlags) :
+        turnFlags_( turnFlags )
+    {}
 
     virtual bool IsOutputNode() const { return true; }
+
+protected:
+    TurnFlagsT turnFlags_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,8 +64,9 @@ class SignalContinuationNode : public ContinuationNode<D>
 
 public:
     template <typename F>
-    SignalContinuationNode(const std::shared_ptr<SignalNode<D,S>>& trigger, F&& func) :
-        SignalContinuationNode::ContinuationNode( ),
+    SignalContinuationNode(TurnFlagsT turnFlags,
+                           const std::shared_ptr<SignalNode<D,S>>& trigger, F&& func) :
+        SignalContinuationNode::ContinuationNode( turnFlags ),
         trigger_( trigger ),
         func_( std::forward<F>(func) )
     {
@@ -101,6 +107,7 @@ public:
         DomainSpecificInputManager<D>::Instance()
             .StoreContinuation(
                 DomainSpecificInputManager<DOut>::Instance(),
+                this->turnFlags_,
                 std::move(cont));
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
@@ -129,8 +136,9 @@ class EventContinuationNode : public ContinuationNode<D>
 
 public:
     template <typename F>
-    EventContinuationNode(const std::shared_ptr<EventStreamNode<D,E>>& trigger, F&& func) :
-        EventContinuationNode::ContinuationNode( ),
+    EventContinuationNode(TurnFlagsT turnFlags,
+                          const std::shared_ptr<EventStreamNode<D,E>>& trigger, F&& func) :
+        EventContinuationNode::ContinuationNode( turnFlags ),
         trigger_( trigger ),
         func_( std::forward<F>(func) )
     {
@@ -174,6 +182,7 @@ public:
         DomainSpecificInputManager<D>::Instance()
             .StoreContinuation(
                 DomainSpecificInputManager<DOut>::Instance(),
+                this->turnFlags_,
                 std::move(cont));
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
@@ -229,9 +238,10 @@ class SyncedContinuationNode : public ContinuationNode<D>
 
 public:
     template <typename F>
-    SyncedContinuationNode(const std::shared_ptr<EventStreamNode<D,E>>& trigger, F&& func, 
+    SyncedContinuationNode(TurnFlagsT turnFlags,
+                           const std::shared_ptr<EventStreamNode<D,E>>& trigger, F&& func, 
                            const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        SyncedContinuationNode::ContinuationNode( ),
+        SyncedContinuationNode::ContinuationNode( turnFlags ),
         trigger_( trigger ),
         func_( std::forward<F>(func) ),
         deps_( deps ... )
@@ -292,6 +302,7 @@ public:
         DomainSpecificInputManager<D>::Instance()
             .StoreContinuation(
                 DomainSpecificInputManager<DOut>::Instance(),
+                this->turnFlags_,
                 std::move(cont));
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
