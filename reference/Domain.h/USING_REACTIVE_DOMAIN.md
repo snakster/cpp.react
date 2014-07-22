@@ -7,6 +7,9 @@ groups:
  - {name: Reference , url: 'reference/'}
  - {name: Domain.h, url: 'reference/Domain.h/'}
 ---
+
+Defines type aliases for the given reactive domain.
+
 ## Syntax
 {% highlight C++ %}
 #define USING_REACTIVE_DOMAIN(name)

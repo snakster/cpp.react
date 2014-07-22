@@ -41,22 +41,55 @@ template
 Continuation<D,D2>
     MakeContinuation(const Events<D,E>& trigger,
                      const SignalPack<D,TDepValues...>& depPack, FIn&& func);
+
+// (4)
+template
+<
+    typename D,
+    typename D2 = D,
+    typename S,
+    typename FIn
+>
+Continuation<D,D2> MakeContinuation(TransactionFlagsT flags, const Signal<D,S>& trigger, FIn&& func);
+
+// (5)
+template
+<
+    typename D,
+    typename D2 = D,
+    typename E,
+    typename FIn
+>
+Continuation<D,D2> MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger, FIn&& func);
+
+// (6)
+template
+<
+    typename D,
+    typename D2 = D,
+    typename E,
+    typename FIn,
+    typename ... TDepValues
+>
+Continuation<D,D2>
+    MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger,
+                     const SignalPack<D,TDepValues...>& depPack, FIn&& func);
 {% endhighlight %}
 
 ## Semantics
-(1) When the signal value `s` of `trigger` changes, `func(s)` is executed in a transaction of domain `D2`.
+(1) When the signal value `s` of `trigger` changes, `func(s)` is queued as an asynchrounous transaction of domain `D2`.
 In pseudo code:
 {% highlight C++ %}
-DoTransaction<D2>([func, s] {
+AsyncTransaction<D2>([func, s] {
     func(s)
 });
 {% endhighlight %}
 
-(2) For every event `e` in `trigger`, `func(e)` is called in a transaction of domain `D2`.
+(2) For every event `e` in `trigger`, `func(e)` is called in an asynchronous transaction of domain `D2`.
 Multiple events from the same turn are captured in a single transaction.
 In pseudo code:
 {% highlight C++ %}
-DoTransaction<D2>([func, events] {
+AsyncTransaction<D2>([func, events] {
     for (const auto& e : events)
         func(e);
 });
@@ -66,7 +99,7 @@ DoTransaction<D2>([func, events] {
 Changes of signals in `depPack` do not trigger an update - only received events do.
 In pseudo code:
 {% highlight C++ %}
-DoTransaction<D2>([func, events, depValues...] {
+AsyncTransaction<D2>([func, events, depValues...] {
     for (const auto& e : events)
         func(e, depValues ...);
 });
@@ -78,9 +111,7 @@ The signature of `func` should be equivalent to:
 * (2) `void func(const E&)`
 * (3) `void func(const E&, const TDepValues& ...)`
 
-{% highlight C++ %}
-DoTransaction<D2>([func, events, depValues...] {
-    for (const auto& e : events)
-        func(e, depValues ...);
-});
-{% endhighlight %}
+(4,5,6) behave similar to (1,2,3), respectively, but allow to specify the flags that are used for the continuation transaction.
+
+The initiating transaction is only complete, when all its continuations are complete, i.e. `DoTransaction` will block, and `AsyncContinuation` passes on its `TransactionStatus` to all continuation transactions.
+Waiting on continuations does not occupy the engine; other transactions can already start running and continuations can bounce back and forth between domains without blocking each other.

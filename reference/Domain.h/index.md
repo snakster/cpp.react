@@ -82,7 +82,7 @@ namespace react
 
 <div class="highlight"><pre><code class="c++"><span class="k">namespace</span> <span class="n">react</span>
 <span class="p">{</span>
-    <span class="c1">// Bitmask for ETransactionFlags</span>
+    <span class="c1">// Bitmask of ETransactionFlags</span>
     <span class="k">using</span> <span class="n">TransactionFlagsT</span> <span class="o">=</span> <span class="n">underlying_type</span><span class="o">&lt;</span><span class="n">ETransactionFlags</span><span class="o">&gt;::</span><span class="n">type</span><span class="p">;</span>
 
     <span class="c1">// Executes given function as transaction (blocking)</span>

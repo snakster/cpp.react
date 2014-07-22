@@ -31,11 +31,40 @@ enum EDomainMode
 {% endhighlight %}
 
 The `engine` parameter selects an explicit propagation engine.
-It has to be of type `template <EPropagationMode> class`
+It has to be of type `template <EPropagationMode> class T`
 If this parameter is omitted, a default engine is selected based on the given mode.
 
 The following table lists the available engines and the modes they support:
 
-ToposortEngine
-PulsecountEngine
-SubtreeEngine
+<table>
+<tr>
+	<td>Engine</td>
+	<td>ToposortEngine</td>
+	<td>PulsecountEngine</td>
+	<td>SubtreeEngine</td>
+</tr>
+<tr>
+	<td>sequential</td>
+	<td>Yes</td>
+	<td>No</td>
+	<td>No</td>
+</tr>
+<tr>
+	<td>sequential_concurrent</td>
+	<td>Yes</td>
+	<td>No</td>
+	<td>No</td>
+</tr>
+<tr>
+	<td>parallel</td>
+	<td>Yes</td>
+	<td>Yes</td>
+	<td>Yes</td>
+</tr>
+<tr>
+	<td>parallel_concurrent</td>
+	<td>Yes</td>
+	<td>Yes</td>
+	<td>Yes</td>
+</tr>
+</table>

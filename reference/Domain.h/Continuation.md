@@ -9,6 +9,8 @@ groups:
 ---
 This class manages ownership of a continuation. A continuation is a link between two domains (including from a domain to itself).
 
+Continuations are created with [MakeContinuation](MakeContinuation.html).
+
 ## Synopsis
 {% highlight C++ %}
 template
