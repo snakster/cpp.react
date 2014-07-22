@@ -7,7 +7,8 @@ groups:
  - {name: Reference , url: 'reference/'}
  - {name: Domain.h, url: 'reference/Domain.h/'}
 ---
-This class contains the functionality for domains defined with `REACTIVE_DOMAIN`.
+This class is used as a base class of all domains defined with `REACTIVE_DOMAIN`.
+It defines alias types for reactives of the derived domain.
 A domain cannot be instantiated.
 It's sole purpose is to serve as a type tag for reactive values and domain-specific internal data.
 
@@ -20,7 +21,7 @@ public:
     // Deleted default constructor to prevent instantiation
     DomainBase() = delete;
 
-    // Type aliases for this domain
+    // Type aliases for derived domain D
     template <typename S>
     using SignalT = Signal<D,S>;
 

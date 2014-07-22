@@ -5,7 +5,7 @@ no_title: true
 ---
 # ![C++React]({{ site.baseurl }}/media/logo_banner3.png)
 
-The documentation of C++React consinsts of three parts:
+The documentation of C++React consists of three parts:
 
 ### [Tutorials]({{ site.baseurl }}/tutorials/)
 
