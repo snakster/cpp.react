@@ -48,7 +48,7 @@ This category contains tutorials that focus on aspects of concurrency and parall
 
 ### [Enabling parallelization]({{ site.baseurl }}/tutorials/Parallelization.html)
 
-> Shows how to select between different concurrency models ...
+> Introduces the different concurrency policies, how to select between them ...
 
 ### [Asynchrounous transactions and continuations]({{ site.baseurl }}/tutorials/Async.html)
 

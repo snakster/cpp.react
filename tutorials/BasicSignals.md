@@ -6,7 +6,6 @@ groups:
  - {name: Tutorials , url: 'tutorials/'}
 ---
 
-- [Preface](#preface)
 - [Defining a domain](#defining-a-domain)
 - [Hello world](#hello-world)
 - [Reacting to value changes](#reacting-to-value-changes)
@@ -18,8 +17,8 @@ groups:
 Each reactive value belongs to a logical domain. The purpose of a domain is
 
 * grouping related reactive values together and encapsulating them;
-* allowing different concurrency policies for different domains;
-* simplifying management of dependency relations by splitting up the dependency graph into smaller pieces.
+* allowing different concurrency policies for separate domains;
+* simplifying management of dependency relations by splitting up the dependency graph into smaller parts.
 
 Hence, the first thing we do is defining a domain:
 
@@ -137,7 +136,7 @@ bothWords <<= "Hello world?";
 {% endhighlight %}
 
 No, it wouldn't, because `bothWords` is of type `Signal` and not `VarSignal`.
-Either the value of a signal is a function of its dependent signals, or its value is set imperatively, but it can't be both.
+Either the value of a signal represents a function result, or its value is set imperatively, but it can't be both.
 
 
 ## Reacting to value changes
@@ -195,7 +194,7 @@ secondWord <<= string( "universe" );
 // output: "Hello universe"
 
 firstWord <<= string( "Hello" );
-// no output, bothWords is still "Hello universe"
+// no output, bothWords is still "Hello universe" and the callback is only invoked on changes
 {% endhighlight %}
 
 By default, the lifetime of an observer is attached to its observed subject (in this case, that's `bothWords`).

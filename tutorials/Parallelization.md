@@ -12,7 +12,7 @@ groups:
 
 ## Parallel updating
 
-Enabling parallel propagation of changes - or _parallel updating as we refer to it from now on - turns out to be straightforward;
+Enabling parallel propagation of changes - or parallel updating as we refer to it from now on - turns out to be straightforward;
 all we have to do is selecting the `parallel` policy in the domain definition:
 {% highlight C++ %}
 #include "react/Domain.h"
@@ -49,13 +49,13 @@ But what we really want there is parallelism - that is, running them on multiple
 On the other hand, there's _external_ concurrency, which is refers to the ability of handling concurrent input.
 This is similar to how a concurrent queue supports push and pop operations from multiple threads at the same time.
 
-To enable concurrent input, we use prefix the concurrency policy with the `_concurrent` suffix:
+To enable concurrent input, we use a concurrency policy with the `_concurrent` suffix:
 {% highlight C++ %}
 REACTIVE_DOMAIN(D1, sequential_concurrent)
 REACTIVE_DOMAIN(D2, parallel_concurrent)
 
 D1::EventSourceT<int> Source1 = MakeEventSource<D1,int>();
-D2::EventSourceT<int> Source2 = MakeEventSource<D1,int>();
+D2::EventSourceT<int> Source2 = MakeEventSource<D2,int>();
 {% endhighlight %}
 
 {% highlight C++ %}

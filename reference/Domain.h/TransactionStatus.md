@@ -10,7 +10,7 @@ groups:
 This class allow to wait for a asynchrounous transactions started with [AsyncTransaction](AsyncTransaction.html).
 
 An instance of `TransactionStatus` shares ownership of its internal state with any transactions it is monitoring.
-The instance itself is a move-only type.
+The instance itself is a move-only type, i.e. each transaction status manages a unique state.
 A single `TransactionState` can monitor multiple transactions and it can be re-used to avoid repeated state allocations.
 
 ## Synopsis

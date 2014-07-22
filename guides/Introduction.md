@@ -1,50 +1,58 @@
 ---
 layout: default
-title: Reactive types
+title: Introduction to C++React
 groups: 
  - {name: Home, url: ''}
  - {name: Guides , url: 'guides/'}
 ---
 
-<!--
-# Motivation
-The [graph model guide]() explained how reactive values form a graph, with data being propagated along its edges.
-It did not concretize what "value" or "data" actually means, because the dataflow perspective allows to abstract from such details.
+- [Motivation](#signals)
+- [Design outline](#signals)
+- [Signals](#signals)
+- [Event streams](#event-streams)
+- [Observers](#observers)
+- [Conclusion](#conclusion)
 
-In this guide, the level of abstraction is lowered to introduce the core reactive types that make up this library.
--->
 
-The purpose of this guide is to state the [Motivation](#motivation) behind this library and to introduce the core reactive types it provides.
-Namely those are:
+## Motivation
 
-- [Signals](#signals);
-- [Event streams](#event-streams);
-- [Observers](#observers).
-
-The [Conclusion](#conclusion) explains how it all fits together.
-
-# Motivation
-
-Reacting to events is a common task in modern applications, for instance to respond to user input.
+Reacting to events is a common task in modern applications, for example to respond to user input.
 Often events themselves are defined and triggered by a framework, but handled in client code.
-Callback mechanisms are used to implement this. They allow clients to register and unregister functions at runtime,
-and have these functions called when specific events occur.
+Callback mechanisms are used to implement this.
+They allow clients to register and unregister functions at runtime, and have these functions called when specific events occur.
 
-Conceptionally, there is nothing wrong with this approach, but problems manifest when attempting to distribute complex business logic across multiple callbacks.
+Conceptionally, there is nothing wrong with this approach, but problems can arise when distributing complex program logic across multiple callbacks.
 The three main reasons for this are:
 
 - (1) The control flow is "scattered"; events may be occur at arbitrary times, callbacks may be added and removed on-the-fly, etc.
-- (2) Data is exchanged via shared state and side-effects.
+- (2) Data is exchanged via shared state and side effects.
 - (3) Callback execution is uncoordinated; callbacks may trigger other callbacks etc.
 
-The combination of these points makes it increasingly difficult to reason about program behaviour and properties like correctness or algorithmic complexity.
-Further, it complicates debugging and when adding concurrency to the mix, the situation gets worse.
+In combination, these factors make it increasingly difficult to reason about program behaviour and properties like correctness or algorithmic complexity.
+Further, debugging is difficult and when adding concurrency to the mix, the situation gets worse.
 
-Decentralized control flow is inherent to the creation of interative applications, but usage of side-effects and uncoordinated execution can be addressed.
-This is what this library - and reactive programming in general - does.
+Decentralized control flow is inherent to the creation of interative applications, but issues of shared state and uncoordinated execution can be addressed.
+This is what C++React - and reactive programming in general - does.
 
 
-# Signals
+## Design outline
+
+The issue of uncoordinated callback execution is handled by adding another layer of intelligence between triggering and actual execution.
+This layer schedules callbacks which are ready to be executed, potentially using multiple threads, while guarenteeing certain safety and complexity properteries.
+
+The aforementioned usage of shared state and side effects is employed due to a lack of alternatives to implement dataflow between callbacks.
+Thus, to improve the situation, proper abstractions to model dataflow explicitly are needed.
+
+From a high-level perspective, this dataflow model consists of entities, which can emit and/or receive data, and pure functions to "wire" them together.
+Instead of using side effects, these functions pass data through arguments and return values, based on semantics of the connected entities.
+There exist multiple types of entities, representing different concepts like time changing values, event occurances or actions.
+
+Essentially, this means that callbacks are chained and can pass data in different ways, all of which is done in a composable manner, backed by a clear semantical model.
+
+The following sections will introduce the core abstractions in more detail.
+
+
+## Signals
 
 Signals are used to model dependency relations between mutable values.
 A `SignalT<S>` instance represents a container holding a single value of type `S`, which will notify dependents when that value changes.
@@ -189,22 +197,17 @@ ObserverT obs =
 {% endhighlight %}
 
 
-# Conclusion
+## Conclusion
 
-The strength of this design are as follows:
+The presented reactive types provide us with specialized tools to address problems that would otherwise be implemented in callbacks with side effects:
 
-There are two key points:
+- Signals, as alternative to updating and propagating state changes manually.
+- Event streams, as an alternative to transfering data between event handlers explicitly, i.e. through shared message queues.
 
-- First-class objects
-
-- Avoidance of side-effects
-
-  Compare this to representing events on API level, i.e. `RegisterLeftClickCallback` vs `EventsT<> LeftClick`.
-
-- Fine-grained ab
+For cases where callbacks with side effects are not just a means to an end, but what is actually intended, observers exist as an alternative to setting up registration mechanisms by hand.
 
 
-## Further reading
+### Further reading
 
-The concept of signals and event streams are established concepts from reactive programming and not original to this library.
-An academic paper which describes them well and has been especially influential for the design of this library is [Deprecating the Observer Pattern](http://lamp.epfl.ch/~imaier/pub/DeprecatingObserversTR2010.pdf) by Maier et al.
+The concepts described in this article are well-established in reactive programming and not original to this library, though semantics may slightly differ between implementations.
+An academic paper which has been especially influential for the design of this library is [Deprecating the Observer Pattern](http://lamp.epfl.ch/~imaier/pub/DeprecatingObserversTR2010.pdf) by Maier et al.

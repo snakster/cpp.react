@@ -7,6 +7,9 @@ groups:
  - {name: Reference , url: 'reference/'}
  - {name: Domain.h, url: 'reference/Domain.h/'}
 ---
+
+Defines a reactive domain.
+
 ## Syntax
 {% highlight C++ %}
 // (1)

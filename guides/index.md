@@ -5,6 +5,10 @@ groups:
  - {name: Home, url: ''}
 ---
 
-### [Graph model]({{ site.baseurl }}/guides/Graph-model.html)
-### [Reactive types]({{ site.baseurl }}/guides/Reactive-types.html)
-### [Propagation model]({{ site.baseurl }}/guides/Propagation-model.html)
+### [Introduction to C++React]({{ site.baseurl }}/guides/Introduction.html)
+
+> States the motivation behind this library and introduces its key elements.
+
+### [Dataflow model]({{ site.baseurl }}/guides/Dataflow-model.html)
+
+### [Design rationale]({{ site.baseurl }}/guides/Design-rationale.html)
