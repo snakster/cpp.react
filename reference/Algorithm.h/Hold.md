@@ -7,6 +7,8 @@ groups:
  - {name: Reference , url: 'reference/'}
  - {name: Algorithm.h, url: 'reference/Algorithm.h/'}
 ---
+Holds the most recent event in a signal.
+
 ## Syntax
 {% highlight C++ %}
 template

@@ -7,6 +7,9 @@ groups:
  - {name: Reference , url: 'reference/'}
  - {name: Algorithm.h, url: 'reference/Algorithm.h/'}
 ---
+
+Folds values from an event stream into a signal.
+
 ## Syntax
 {% highlight C++ %}
 // (1)
