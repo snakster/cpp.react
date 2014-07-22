@@ -8,7 +8,7 @@ groups:
  - {name: Algorithm.h, url: 'reference/Algorithm.h/'}
 ---
 
-// Emits value changes of target signal
+Emits value changes of target signal as events.
 
 ## Syntax
 {% highlight C++ %}

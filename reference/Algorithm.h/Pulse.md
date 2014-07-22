@@ -7,6 +7,9 @@ groups:
  - {name: Reference , url: 'reference/'}
  - {name: Algorithm.h, url: 'reference/Algorithm.h/'}
 ---
+
+Emits the value of a target signal when an event is received.
+
 ## Syntax
 {% highlight C++ %}
 template

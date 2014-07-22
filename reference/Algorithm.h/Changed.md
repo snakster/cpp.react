@@ -8,7 +8,7 @@ groups:
  - {name: Algorithm.h, url: 'reference/Algorithm.h/'}
 ---
 
-// Emits token when target signal was changed
+Emits a token when the target signal was changed.
 
 ## Syntax
 {% highlight C++ %}
