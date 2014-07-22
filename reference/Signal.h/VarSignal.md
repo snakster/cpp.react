@@ -47,7 +47,7 @@ public:
 
 <h1>Constructor, operator= <span class="type_tag">member function</span></h1>
 
-Analogously defined to [Signal](#signal).
+Analogously defined to [Signal](Signal.html).
 
 -----
 
