@@ -21,6 +21,7 @@ template
 class Events
 {
 public:
+    using DomainT = D;
     using ValueT = E;
 
     // Constructor
@@ -60,7 +61,7 @@ public:
 <table class="wide_table">
     <tr>
         <td class="descriptor_cell">D</td>
-        <td>The domain this event stream belongs to.</td>
+        <td>The domain this event stream belongs to. Aliases as member type <code>DomainT</code></td>
     </tr>
     <tr>
         <td class="descriptor_cell">E</td>

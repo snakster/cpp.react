@@ -23,6 +23,7 @@ template
 class Signal
 {
 public:
+    using DomainT = D;
     using ValueT = S;
 
     // Constructor
@@ -53,7 +54,7 @@ public:
 <table class="wide_table">
     <tr>
         <td class="descriptor_cell">D</td>
-        <td>The domain this signal belongs to.</td>
+        <td>The domain this signal belongs to. Aliases as member type <code>DomainT</code></td>
     </tr>
     <tr>
         <td class="descriptor_cell">E</td>

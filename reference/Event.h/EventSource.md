@@ -46,9 +46,9 @@ public:
 
 -----
 
-<h1>Constructor <span class="type_tag">member function</span></h1>
+<h1>Constructor, operator= <span class="type_tag">member function</span></h1>
 
-Analogously defined to constructor of [Events](#events).
+Analogously defined to [Events](Events.h).
 
 -----
 
