@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Flatten
+title: Tokenize
 type_tag: function
 groups: 
  - {name: Home, url: ''}
@@ -12,15 +12,14 @@ Utility function to transform any event stream into a token stream.
 ## Syntax
 {% highlight C++ %}
 template <typename TEvents>
-auto Tokenize(TEvents&& source)
-    -> decltype(Transform(source, Tokenizer())));
+TempEvents<D,Token> Tokenize(TEvents&& source)
 {% endhighlight %}
 
 ## Semantics
 
 Emits a token for any event that passes `source`.
 
-The following helper class is used as a functor for `Transform`:
+Equivalent to `Transform(source, Tokenizer())` with
 {% highlight C++ %}
 struct Tokenizer
 {
