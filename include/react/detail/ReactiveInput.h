@@ -692,8 +692,6 @@ private:
     void processAsyncQueue()
     {
         AsyncItem   item;
-        
-        TurnFlagsT  savedFlags = 0;
 
         std::vector<WaitingStatePtrT> waitingStatePtrs;
 
@@ -732,13 +730,11 @@ private:
             item.Func();
 
             // Merged sync inputs that arrived while this item was queued
-            // Commented out, because thats no longer possible
-            //tr.RunMergedInputs(); 
+            tr.RunMergedInputs(); 
 
             // Save data, item might be re-used for next input
             if (item.WaitingStatePtr != nullptr)
                 waitingStatePtrs.push_back(std::move(item.WaitingStatePtr));
-            savedFlags = item.Flags;
 
             // If the current item supports merging, try to add more mergeable inputs
             // to this turn

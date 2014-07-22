@@ -86,7 +86,7 @@ public:
     auto Run(F&& func) -> decltype(func(false))
     {// mutex_
         std::lock_guard<std::mutex> scopedLock(mutex_);
-        return func(blocked_);
+        return func(isWaiting_);
     }// ~mutex_
 
     template <typename F>

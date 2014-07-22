@@ -14,6 +14,7 @@
 #include "BenchmarkBase.h"
 #include "react/common/Types.h"
 
+#include "react/Domain.h"
 #include "react/Signal.h"
 
 using namespace react;
