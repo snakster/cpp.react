@@ -12,7 +12,7 @@ Utility function to transform any event stream into a token stream.
 ## Syntax
 {% highlight C++ %}
 template <typename TEvents>
-TempEvents<D,Token> Tokenize(TEvents&& source)
+TempEvents<D,Token,/*unspecified*/> Tokenize(TEvents&& source)
 {% endhighlight %}
 
 ## Semantics
