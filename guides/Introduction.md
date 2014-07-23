@@ -46,7 +46,7 @@ Thus, to improve the situation, proper abstractions to model dataflow explicitly
 
 From a high-level perspective, this dataflow model consists of entities, which can emit and/or receive data, and pure functions to "wire" them together.
 Instead of using side effects, these functions pass data through arguments and return values, based on semantics of the connected entities.
-There exist multiple types of entities, representing different concepts like time changing values, event occurances or actions.
+There exist multiple types of entities, representing different concepts like time changing values, event occurrences or actions.
 
 Essentially, this means that callbacks are chained and can pass data in different ways, all of which is done in a composable manner, backed by a clear semantic model.
 
@@ -207,6 +207,7 @@ If the size of any of the components changes, the screen layout has to be update
 There exist several controls the user can interact with to change the size of specific components.
 
 In summary, this scenario defines three layers, connected by callbacks:
+
 - the input controls;
 - the display components;
 - the screen layout.
