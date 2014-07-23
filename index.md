@@ -31,7 +31,7 @@ The documentation of C++React consists of three parts:
 
 A good place to start learning about motivation and basic concepts of this library is the [Introduction to C++React]({{ site.baseurl }}/guides/Introduction.html).
 
-After that, the tutorials provide a straightforward tour through all features.
+After that, the tutorials provide a more detailed tour through all features.
 
 ### Obtaining the Code
 
