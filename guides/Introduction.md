@@ -18,15 +18,15 @@ groups:
 
 Reacting to events is a common task in modern applications, for example to respond to user input.
 Often events themselves are defined and triggered by a framework, but handled in client code.
-Callback mechanisms are used to implement this.
+Callback mechanisms are typically used to implement this.
 They allow clients to register and unregister functions at runtime, and have these functions called when specific events occur.
 
 Conceptionally, there is nothing wrong with this approach, but problems can arise when distributing complex program logic across multiple callbacks.
 The three main reasons for this are:
 
-- (1) The control flow is "scattered"; events may be occur at arbitrary times, callbacks may be added and removed on-the-fly, etc.
-- (2) Data is exchanged via shared state and side effects.
-- (3) Callback execution is uncoordinated; callbacks may trigger other callbacks etc.
+- The control flow is "scattered"; events may be occur at arbitrary times, callbacks may be added and removed on-the-fly, etc.
+- Data is exchanged via shared state and side effects.
+- Callback execution is uncoordinated; callbacks may trigger other callbacks etc. and change propagation follows a "flooding" scheme.
 
 In combination, these factors make it increasingly difficult to reason about program behaviour and properties like correctness or algorithmic complexity.
 Further, debugging is difficult and when adding concurrency to the mix, the situation gets worse.
@@ -47,7 +47,7 @@ From a high-level perspective, this dataflow model consists of entities, which c
 Instead of using side effects, these functions pass data through arguments and return values, based on semantics of the connected entities.
 There exist multiple types of entities, representing different concepts like time changing values, event occurances or actions.
 
-Essentially, this means that callbacks are chained and can pass data in different ways, all of which is done in a composable manner, backed by a clear semantical model.
+Essentially, this means that callbacks are chained and can pass data in different ways, all of which is done in a composable manner, backed by a clear semantic model.
 
 The following sections will introduce the core abstractions in more detail.
 
@@ -110,9 +110,8 @@ Updates happen pushed-based, i.e. as part of `A.Set(2)`.
 `Value()` is a pull-based interface to retrieve the stored result.
 
 In summary, the value of signal is calculated by a function, stored in memory, and automatically updated when its dependencies change by re-applying that function with new arguments.
-Their main advantage is scalability w.r.t. to performance and complexity.
-When when considering deeply nested dependency relations involving computationally expensive operations,
-signals apply selective updating, as if only the necessary values were re-calculated imperatively, while allowing to define calculations without side effects
+When considering deeply nested dependency relations involving computationally expensive operations,
+signals apply selective updating, as if only the necessary values were re-calculated imperatively, while the calculations themselves are defined as pure functions.
 
 
 ## Event streams
@@ -151,13 +150,12 @@ Values enter through sources `A` and `B`, both of which get merged into a single
 
 Of course, for those events to have an effect, they should trigger actions or be stored somewhere persistently.
 The example leaves that part out for now and instead focuses on composability, i.e. how functions like `Merge` or `Transform` are used to create new event streams from existing ones.
-This is possible, because event streams are first-class values.
-
+This is possible, because event streams are first-class values, as opposed to being indirectly represented by the API (e.g. `OnMouseClick()` vs. `EventsT<> MouseClick`).
 
 ## Observers
 
-Observers fill the role of "common" callbacks with side-effects.
-They allow to register functions to subjects, which can be any signal or event stream, and have these functions called when notified by the subject.
+Observers fill the role of "common" callbacks with side effects.
+They allow to register functions at subjects, which can be any signal or event stream, and have these functions called when notified by the subject.
 In particular, a signal observer is called every time the signal value changes, and an event observer is called for every event that passes the stream.
 Observers are only ever on the receiving side of notifications, because they have no dependents.
 
@@ -181,7 +179,7 @@ ObserverT obs =
 ...
 {% endhighlight %}
 
-Another example, this time with a signal observer:
+Another example, this time using a signal observer:
 {% highlight C++ %}
 VarSignal<int> LastValue  = ...;
 
@@ -196,15 +194,51 @@ ObserverT obs =
 ...
 {% endhighlight %}
 
+The obvious benefit is that we don't have to implement callback registration and dispatch mechanisms ourselves.
+Further, they are already in place and available on every reactive value without any additional steps.
+
+
+## Coordinated propagation
+
+A problem that has been mentioned earlier is the uncoordinated execution of callbacks.
+To construct a practical scenario for this, imagine a graphical user interface, consisting of multiple components that are positioned on the screen.
+If the size of any of the components changes, the screen layout has to be updated.
+There exist several controls the user can interact with to change the size of specific components.
+
+In summary, this scenario defines three layers, connected by callbacks:
+- the input controls;
+- the display components;
+- the screen layout.
+
+The question is, what happens if a single control affects multiple components:
+
+1. Each component individually triggers an update of the layout. As we add more layers to our scenario, the number of updates caused by a single change might grow exponentially.
+2. Some of these updates are executed while part of the components have already been changed, while others have not. This can lead to intermittent errors - or _glitches_ - which are hard to spot.
+3. Parallelization requires mutually exclusive acccess to shared data and critical operations (i.e. updating the layout cannot happen concurrently).
+
+When building the same system based on signals, events and observers, execution of individual callback functions is ordered.
+First, all inputs are processed; then, the components are changed; lastly, the layout is updated once.
+This ordering is based on the inherent hierarchy of the presented model.
+
+Enabling parallelization comes naturally with approach, as it becomes an issue of implicitly synchronizing forks and joins of the control flow rather than managing mutual exclusive access to data.
+
 
 ## Conclusion
 
-The presented reactive types provide us with specialized tools to address problems that would otherwise be implemented in callbacks with side effects:
+The presented reactive types provide us with specialized tools to address requirements that would otherwise be implemented with callbacks with side effects:
 
-- Signals, as alternative to updating and propagating state changes manually.
+- Signals, as an alternative to updating and propagating state changes manually.
 - Event streams, as an alternative to transfering data between event handlers explicitly, i.e. through shared message queues.
 
 For cases where callbacks with side effects are not just a means to an end, but what is actually intended, observers exist as an alternative to setting up registration mechanisms by hand.
+
+Change propagation is not just based on flooding, but uses a coordinated approach for
+
+- avoidance of intermittent updates;
+- glitch freedom;
+- implicit parallelism.
+
+This concludes an overview of the main features C++React has to offer.
 
 
 ### Further reading

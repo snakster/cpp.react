@@ -10,7 +10,6 @@ The documentation of C++React consists of three parts:
 ### [Tutorials]({{ site.baseurl }}/tutorials/)
 
 > A set of walkthroughs that demonstrate basic usage of all features.
-> This is a good place to start learning.
 
 ### [Topical Guides]({{ site.baseurl }}/guides/)
 
@@ -23,3 +22,19 @@ The documentation of C++React consists of three parts:
 > useful to lookup specific information.
 >
 > The API reference is always accessible through the navigation panel on the left.
+
+--------
+
+## Getting Started 
+
+### Learning
+
+A good place to start learning about motivation and basic concepts of this library is [Introduction to C++React]({{ site.baseurl }}/guides/Introduction.html).
+
+After that, the tutorials provide a straightforward tour through all features.
+
+### Obtaining the Code
+
+The code is hosted in [repository on GitHub](https://github.com/schlangster/cpp.react).
+
+[Build instructions](https://github.com/schlangster/cpp.react/wiki/Build-instructions) can be found there as well.
