@@ -11,6 +11,7 @@ groups:
 - [Signals](#signals)
 - [Event streams](#event-streams)
 - [Observers](#observers)
+- [Coordinated change propagation](#coordinated-change-propagation)
 - [Conclusion](#conclusion)
 
 
@@ -198,7 +199,7 @@ The obvious benefit is that we don't have to implement callback registration and
 Further, they are already in place and available on every reactive value without any additional steps.
 
 
-## Coordinated propagation
+## Coordinated change propagation
 
 A problem that has been mentioned earlier is the uncoordinated execution of callbacks.
 To construct a practical scenario for this, imagine a graphical user interface, consisting of multiple components that are positioned on the screen.
