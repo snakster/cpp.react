@@ -8,6 +8,7 @@ groups:
 
 * [Graph model](#graph-model)
 * [Propagation model](#propagation-model)
+* [Conclusions](#conclusions)
 
 
 ## Graph model
@@ -110,28 +111,70 @@ The following figure outlines this model:<br />
 
 ### Cycles
 
-When creating a reactive value, all its dependencies have to be passed upon initialization.
-For this reason, graphs are acyclic by definition.
-There is one exception: Certain types of nodes - we refer to them as dynamic - can change their dependencies after initialization.
-Creating cyclic graphs this way results in undefined behaviour.
+For static nodes, all dependencies have to be passed upon initialization; this makes it impossible to construct cycles.
+Dynamic nodes, on the other hand, can change their dependencies after initialization.
+This means they can be attached to on of their predecessors.
+Creating cyclic graphs this way is not permitted and results in undefined behaviour.
 
 For inter-domain communcation, cyclic dependencies between domains are allowed.
 This means that two domains could bounce messages off each other infinitely.
-It's up to the programmer to ensure that such loops terminate eventually.
+It is up to the programmer to ensure that such loops terminate eventually.
 
 
 ## Propagation model
 
-TODO
+The process of data flowing through the graph can be summarized as follows:
+
+1. The graph is an idle state, ready to accept imperative input through its input nodes.
+2. Input arrives.
+3. The targeted input nodes evaluate their input and decide, whether they have been changed. If they have been changed, they notify their successors.
+4. Notified successors update themselves based on the current values of their predecessors. If they have been changed, they further notify their own successors, and so on.
+5. After the changed portion of the graph has been updated, the graph returns to its idle state.
+
+This process of updating the graph as a result of input is called a _(propagation) turn_.
+An example is shown in the following figure:
+
+<img src="{{ site.baseurl }}/media/propagation.png" alt="Drawing" width="500px"/>
+
+Here, the updated portion of the graph has been marked. It should be noted that not necessary the whole subset of reachable nodes from an input will be updated
+
+### Transactions
+
+Input consists of a single value, targeted at a specific input node.
+The propagation model that has been described above is not limited to processing a single input per turn.
+To account for that, a _transaction_ is defined as a sequence of inputs.
+For a consistent model, we define that all inputs result in transactions, even if they only contain a single element.
+
+Normally, each transaction is processed in a dedicated turn.
+If transactions arrive concurrently from multiple threads, there's also the option of merging them, so they can be processed in a single turn.
+This happens under the condititions, that is has been explicitly allowed, and that the merged transactions have not been started yet, because they are waiting for an already active turn to complete.
 
 
-## Conclusion
+### Properties
 
-TODO
+A turn can be represented as a sequence of node updates, each with a result (changed, unchanged).
+There are several guaranteed properties for such update sequences:
 
-<!--
-In summary:
+- _Consistency_: After a node has been changed, its successors will be updated.
+- _Update minimality_: A node is only updated, if it has at least one changed predecessor. A node is only updated once per turn.
+- _Glitch freedom_: A node is only updated after all its predecessors, that would be updated in the same turn, are done.
 
-* Intra-domain dependency relations are formulated declaratively and structured as a DAG. Communication is handled implicitly and provides certain guarantees w.r.t. to ordering.
-* Inter-domain communciation uses asychronous messaging. Messages are dispatched imperatively without any constraints.
--->
+Consistency describes the nature of change propagation, which must leave the whole graph in a consistent state afterwards.
+
+## Conclusions
+
+The presented dataflow model can be summarized as follows:
+
+* Dependency relations between reactive values are formulated declaratively and structured as a DAG.
+  Dataflow is handled implicitly and provides certain guarantees w.r.t. to ordering.
+* Inter-domain communciation uses asychronous messaging.
+  Messages are dispatched imperatively without any constraints.
+
+From this persepctive, the semantics of the concrete reactive types are irrelevant, as signals, event streams and observers are all mapped onto the same graph.
+
+Transactions are used to group inputs together, and the relationship between inputs, transactions and turns can be expressed as
+
+> `Input (N:1) Transaction (N:1) Turn`.
+
+Even though the graph data structures (nodes, connections) are not directly exposed, but rather implicitly represented, the underlying concepts should be understood;
+they provide a visual approach to designing the dataflow model, which is a task that remains in the hands of the programmer.
