@@ -36,11 +36,16 @@ This library is a work-in-progress and should not be considered release quality 
 It is, however, in a perfectly usable state and has already received a fair amount of testing and tuning.
 
 
+### Dependencies
+
+* [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
+* [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the unit tests)
+* [Boost 1.55.0 C++ Libraries](http://www.boost.org/) (optional, to include Reactor.h, which requires `boost::coroutine`)
+
+
 ### Compiling
 
-C++React requires a compiler with support for several C++11 features.
-
-It has been tested with the following compilers:
+C++React has been tested with the following compilers:
 
 * Visual Studio 2013.2
 * GCC 4.8.2
@@ -57,13 +62,6 @@ make
 ```
 
 For more details, refer to the [Build instructions](https://github.com/schlangster/cpp.react/wiki/Build-instructions).
-
-
-### Dependencies
-
-* [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
-* [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the unit tests)
-* [Boost 1.55.0 C++ Libraries](http://www.boost.org/) (optional, to include Reactor.h, which requires `boost::coroutine`)
 
 
 ## Features by example
