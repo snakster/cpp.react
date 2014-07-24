@@ -32,7 +32,7 @@ The three main reasons for this are:
 In combination, these factors make it increasingly difficult to reason about program behaviour and properties like correctness or algorithmic complexity.
 Further, debugging is difficult and when adding concurrency to the mix, the situation gets worse.
 
-Decentralized control flow is inherent to the creation of interative applications, but issues of shared state and uncoordinated execution can be addressed.
+Decentralized control flow is inherent to the creation of interactive applications, but issues of shared state and uncoordinated execution can be addressed.
 This is what C++React - and reactive programming in general - does.
 
 
@@ -46,7 +46,7 @@ Thus, to improve the situation, proper abstractions to model dataflow explicitly
 
 From a high-level perspective, this dataflow model consists of entities, which can emit and/or receive data, and pure functions to "wire" them together.
 Instead of using side effects, these functions pass data through arguments and return values, based on semantics of the connected entities.
-There exist multiple types of entities, representing different concepts like time changing values, event occurrences or actions.
+There exist multiple types of entities, representing different concepts like time changing values, event occurrences, or actions.
 
 Essentially, this means that callbacks are chained and can pass data in different ways, all of which is done in a composable manner, backed by a clear semantic model.
 
@@ -127,14 +127,19 @@ In other words, event streams don't hold on to values, they only forward them.
 
 Here's an example:
 {% highlight C++ %}
+bool  IsGreaterThan100(int v) { return v > 100; }
+bool  IsLessThan10(int v)     { return v < 10; }
+{% endhighlight %}
+{% highlight C++ %}
 EventSourceT<int> A  = MakeEventSource<int>();
 EventSourceT<int> B  = MakeEventSource<int>();
 
 EventsT<int>	  X  = Merge(A, B);
 
-EventsT<int>	  Y1 = Filter(X, [] (int v) { return v > 100; });
-EventsT<int>	  Y2 = Filter(X, [] (int v) { return v < 10; });
+EventsT<int>	  Y1 = Filter(X, IsGreaterThan100);
+EventsT<int>	  Y2 = Filter(X, IsLessThan10);
 
+// Instead of declaring named functions, we can also use C++11 lambdas
 EventsT<float>	  Z  = Transform(Y1, [] (int v) { return v / 100.0f; }]);
 ...
 {% endhighlight %}
@@ -222,7 +227,7 @@ When building the same system based on signals, events and observers, execution 
 First, all inputs are processed; then, the components are changed; lastly, the layout is updated once.
 This ordering is based on the inherent hierarchy of the presented model.
 
-Enabling parallelization comes naturally with approach, as it becomes an issue of implicitly synchronizing forks and joins of the control flow rather than managing mutual exclusive access to data.
+Enabling parallelization comes naturally with this approach, as it becomes an issue of implicitly synchronizing forks and joins of the control flow, rather than managing mutually exclusive access to data.
 
 
 ## Conclusion
