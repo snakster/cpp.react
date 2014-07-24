@@ -6,20 +6,20 @@ Generally speaking, it provides abstractions to handle change propagation and da
 A more practical description is that it enables coordinated, multi-layered - and potentially parallel - execution of callbacks.
 All this happens implicitly, based on declarative definitions, with guarantees regarding
 
-- update-minimality - nothing is re-calculated or processed unnecessarily;
-- glitch-freedom - no transiently inconsistent data sets;
-- thread-safety - no data races for parallel execution.
+- _update minimality_ - nothing is re-calculated or processed unnecessarily;
+- _glitch freedom_ - no transiently inconsistent data sets;
+- _thread safety_ - no data races for parallel execution.
 
 The core abstractions of the library are
 
-- **signals**, reactive variables that are automatically re-calculated when their dependencies change, and
-- **event streams** as composable first class objects.
+- _signals_, reactive variables that are automatically re-calculated when their dependencies change, and
+- _event streams_ as composable first class objects.
 
 Signals specifically deal with aspects of time-varying state, whereas event streams facilitate event processing in general.
 
 Additional features include
 
-- a publish/subscribe mechanism for callbacks with side-effects;
+- a publish/subscribe mechanism for callbacks with side effects;
 - a set of operations and algorithms to combine signals and events;
 - a domain model to encapsulate multiple reactive systems;
 - transactions to group related events, supporting both synchronous and asynchrounous execution.
@@ -27,21 +27,20 @@ Additional features include
 
 ## Documentation
 
-If you're interested in learning about C++React, [have a look at its documentation](http://schlangster.github.io/cpp.react/).
-
-It's still incomplete, but it already contains plenty of useful information and examples.
+[If you're interested in learning about C++React, have a look at its documentation.](http://schlangster.github.io/cpp.react/)
 
 
 ## Development
 
 This library is a work-in-progress and should not be considered release quality yet.
-Don't let this statement stop you from giving it a try though.
-It's in a usable state and has already received a fair amount of testing and tuning.
+It is, however, in a perfectly usable state and has already received a fair amount of testing and tuning.
 
 
 ### Compiling
 
-The following compilers are supported at the moment:
+C++React requires a compiler with support for several C++11 features.
+
+It has been tested with the following compilers:
 
 * Visual Studio 2013.2
 * GCC 4.8.2
@@ -57,7 +56,7 @@ cmake ..
 make
 ```
 
-For more details, see [Build instructions](https://github.com/schlangster/cpp.react/wiki/Build-instructions).
+For more details, refer to the [Build instructions](https://github.com/schlangster/cpp.react/wiki/Build-instructions).
 
 
 ### Dependencies
@@ -72,7 +71,7 @@ For more details, see [Build instructions](https://github.com/schlangster/cpp.re
 ### Signals
 
 Signals are self-updating reactive variables.
-They can be combined to expressions to create new signals, which are automatically re-calculated whenever one of their data dependencies changes.
+They can be combined as expressions to create new signals, which are automatically re-calculated whenever one of their dependencies changes.
 
 ```C++
 using namespace std;
