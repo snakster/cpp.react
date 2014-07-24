@@ -38,3 +38,9 @@ After that, the tutorials provide a more detailed tour through all features.
 The code is hosted in a [repository on GitHub](https://github.com/schlangster/cpp.react).
 
 [Build instructions](https://github.com/schlangster/cpp.react/wiki/Build-instructions) can be found there as well.
+
+--------
+
+## More examples
+
+### [Signals vs. callbacks]({{ site.baseurl }}/examples/Signals-vs-callbacks.html)
