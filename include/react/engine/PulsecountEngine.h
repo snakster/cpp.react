@@ -40,7 +40,7 @@ using tbb::task_list;
 class Turn : public TurnBase
 {
 public:
-    Turn(TurnIdT id, TurnFlagsT flags);
+    Turn(TurnIdT id, TransactionFlagsT flags);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

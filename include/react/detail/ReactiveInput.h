@@ -45,12 +45,12 @@ class IObserver;
 using TurnIdT = uint;
 using TransactionFuncT = std::function<void()>;
 
-enum ETurnFlags
+enum ETransactionFlags
 {
     allow_merging    = 1 << 0
 };
 
-using TurnFlagsT = std::underlying_type<ETurnFlags>::type;
+using TransactionFlagsT = std::underlying_type<ETransactionFlags>::type;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EInputMode
@@ -66,7 +66,8 @@ enum EInputMode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct IContinuationTarget
 {
-    virtual void AsyncContinuation(TurnFlagsT, const WaitingStatePtrT&, TransactionFuncT&&) = 0;
+    virtual void AsyncContinuation(TransactionFlagsT, const WaitingStatePtrT&,
+                                   TransactionFuncT&&) = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,7 +90,8 @@ template <EPropagationMode>
 class ContinuationManager
 {
 public:
-    void StoreContinuation(IContinuationTarget& target, TurnFlagsT flags, TransactionFuncT&& cont);
+    void StoreContinuation(IContinuationTarget& target, TransactionFlagsT flags,
+                           TransactionFuncT&& cont);
 
     bool HasContinuations() const;
     void StartContinuations(const WaitingStatePtrT& waitingStatePtr);
@@ -106,14 +108,14 @@ class ContinuationManager<sequential_propagation>
 {
     struct Data_
     {
-        Data_(IContinuationTarget* target, TurnFlagsT flags, TransactionFuncT&& func) :
+        Data_(IContinuationTarget* target, TransactionFlagsT flags, TransactionFuncT&& func) :
             Target( target ),
             Flags( flags ),
             Func( func )
         {}
 
         IContinuationTarget*    Target;
-        TurnFlagsT              Flags;
+        TransactionFlagsT       Flags;
         TransactionFuncT        Func;
     };
 
@@ -121,7 +123,8 @@ class ContinuationManager<sequential_propagation>
     using ObsVectT  = std::vector<IObserver*>;
 
 public:
-    void StoreContinuation(IContinuationTarget& target, TurnFlagsT flags, TransactionFuncT&& cont)
+    void StoreContinuation(IContinuationTarget& target, TransactionFlagsT flags,
+                           TransactionFuncT&& cont)
     {
         storedContinuations_.emplace_back(&target, flags, std::move(cont));
     }
@@ -166,14 +169,14 @@ class ContinuationManager<parallel_propagation>
 {
     struct Data_
     {
-        Data_(IContinuationTarget* target, TurnFlagsT flags, TransactionFuncT&& func) :
+        Data_(IContinuationTarget* target, TransactionFlagsT flags, TransactionFuncT&& func) :
             Target( target ),
             Flags( flags ),
             Func( func )
         {}
 
         IContinuationTarget*    Target;
-        TurnFlagsT              Flags;
+        TransactionFlagsT       Flags;
         TransactionFuncT        Func;
     };
 
@@ -181,7 +184,8 @@ class ContinuationManager<parallel_propagation>
     using ObsVectT  = std::vector<IObserver*>;
 
 public:
-    void StoreContinuation(IContinuationTarget& target, TurnFlagsT flags, TransactionFuncT&& cont)
+    void StoreContinuation(IContinuationTarget& target, TransactionFlagsT flags,
+                           TransactionFuncT&& cont)
     {
         storedContinuations_.local().emplace_back(&target, flags, std::move(cont));
         ++contCount_;
@@ -238,7 +242,7 @@ public:
     class QueueEntry
     {
     public:
-        explicit QueueEntry(TurnFlagsT flags);
+        explicit QueueEntry(TransactionFlagsT flags);
 
         void RunMergedInputs();
 
@@ -268,7 +272,7 @@ public:
     class QueueEntry
     {
     public:
-        explicit QueueEntry(TurnFlagsT flags) {}
+        explicit QueueEntry(TransactionFlagsT flags) {}
 
         void RunMergedInputs()  {}
 
@@ -298,7 +302,7 @@ public:
     class QueueEntry
     {
     public:
-        explicit QueueEntry(TurnFlagsT flags) :
+        explicit QueueEntry(TransactionFlagsT flags) :
             isMergeable_( (flags & allow_merging) != 0 )
         {}
 
@@ -487,7 +491,7 @@ class InputManager :
 private:
     struct AsyncItem
     {
-        TurnFlagsT              Flags;
+        TransactionFlagsT              Flags;
         WaitingStatePtrT        WaitingStatePtr;
         TransactionFuncT        Func;
     };
@@ -511,7 +515,7 @@ public:
     }
 
     template <typename F>
-    void DoTransaction(TurnFlagsT flags, F&& func)
+    void DoTransaction(TransactionFlagsT flags, F&& func)
     {
         // Attempt to add input to another turn.
         // If successful, blocks until other turn is done and returns.
@@ -550,7 +554,8 @@ public:
     }
 
     template <typename F>
-    void AsyncTransaction(TurnFlagsT flags, const WaitingStatePtrT& waitingStatePtr, F&& func)
+    void AsyncTransaction(TransactionFlagsT flags, const WaitingStatePtrT& waitingStatePtr,
+                          F&& func)
     {
         if (waitingStatePtr != nullptr)
             waitingStatePtr->IncWaitCount();
@@ -585,14 +590,16 @@ public:
     }
 
     //IContinuationTarget        
-    virtual void AsyncContinuation(TurnFlagsT flags, const WaitingStatePtrT& waitingStatePtr,
+    virtual void AsyncContinuation(TransactionFlagsT flags,
+                                   const WaitingStatePtrT& waitingStatePtr,
                                    TransactionFuncT&& cont) override
     {
         AsyncTransaction(flags, waitingStatePtr, std::move(cont));
     }
     //~IContinuationTarget
 
-    void StoreContinuation(IContinuationTarget& target, TurnFlagsT flags, TransactionFuncT&& cont)
+    void StoreContinuation(IContinuationTarget& target, TransactionFlagsT flags,
+                           TransactionFuncT&& cont)
     {
         continuationManager_.StoreContinuation(target, flags, std::move(cont));
     }

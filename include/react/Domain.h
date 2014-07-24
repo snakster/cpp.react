@@ -68,10 +68,10 @@ class SignalPack;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Common types & constants
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-using REACT_IMPL::TurnFlagsT;
+using REACT_IMPL::TransactionFlagsT;
 
-// ETurnFlags
-using REACT_IMPL::ETurnFlags;
+// ETransactionFlags
+using REACT_IMPL::ETransactionFlags;
 using REACT_IMPL::allow_merging;
 
 #ifdef REACT_ENABLE_LOGGING
@@ -87,9 +87,8 @@ enum EDomainMode
     parallel_concurrent
 };
 
-// Expose enum types so aliases for engines can be declared, but don't
+// Expose enum type so aliases for engines can be declared, but don't
 // expose the actual enum values as they are reserved for internal use.
-using REACT_IMPL::EInputMode;
 using REACT_IMPL::EPropagationMode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,21 +100,26 @@ class TransactionStatus
     using PtrT = REACT_IMPL::WaitingStatePtrT;
 
 public:
-    TransactionStatus() :
+    inline TransactionStatus() :
         statePtr_( StateT::Create() )
     {}
 
-    TransactionStatus(const TransactionStatus&) = default;
+    TransactionStatus(const TransactionStatus&) = delete;
+    TransactionStatus& operator=(const TransactionStatus&) = delete;
 
-    TransactionStatus(TransactionStatus&& other) :
+    inline TransactionStatus(TransactionStatus&& other) :
         statePtr_( std::move(other.statePtr_) )
-    {}
-
-    TransactionStatus& operator=(const TransactionStatus&) = default;
-
-    TransactionStatus& operator=(TransactionStatus&& other)
     {
-        statePtr_ = std::move(other.statePtr_);
+        other.statePtr_ = StateT::Create();
+    }
+
+    inline TransactionStatus& operator=(TransactionStatus&& other)
+    {
+        if (this != &other)
+        {
+            statePtr_ = std::move(other.statePtr_);
+            other.statePtr_ = StateT::Create();
+        }
         return *this;
     }
 
@@ -132,7 +136,7 @@ private:
     friend void AsyncTransaction(TransactionStatus& status, F&& func);
 
     template <typename D, typename F>
-    friend void AsyncTransaction(TurnFlagsT flags, TransactionStatus& status, F&& func);
+    friend void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& func);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -242,7 +246,7 @@ template
     typename S,
     typename FIn
 >
-auto MakeContinuation(TurnFlagsT flags, const Signal<D,S>& trigger, FIn&& func)
+auto MakeContinuation(TransactionFlagsT flags, const Signal<D,S>& trigger, FIn&& func)
     -> Continuation<D,DOut>
 {
     static_assert(DOut::is_concurrent,
@@ -279,7 +283,7 @@ template
     typename E,
     typename FIn
 >
-auto MakeContinuation(TurnFlagsT flags, const Events<D,E>& trigger, FIn&& func)
+auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger, FIn&& func)
     -> Continuation<D,DOut>
 {
     static_assert(DOut::is_concurrent,
@@ -317,7 +321,7 @@ template
     typename FIn,
     typename ... TDepValues
 >
-auto MakeContinuation(TurnFlagsT flags, const Events<D,E>& trigger,
+auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger,
                       const SignalPack<D,TDepValues...>& depPack, FIn&& func)
     -> Continuation<D,DOut>
 {
@@ -329,7 +333,7 @@ auto MakeContinuation(TurnFlagsT flags, const Events<D,E>& trigger,
 
     struct NodeBuilder_
     {
-        NodeBuilder_(TurnFlagsT flags, const Events<D,E>& trigger, FIn&& func) :
+        NodeBuilder_(TransactionFlagsT flags, const Events<D,E>& trigger, FIn&& func) :
             MyFlags( flags ),
             MyTrigger( trigger ),
             MyFunc( std::forward<FIn>(func) )
@@ -345,7 +349,7 @@ auto MakeContinuation(TurnFlagsT flags, const Events<D,E>& trigger,
                     std::forward<FIn>(MyFunc), deps.NodePtr() ...));
         }
 
-        TurnFlagsT          MyFlags;
+        TransactionFlagsT          MyFlags;
         const Events<D,E>&  MyTrigger;
         FIn                 MyFunc;
     };
@@ -381,7 +385,7 @@ void DoTransaction(F&& func)
 }
 
 template <typename D, typename F>
-void DoTransaction(TurnFlagsT flags, F&& func)
+void DoTransaction(TransactionFlagsT flags, F&& func)
 {
     using REACT_IMPL::DomainSpecificInputManager;
     DomainSpecificInputManager<D>::Instance().DoTransaction(flags, std::forward<F>(func));
@@ -401,7 +405,7 @@ void AsyncTransaction(F&& func)
 }
 
 template <typename D, typename F>
-void AsyncTransaction(TurnFlagsT flags, F&& func)
+void AsyncTransaction(TransactionFlagsT flags, F&& func)
 {
     static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
 
@@ -422,7 +426,7 @@ void AsyncTransaction(TransactionStatus& status, F&& func)
 }
 
 template <typename D, typename F>
-void AsyncTransaction(TurnFlagsT flags, TransactionStatus& status, F&& func)
+void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& func)
 {
     static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
 

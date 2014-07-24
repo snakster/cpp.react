@@ -34,7 +34,7 @@
 class TurnBase
 {
 public:
-    inline TurnBase(TurnIdT id, TurnFlagsT flags) :
+    inline TurnBase(TurnIdT id, TransactionFlagsT flags) :
         id_( id )
     {}
 

@@ -38,14 +38,14 @@ class ContinuationNode :
     public ReactiveNode<D,void,void>
 {
 public:
-    ContinuationNode(TurnFlagsT turnFlags) :
+    ContinuationNode(TransactionFlagsT turnFlags) :
         turnFlags_( turnFlags )
     {}
 
     virtual bool IsOutputNode() const { return true; }
 
 protected:
-    TurnFlagsT turnFlags_;
+    TransactionFlagsT turnFlags_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ class SignalContinuationNode : public ContinuationNode<D>
 
 public:
     template <typename F>
-    SignalContinuationNode(TurnFlagsT turnFlags,
+    SignalContinuationNode(TransactionFlagsT turnFlags,
                            const std::shared_ptr<SignalNode<D,S>>& trigger, F&& func) :
         SignalContinuationNode::ContinuationNode( turnFlags ),
         trigger_( trigger ),
@@ -136,7 +136,7 @@ class EventContinuationNode : public ContinuationNode<D>
 
 public:
     template <typename F>
-    EventContinuationNode(TurnFlagsT turnFlags,
+    EventContinuationNode(TransactionFlagsT turnFlags,
                           const std::shared_ptr<EventStreamNode<D,E>>& trigger, F&& func) :
         EventContinuationNode::ContinuationNode( turnFlags ),
         trigger_( trigger ),
@@ -238,7 +238,7 @@ class SyncedContinuationNode : public ContinuationNode<D>
 
 public:
     template <typename F>
-    SyncedContinuationNode(TurnFlagsT turnFlags,
+    SyncedContinuationNode(TransactionFlagsT turnFlags,
                            const std::shared_ptr<EventStreamNode<D,E>>& trigger, F&& func, 
                            const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
         SyncedContinuationNode::ContinuationNode( turnFlags ),

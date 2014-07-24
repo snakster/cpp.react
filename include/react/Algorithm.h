@@ -40,6 +40,43 @@ template <typename D, typename ... TValues>
 class SignalPack;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Hold - Hold the most recent event in a signal
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename V,
+    typename T = typename std::decay<V>::type
+>
+auto Hold(const Events<D,T>& events, V&& init)
+    -> Signal<D,T>
+{
+    using REACT_IMPL::HoldNode;
+
+    return Signal<D,T>(
+        std::make_shared<HoldNode<D,T>>(
+            std::forward<V>(init), events.NodePtr()));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Monitor - Emits value changes of target signal
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename S
+>
+auto Monitor(const Signal<D,S>& target)
+    -> Events<D,S>
+{
+    using REACT_IMPL::MonitorNode;
+
+    return Events<D,S>(
+        std::make_shared<MonitorNode<D, S>>(
+            target.NodePtr()));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterate - Iteratively combines signal value with values from event stream
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -124,25 +161,6 @@ auto Iterate(const Events<D,E>& events, V&& init,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Hold - Hold the most recent event in a signal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename V,
-    typename T = typename std::decay<V>::type
->
-auto Hold(const Events<D,T>& events, V&& init)
-    -> Signal<D,T>
-{
-    using REACT_IMPL::HoldNode;
-
-    return Signal<D,T>(
-        std::make_shared<HoldNode<D,T>>(
-            std::forward<V>(init), events.NodePtr()));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Snapshot - Sets signal value to value of other signal when event is received
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -161,23 +179,7 @@ auto Snapshot(const Events<D,E>& trigger, const Signal<D,S>& target)
             target.NodePtr(), trigger.NodePtr()));
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Monitor - Emits value changes of target signal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S
->
-auto Monitor(const Signal<D,S>& target)
-    -> Events<D,S>
-{
-    using REACT_IMPL::MonitorNode;
 
-    return Events<D,S>(
-        std::make_shared<MonitorNode<D, S>>(
-            target.NodePtr()));
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Pulse - Emits value of target signal when event is received
@@ -199,21 +201,21 @@ auto Pulse(const Events<D,E>& trigger, const Signal<D,S>& target)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// OnChanged - Emits token when target signal was changed
+/// Changed - Emits token when target signal was changed
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
     typename D,
     typename S
 >
-auto OnChanged(const Signal<D,S>& target)
+auto Changed(const Signal<D,S>& target)
     -> Events<D,Token>
 {
     return Monitor(target).Tokenize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// OnChangedTo - Emits token when target signal was changed to value
+/// ChangedTo - Emits token when target signal was changed to value
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -221,7 +223,7 @@ template
     typename V,
     typename S = typename std::decay<V>::type
 >
-auto OnChangedTo(const Signal<D,S>& target, V&& value)
+auto ChangedTo(const Signal<D,S>& target, V&& value)
     -> Events<D,Token>
 {
     return Monitor(target)

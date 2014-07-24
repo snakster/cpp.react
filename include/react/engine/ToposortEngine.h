@@ -84,7 +84,7 @@ struct DynRequestData
 class SeqTurn : public TurnBase
 {
 public:
-    SeqTurn(TurnIdT id, TurnFlagsT flags);
+    SeqTurn(TurnIdT id, TransactionFlagsT flags);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,7 +93,7 @@ public:
 class ParTurn : public TurnBase
 {
 public:
-    ParTurn(TurnIdT id, TurnFlagsT flags);
+    ParTurn(TurnIdT id, TransactionFlagsT flags);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

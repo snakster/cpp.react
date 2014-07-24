@@ -40,7 +40,7 @@ using tbb::spin_rw_mutex;
 class Turn : public TurnBase
 {
 public:
-    Turn(TurnIdT id, TurnFlagsT flags);
+    Turn(TurnIdT id, TransactionFlagsT flags);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
