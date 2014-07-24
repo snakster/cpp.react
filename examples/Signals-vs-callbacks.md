@@ -204,8 +204,8 @@ public:
 };
 {% endhighlight %}
 
-`Size` now behaves like a pure function of `Width` and `Height` similar to Solution 1.
-But behind the scenes, it works like Solution 2, i.e. only re-calculate size when width or height have changed.
+`Size` now behaves like a function of `Width` and `Height`, similar to Solution 1.
+But behind the scenes, it works like Solution 2, i.e. size is only only re-calculated when width or height change.
 
 The following code shows how to interact with these signals:
 {% highlight C++ %}
