@@ -143,45 +143,37 @@ The change propagation is handled implicitly.
 Depending on the selected concurrency policy, updates can be parallelized:
 
 ```C++
-using namespace react;
-
-
 // Sequential updating
-{
-    REACTIVE_DOMAIN(D, sequential)
+REACTIVE_DOMAIN(D, sequential)
 
-    auto a = MakeVar<D>(1);
-    auto b = MakeVar<D>(2);
-    auto c = MakeVar<D>(3);
+VarSignalT<int> a = MakeVar<D>(1);
+VarSignalT<int> b = MakeVar<D>(2);
+VarSignalT<int> c = MakeVar<D>(3);
 
-    auto x = (a + b) * c;
+// Using overloaded arithmetic operators instead of MakeSignal
+SignalT<int> x = (a + b) * c;
+```
 
-    b <<= 20;
-}
-
+```C++
 // Parallel updating
+REACTIVE_DOMAIN(D, parallel)
+
+VarSignalT<int> in = MakeVar<D>(0);
+
+SignalT<int> op1 = MakeSignal(in, [] (int in)
 {
-    REACTIVE_DOMAIN(D, parallel)
+    int result = doCostlyOperation1(in);
+    return result;
+};
 
-    auto in = MakeVar<D>(0);
+SignalT<int> op2 = MakeSignal(in, [] (int in)
+{
+    int result = doCostlyOperation2(in);
+    return result;
+};
 
-    auto op1 = MakeSignal(in, [] (int in)
-    {
-        int result = in /* Costly operation #1 */;
-        return result;
-    };
-
-    auto op2 = MakeSignal(in, [] (int in)
-    {
-        int result = in /* Costly operation #2 */;
-        return result;
-    };
-
-    auto out = op1 + op2;
-
-    // op1 and op2 can be re-calculated in parallel
-    in <<= 123456789;
-}
+// op1 and op2 can be re-calculated in parallel
+SignalT<int> out = op1 + op2;
 ```
 
 ### More examples
