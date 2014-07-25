@@ -10,7 +10,6 @@ groups:
 * [Propagation model](#propagation-model)
 * [Conclusions](#conclusions)
 
-
 ## Graph model
 
 The dataflow between reactive values can be modeled (and visualized) as a directed acyclic graph (DAG).
@@ -66,12 +65,12 @@ In other words, mechanisms are required to
 
 The outside refers to the larger context of the program the reactive system is part of.
 
-To address the first requirement, there exist designated `input nodes` at the root of the graph.
+To address the first requirement, there exist designated _input nodes_ at the root of the graph.
 They are the input interface of the reactive system and can be manipulated imperatively.
 This allows integration of a reactive system with an imperative program.
 
 Propagating changes to the outside world could happen at any place through side effects, since C++ does not provide any means to enforce functional purity.
-However, since side effects have certain implications on thread-safety and our ability to reason about program behaviour, by convention they're moved them to designated `output nodes`.
+However, since side effects have certain implications on thread-safety and our ability to reason about program behaviour, by convention they're moved them to designated _output nodes_.
 By definition, these nodes don't have any successors. Analogously to input nodes, they are the output interface of the reactive system.
 
 In [Introduction to C++React](Introduction.html) we've already seen examples of input nodes (`VarSignal`, `EventSource`) and output nodes (observers).

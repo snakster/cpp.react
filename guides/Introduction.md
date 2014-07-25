@@ -221,7 +221,7 @@ The question is, what happens if a single control affects multiple components:
 
 - Each component individually triggers an update of the layout. As we add more layers to our scenario, the number of updates caused by a single change might grow exponentially.
 - Some of these updates are executed while part of the components have already been changed, while others have not. This can lead to intermittent errors - or _glitches_ - which are hard to spot.
-- Parallelization requires mutually exclusive acccess to shared data and critical operations (i.e. updating the layout cannot happen concurrently).
+- Parallelization requires mutually exclusive access to shared data and critical operations (i.e. updating the layout cannot happen concurrently).
 
 When building the same system based on signals, events and observers, execution of individual callback functions is ordered.
 First, all inputs are processed; then, the components are changed; lastly, the layout is updated once.
