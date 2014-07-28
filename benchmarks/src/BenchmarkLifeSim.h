@@ -288,7 +288,7 @@ struct Benchmark_LifeSim : public BenchmarkBase<D>
         vector<unique_ptr<Animal<D>>> animals;
 
         std::mt19937 gen( 2015 );
-        std::uniform_int_distribution<unsigned> dist( 0u, theWorld.Regions.size()-1 );
+        std::uniform_int_distribution<size_t> dist( 0u, theWorld.Regions.size()-1 );
 
         for (int i=0; i<params.N; i++)
         {

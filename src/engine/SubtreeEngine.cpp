@@ -178,7 +178,10 @@ void EngineBase::Propagate(Turn& turn)
     // Phase 2
     isInPhase2_ = true;
 
-    rootTask_.set_ref_count(1 + subtreeRoots_.size());
+    assert((1 + subtreeRoots_.size()) <=
+        static_cast<size_t>((std::numeric_limits<int>::max)()));
+
+    rootTask_.set_ref_count(1 + static_cast<int>(subtreeRoots_.size()));
 
     for (auto* node : subtreeRoots_)
     {

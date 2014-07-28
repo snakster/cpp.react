@@ -35,7 +35,7 @@ public:
     using Func2T = std::function<TValue(TValue,TValue)>;
 
     using SignalVectT   = std::vector<MySignal>;
-    using WidthVectT    = std::vector<int>;
+    using WidthVectT    = std::vector<size_t>;
 
     SignalVectT InputSignals;
     SignalVectT OutputSignals;
@@ -56,9 +56,9 @@ public:
         SignalVectT* curBuf = &buf1;
         SignalVectT* nextBuf = &buf2;
 
-        int curWidth = InputSignals.size();
+        size_t curWidth = InputSignals.size();
 
-        int nodeCount = 1;
+        size_t nodeCount = 1;
         nodeCount += curWidth;
 
         for (auto targetWidth : Widths)

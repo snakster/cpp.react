@@ -207,13 +207,16 @@ template <typename TTask, typename TIt, typename ... TArgs>
 void spawnTasks
 (
     task& rootTask, task_list& spawnList,
-    const uint count, TIt start, TIt end,
+    const size_t count, TIt start, TIt end,
     TArgs& ... args
 )
 {
-    rootTask.set_ref_count(1 + count);
+    assert(1 + count <=
+        static_cast<size_t>((std::numeric_limits<int>::max)()));
 
-    for (uint i=0; i < (count - 1); i++)
+    rootTask.set_ref_count(1 + static_cast<int>(count));
+
+    for (size_t i=0; i < (count - 1); i++)
     {
         spawnList.push_back(*new(rootTask.allocate_child())
             TTask(args ..., start, start + chunk_size));
@@ -230,7 +233,7 @@ void spawnTasks
 
 void EngineBase::Propagate(Turn& turn)
 {
-    const uint initialTaskCount = (changedInputs_.size() - 1) / chunk_size + 1;
+    const size_t initialTaskCount = (changedInputs_.size() - 1) / chunk_size + 1;
 
     spawnTasks<MarkerTask>(rootTask_, spawnList_, initialTaskCount,
         changedInputs_.begin(), changedInputs_.end());
