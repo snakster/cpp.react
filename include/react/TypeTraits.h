@@ -34,6 +34,15 @@ class EventSource;
 template <typename D, typename E, typename TOp>
 class TempEvents;
 
+template <typename D>
+class Observer;
+
+template <typename D>
+class ScopedObserver;
+
+template <typename TSourceDomain, typename TTargetDomain>
+class Continuation;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsSignal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -65,6 +74,27 @@ template <typename D, typename T, typename TOp>
 struct IsEvent<TempEvents<D,T,TOp>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// IsObserver
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+struct IsObserver { static const bool value = false; };
+
+template <typename D>
+struct IsObserver<Observer<D>> { static const bool value = true; };
+
+template <typename D>
+struct IsObserver<ScopedObserver<D>> { static const bool value = true; };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// IsContinuation
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+struct IsContinuation { static const bool value = false; };
+
+template <typename D, typename D2>
+struct IsContinuation<Continuation<D,D2>> { static const bool value = true; };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsReactive
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
@@ -87,6 +117,15 @@ struct IsReactive<EventSource<D,T>> { static const bool value = true; };
 
 template <typename D, typename T, typename TOp>
 struct IsReactive<TempEvents<D,T,TOp>> { static const bool value = true; };
+
+template <typename D>
+struct IsReactive<Observer<D>> { static const bool value = true; };
+
+template <typename D>
+struct IsReactive<ScopedObserver<D>> { static const bool value = true; };
+
+template <typename D, typename D2>
+struct IsReactive<Continuation<D,D2>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// RemoveInput
