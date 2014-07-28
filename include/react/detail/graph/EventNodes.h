@@ -53,7 +53,7 @@ template
     typename E
 >
 class EventStreamNode :
-    public ReactiveNode<D,E,void>,
+    public ObservableNode<D>,
     private BufferClearAccessPolicy<D>
 {
 public:
@@ -385,8 +385,7 @@ template
     typename TOp
 >
 class EventOpNode :
-    public EventStreamNode<D,E>,
-    public UpdateTimingPolicy<D,500>
+    public EventStreamNode<D,E>
 {
     using Engine = typename EventOpNode::Engine;
 
@@ -440,11 +439,6 @@ public:
 
     virtual const char* GetNodeType() const override        { return "EventOpNode"; }
     virtual int         DependencyCount() const override    { return TOp::dependency_count; }
-
-    virtual bool IsHeavyweight() const override
-    {
-        return this->IsUpdateThresholdExceeded();
-    }
 
     TOp StealOp()
     {
@@ -514,7 +508,7 @@ public:
         this->SetCurrentTurn(turn, true);
         inner_->SetCurrentTurn(turn);
 
-        auto newInner = outer_->ValueRef().NodePtr();
+        auto newInner = GetNodePtr(outer_->ValueRef());
 
         if (newInner != inner_)
         {
@@ -564,8 +558,7 @@ template
     typename ... TDepValues
 >
 class SyncedEventTransformNode :
-    public EventStreamNode<D,TOut>,
-    public UpdateTimingPolicy<D,500>
+    public EventStreamNode<D,TOut>
 {
     using Engine = typename SyncedEventTransformNode::Engine;
 
@@ -644,11 +637,6 @@ public:
     virtual const char* GetNodeType() const override        { return "SyncedEventTransformNode"; }
     virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
 
-    virtual bool IsHeavyweight() const override
-    {
-        return this->IsUpdateThresholdExceeded();
-    }
-
 private:
     using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
 
@@ -669,8 +657,7 @@ template
     typename ... TDepValues
 >
 class SyncedEventFilterNode :
-    public EventStreamNode<D,E>,
-    public UpdateTimingPolicy<D,500>
+    public EventStreamNode<D,E>
 {
     using Engine = typename SyncedEventFilterNode::Engine;
 

@@ -27,15 +27,15 @@ template
     typename D,
     typename E
 >
-class EventStreamBase : public ReactiveBase<EventStreamNode<D,E>>
+class EventStreamBase : public CopyableReactive<EventStreamNode<D,E>>
 {
 public:
     EventStreamBase() = default;
     EventStreamBase(const EventStreamBase&) = default;
 
     template <typename T>
-    explicit EventStreamBase(T&& ptr) :
-        EventStreamBase::ReactiveBase( std::forward<T>(ptr) )
+    EventStreamBase(T&& t) :
+        EventStreamBase::CopyableReactive( std::forward<T>(t) )
     {}
 
 protected:

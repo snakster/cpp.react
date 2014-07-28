@@ -55,7 +55,7 @@ auto Hold(const Events<D,T>& events, V&& init)
 
     return Signal<D,T>(
         std::make_shared<HoldNode<D,T>>(
-            std::forward<V>(init), events.NodePtr()));
+            std::forward<V>(init), GetNodePtr(events)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,7 +73,7 @@ auto Monitor(const Signal<D,S>& target)
 
     return Events<D,S>(
         std::make_shared<MonitorNode<D, S>>(
-            target.NodePtr()));
+            GetNodePtr(target)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,7 +103,7 @@ auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
 
     return Signal<D,S>(
         std::make_shared<TNode>(
-            std::forward<V>(init), events.NodePtr(), std::forward<FIn>(func)));
+            std::forward<V>(init), GetNodePtr(events), std::forward<FIn>(func)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -146,8 +146,8 @@ auto Iterate(const Events<D,E>& events, V&& init,
         {
             return Signal<D,S>(
                 std::make_shared<TNode>(
-                    std::forward<V>(MyInit), MySource.NodePtr(),
-                    std::forward<FIn>(MyFunc), deps.NodePtr() ...));
+                    std::forward<V>(MyInit), GetNodePtr(MySource),
+                    std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
         }
 
         const Events<D,E>&  MySource;
@@ -176,7 +176,7 @@ auto Snapshot(const Events<D,E>& trigger, const Signal<D,S>& target)
 
     return Signal<D,S>(
         std::make_shared<SnapshotNode<D,S,E>>(
-            target.NodePtr(), trigger.NodePtr()));
+            GetNodePtr(target), GetNodePtr(trigger)));
 }
 
 
@@ -197,7 +197,7 @@ auto Pulse(const Events<D,E>& trigger, const Signal<D,S>& target)
 
     return Events<D,S>(
         std::make_shared<PulseNode<D,S,E>>(
-            target.NodePtr(), trigger.NodePtr()));
+            GetNodePtr(target), GetNodePtr(trigger)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

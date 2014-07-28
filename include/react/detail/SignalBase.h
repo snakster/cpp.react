@@ -27,15 +27,15 @@ template
     typename D,
     typename S
 >
-class SignalBase : public ReactiveBase<SignalNode<D,S>>
+class SignalBase : public CopyableReactive<SignalNode<D,S>>
 {
 public:
     SignalBase() = default;
     SignalBase(const SignalBase&) = default;
     
     template <typename T>
-    explicit SignalBase(T&& ptr) :
-        SignalBase::ReactiveBase( std::forward<T>(ptr) )
+    SignalBase(T&& t) :
+        SignalBase::CopyableReactive( std::forward<T>(t) )
     {}
 
 protected:

@@ -34,8 +34,7 @@ class EventStreamNode;
 /// ContinuationNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
-class ContinuationNode :
-    public ReactiveNode<D,void,void>
+class ContinuationNode : public NodeBase<D>
 {
 public:
     ContinuationNode(TransactionFlagsT turnFlags) :

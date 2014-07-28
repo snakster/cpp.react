@@ -14,19 +14,15 @@
 #include <memory>
 #include <utility>
 
-#include "react/detail/IReactiveEngine.h"
+#include "react/detail/DomainBase.h"
 #include "react/detail/ReactiveInput.h"
+
 #include "react/detail/graph/ContinuationNodes.h"
 
 #ifdef REACT_ENABLE_LOGGING
     #include "react/logging/EventLog.h"
     #include "react/logging/EventRecords.h"
 #endif //REACT_ENABLE_LOGGING
-
-// Include all engines for convenience
-#include "react/engine/PulsecountEngine.h"
-#include "react/engine/SubtreeEngine.h"
-#include "react/engine/ToposortEngine.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -79,17 +75,17 @@ using REACT_IMPL::allow_merging;
 #endif //REACT_ENABLE_LOGGING
 
 // Domain modes
-enum EDomainMode
-{
-    sequential,
-    sequential_concurrent,
-    parallel,
-    parallel_concurrent
-};
+using REACT_IMPL::EDomainMode;
+using REACT_IMPL::sequential;
+using REACT_IMPL::sequential_concurrent;
+using REACT_IMPL::parallel;
+using REACT_IMPL::parallel_concurrent;
 
 // Expose enum type so aliases for engines can be declared, but don't
 // expose the actual enum values as they are reserved for internal use.
 using REACT_IMPL::EPropagationMode;
+
+using REACT_IMPL::WeightHint;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TransactionStatus
@@ -140,100 +136,37 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// DomainBase
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename TPolicy>
-class DomainBase
-{
-public:
-    using TurnT = typename TPolicy::Engine::TurnT;
-
-    DomainBase() = delete;
-
-    using Policy = TPolicy;
-    using Engine = REACT_IMPL::EngineInterface<D, typename Policy::Engine>;
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    /// Domain traits
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    static const bool uses_node_update_timer =
-        REACT_IMPL::NodeUpdateTimerEnabled<typename Policy::Engine>::value;
-
-    static const bool is_concurrent =
-        Policy::input_mode == REACT_IMPL::concurrent_input;
-
-    static const bool is_parallel =
-        Policy::propagation_mode == REACT_IMPL::parallel_propagation;
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    /// Aliases for reactives of this domain
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    template <typename S>
-    using SignalT = Signal<D,S>;
-
-    template <typename S>
-    using VarSignalT = VarSignal<D,S>;
-
-    template <typename E = Token>
-    using EventsT = Events<D,E>;
-
-    template <typename E = Token>
-    using EventSourceT = EventSource<D,E>;
-
-    using ObserverT = Observer<D>;
-
-    using ScopedObserverT = ScopedObserver<D>;
-
-    using ReactorT = Reactor<D>;
-
-#ifdef REACT_ENABLE_LOGGING
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    /// Log
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    static EventLog& Log()
-    {
-        static EventLog instance;
-        return instance;
-    }
-#endif //REACT_ENABLE_LOGGING
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Continuation
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename TSourceDomain,
-    typename TTargetDomain
+    typename D,
+    typename D2
 >
-class Continuation
+class Continuation : public REACT_IMPL::ContinuationBase<D,D2>
 {
-    using NodePtrT  = REACT_IMPL::NodeBasePtrT<TSourceDomain>;
+private:
+    using NodePtrT  = REACT_IMPL::NodeBasePtrT<D>;
 
 public:
-    using SourceDomainT = TSourceDomain;
-    using TargetDomainT = TTargetDomain;
+    using SourceDomainT = D;
+    using TargetDomainT = D2;
 
     Continuation() = default;
-    Continuation(const Continuation&) = delete;
-    Continuation& operator=(const Continuation&) = delete;
 
     Continuation(Continuation&& other) :
-        nodePtr_( std::move(other.nodePtr_) )
+        Continuation::ContinuationBase( std::move(other) )
     {}
 
     explicit Continuation(NodePtrT&& nodePtr) :
-        nodePtr_( std::move(nodePtr) )
-    {}    
+        Continuation::ContinuationBase( std::move(nodePtr) )
+    {}
 
     Continuation& operator=(Continuation&& other)
     {
-        nodePtr_ = std::move(other.nodePtr_);
+        Continuation::ContinuationBase::operator=( std::move(other) );
         return *this;
     }
-
-private:
-    NodePtrT    nodePtr_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -257,7 +190,7 @@ auto MakeContinuation(TransactionFlagsT flags, const Signal<D,S>& trigger, FIn&&
 
     return Continuation<D,DOut>(
         std::make_shared<SignalContinuationNode<D,DOut,S,F>>(
-            flags, trigger.NodePtr(), std::forward<FIn>(func)));
+            flags, GetNodePtr(trigger), std::forward<FIn>(func)));
 }
 
 template
@@ -294,7 +227,7 @@ auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger, FIn&&
 
     return Continuation<D,DOut>(
         std::make_shared<EventContinuationNode<D,DOut,E,F>>(
-            flags, trigger.NodePtr(), std::forward<FIn>(func)));
+            flags, GetNodePtr(trigger), std::forward<FIn>(func)));
 }
 
 template
@@ -345,11 +278,11 @@ auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger,
             return Continuation<D,DOut>(
                 std::make_shared<SyncedContinuationNode<D,DOut,E,F,TDepValues...>>(
                     MyFlags,
-                    MyTrigger.NodePtr(),
-                    std::forward<FIn>(MyFunc), deps.NodePtr() ...));
+                    GetNodePtr(MyTrigger),
+                    std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
         }
 
-        TransactionFlagsT          MyFlags;
+        TransactionFlagsT   MyFlags;
         const Events<D,E>&  MyTrigger;
         FIn                 MyFunc;
     };
@@ -437,130 +370,12 @@ void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& fu
 
 /******************************************/ REACT_END /******************************************/
 
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ModeSelector - Translate domain mode to individual propagation and input modes
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <EDomainMode>
-struct ModeSelector;
-
-template <>
-struct ModeSelector<sequential>
-{
-    static const EInputMode         input       = consecutive_input;
-    static const EPropagationMode   propagation = sequential_propagation;
-};
-
-template <>
-struct ModeSelector<sequential_concurrent>
-{
-    static const EInputMode         input       = concurrent_input;
-    static const EPropagationMode   propagation = sequential_propagation;
-};
-
-template <>
-struct ModeSelector<parallel>
-{
-    static const EInputMode         input       = consecutive_input;
-    static const EPropagationMode   propagation = parallel_propagation;
-};
-
-template <>
-struct ModeSelector<parallel_concurrent>
-{
-    static const EInputMode         input       = concurrent_input;
-    static const EPropagationMode   propagation = parallel_propagation;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// GetDefaultEngine - Get default engine type for given propagation mode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <EPropagationMode>
-struct GetDefaultEngine;
-
-template <>
-struct GetDefaultEngine<sequential_propagation>
-{
-    using Type = ToposortEngine<sequential_propagation>;
-};
-
-template <>
-struct GetDefaultEngine<parallel_propagation>
-{
-    using Type = SubtreeEngine<parallel_propagation>;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EngineTypeBuilder - Instantiate the given template engine type with mode.
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <EPropagationMode>
-struct DefaultEnginePlaceholder;
-
-// Concrete engine template type
-template
-<
-    EPropagationMode mode,
-    template <EPropagationMode> class TTEngine
->
-struct EngineTypeBuilder
-{
-    using Type = TTEngine<mode>;
-};
-
-// Placeholder engine type - use default engine for given mode
-template
-<
-    EPropagationMode mode
->
-struct EngineTypeBuilder<mode,DefaultEnginePlaceholder>
-{
-    using Type = typename GetDefaultEngine<mode>::Type;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// DomainPolicy
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    EDomainMode mode,
-    template <EPropagationMode> class TTEngine = DefaultEnginePlaceholder
->
-struct DomainPolicy
-{
-    static const EInputMode         input_mode          = ModeSelector<mode>::input;
-    static const EPropagationMode   propagation_mode    = ModeSelector<mode>::propagation;
-
-    using Engine = typename EngineTypeBuilder<propagation_mode,TTEngine>::Type;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Ensure singletons are created immediately after domain declaration (TODO hax)
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D>
-class DomainInitializer
-{
-public:
-    DomainInitializer()
-    {
-#ifdef REACT_ENABLE_LOGGING
-        D::Log();
-#endif //REACT_ENABLE_LOGGING
-
-        D::Engine::Instance();
-        DomainSpecificObserverRegistry<D>::Instance();
-        DomainSpecificInputManager<D>::Instance();
-    }
-};
-
-/****************************************/ REACT_IMPL_END /***************************************/
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Domain definition macro
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #define REACTIVE_DOMAIN(name, ...)                                                          \
     struct name :                                                                           \
-        public REACT::DomainBase<name, REACT_IMPL::DomainPolicy< __VA_ARGS__ >> {};         \
+        public REACT_IMPL::DomainBase<name, REACT_IMPL::DomainPolicy< __VA_ARGS__ >> {};    \
     REACT_IMPL::DomainInitializer<name> name ## _initializer_;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

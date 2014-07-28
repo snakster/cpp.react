@@ -66,6 +66,8 @@ public:
         ScopedTimer(const ConditionalTimer&, const size_t& count);
     };
 
+    void Reset();
+    void ForceThresholdExceeded(bool isExceeded);
     bool IsThresholdExceeded() const;
 };
 
@@ -84,7 +86,9 @@ public:
         ScopedTimer(const ConditionalTimer&, const size_t& count) {}
     };
 
-    bool IsThresholdExceeded() const { return false; }
+    void Reset()                                    {}
+    void ForceThresholdExceeded(bool isExceeded)    {}
+    bool IsThresholdExceeded() const                { return false; }
 };
 
 // Enabled
@@ -142,7 +146,7 @@ public:
             durationUS.QuadPart *= 1000000;
             durationUS.QuadPart /= GetPerformanceFrequency().QuadPart;
 
-            parent_.isThresholdExceeded_ = durationUS.QuadPart > (threshold * count_);
+            parent_.isThresholdExceeded_ = (durationUS.QuadPart - (threshold * count_)) > 0;
 #else
             using std::chrono::duration_cast;
             using std::chrono::microseconds;
@@ -166,6 +170,18 @@ public:
 #else
         return ClockT::now();
 #endif
+    }
+
+    void Reset() 
+    {
+        shouldMeasure_ = true;
+        isThresholdExceeded_ = false;
+    }
+
+    void ForceThresholdExceeded(bool isExceeded) 
+    {
+        shouldMeasure_ = false;
+        isThresholdExceeded_ = isExceeded;
     }
 
     bool IsThresholdExceeded() const { return isThresholdExceeded_; }

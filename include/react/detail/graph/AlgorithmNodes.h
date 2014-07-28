@@ -30,8 +30,7 @@ template
     typename TFunc
 >
 class IterateNode :
-    public SignalNode<D,S>,
-    public UpdateTimingPolicy<D,500>
+    public SignalNode<D,S>
 {
     using Engine = typename IterateNode::Engine;
 
@@ -90,11 +89,6 @@ public:
     virtual const char* GetNodeType() const override        { return "IterateNode"; }
     virtual int         DependencyCount() const override    { return 1; }
 
-    virtual bool IsHeavyweight() const override
-    {
-        return this->IsUpdateThresholdExceeded();
-    }
-
 private:
     std::shared_ptr<EventStreamNode<D,E>> events_;
     
@@ -112,8 +106,7 @@ template
     typename TFunc
 >
 class IterateByRefNode :
-    public SignalNode<D,S>,
-    public UpdateTimingPolicy<D,500>
+    public SignalNode<D,S>
 {
     using Engine = typename IterateByRefNode::Engine;
 
@@ -160,11 +153,6 @@ public:
     virtual const char* GetNodeType() const override        { return "IterateByRefNode"; }
     virtual int         DependencyCount() const override    { return 1; }
 
-    virtual bool IsHeavyweight() const override
-    {
-        return this->IsUpdateThresholdExceeded();
-    }
-
 protected:
     TFunc   func_;
 
@@ -183,8 +171,7 @@ template
     typename ... TDepValues
 >
 class SyncedIterateNode :
-    public SignalNode<D,S>,
-    public UpdateTimingPolicy<D,500>
+    public SignalNode<D,S>
 {
     using Engine = typename SyncedIterateNode::Engine;
 
@@ -273,11 +260,6 @@ public:
     virtual const char* GetNodeType() const override        { return "SyncedIterateNode"; }
     virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
 
-    virtual bool IsHeavyweight() const override
-    {
-        return this->IsUpdateThresholdExceeded();
-    }
-
 private:
     using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
 
@@ -299,8 +281,7 @@ template
     typename ... TDepValues
 >
 class SyncedIterateByRefNode :
-    public SignalNode<D,S>,
-    public UpdateTimingPolicy<D,500>
+    public SignalNode<D,S>
 {
     using Engine = typename SyncedIterateByRefNode::Engine;
 
@@ -382,11 +363,6 @@ public:
 
     virtual const char* GetNodeType() const override        { return "SyncedIterateByRefNode"; }
     virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
-
-    virtual bool IsHeavyweight() const override
-    {
-        return this->IsUpdateThresholdExceeded();
-    }
 
 private:
     using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;

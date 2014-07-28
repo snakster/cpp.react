@@ -42,6 +42,8 @@ class Signal;
 template <typename D, typename ... TValues>
 class SignalPack;
 
+using REACT_IMPL::WeightHint;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MakeEventSource
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,7 +81,7 @@ auto Merge(const Events<D,TArg1>& arg1, const Events<D,TArgs>& ... args)
 
     return TempEvents<D,E,TOp>(
         std::make_shared<EventOpNode<D,E,TOp>>(
-            arg1.NodePtr(), args.NodePtr() ...));
+            GetNodePtr(arg1), GetNodePtr(args) ...));
 }
 
 template
@@ -105,7 +107,7 @@ auto operator|(const TLeftEvents& lhs, const TRightEvents& rhs)
 
     return TempEvents<D,E,TOp>(
         std::make_shared<EventOpNode<D,E,TOp>>(
-            lhs.NodePtr(), rhs.NodePtr()));
+            GetNodePtr(lhs), GetNodePtr(rhs)));
 }
 
 template
@@ -149,7 +151,7 @@ auto operator|(TempEvents<D,TLeftVal,TLeftOp>&& lhs, const TRightEvents& rhs)
 
     return TempEvents<D,E,TOp>(
         std::make_shared<EventOpNode<D,E,TOp>>(
-            lhs.StealOp(), rhs.NodePtr()));
+            lhs.StealOp(), GetNodePtr(rhs)));
 }
 
 template
@@ -173,7 +175,7 @@ auto operator|(const TLeftEvents& lhs, TempEvents<D,TRightVal,TRightOp>&& rhs)
 
     return TempEvents<D,E,TOp>(
         std::make_shared<EventOpNode<D,E,TOp>>(
-            lhs.NodePtr(), rhs.StealOp()));
+            GetNodePtr(lhs), rhs.StealOp()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -195,7 +197,7 @@ auto Filter(const Events<D,E>& src, FIn&& filter)
 
     return TempEvents<D,E,TOp>(
         std::make_shared<EventOpNode<D,E,TOp>>(
-            std::forward<FIn>(filter), src.NodePtr()));
+            std::forward<FIn>(filter), GetNodePtr(src)));
 }
 
 template
@@ -246,7 +248,7 @@ auto Filter(const Events<D,E>& source, const SignalPack<D,TDepValues...>& depPac
         {
             return Events<D,E>(
                 std::make_shared<SyncedEventFilterNode<D,E,F,TDepValues ...>>(
-                     MySource.NodePtr(), std::forward<FIn>(MyFunc), deps.NodePtr() ...));
+                     GetNodePtr(MySource), std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
         }
 
         const Events<D,E>&      MySource;
@@ -278,7 +280,7 @@ auto Transform(const Events<D,TIn>& src, FIn&& func)
 
     return TempEvents<D,TOut,TOp>(
         std::make_shared<EventOpNode<D,TOut,TOp>>(
-            std::forward<FIn>(func), src.NodePtr()));
+            std::forward<FIn>(func), GetNodePtr(src)));
 }
 
 template
@@ -331,7 +333,7 @@ auto Transform(const Events<D,TIn>& source, const SignalPack<D,TDepValues...>& d
         {
             return Events<D,TOut>(
                 std::make_shared<SyncedEventTransformNode<D,TIn,TOut,F,TDepValues ...>>(
-                     MySource.NodePtr(), std::forward<FIn>(MyFunc), deps.NodePtr() ...));
+                     GetNodePtr(MySource), std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
         }
 
         const Events<D,TIn>&    MySource;
@@ -351,12 +353,12 @@ template
     typename D,
     typename TInnerValue
 >
-auto Flatten(const Signal<D,Events<D,TInnerValue>>& node)
+auto Flatten(const Signal<D,Events<D,TInnerValue>>& outer)
     -> Events<D,TInnerValue>
 {
     return Events<D,TInnerValue>(
         std::make_shared<REACT_IMPL::EventFlattenNode<D, Events<D,TInnerValue>, TInnerValue>>(
-            node.NodePtr(), node().NodePtr()));
+            GetNodePtr(outer), GetNodePtr(outer.Value())));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,9 +389,6 @@ template
 >
 class Events : public REACT_IMPL::EventStreamBase<D,E>
 {
-protected:
-    using BaseT     = REACT_IMPL::EventStreamBase<D,E>;
-
 private:
     using NodeT     = REACT_IMPL::EventStreamNode<D,E>;
     using NodePtrT  = std::shared_ptr<NodeT>;
@@ -397,32 +396,45 @@ private:
 public:
     using ValueT = E;
 
+    // Default ctor
     Events() = default;
-    Events(const Events&) = default;
-    Events& operator=(const Events&) = default;
 
+    // Copy ctor
+    Events(const Events&) = default;
+
+    // Move ctor
     Events(Events&& other) :
         Events::EventStreamBase( std::move(other) )
     {}
 
+    // Node ctor
+    explicit Events(NodePtrT&& nodePtr) :
+        Events::EventStreamBase( std::move(nodePtr) )
+    {}
+
+    // Copy assignment
+    Events& operator=(const Events&) = default;
+
+    // Move assignment
     Events& operator=(Events&& other)
     {
         Events::EventStreamBase::operator=( std::move(other) );
         return *this;
     }
 
-    explicit Events(NodePtrT&& nodePtr) :
-        Events::EventStreamBase( std::move(nodePtr) )
-    {}
-
     bool Equals(const Events& other) const
     {
-        return Events::BaseT::Equals(other);
+        return Events::EventStreamBase::Equals(other);
     }
 
     bool IsValid() const
     {
-        return Events::BaseT::IsValid();
+        return Events::EventStreamBase::IsValid();
+    }
+
+    void SetWeightHint(WeightHint weight)
+    {
+        Events::EventStreamBase::SetWeightHint(weight);
     }
 
     auto Tokenize() const
@@ -461,9 +473,6 @@ template
 >
 class Events<D,E&> : public REACT_IMPL::EventStreamBase<D,std::reference_wrapper<E>>
 {
-protected:
-    using BaseT     = REACT_IMPL::EventStreamBase<D,std::reference_wrapper<E>>;
-
 private:
     using NodeT     = REACT_IMPL::EventStreamNode<D,std::reference_wrapper<E>>;
     using NodePtrT  = std::shared_ptr<NodeT>;
@@ -471,32 +480,45 @@ private:
 public:
     using ValueT = E;
 
+    // Default ctor
     Events() = default;
-    Events(const Events&) = default;
-    Events& operator=(const Events&) = default;
 
+    // Copy ctor
+    Events(const Events&) = default;
+
+    // Move ctor
     Events(Events&& other) :
         Events::EventStreamBase( std::move(other) )
     {}
 
+    // Node ctor
+    explicit Events(NodePtrT&& nodePtr) :
+        Events::EventStreamBase( std::move(nodePtr) )
+    {}
+
+    // Copy assignment
+    Events& operator=(const Events&) = default;
+
+    // Move assignment
     Events& operator=(Events&& other)
     {
         Events::EventStreamBase::operator=( std::move(other) );
         return *this;
     }
 
-    explicit Events(NodePtrT&& nodePtr) :
-        Events::EventStreamBase( std::move(nodePtr) )
-    {}
-
     bool Equals(const Events& other) const
     {
-        return Events::BaseT::Equals(other);
+        return Events::EventStreamBase::Equals(other);
     }
 
     bool IsValid() const
     {
-        return Events::BaseT::IsValid();
+        return Events::EventStreamBase::IsValid();
+    }
+
+    void SetWeightHint(WeightHint weight)
+    {
+        Events::EventStreamBase::SetWeightHint(weight);
     }
 
     auto Tokenize() const
@@ -542,54 +564,62 @@ private:
     using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
+    // Default ctor
     EventSource() = default;
-    EventSource(const EventSource&) = default;
-    EventSource& operator=(const EventSource&) = default;
 
+    // Copy ctor
+    EventSource(const EventSource&) = default;
+
+    // Move ctor
     EventSource(EventSource&& other) :
         EventSource::Events( std::move(other) )
     {}
 
+    // Node ctor
+    explicit EventSource(NodePtrT&& nodePtr) :
+        EventSource::Events( std::move(nodePtr) )
+    {}
+
+    // Copy assignemnt
+    EventSource& operator=(const EventSource&) = default;
+
+    // Move assignment
     EventSource& operator=(EventSource&& other)
     {
         EventSource::Events::operator=( std::move(other) );
         return *this;
     }
 
-    explicit EventSource(NodePtrT&& nodePtr) :
-        EventSource::Events( std::move(nodePtr) )
-    {}
-
     // Explicit emit
-    void Emit(const E& e) const         { EventSource::BaseT::emit(e); }
-    void Emit(E&& e) const              { EventSource::BaseT::emit(std::move(e)); }
+    void Emit(const E& e) const     { EventSource::EventStreamBase::emit(e); }
+    void Emit(E&& e) const          { EventSource::EventStreamBase::emit(std::move(e)); }
 
     void Emit() const
     {
         static_assert(std::is_same<E,Token>::value, "Can't emit on non token stream.");
-        EventSource::BaseT::emit(Token::value);
+        EventSource::EventStreamBase::emit(Token::value);
     }
 
     // Function object style
-    void operator()(const E& e) const   { EventSource::BaseT::emit(e); }
-    void operator()(E&& e) const        { EventSource::BaseT::emit(std::move(e)); }
+    void operator()(const E& e) const   { EventSource::EventStreamBase::emit(e); }
+    void operator()(E&& e) const        { EventSource::EventStreamBase::emit(std::move(e)); }
 
     void operator()() const
     {
         static_assert(std::is_same<E,Token>::value, "Can't emit on non token stream.");
-        EventSource::BaseT::emit(Token::value);
+        EventSource::EventStreamBase::emit(Token::value);
     }
 
     // Stream style
     const EventSource& operator<<(const E& e) const
     {
-        EventSource::BaseT::emit(e);
+        EventSource::EventStreamBase::emit(e);
         return *this;
     }
 
     const EventSource& operator<<(E&& e) const
     {
-        EventSource::BaseT::emit(std::move(e));
+        EventSource::EventStreamBase::emit(std::move(e));
         return *this;
     }
 };
@@ -607,34 +637,42 @@ private:
     using NodePtrT  = std::shared_ptr<NodeT>;
 
 public:
+    // Default ctor
     EventSource() = default;
-    EventSource(const EventSource&) = default;
-    EventSource& operator=(const EventSource&) = default;
 
+    // Copy ctor
+    EventSource(const EventSource&) = default;
+
+    // Move ctor
     EventSource(EventSource&& other) :
         EventSource::Events( std::move(other) )
     {}
 
+    // Node ctor
+    explicit EventSource(NodePtrT&& nodePtr) :
+        EventSource::Events( std::move(nodePtr) )
+    {}
+
+    // Copy assignment
+    EventSource& operator=(const EventSource&) = default;
+
+    // Move assignment
     EventSource& operator=(EventSource&& other)
     {
         EventSource::Events::operator=( std::move(other) );
         return *this;
     }
 
-    explicit EventSource(NodePtrT&& nodePtr) :
-        EventSource::Events( std::move(nodePtr) )
-    {}
-
     // Explicit emit
-    void Emit(std::reference_wrapper<E> e) const        { EventSource::BaseT::emit(e); }
+    void Emit(std::reference_wrapper<E> e) const        { EventSource::EventStreamBase::emit(e); }
 
     // Function object style
-    void operator()(std::reference_wrapper<E> e) const  { EventSource::BaseT::emit(e); }
+    void operator()(std::reference_wrapper<E> e) const  { EventSource::EventStreamBase::emit(e); }
 
     // Stream style
     const EventSource& operator<<(std::reference_wrapper<E> e) const
     {
-        EventSource::BaseT::emit(e);
+        EventSource::EventStreamBase::emit(e);
         return *this;
     }
 };
@@ -654,18 +692,32 @@ protected:
     using NodeT     = REACT_IMPL::EventOpNode<D,E,TOp>;
     using NodePtrT  = std::shared_ptr<NodeT>;
 
-public:    
+public:
+    // Default ctor
     TempEvents() = default;
-    TempEvents(const TempEvents&) = default;
-    TempEvents& operator=(const TempEvents&) = default;
 
+    // Copy ctor
+    TempEvents(const TempEvents&) = default;
+
+    // Move ctor
     TempEvents(TempEvents&& other) :
         TempEvents::Events( std::move(other) )
     {}
 
+    // Node ctor
     explicit TempEvents(NodePtrT&& nodePtr) :
         TempEvents::Events( std::move(nodePtr) )
     {}
+
+    // Copy assignment
+    TempEvents& operator=(const TempEvents&) = default;
+
+    // Move assignment
+    TempEvents& operator=(TempEvents&& other)
+    {
+        TempEvents::EventStreamBase::operator=( std::move(other) );
+        return *this;
+    }
 
     TOp StealOp()
     {

@@ -43,7 +43,7 @@ enum class ObserverAction
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
 class ObserverNode :
-    public ReactiveNode<D,void,void>,
+    public NodeBase<D>,
     public IObserver
 {
 public:
@@ -62,8 +62,7 @@ template
     typename TFunc
 >
 class SignalObserverNode :
-    public ObserverNode<D>,
-    public UpdateTimingPolicy<D,500>
+    public ObserverNode<D>
 {
     using Engine = typename SignalObserverNode::Engine;
 
@@ -75,7 +74,6 @@ public:
         func_( std::forward<F>(func) )
     {
         Engine::OnNodeCreate(*this);
-        subject->IncObsCount();
         Engine::OnNodeAttach(*this, *subject);
     }
 
@@ -116,13 +114,17 @@ public:
             GetObjectId(*this), turn.Id()));
     }
 
+    virtual void UnregisterSelf() override
+    {
+        if (auto p = subject_.lock())
+            p->UnregisterObserver(this);
+    }
+
 private:
     virtual void detachObserver() override
     {
         if (auto p = subject_.lock())
         {
-            p->DecObsCount();
-
             Engine::OnNodeDetach(*this, *p);
             subject_.reset();
         }
@@ -142,8 +144,7 @@ template
     typename TFunc
 >
 class EventObserverNode :
-    public ObserverNode<D>,
-    public UpdateTimingPolicy<D,500>
+    public ObserverNode<D>
 {
     using Engine = typename EventObserverNode::Engine;
 
@@ -155,7 +156,6 @@ public:
         func_( std::forward<F>(func) )
     {
         Engine::OnNodeCreate(*this);
-        subject->IncObsCount();
         Engine::OnNodeAttach(*this, *subject);
     }
 
@@ -202,6 +202,12 @@ public:
             GetObjectId(*this), turn.Id()));
     }
 
+    virtual void UnregisterSelf() override
+    {
+        if (auto p = subject_.lock())
+            p->UnregisterObserver(this);
+    }
+
 private:
     std::weak_ptr<EventStreamNode<D,E>> subject_;
 
@@ -211,8 +217,6 @@ private:
     {
         if (auto p = subject_.lock())
         {
-            p->DecObsCount();
-
             Engine::OnNodeDetach(*this, *p);
             subject_.reset();
         }
@@ -230,13 +234,11 @@ template
     typename ... TDepValues
 >
 class SyncedObserverNode :
-    public ObserverNode<D>,
-    public UpdateTimingPolicy<D,500>
+    public ObserverNode<D>
 {
     using Engine = typename SyncedObserverNode::Engine;
 
 public:
-    // NOTE: After upgrading to VS2013 Udpate2, using std::shared_ptr here crashes the compiler
     template <typename F>
     SyncedObserverNode(const std::shared_ptr<EventStreamNode<D,E>>& subject, F&& func, 
                        const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
@@ -246,7 +248,6 @@ public:
         deps_( deps ... )
     {
         Engine::OnNodeCreate(*this);
-        subject->IncObsCount();
         Engine::OnNodeAttach(*this, *subject);
 
         REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
@@ -315,6 +316,12 @@ public:
             GetObjectId(*this), turn.Id()));
     }
 
+    virtual void UnregisterSelf() override
+    {
+        if (auto p = subject_.lock())
+            p->UnregisterObserver(this);
+    }
+
 private:
     using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
 
@@ -327,8 +334,6 @@ private:
     {
         if (auto p = subject_.lock())
         {
-            p->DecObsCount();
-
             Engine::OnNodeDetach(*this, *p);
 
             apply(

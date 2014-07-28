@@ -41,19 +41,19 @@ public:
         template <typename E>
         E& Await(const Events<D,E>& evn)
         {
-            return node_.Await(evn.NodePtr());
+            return node_.Await(GetNodePtr(evn));
         }
 
         template <typename E, typename F>
         void RepeatUntil(const Events<D,E>& evn, F&& func)
         {
-            node_.RepeatUntil(evn.NodePtr(), std::forward<F>(func));
+            node_.RepeatUntil(GetNodePtr(evn), std::forward<F>(func));
         }
 
         template <typename S>
         const S& Get(const Signal<D,S>& sig)
         {
-            return node_.Get(sig.NodePtr());
+            return node_.Get(GetNodePtr(sig));
         }
 
     private:

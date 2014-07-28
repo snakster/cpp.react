@@ -151,10 +151,8 @@ public:
     template <typename D>
     void DetachQueuedObservers()
     {
-        auto& registry = DomainSpecificObserverRegistry<D>::Instance();
-
         for (auto* o : detachedObservers_)
-            registry.Unregister(o);
+            o->UnregisterSelf();
         detachedObservers_.clear();
     }
 
@@ -214,12 +212,10 @@ public:
     template <typename D>
     void DetachQueuedObservers()
     {
-        auto& registry = DomainSpecificObserverRegistry<D>::Instance();
-
         for (auto& v : detachedObservers_)
         {
             for (auto* o : v)
-                registry.Unregister(o);
+                o->UnregisterSelf();
             v.clear();
         }
     }

@@ -34,7 +34,7 @@ template
     typename TContext
 >
 class ReactorNode :
-    public ReactiveNode<D,void,void>
+    public NodeBase<D>
 {
     using Engine = typename ReactorNode::Engine;
 
@@ -46,7 +46,7 @@ public:
 
     template <typename F>
     ReactorNode(F&& func) :
-        ReactorNode::ReactiveNode( ),
+        ReactorNode::NodeBase( ),
         func_( std::forward<F>(func) )
     {
         Engine::OnNodeCreate(*this);

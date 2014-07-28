@@ -25,6 +25,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// UpdateTimingPolicy
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+enum class WeightHint
+{
+    automatic,
+    light,
+    heavy
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// UpdateTimingPolicy
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
     typename D,
@@ -44,7 +54,9 @@ public:
         {}
     };
 
-    bool IsUpdateThresholdExceeded() const { return this->IsThresholdExceeded(); }
+    void ResetUpdateThreshold()                 { this->Reset(); }
+    void ForceUpdateThresholdExceeded(bool v)   { this->ForceThresholdExceeded(v); }
+    bool IsUpdateThresholdExceeded() const      { return this->IsThresholdExceeded(); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,7 +88,7 @@ template <typename D>
 class NodeBase :
     public std::enable_shared_from_this<NodeBase<D>>,
     public D::Policy::Engine::NodeT,
-    public Observable<D>
+    public UpdateTimingPolicy<D,500>
 {
 public:
     using DomainT = D;
@@ -84,11 +96,33 @@ public:
     using Engine = typename D::Engine;
     using NodeT = typename Engine::NodeT;
     using TurnT = typename Engine::TurnT;
+
+    NodeBase() = default;
+
+    // Nodes can't be copied
+    NodeBase(const NodeBase&) = delete;
     
     virtual bool    IsInputNode() const override    { return false; }
     virtual bool    IsOutputNode() const override   { return false; }
     virtual bool    IsDynamicNode() const override  { return false; }
-    virtual bool    IsHeavyweight() const override  { return false; }
+    
+    virtual bool    IsHeavyweight() const override  { return this->IsUpdateThresholdExceeded(); }
+
+    void SetWeightHint(WeightHint weight)
+    {
+        switch (weight)
+        {
+        case WeightHint::heavy :
+            this->ForceUpdateThresholdExceeded(true);
+            break;
+        case WeightHint::light :
+            this->ForceUpdateThresholdExceeded(false);
+            break;
+        case WeightHint::automatic :
+            this->ResetUpdateThreshold();
+            break;
+        }
+    }
 
     std::shared_ptr<NodeBase> GetSharedPtr() const
     {
@@ -100,21 +134,15 @@ template <typename D>
 using NodeBasePtrT = std::shared_ptr<NodeBase<D>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ReactiveNode
+/// ObservableNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename P,
-    typename V
->
-class ReactiveNode : public NodeBase<D>
+template <typename D>
+class ObservableNode :
+    public NodeBase<D>,
+    public Observable<D>
 {
 public:
-    ReactiveNode() = default;
-
-    // Reactive nodes can't be copied
-    ReactiveNode(const ReactiveNode&) = delete;
+    ObservableNode() = default;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

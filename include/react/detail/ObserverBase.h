@@ -11,9 +11,8 @@
 
 #include "react/detail/Defs.h"
 
-#include <atomic>
 #include <memory>
-#include <unordered_map>
+#include <vector>
 #include <utility>
 
 #include "IReactiveNode.h"
@@ -21,106 +20,20 @@
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Forward declarations
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D>
-class Observable;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IObserver
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class IObserver
 {
 public:
-    virtual ~IObserver() = default;
+    virtual ~IObserver() {}
+
+    virtual void UnregisterSelf() = 0;
 
 private:
     virtual void detachObserver() = 0;
 
     template <typename D>
-    friend class ObserverRegistry;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ObserverRegistry
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Todo: still ugly, needs more refactoring
-template <typename D>
-class ObserverRegistry
-{
-private:
-    class Entry
-    {
-    public:
-        Entry(std::unique_ptr<IObserver>&& nodePtr, const Observable<D>* subjectPtr) :
-            SubjectPtr( subjectPtr ),
-            nodePtr_( std::move(nodePtr) )
-        {}
-
-        Entry(const Entry&) = delete;
-
-        Entry(Entry&& other) :
-            SubjectPtr( other.SubjectPtr ),
-            nodePtr_( std::move(other.nodePtr_) )
-        {}
-
-        const Observable<D>* SubjectPtr;
-
-    private:
-        // Manage lifetime
-        std::unique_ptr<IObserver> nodePtr_;
-    };
-
-public:
-    // Pass ownership of obs node to registry
-    IObserver* Register(std::unique_ptr<IObserver>&& obsPtr, const Observable<D>* subjectPtr)
-    {
-        // Use raw ptr copy as index to find owned version of itself
-        auto* rawObsPtr = obsPtr.get();
-        
-        observerMap_.emplace(rawObsPtr, Entry( std::move(obsPtr), subjectPtr ));
-
-        return rawObsPtr;
-    }
-
-    void Unregister(IObserver* obsPtr)
-    {
-        obsPtr->detachObserver();
-        observerMap_.erase(obsPtr);
-    }
-
-    void UnregisterFrom(const Observable<D>* subjectPtr)
-    {
-        auto it = observerMap_.begin();
-        while (it != observerMap_.end())
-        {
-            if (it->second.SubjectPtr == subjectPtr)
-            {
-                it->first->detachObserver();
-                it = observerMap_.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-    }
-
-private:
-    std::unordered_map<IObserver*,Entry>   observerMap_;
-};
-
-template <typename D>
-class DomainSpecificObserverRegistry
-{
-public:
-    DomainSpecificObserverRegistry() = delete;
-
-    static ObserverRegistry<D>& Instance()
-    {
-        static ObserverRegistry<D> instance;
-        return instance;
-    }
+    friend class Observable;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -130,26 +43,35 @@ template <typename D>
 class Observable
 {
 public:
-    Observable() :
-        obsCount_( 0u )
-    {};
-
-    Observable(const Observable& other) :
-        obsCount_( other.GetObsCount() )
-    {}
-
-    void    IncObsCount()       { obsCount_.fetch_add(1, std::memory_order_relaxed); }
-    void    DecObsCount()       { obsCount_.fetch_sub(1, std::memory_order_relaxed); }
-    uint    GetObsCount() const { return obsCount_.load(std::memory_order_relaxed); }
+    Observable() = default;
 
     ~Observable()
     {
-        if (GetObsCount() > 0)
-            DomainSpecificObserverRegistry<D>::Instance().UnregisterFrom(this);
+        for (const auto& p : observers_)
+            if (p != nullptr)
+                p->detachObserver();
+    }
+
+    void RegisterObserver(std::unique_ptr<IObserver>&& obsPtr)
+    {
+        observers_.push_back(std::move(obsPtr));
+    }
+
+    void UnregisterObserver(IObserver* rawObsPtr)
+    {
+        for (auto it = observers_.begin(); it != observers_.end(); ++it)
+        {
+            if (it->get() == rawObsPtr)
+            {
+                it->get()->detachObserver();
+                observers_.erase(it);
+                break;
+            }
+        }
     }
 
 private:
-    std::atomic<uint>   obsCount_;
+    std::vector<std::unique_ptr<IObserver>> observers_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -32,14 +32,14 @@ template
     typename D,
     typename S
 >
-class SignalNode : public ReactiveNode<D,S,S>
+class SignalNode : public ObservableNode<D>
 {
 public:
     SignalNode() = default;
 
     template <typename T>
     explicit SignalNode(T&& value) :
-        SignalNode::ReactiveNode( ),
+        SignalNode::ObservableNode( ),
         value_( std::forward<T>(value) )
     {}
 
@@ -233,8 +233,7 @@ template
     typename TOp
 >
 class SignalOpNode :
-    public SignalNode<D,S>,
-    public UpdateTimingPolicy<D,500>
+    public SignalNode<D,S>
 {
     using Engine = typename SignalOpNode::Engine;
 
@@ -292,11 +291,6 @@ public:
     virtual const char* GetNodeType() const override        { return "SignalOpNode"; }
     virtual int         DependencyCount() const override    { return TOp::dependency_count; }
 
-    virtual bool IsHeavyweight() const override
-    {
-        return this->IsUpdateThresholdExceeded();
-    }
-
     TOp StealOp()
     {
         REACT_ASSERT(wasOpStolen_ == false, "Op was already stolen.");
@@ -347,7 +341,7 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
-        auto newInner = outer_->ValueRef().NodePtr();
+        auto newInner = GetNodePtr(outer_->ValueRef());
 
         if (newInner != inner_)
         {

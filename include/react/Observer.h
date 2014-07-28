@@ -34,6 +34,7 @@ template <typename D, typename E>
 class Events;
 
 using REACT_IMPL::ObserverAction;
+using REACT_IMPL::WeightHint;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Observer
@@ -42,56 +43,70 @@ template <typename D>
 class Observer
 {
 private:
-    using SubjectT  = REACT_IMPL::NodeBasePtrT<D>;
-    using NodeT     = REACT_IMPL::IObserver;
+    using SubjectPtrT   = std::shared_ptr<REACT_IMPL::ObservableNode<D>>;
+    using NodeT         = REACT_IMPL::ObserverNode<D>;
 
 public:
+    // Default ctor
     Observer() :
-        nodePtr_( nullptr )
+        nodePtr_( nullptr ),
+        subjectPtr_( nullptr )
     {}
 
-    Observer(const Observer&) = delete;
-    Observer& operator=(const Observer&) = delete;
-
+    // Move ctor
     Observer(Observer&& other) :
         nodePtr_( other.nodePtr_ ),
-        subject_( std::move(other.subject_) )
+        subjectPtr_( std::move(other.subjectPtr_) )
     {
         other.nodePtr_ = nullptr;
+        other.subjectPtr_.reset();
     }
 
+    // Node ctor
+    Observer(NodeT* nodePtr, const SubjectPtrT& subjectPtr) :
+        nodePtr_( nodePtr ),
+        subjectPtr_( subjectPtr )
+    {}
+
+    // Move assignment
     Observer& operator=(Observer&& other)
     {
         nodePtr_ = other.nodePtr_;
-        subject_ = std::move(other.subject_);
+        subjectPtr_ = std::move(other.subjectPtr_);
 
         other.nodePtr_ = nullptr;
+        other.subjectPtr_.reset();
 
         return *this;
     }
 
-    Observer(NodeT* nodePtr, const SubjectT& subject) :
-        nodePtr_( nodePtr ),
-        subject_( subject )
-    {}
+    // Deleted copy ctor and assignment
+    Observer(const Observer&) = delete;
+    Observer& operator=(const Observer&) = delete;
+
+    void Detach()
+    {
+        assert(IsValid());
+        subjectPtr_->UnregisterObserver(nodePtr_);
+    }
 
     bool IsValid() const
     {
         return nodePtr_ != nullptr;
     }
 
-    void Detach()
+    void SetWeightHint(WeightHint weight)
     {
-        REACT_ASSERT(IsValid(), "Detach on invalid Observer.");
-        REACT_IMPL::DomainSpecificObserverRegistry<D>::Instance().Unregister(nodePtr_);
+        assert(IsValid());
+        nodePtr_->SetWeightHint(weight);
     }
 
 private:
-    // Ownership managed by registry
-    NodeT*      nodePtr_;
+    // Owned by subject
+    NodeT*          nodePtr_;
 
     // While the observer handle exists, the subject is not destroyed
-    SubjectT    subject_;
+    SubjectPtrT     subjectPtr_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,27 +116,40 @@ template <typename D>
 class ScopedObserver
 {
 public:
-    ScopedObserver() = delete;
-    ScopedObserver(const ScopedObserver&) = delete;
-    ScopedObserver& operator=(const ScopedObserver&) = delete;
-
+    // Move ctor
     ScopedObserver(ScopedObserver&& other) :
         obs_( std::move(other.obs_) )
     {}
 
+    // Construct from observer
+    ScopedObserver(Observer<D>&& obs) :
+        obs_( std::move(obs) )
+    {}
+
+    // Move assignment
     ScopedObserver& operator=(ScopedObserver&& other)
     {
         obs_ = std::move(other.obs_);
     }
 
-    ScopedObserver(Observer<D>&& obs) :
-        obs_( std::move(obs) )
-    {}
+    // Deleted default ctor, copy ctor and assignment
+    ScopedObserver() = delete;
+    ScopedObserver(const ScopedObserver&) = delete;
+    ScopedObserver& operator=(const ScopedObserver&) = delete;
 
     ~ScopedObserver()
     {
-        if (obs_.IsValid())
-            obs_.Detach();
+        obs_.Detach();
+    }
+
+    bool IsValid() const
+    {
+        return obs_.IsValid();
+    }
+
+    void SetWeightHint(WeightHint weight)
+    {
+        obs_.SetWeightHint(weight);
     }
 
 private:
@@ -141,8 +169,8 @@ auto Observe(const Signal<D,S>& subject, FIn&& func)
     -> Observer<D>
 {
     using REACT_IMPL::IObserver;
+    using REACT_IMPL::ObserverNode;
     using REACT_IMPL::SignalObserverNode;
-    using REACT_IMPL::DomainSpecificObserverRegistry;
     using REACT_IMPL::AddDefaultReturnValueWrapper;
 
     using F = typename std::decay<FIn>::type;
@@ -157,13 +185,15 @@ auto Observe(const Signal<D,S>& subject, FIn&& func)
         SignalObserverNode<D,S,F>
             >::type;
 
-    std::unique_ptr<IObserver> obsPtr(new TNode(
-        subject.NodePtr(), std::forward<FIn>(func)));
 
-    auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
-        .Register(std::move(obsPtr), subject.NodePtr().get());
+    const auto& subjectPtr = GetNodePtr(subject);
 
-    return Observer<D>( rawObsPtr, subject.NodePtr() );
+    std::unique_ptr<ObserverNode<D>> nodePtr( new TNode(subjectPtr, std::forward<FIn>(func)) );
+    ObserverNode<D>* rawNodePtr = nodePtr.get();
+
+    subjectPtr->RegisterObserver(std::move(nodePtr));
+
+    return Observer<D>( rawNodePtr, subjectPtr );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,8 +209,8 @@ auto Observe(const Events<D,E>& subject, FIn&& func)
     -> Observer<D>
 {
     using REACT_IMPL::IObserver;
+    using REACT_IMPL::ObserverNode;
     using REACT_IMPL::EventObserverNode;
-    using REACT_IMPL::DomainSpecificObserverRegistry;
     using REACT_IMPL::AddDefaultReturnValueWrapper;
 
     using F = typename std::decay<FIn>::type;
@@ -195,13 +225,14 @@ auto Observe(const Events<D,E>& subject, FIn&& func)
         EventObserverNode<D,E,F>
             >::type;
     
-    std::unique_ptr<IObserver> obsPtr(new TNode(
-        subject.NodePtr(), std::forward<FIn>(func)));
+    const auto& subjectPtr = GetNodePtr(subject);
 
-    auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
-        .Register(std::move(obsPtr), subject.NodePtr().get());
+    std::unique_ptr<ObserverNode<D>> nodePtr( new TNode(subjectPtr, std::forward<FIn>(func)) );
+    ObserverNode<D>* rawNodePtr = nodePtr.get();
 
-    return Observer<D>(rawObsPtr, subject.NodePtr());
+    subjectPtr->RegisterObserver(std::move(nodePtr));
+
+    return Observer<D>( rawNodePtr, subjectPtr );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -219,8 +250,8 @@ auto Observe(const Events<D,E>& subject,
     -> Observer<D>
 {
     using REACT_IMPL::IObserver;
+    using REACT_IMPL::ObserverNode;
     using REACT_IMPL::SyncedObserverNode;
-    using REACT_IMPL::DomainSpecificObserverRegistry;
     using REACT_IMPL::AddDefaultReturnValueWrapper;
 
     using F = typename std::decay<FIn>::type;
@@ -243,25 +274,27 @@ auto Observe(const Events<D,E>& subject,
         {}
 
         auto operator()(const Signal<D,TDepValues>& ... deps)
-            -> std::unique_ptr<IObserver>
+            -> ObserverNode<D>*
         {
-            return std::unique_ptr<IObserver>(
-                new TNode(
-                    MySubject.NodePtr(), std::forward<FIn>(MyFunc), deps.NodePtr() ... ));
+            return new TNode(
+                GetNodePtr(MySubject), std::forward<FIn>(MyFunc), GetNodePtr(deps) ... );
         }
 
         const Events<D,E>& MySubject;
         FIn MyFunc;
     };
 
-    auto obsPtr = REACT_IMPL::apply(
+    const auto& subjectPtr = GetNodePtr(subject);
+
+    std::unique_ptr<ObserverNode<D>> nodePtr( REACT_IMPL::apply(
         NodeBuilder_( subject, std::forward<FIn>(func) ),
-        depPack.Data);
+        depPack.Data) );
 
-    auto* rawObsPtr = DomainSpecificObserverRegistry<D>::Instance()
-        .Register(std::move(obsPtr), subject.NodePtr().get());
+    ObserverNode<D>* rawNodePtr = nodePtr.get();
 
-    return Observer<D>(rawObsPtr, subject.NodePtr());
+    subjectPtr->RegisterObserver(std::move(nodePtr));
+
+    return Observer<D>( rawNodePtr, subjectPtr );
 }
 
 /******************************************/ REACT_END /******************************************/
