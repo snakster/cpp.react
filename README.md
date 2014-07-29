@@ -93,15 +93,21 @@ SignalT<int> area = MakeSignal(
         return w * h;
     });
 ```
-```
-// Signal values can be accessed imperativly
+Signal values can be accessed imperatively:
+```C++
 cout << "area: " << area.Value() << endl; // => area: 2
 
-// VarSignals can be manipulated imperatively
-width.Set(10);
 // Width changed, so area is re-calculated automatically
+width.Set(10);
 
 cout << "area: " << area.Value() << endl; // => area: 20
+```
+
+Or, instead of using `Value()` to pull the new value, callback functions can be registered to receive notifications on a change:
+```C++
+Observe(area, [] (int newValue) {
+	cout << "area changed: " << newValue << endl;
+});
 ```
 
 Overloaded operators for signal types allow to omit `MakeSignal` in this case for a more concise syntax:
@@ -110,7 +116,7 @@ Overloaded operators for signal types allow to omit `MakeSignal` in this case fo
 SignalT<int> area = width * height;
 ```
 
-### Event streams and Observers
+### Event streams
 
 Event streams represent flows of discrete values. They are first-class objects and can be merged, filtered, transformed or composed to more complex types:
 
@@ -129,7 +135,7 @@ EventSourceT<Token> rightClicked = MakeEventSource<D>();
 EventsT<Token> merged = leftClicked | rightClicked;
 
 // React to events
-auto obs = Observe(merged, [] (Token) {
+Observe(merged, [] (Token) {
     cout << "clicked!" << endl;
 });
 ```
