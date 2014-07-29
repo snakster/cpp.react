@@ -89,5 +89,5 @@ REACTIVE_DOMAIN(D2, parallel, PulsecountEngine)
 REACTIVE_DOMAIN(D3, parallel, SubtreeEngine)
 {% endhighlight %}
 
-How exactly each strategy works is explained [here]().
+How exactly each strategy works is explained [here]({{ site.baseurl }}/guides/engines/).
 Since exchanging them is trivial, it's easy to compare their performance and find the one that works best for a particular scenario.

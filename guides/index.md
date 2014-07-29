@@ -17,8 +17,6 @@ groups:
 
 > Discusses various design decisions.
 
-### [Toposort engine]({{ site.baseurl }}/guides/Toposort-engine.html)
+### [Propagation engines]({{ site.baseurl }}/guides/engines/)
 
-### [Pulsecount engine]({{ site.baseurl }}/guides/Pulsecount-engine.html)
-
-### [Subtree engine]({{ site.baseurl }}/guides/Subtree-engine.html)
+> Explains algorithmic details behind the propagation engines.
