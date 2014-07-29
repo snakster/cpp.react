@@ -39,8 +39,8 @@ namespace react
 
 <div class="highlight"><pre><code class="c++"><span class="k">namespace</span> <span class="n">react</span>
 <span class="p">{</span>
-    <span class="c1">// Base class all domain types are derived from</span>
-    <span class="k">class</span> <a class="code_link" href="{{ site.baseurl }}/reference/Domain.h/DomainBase.html">DomainBase</a><span class="o">&lt;</span><span class="n">D</span><span class="o">&gt;</span>
+    <span class="c1">// WeightHint</span>
+    <span class="k">enum</span> <span class="k">class</span> <a class="code_link" href="{{ site.baseurl }}/reference/Domain.h/WeightHint.html">WeightHint</a>
 
     <span class="c1">// Proxy to continuation node</span>
     <span class="k">class</span> <a class="code_link" href="{{ site.baseurl }}/reference/Domain.h/Continuation.html">Continuation</a><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">D2</span><span class="o">&gt;</span>

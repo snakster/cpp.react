@@ -20,7 +20,34 @@ Defines a reactive domain.
 {% endhighlight %}
 
 ## Semantics
-Defines a reactive domain `name`, declared as `class name : public DomainBase<name>` and initializes static data for this domain.
+Defines a reactive domain `name` and initializes its static data.
+
+A domain is a type; for a given name `D`, its definition would be similar to this:
+{% highlight C++ %}
+class D
+{
+public:
+    // Deleted default constructor to prevent instantiation
+    DomainBase() = delete;
+
+    // Type aliases
+    template <typename S>
+    using SignalT = Signal<D,S>;
+
+    template <typename S>
+    using VarSignalT = VarSignal<D,S>;
+
+    template <typename E = Token>
+    using EventsT = Events<D,E>;
+
+    template <typename E = Token>
+    using EventSourceT = EventSource<D,E>;
+
+    using ObserverT = Observer<D>;
+
+    using ReactorT = Reactor<D>;
+};
+{% endhighlight %}
 
 The `mode` parameter has to be of type `EDomainMode`, which is defined as follows:
 {% highlight C++ %}
