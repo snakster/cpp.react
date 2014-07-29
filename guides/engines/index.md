@@ -38,17 +38,17 @@ We measure the execution time (seconds) of `A[0][0] = 1 ... 10000`, i.e. 10K upd
 
 ### Results
 
-> Sequential Toposort
-> 1.65093
-> 
-> Parallel Toposort
-> 4.6614 
-> 
-> Subtree
-> 2.7457 (= CPU time)
-> 
-> Pulsecount
-> 2.3803 (CPU time: ~ 8x on 8 cores)
+        Sequential Toposort
+        1.65093
+        
+        Parallel Toposort
+        4.6614 
+        
+        Subtree
+        2.7457 (= CPU time)
+        
+        Pulsecount
+        2.3803 (CPU time: ~ 8x on 8 cores)
 
 In cases where the workload per node is minimal - in this case it's a single addition - the parallelization overhead will outweight its benefits.
 This is not necessarily surprising, because both the updating itself and sequential Toposort are fairly lightweight;
@@ -68,17 +68,17 @@ We measure the execution time (seconds) of 100 updates of the whole graph.
 
 ### Results
 
-> Sequential Toposort
-> 3.9997
-> 
-> Parallel Toposort
-> 1.049
-> 
-> Subtree
-> 0.7666
-> 
-> Pulsecount
-> 0.6458
+        Sequential Toposort
+        3.9997
+        
+        Parallel Toposort
+        1.049
+        
+        Subtree
+        0.7666
+        
+        Pulsecount
+        0.6458
 
 The execution time is dominated by heavyweight updates and the parallel strategies provide a performance gain.
 
