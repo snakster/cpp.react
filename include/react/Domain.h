@@ -96,19 +96,19 @@ class TransactionStatus
     using PtrT = REACT_IMPL::WaitingStatePtrT;
 
 public:
+    // Default ctor
     inline TransactionStatus() :
         statePtr_( StateT::Create() )
     {}
 
-    TransactionStatus(const TransactionStatus&) = delete;
-    TransactionStatus& operator=(const TransactionStatus&) = delete;
-
+    // Move ctor
     inline TransactionStatus(TransactionStatus&& other) :
         statePtr_( std::move(other.statePtr_) )
     {
         other.statePtr_ = StateT::Create();
     }
 
+    // Move assignment
     inline TransactionStatus& operator=(TransactionStatus&& other)
     {
         if (this != &other)
@@ -118,6 +118,10 @@ public:
         }
         return *this;
     }
+
+    // Deleted copy ctor & assignment
+    TransactionStatus(const TransactionStatus&) = delete;
+    TransactionStatus& operator=(const TransactionStatus&) = delete;
 
     inline void Wait()
     {
@@ -152,21 +156,29 @@ public:
     using SourceDomainT = D;
     using TargetDomainT = D2;
 
+    // Default ctor
     Continuation() = default;
 
+    // Move ctor
     Continuation(Continuation&& other) :
         Continuation::ContinuationBase( std::move(other) )
     {}
 
+    // Node ctor
     explicit Continuation(NodePtrT&& nodePtr) :
         Continuation::ContinuationBase( std::move(nodePtr) )
     {}
 
+    // Move assignment
     Continuation& operator=(Continuation&& other)
     {
         Continuation::ContinuationBase::operator=( std::move(other) );
         return *this;
     }
+
+    // Deleted copy ctor & assignment
+    Continuation(const Continuation&) = delete;
+    Continuation& operator=(const Continuation&) = delete;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
