@@ -17,11 +17,13 @@ A single `TransactionState` can monitor multiple transactions and it can be re-u
 {% highlight C++ %}
 class TransactionStatus
 {
-    // Constructor
+    // Default constructor
     TransactionStatus();
+
+    // Move constructor
     TransactionStatus(TransactionStatus&& other);
 
-    // Assignemnt
+    // Move assignemnt
     TransactionStatus& operator=(TransactionStatus&& other);
 
     // Waits until any transactions associated with this instance are done

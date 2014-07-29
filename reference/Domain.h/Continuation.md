@@ -30,6 +30,12 @@ class Continuation
 
     // Assignemnt
     Continuation& operator=(Continuation&& other);
+
+    // Tests if this instance is linked to a node
+    bool IsValid() const;
+
+    // Sets weight override for linked node
+    void SetWeightHint(WeightHint hint);
 };
 {% endhighlight %}
 

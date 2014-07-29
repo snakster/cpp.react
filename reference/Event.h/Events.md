@@ -24,20 +24,29 @@ public:
     using DomainT = D;
     using ValueT = E;
 
-    // Constructor
+    // Default constructor
     Events();
+
+    // Copy constructor
     Events(const Events&);
+
+    // Move constructor
     Events(Events&&);
 
-    // Assignemnt
+    // Copy assignemnt
     Events& operator=(const Events&);
+
+    // Move assignment
     Events& operator=(Events&& other);
 
-    // Tests if two Events instances are equal
+    // Tests if two instances link to the same node
     bool Equals(const Events& other) const;
 
     // Tests if this instance is linked to a node
     bool IsValid() const;
+
+    // Sets weight override for linked node
+    void SetWeightHint(WeightHint hint);
 
     // Equivalent to react::Merge(*this, args ...)
     TempEvents<D,E,/*unspecified*/>
@@ -86,6 +95,25 @@ Events(Events&& other);      // (3)
 (2) Creates an event stream that links to the same event node as `other`.
 
 (3) Creates an event stream that moves shared ownership of the event node from `other` to `this`.
+As a result, `other` becomes invalid.
+
+**Note:** The default constructor creates an invalid proxy, which is equivalent to `std::shared_ptr(nullptr)`.
+
+-----
+
+<h1>operator= <span class="type_tag">member function</span></h1>
+
+## Syntax
+{% highlight C++ %}
+Events& operator=(const Events&);   // (1)
+Events& operator=(Events&& other);  // (2)
+{% endhighlight %}
+
+## Semantics
+(1) Links `this` to the same node as `other`. If `this` was already linked to another node, it releases its previous ownership.
+
+(2) Transfers shared ownership of the linked node from `other` to `this`.
+If `this` was already linked to another node, it release its previous ownership.
 As a result, `other` becomes invalid.
 
 -----
