@@ -13,7 +13,10 @@ groups:
 
 ## Hello World
 
-We start by creating an `EventSource` that can emit strings:
+The previously shown signals hold state and push changes to their dependents.
+Event streams, on the other hand, are used to model more generic event types that are not coupled to state, for example mouse clicks.
+
+We start the tutorial by creating an `EventSource` that can emit strings:
 {% highlight C++ %}
 #include "react/Domain.h"
 #include "react/Event.h"
