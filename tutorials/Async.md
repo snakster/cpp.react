@@ -99,13 +99,13 @@ These asynchronous continuation transactions will be started after a initiating 
 If the transaction that initiated a continuation is synchronous, it'll wait for their result; this also extends to non-transactional input like `Set` or `Push`.
 If the initiating transaction is asynchronous, it'll pass on its own transaction status to the continuation transactions.
 
-This may sound more complicated than it is. Here are a few examples:
+This may sound more complicated than it is. Here's an example:
 {% highlight C++ %}
 REACTIVE_DOMAIN(D, sequential_concurrent)
 
 VarSignalT<int> Counter = MakeVar<D>(0);
 
-Continuation<D> Cont = MakeContinuation(src, [&] (int v) {
+Continuation<D> Cont = MakeContinuation(Counter, [&] (int v) {
     cout << v << endl;
     if (v < 10)
         Counter <<= v + 1;
@@ -118,6 +118,7 @@ Counter <<= 1;
 
 Here, the continuation source and target domains are identical and we can add imperative input without deadlocks, while still being able to wait until all recursive continuations complete.
 
+Another example:
 {% highlight C++ %}
 REACTIVE_DOMAIN(L, sequential_concurrent)
 REACTIVE_DOMAIN(R, sequential_concurrent)
@@ -126,16 +127,16 @@ REACTIVE_DOMAIN(R, sequential_concurrent)
 VarSignalT<int> CounterL = MakeVar<L>(0);
 VarSignalT<int> CounterR = MakeVar<R>(0);
 
-Continuation<L,R> contL = MakeContinuation<L,R>(
-    Monitor(srcL),
+Continuation<L,R> ContL = MakeContinuation<L,R>(
+    Monitor(CounterL),
     [&] (int v, int depL1, int depL2) {
         cout << "L->R: " << v << endl;
         if (v < 10)
             srcR <<= v+1;
     });
 
-Continuation<R,L> contR = MakeContinuation<R,L>(
-    Monitor(srcR),
+Continuation<R,L> ContR = MakeContinuation<R,L>(
+    Monitor(CounterR),
     [&] (int v) {
         cout << "R->L: " << v << endl;
         if (v < 10)
