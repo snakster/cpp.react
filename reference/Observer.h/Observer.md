@@ -18,14 +18,12 @@ template <typename D>
 class Observer
 {
 public:
-    // Default constructor
+    // Constructor
     Observer();
+    Observer(Observer&& other);	// Move
 
-    // Move constructor
-    Observer(Observer&& other);
-
-    // Move assignemnt
-    Observer& operator=(Observer&& other)
+    // Assignemnt
+    Observer& operator=(Observer&& other); // Move
 
     // Tests if this instance is linked to a node
     bool IsValid() const;

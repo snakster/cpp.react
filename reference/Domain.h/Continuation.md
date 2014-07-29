@@ -26,10 +26,10 @@ class Continuation
 
     // Constructor
     Continuation();
-    Continuation(Continuation&& other);
+    Continuation(Continuation&& other); // Move
 
-    // Assignemnt
-    Continuation& operator=(Continuation&& other);
+    // Assignment
+    Continuation& operator=(Continuation&& other); // Move
 
     // Tests if this instance is linked to a node
     bool IsValid() const;

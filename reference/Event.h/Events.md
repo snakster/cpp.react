@@ -24,20 +24,14 @@ public:
     using DomainT = D;
     using ValueT = E;
 
-    // Default constructor
+    // Constructor
     Events();
+    Events(const Events&);  // Copy
+    Events(Events&&);       // Move
 
-    // Copy constructor
-    Events(const Events&);
-
-    // Move constructor
-    Events(Events&&);
-
-    // Copy assignemnt
-    Events& operator=(const Events&);
-
-    // Move assignment
-    Events& operator=(Events&& other);
+    // Assignemnt
+    Events& operator=(const Events&);   // Copy
+    Events& operator=(Events&& other);  // Move
 
     // Tests if two instances link to the same node
     bool Equals(const Events& other) const;

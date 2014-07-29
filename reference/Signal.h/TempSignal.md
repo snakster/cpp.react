@@ -25,12 +25,12 @@ class TempSignal : public Signal<D,S>
 public:
     // Constructor
     TempSignal();
-    TempSignal(const TempSignal&);
-    TempSignal(TempSignal&&);
+    TempSignal(const TempSignal&);  // Copy
+    TempSignal(TempSignal&&);       // Move
 
     // Assignment
-    TempSignal& operator=(const TempSignal&);
-    TempSignal& operator=(TempSignal&& other);
+    TempSignal& operator=(const TempSignal&);   // Copy
+    TempSignal& operator=(TempSignal&& other);  // Move
 };
 {% endhighlight %}
 

@@ -28,20 +28,14 @@ public:
     using DomainT = D;
     using ValueT = S;
 
-    // Default constructor
+    // Constructor
     Signal();
+    Signal(const Signal&);  // Copy
+    Signal(Signal&&);       // Move
 
-    // Copy constructor
-    Signal(const Signal&);
-
-    // Move constructor
-    Signal(Signal&&);
-
-    // Copy assignment
-    Signal& operator=(const Signal&);
-
-    // Move assignment
-    Signal& operator=(Signal&& other);
+    // Assignment
+    Signal& operator=(const Signal&);   // Copy
+    Signal& operator=(Signal&& other);  // Move
 
     // Tests if two Signal instances are equal
     bool Equals(const Signal& other) const;

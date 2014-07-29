@@ -15,17 +15,17 @@ template <typename D>
 class ScopedObserver
 {
 public:
-    // Constructs instance from observer
+	// Constructs instance from observer
     ScopedObserver(Observer<D>&& obs);
 
-    // Move constructor
+	// Move constructor
     ScopedObserver(ScopedObserver&& other);
 
     // Destructor
     ~ScopedObserver();
 
-    // Move assignment
-    ScopedObserver& operator=(ScopedObserver&& other);
+    // Assignment
+    ScopedObserver& operator=(ScopedObserver&& other); // Move
 
     // Tests if this instance is linked to a node
     bool IsValid() const;

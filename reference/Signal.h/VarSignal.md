@@ -22,12 +22,12 @@ class VarSignal : public Signal<D,S>
 public:
     // Constructor
     VarSignal();
-    VarSignal(const VarSignal&);
-    VarSignal(VarSignal&&);
+    VarSignal(const VarSignal&);    // Copy
+    VarSignal(VarSignal&&);         // Move
 
     // Assignment
-    VarSignal& operator=(const VarSignal&);
-    VarSignal& operator=(VarSignal&& other);
+    VarSignal& operator=(const VarSignal&);     // Copy
+    VarSignal& operator=(VarSignal&& other);    // Move
 
     // Set new signal value
     void Set(const S& newValue);

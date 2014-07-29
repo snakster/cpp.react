@@ -86,12 +86,12 @@ namespace react
 
         // Constructor
         Signal();
-        Signal(const Signal&);
-        Signal(Signal&&);
+        Signal(const Signal&);  // Copy
+        Signal(Signal&&);       // Move
 
         // Assignment
-        Signal& operator=(const Signal&);
-        Signal& operator=(Signal&& other);
+        Signal& operator=(const Signal&);   // Copy
+        Signal& operator=(Signal&& other);  // Move
 
         // Tests if two Signal instances are equal
         bool Equals(const Signal& other) const;

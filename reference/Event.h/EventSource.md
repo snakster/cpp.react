@@ -21,12 +21,12 @@ class EventSource : public Events<D,E>
 public:
     // Constructor
     EventSource();
-    EventSource(const EventSource&);
-    EventSource(EventSource&&);
+    EventSource(const EventSource&);    // Copy
+    EventSource(EventSource&&);         // Move
 
     // Assignemnt
-    EventSource& operator=(const EventSource&);
-    EventSource& operator=(EventSource&& other);
+    EventSource& operator=(const EventSource&);     // Copy
+    EventSource& operator=(EventSource&& other);    // Move
 
     // Emits an event
     void Emit(const E& e) const;

@@ -23,12 +23,12 @@ class TempEvents : public Events<D,E>
 public:
     // Constructor
     TempEvents();
-    TempEvents(const TempEvents&);
-    TempEvents(TempEvents&&);
+    TempEvents(const TempEvents&);  // Copy
+    TempEvents(TempEvents&&);       // Move
 
     // Assignemnt
-    TempEvents& operator=(const TempEvents&);
-    TempEvents& operator=(TempEvents&& other);
+    TempEvents& operator=(const TempEvents&);   // Copy
+    TempEvents& operator=(TempEvents&& other);  // Move
 };
 {% endhighlight %}
 
