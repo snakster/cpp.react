@@ -23,7 +23,7 @@
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// UpdateTimingPolicy
+/// WeightHint
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 enum class WeightHint
 {
@@ -86,7 +86,6 @@ struct DepCounter<N, First, Args...>
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
 class NodeBase :
-    public std::enable_shared_from_this<NodeBase<D>>,
     public D::Policy::Engine::NodeT,
     public UpdateTimingPolicy<D,500>
 {
@@ -122,11 +121,6 @@ public:
             this->ResetUpdateThreshold();
             break;
         }
-    }
-
-    std::shared_ptr<NodeBase> GetSharedPtr() const
-    {
-        return this->shared_from_this();
     }
 };
 
