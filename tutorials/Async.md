@@ -8,7 +8,6 @@ groups:
 
 - [Asynchronous transactions](#asynchronous-transactions)
 - [Continuations](#continuations)
-- [Selecting a propagation engine](#selecting-a-propagation-engine)
 
 ## Asynchronous transactions
 
@@ -19,38 +18,30 @@ For concurrent input, this means that multiple threads have to synchronize, whic
 If the calling thread has to return immediately, for example to ensure responsiveness, `AsyncTransaction` exists an asynchrounous, non-blocking alternative to `DoTransaction`.
 It follows a producer/consumer scheme by enqueuing the transaction function for another dedicated worker thread.
 
-Enabling parallel propagation of changes - or _parallel updating as we refer to it from now on - turns out to be straightforward;
-all we have to do is selecting the `parallel` policy in the domain definition:
+Here's an example:
 {% highlight C++ %}
 #include "react/Domain.h"
 #include "react/Event.h"
 #include "react/Observer.h"
 
 REACTIVE_DOMAIN(D, sequential_concurrent)
+USING_REACTIVE_DOMAIN(D)
 
-class Sensor
-{
-public:
-    USING_REACTIVE_DOMAIN(D)
-
-    EventSourceT<int>   Samples     = MakeEventSource<D,int>();
-};
-
-Sensor mySensor;
+EventSourceT<int>   Samples     = MakeEventSource<D,int>();
 {% endhighlight %}
 {% highlight C++ %}
-Observe(mySensor.Samples, [] (int v) {
+Observe(Samples, [] (int v) {
     cout << v << endl;
 });
 
 TransactionStatus status;
 
 AsyncTransaction<D>(status, [&] {
-    mySensor.Samples << 30 << 31 << 31 << 32;
+    Samples << 30 << 31 << 31 << 32;
 });
 
 AsyncTransaction<D>(status, [&] {
-    mySensor.Samples << 40 << 41 << 51 << 62;
+    Samples << 40 << 41 << 51 << 62;
 });
 
 // Do other things...
@@ -63,7 +54,6 @@ One thing that should be noted here is that concurrent input is not the same as 
 
 The `TransactionStatus` instance provides a handle that allows waiting for an asynchronous transaction.
 The same status can be used for multiple transactions, and it can be re-used after `Wait()`.
-
 
 ## Continuations
 
