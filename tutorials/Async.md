@@ -95,8 +95,8 @@ If the callee runs on the same domain as the caller - as it is the case for the 
 To avoid this, there exists a special reactive type `Continuation` to bridge between two domains (from source to target).
 Continuations are similar to observers, in the sense that they allow to attach callback functions to other reactive values.
 The difference is that these functions will be treated as if they had been passed to `AsyncTransaction` of the target domain.
-These asynchronous continuation transactions will be started after a initiating transaction has been processed and the engine has been released.
-If the transaction that initiated a continuation is synchronous, it'll wait for their result; this also extends to non-transactional input like `Set` or `Push`.
+These asynchronous continuation transactions will be started after the initiating transaction has been processed and the engine has been released.
+If the initiating transaction is synchronous, it'll wait for their result; this also extends to non-transactional input like `Set` or `Push`.
 If the initiating transaction is asynchronous, it'll pass on its own transaction status to the continuation transactions.
 
 This may sound more complicated than it is. Here's an example:
