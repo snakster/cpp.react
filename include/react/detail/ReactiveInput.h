@@ -744,7 +744,8 @@ private:
             if (canMerge)
             {
                 uint extraCount = 0;
-                while (extraCount < 100 && asyncQueue_.try_pop(item))
+                // Todo: Make configurable
+                while (extraCount < 512 && asyncQueue_.try_pop(item))
                 {
                     bool canMergeNext = (item.Flags & allow_merging) != 0;
                     if (canMergeNext)
