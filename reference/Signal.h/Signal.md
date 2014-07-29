@@ -13,6 +13,8 @@ Instances of this class act as a proxies to  signal nodes.
 It takes shared ownership of the node, so while it exists, the node will not be destroyed.
 Copy, move and assignment semantics are similar to `std::shared_ptr`.
 
+Signals are created by constructor functions, i.e. [MakeSignal](MakeSignal.html).
+
 ## Synopsis
 {% highlight C++ %}
 template
@@ -26,13 +28,19 @@ public:
     using DomainT = D;
     using ValueT = S;
 
-    // Constructor
+    // Default constructor
     Signal();
+
+    // Copy constructor
     Signal(const Signal&);
+
+    // Move constructor
     Signal(Signal&&);
 
-    // Assignment
+    // Copy assignment
     Signal& operator=(const Signal&);
+
+    // Move assignment
     Signal& operator=(Signal&& other);
 
     // Tests if two Signal instances are equal
@@ -40,6 +48,9 @@ public:
 
     // Tests if this instance is linked to a node
     bool IsValid() const;
+
+    // Sets weight override for linked node
+    void SetWeightHint(WeightHint hint);
 
     // Returns the current signal value
     const S& Value() const;
@@ -81,8 +92,24 @@ Signal(Signal&& other);      // (3)
 (3) Creates a signal that moves shared ownership of the signal node from `other` to `this`.
 As a result, `other` becomes invalid.
 
-**Note:** The default constructor creates an invalid signal, which is equivalent to `std::shared_ptr(nullptr)`.
-This is potentially dangerous and considering the declarative nature of signals, it should be avoided if possible.
+**Note:** The default constructor creates an invalid proxy, which is equivalent to `std::shared_ptr(nullptr)`.
+
+-----
+
+<h1>operator= <span class="type_tag">member function</span></h1>
+
+## Syntax
+{% highlight C++ %}
+Signal& operator=(const Signal&);   // (1)
+Signal& operator=(Signal&& other);  // (2)
+{% endhighlight %}
+
+## Semantics
+(1) Links `this` to the same node as `other`. If `this` was already linked to another node, it releases its previous ownership.
+
+(2) Transfers shared ownership of the linked node from `other` to `this`.
+If `this` was already linked to another node, it release its previous ownership.
+As a result, `other` becomes invalid.
 
 -----
 

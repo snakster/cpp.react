@@ -18,15 +18,22 @@ template <typename D>
 class Observer
 {
 public:
-    // Constructor
+    // Default constructor
     Observer();
+
+    // Move constructor
     Observer(Observer&& other);
 
-    // Assignemnt
+    // Move assignemnt
     Observer& operator=(Observer&& other)
 
+    // Tests if this instance is linked to a node
     bool IsValid() const;
 
+    // Sets weight override for linked node
+    void SetWeightHint(WeightHint hint);
+
+    // Manually detaches the linked observer node from its subject
     void Detach();
 };
 {% endhighlight %}
