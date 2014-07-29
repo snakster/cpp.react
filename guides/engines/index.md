@@ -56,7 +56,7 @@ it's hard to beat them with the kind of general purpose, high-level parallelism 
 
 Among the parallel algorithms, Pulsecount is the fastest, but only by fully utilizing all available parallel ressources.
 Subtree supports on-demand parallelism for heavyweight nodes, so in this scenario, it reverts to purely single-threaded updating.
-It does so less efficiently than the actual single-threaded solution, but in terms of combined CPU time, it is more efficient than Pulsecount.
+It does so less efficiently than the purely single-threaded algorithm, but in terms of combined CPU time, it is still more efficient than Pulsecount.
 
 
 ## Example 2
@@ -106,7 +106,7 @@ Then, the heavyweight subtrees are updated in parallel.
 
 ## Conclusion
 
-For strictly lightweight operations, sequential toposort is usually the best choice.
+For strictly lightweight operations, sequential Toposort is usually the best choice.
 
 Pulsecount uses the most effective parallelization scheme, but it requires a certain number of heavyweight nodes for it to pay off.
 
