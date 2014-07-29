@@ -174,6 +174,7 @@
     <ClCompile Include="..\..\tests\src\ObserverTestQ.cpp" />
     <ClCompile Include="..\..\tests\src\OperationsTest.cpp" />
     <ClCompile Include="..\..\tests\src\OperationsTestQ.cpp" />
+    <ClCompile Include="..\..\tests\src\ParallelizationTest.cpp" />
     <ClCompile Include="..\..\tests\src\SignalTest.cpp" />
     <ClCompile Include="..\..\tests\src\SignalTestQ.cpp" />
     <ClCompile Include="..\..\tests\src\TransactionTest.cpp" />
@@ -183,6 +184,7 @@
     <ClInclude Include="..\..\tests\src\MoveTest.h" />
     <ClInclude Include="..\..\tests\src\ObserverTest.h" />
     <ClInclude Include="..\..\tests\src\OperationsTest.h" />
+    <ClInclude Include="..\..\tests\src\ParallelizationTest.h" />
     <ClInclude Include="..\..\tests\src\SignalTest.h" />
     <ClInclude Include="..\..\tests\src\TransactionTest.h" />
     <ClInclude Include="..\..\tests\src\TestUtil.h" />

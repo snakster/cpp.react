@@ -45,6 +45,9 @@
     <ClCompile Include="..\..\tests\src\TransactionTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\tests\src\ParallelizationTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\tests\src\EventStreamTest.h">
@@ -66,6 +69,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\tests\src\TestUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\tests\src\ParallelizationTest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
