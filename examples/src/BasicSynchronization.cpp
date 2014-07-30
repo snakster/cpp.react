@@ -9,6 +9,7 @@
 #include "tbb/tick_count.h"
 
 #include "react/Domain.h"
+#include "react/Signal.h"
 #include "react/Event.h"
 #include "react/Observer.h"
 
@@ -37,7 +38,7 @@ namespace example1
         Sensor mySensor;
 
         Observe(mySensor.Samples, [] (int v) {
-            cout << v << std::endl;
+            cout << v << endl;
         });
 
         TransactionStatus status;
@@ -158,13 +159,78 @@ namespace example2
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Example 3 - Continuations (1)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+namespace example3
+{
+    using namespace react;
+    using namespace std;
+
+    REACTIVE_DOMAIN(D, sequential_concurrent)
+
+    class Widget
+    {
+    public:
+        USING_REACTIVE_DOMAIN(D)
+
+        VarSignalT<string>  Label1 = MakeVar<D>(string( "Change" ));;
+        VarSignalT<string>  Label2 = MakeVar<D>(string( "me!" ));;
+
+        EventSourceT<>      Reset  = MakeEventSource<D,Token>();
+
+        Widget() :
+            resetCont_
+            (
+                MakeContinuation<D>(
+                    Reset,
+                    [this] (Token) {
+                        Label1 <<= string( "Change" );
+                        Label2 <<= string( "me!" );
+                    })
+            )
+        {}
+
+    private:
+        Continuation<D> resetCont_;
+    };
+
+    void Run()
+    {
+        cout << "Example 3 - Continuations (1)" << endl;
+
+        Widget myWidget;
+        int sum = 0;
+
+        Observe(myWidget.Label1, [&] (const string& v) {
+            cout << "Label 1 changed to " << v << endl;;
+        });
+
+        Observe(myWidget.Label2, [&] (const string& v) {
+            cout << "Label 2 changed to " << v << endl;;
+        });
+
+        myWidget.Label1 <<= "Hello";
+        myWidget.Label2 <<= "world";
+
+        cout << "Resetting..." << endl;
+
+        myWidget.Reset();
+
+        cout << endl;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Run examples
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
     example1::Run();
+
     example2::v1::Run();
     example2::v2::Run();
+
+    example3::Run();
 
     return 0;
 }
