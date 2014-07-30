@@ -67,6 +67,8 @@ public:
 template <typename D>
 class Region
 {
+    Time<D>& theTime;
+
 public:
     USING_REACTIVE_DOMAIN(D)
 
@@ -83,21 +85,17 @@ public:
 
     SignalT<int> FoodPerDay = MakeSignal(
         theTime.Season,
-        [] (int season) {
-            return season == summer ? 20 : 10;
-        });
+        calculateFoodPerDay);
 
     SignalT<int> FoodOutputPerDay = MakeSignal(
         With(FoodPerDay,AnimalCount),
-        [] (int food, int count) {
-            return count > 0 ? food/count : 0;
-        });
+        calculateFoodOutputPerDay);
 
     EventsT<int> FoodOutput = Pulse(theTime.NewDay, FoodOutputPerDay);
 
     Region(Time<D>& time, int x, int y) :
-        Bounds( x*10, x*10+9, y*10, y*10+9 ),
-        theTime( time )
+        theTime( time ),
+        Bounds( x*10, x*10+9, y*10, y*10+9 )
     {}
 
     PositionT Center() const
@@ -126,7 +124,16 @@ public:
     }
 
 private:
-    Time<D>& theTime;
+    static int calculateFoodPerDay(int season)
+    {
+        return season == summer ? 20 : 10;
+    }
+
+    static int calculateFoodOutputPerDay(int food, int count)
+    {
+        return count > 0 ? food/count : 0;
+    }
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -138,7 +145,7 @@ class World
 public:
     USING_REACTIVE_DOMAIN(D)
 
-    vector<unique_ptr<Region<D>>>    Regions;
+    vector<unique_ptr<Region<D>>>   Regions;
 
     World(Time<D>& time, int w) :
         w_( w )
@@ -199,14 +206,7 @@ public:
     EventsT<Region<D>*> RegionChanged   = Monitor(NewRegion);
 
     SignalT<int>        Age             = Iterate(theTime.NewDay, 0, Incrementer<int>());
-
-    SignalT<int>        Health          = Iterate(
-        FoodReceived,
-        100,
-        [] (int food, int health) {
-            auto newHealth = health + food - 10;
-            return newHealth < 0 ? 0 : newHealth > 10000 ? 10000 : newHealth;
-        });
+    SignalT<int>        Health          = Iterate(FoodReceived, 100, calculateHealth);
 
     Animal(Time<D>& time, World<D>& world, Region<D>* initRegion, unsigned seed) :
         theTime( time ),
@@ -239,20 +239,29 @@ public:
                 [this] (PositionT pos) {
                     return theWorld.GetRegion(pos);
                 })
+        ),
+        regionChangeContinuation_
+        (
+            MakeContinuation(RegionChanged, With(CurrentRegion),
+                [this] (Region<D>* newRegion, Region<D>* oldRegion) {
+                    oldRegion->EnterOrLeave(leave);
+                    newRegion->EnterOrLeave(enter);
+
+                    // Change region in continuation
+                    CurrentRegion <<= newRegion;
+                })
         )
     {
         initRegion->EnterOrLeave(enter);
+    }
 
-        Observe(
-            RegionChanged,
-            With(CurrentRegion),
-            [this] (Region<D>* newRegion, Region<D>* oldRegion) {
-                oldRegion->EnterOrLeave(leave);
-                newRegion->EnterOrLeave(enter);
+private:
+    Continuation<D> regionChangeContinuation_;
 
-                // Change region in continuation
-                CurrentRegion <<= newRegion;
-            });
+    static int calculateHealth(int food, int health)
+    {
+        auto newHealth = health + food - 10;
+        return newHealth < 0 ? 0 : newHealth > 10000 ? 10000 : newHealth;
     }
 };
 
