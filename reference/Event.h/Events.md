@@ -64,11 +64,15 @@ public:
 <table class="wide_table">
     <tr>
         <td class="descriptor_cell">D</td>
-        <td>The domain this event stream belongs to. Aliases as member type <code>DomainT</code></td>
+        <td>The domain this event stream belongs to. Aliases as member type <code>DomainT</code>.</td>
     </tr>
     <tr>
         <td class="descriptor_cell">E</td>
-        <td>Event value type. Aliased as member type <code>ValueT</code>. If this parameter is omitted, <code>Token</code> is used as the default.</td>
+        <td>
+            Event value type. Aliased as member type <code>ValueT</code>. If this parameter is omitted, <code>Token</code> is used as the default.<br/>
+            Should be <code>DefaultConstructible</code>, <code>CopyConstructible</code> and <code>CopyAssignable</code>.<br/>
+            Can be <code>MoveConstructible</code> and <code>MoveAssignable</code> to avoid copying when possible.
+        </td>
     </tr>
 </table>
 

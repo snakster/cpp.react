@@ -59,11 +59,15 @@ public:
 <table class="wide_table">
     <tr>
         <td class="descriptor_cell">D</td>
-        <td>The domain this signal belongs to. Aliases as member type <code>DomainT</code></td>
+        <td>The domain this signal belongs to. Aliases as member type <code>DomainT</code>.</td>
     </tr>
     <tr>
         <td class="descriptor_cell">E</td>
-        <td>Signal value type. Aliased as member type <code>ValueT</code>.</td>
+        <td>
+            Signal value type. Aliased as member type <code>ValueT</code>.<br/>
+            Should be <code>DefaultConstructible</code>, <code>CopyConstructible</code> and <code>CopyAssignable</code>.<br/>
+            Can be <code>MoveConstructible</code> and <code>MoveAssignable</code> to avoid copying when possible.
+        </td>
     </tr>
 </table>
 
