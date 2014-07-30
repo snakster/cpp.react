@@ -156,7 +156,6 @@ VarSignalT<int> a = MakeVar<D>(1);
 VarSignalT<int> b = MakeVar<D>(2);
 VarSignalT<int> c = MakeVar<D>(3);
 
-// Using overloaded arithmetic operators instead of MakeSignal
 SignalT<int> x = (a + b) * c;
 ```
 
