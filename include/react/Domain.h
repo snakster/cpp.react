@@ -145,7 +145,7 @@ private:
 template
 <
     typename D,
-    typename D2
+    typename D2 = D
 >
 class Continuation : public REACT_IMPL::ContinuationBase<D,D2>
 {
