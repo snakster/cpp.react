@@ -173,10 +173,10 @@ namespace example3
     public:
         USING_REACTIVE_DOMAIN(D)
 
-        VarSignalT<string>  Label1 = MakeVar<D>(string( "Change" ));;
-        VarSignalT<string>  Label2 = MakeVar<D>(string( "me!" ));;
+        VarSignalT<string>  Label1 = MakeVar<D>(string( "Change" ));
+        VarSignalT<string>  Label2 = MakeVar<D>(string( "me!" ));
 
-        EventSourceT<>      Reset  = MakeEventSource<D,Token>();
+        EventSourceT<>      Reset  = MakeEventSource<D>();
 
         Widget() :
             resetCont_
@@ -199,14 +199,13 @@ namespace example3
         cout << "Example 3 - Continuations (1)" << endl;
 
         Widget myWidget;
-        int sum = 0;
 
         Observe(myWidget.Label1, [&] (const string& v) {
-            cout << "Label 1 changed to " << v << endl;;
+            cout << "Label 1 changed to " << v << endl;
         });
 
         Observe(myWidget.Label2, [&] (const string& v) {
-            cout << "Label 2 changed to " << v << endl;;
+            cout << "Label 2 changed to " << v << endl;
         });
 
         myWidget.Label1 <<= "Hello";
