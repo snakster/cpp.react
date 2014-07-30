@@ -27,14 +27,14 @@ There are different algorithms available, which are described in detail in the f
 
 # Quick comparison
 
-We'll show how the engines behave based on two examples:
+We'll show how the engines behave based on two examples.
 
 ## Example 1
 
-A `100x100` matrix of signals, where `A[i][j] = A[i-1][j] + A[i][j-1]`. Out-of-bounds cells are replaced by zero.
+A 100x100 matrix of signals, where `A[i][j] = A[i-1][j] + A[i][j-1]`. Out-of-bounds cells are replaced by zero.
 `A[0][0]` is the single input node that can be manipulated imperatively.
 
-We measure the execution time (seconds) of `A[0][0] = 1 ... 10000`, i.e. 10K updates of the whole graph.
+We measure the execution time (seconds) on 8 CPUs of `A[0][0] = 1 ... 10000`, i.e. 10K updates of the whole graph.
 
 ### Results
 
@@ -48,7 +48,7 @@ We measure the execution time (seconds) of `A[0][0] = 1 ... 10000`, i.e. 10K upd
         2.7457 (= CPU time)
         
         Pulsecount
-        2.3803 (CPU time: ~ 8x on 8 cores)
+        2.3803 (CPU time: ~ 8x on 8 CPUs)
 
 In cases where the workload per node is minimal - in this case it's a single addition - the parallelization overhead will outweight its benefits.
 This is not necessarily surprising, because both the updating itself and sequential Toposort are fairly lightweight;
@@ -61,10 +61,10 @@ It does so less efficiently than the purely single-threaded algorithm, but in te
 
 ## Example 2
 
-A synthetic `20x10` graph with a parallelizable base structure and random additional edges.
+A synthetic 20x10 graph with a parallelizable base structure and random additional edges.
 20% of the nodes are heavyweight (~1ms busy waiting per update), others are trivial arithmetic operations.
 
-We measure the execution time (seconds) of 100 updates of the whole graph.
+We measure the execution time (seconds) on 8 CPUs of 100 updates of the whole graph.
 
 ### Results
 

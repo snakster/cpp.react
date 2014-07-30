@@ -30,16 +30,16 @@ The three main reasons for this are:
 - Callback execution is uncoordinated; callbacks may trigger other callbacks etc. and change propagation follows a "flooding" scheme.
 
 In combination, these factors make it increasingly difficult to reason about program behaviour and properties like correctness or algorithmic complexity.
-Further, debugging is difficult and when adding concurrency to the mix, the situation gets worse.
+Further, debugging is hard and when adding concurrency to the mix, the situation gets worse.
 
 Decentralized control flow is inherent to the creation of interactive applications, but issues of shared state and uncoordinated execution can be addressed.
-This is what C++React - and reactive programming in general - does.
+This is what C++React does.
 
 
 ## Design outline
 
-The issue of uncoordinated callback execution is handled by adding another layer of intelligence between triggering and actual execution.
-This layer schedules callbacks which are ready to be executed, potentially using multiple threads, while guarenteeing certain safety and complexity properteries.
+The issue of uncoordinated callback execution is handled by delegating this task to a dedicated entity - a so called _propagation engine_.
+This engine "intelligently" schedules callbacks that are ready to be executed, potentially using multiple threads, while guarenteeing certain safety and complexity properteries.
 
 The aforementioned usage of shared state and side effects is employed due to a lack of alternatives to implement dataflow between callbacks.
 Thus, to improve the situation, proper abstractions to model dataflow explicitly are needed.
