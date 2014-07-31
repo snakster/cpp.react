@@ -13,6 +13,10 @@ groups:
 
 > Desribes the dataflow model which all concrete reactive types are built on.
 
+### [Concurrency model]({{ site.baseurl }}/guides/Concurrency.html)
+
+> Describes how implicit parallelism and concurrent input are supported.
+
 ### [Design rationale]({{ site.baseurl }}/guides/Design-rationale.html)
 
 > Discusses various design decisions.
