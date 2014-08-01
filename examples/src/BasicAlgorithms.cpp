@@ -180,7 +180,7 @@ namespace example4
 
         mySensor.Input << 10.0f << 5.0f << 10.0f << 8.0f;
 
-        cout << "Average: " << mySensor.Average() << endl; // output: 3
+        cout << "Average: " << mySensor.Average() << endl; // output: 8.25
 
         cout << endl;
     }
