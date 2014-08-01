@@ -93,7 +93,7 @@ namespace example2
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 3 - Creating stateful signals (1)
+/// Example 3 - Folding event streams into signals (1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace example3
 {
@@ -119,7 +119,7 @@ namespace example3
 
     void Run()
     {
-        cout << "Example 3 - Creating stateful signals (1)" << endl;
+        cout << "Example 3 - Folding event streams into signals (1)" << endl;
 
         Counter myCounter;
 
@@ -135,7 +135,7 @@ namespace example3
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 4 - Creating stateful signals (2)
+/// Example 4 - Folding event streams into signals (2)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace example4
 {
@@ -149,23 +149,36 @@ namespace example4
     public:
         USING_REACTIVE_DOMAIN(D)
 
-        EventSourceT<int> Input = MakeEventSource<D,int>();
+        EventSourceT<float> Input = MakeEventSource<D,float>();
 
-        SignalT<float> Average = Iterate(
+        SignalT<int> Count = Iterate(
+            Tokenize(Input),
+            0,
+            [] (Token, int oldCount) {
+                return oldCount + 1;
+            });
+
+        SignalT<float> Sum = Iterate(
             Input,
             0.0f,
-            [] (int sample, float oldAvg) {
-                return (oldAvg + sample) / 2.0f;
+            [] (float v, float sum) {
+                return v + sum;
+            });
+
+        SignalT<float> Average = MakeSignal(
+            With(Sum,Count),
+            [] (float sum, int count) {
+                return count != 0 ? sum / count : 0.0f;
             });
     };
 
     void Run()
     {
-        cout << "Example 4 - Creating stateful signals (2)" << endl;
+        cout << "Example 4 - Folding event streams into signals (2)" << endl;
 
         Sensor mySensor;
 
-        mySensor.Input << 10 << 5 << 10 << 8;
+        mySensor.Input << 10.0f << 5.0f << 10.0f << 8.0f;
 
         cout << "Average: " << mySensor.Average() << endl; // output: 3
 
@@ -174,7 +187,7 @@ namespace example4
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 5 - Creating stateful signals (3)
+/// Example 5 - Folding event streams into signals (3)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace example5
 {
@@ -210,7 +223,7 @@ namespace example5
 
     void Run()
     {
-        cout << "Example 5 - Creating stateful signals (3)" << endl;
+        cout << "Example 5 - Folding event streams into signals (3)" << endl;
 
         Counter myCounter;
 
