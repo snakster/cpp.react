@@ -108,7 +108,7 @@ In this example, the signal is first initialized with zero;
 then, for every received increment event, the given iteration function is called with the event value (a token in this case) and the current value of the signal.
 The return value of the function is used as the new signal value.
 
-The event value can also be used in the computation. To show this, we calculate the average of measured samples:
+The event value can also be used in the computation. To show this, we calculate the sum of measured samples:
 {% highlight C++ %}
 class Sensor
 {
@@ -117,11 +117,11 @@ public:
 
     EventSourceT<int> Input = MakeEventSource<D,int>();
     
-    SignalT<float> Average = Iterate(
+    SignalT<int> Sum = Iterate(
         Input,
-        0.0f,
-        [] (int sample, float oldAvg) {
-            return (oldAvg + sample) / 2.0f;
+        0,
+        [] (int sum, int input) {
+            return input + sum;
         });
 };
 {% endhighlight %}
