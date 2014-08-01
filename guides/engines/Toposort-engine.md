@@ -12,12 +12,13 @@ groups:
 * [Sequential algorithm](#sequential-algorithm)
 * [Parallel algorithm](#parallel-algorithm)
 * [Issues](#issues)
+* [Conslusion](#conclusion)
 
 ## Motivation
 
 Topological sorting of the graph nodes to decide on the update order is a common strategy among reactive programming implementations.
-
-For single-threaded updating, it does provide glitch freedom and update minimality with low overhead.
+It can guarantee glitch freedom and update minimality.
+The algorithm can easily be adapted to support parallel updating, too.
 
 
 ## Concept
@@ -83,4 +84,9 @@ Parallel toposort can only advance to the next level after all updates of the cu
 
 `op2` represents a computationally expensive operation, while `op1` finishes quickly. Nonetheless, the successor of `op1` can not be updated unless `op2` has completed as well, even though there's no dependency relation between the two.
 
-This means that toposort is well suited to parallelize wide and shallow graphs, but less so for deep graphs with multiple layers of heterogeneous nodes. For this reason, other propagation engines should be preferred when it comes to parallelization.
+## Conclusions
+
+Single-threaded Toposort provides glitch freedom and update minimality with low overhead.
+
+The parallel variant is an option when dealing wide and shallow graphs, but less so for deep graphs with multiple layers of heterogeneous nodes.
+For this reason, other propagation engines should be preferred when it comes to parallelization.

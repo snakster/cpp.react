@@ -11,12 +11,15 @@ groups:
 * [Concept](#concept)
 * [Algorithm](#algorithm)
 * [Issues](#issues)
+* [Conclusions](#conclusions)
 
 ## Motivation
 
-The Pulsecount engine uses an algorithm specifically designed for parallel updating.
-Synchronization is mostly based on atomic counters and induces the least overhead among all engines.
-Hence, this engine should be selected when parallelization is known to be worthwile.
+The Pulsecount engine is designed around tasks and synchroninizion through atomic counters.
+
+The goal is to apply a more effective parallelization scheme than parallel Toposort.
+Instead of synchronizing the control flow based on topology level, nodes should have to wait for their individual dependencies.
+
 
 ## Concept
 
@@ -126,8 +129,15 @@ Each node is leightweight and the queue size is 8.
 
 While the Pulsecount algorithm tries to account for lightweight nodes, using it to parallelize graphs that mostly consist of the latter is usually not worth it.
 
-To back this up with some data, consider a reactive matrix with 100K signals.
+To back this up with some data, consider a reactive matrix with 10K signals.
 `A[i][j]` is the single input node and `A[i][j] = A[i-1][j] + A[i][j-1]` (out-of-bounds cells default to zero).
 
-The time required for 10K updates of the whole graph is `1.6s` for sequential toposort, but for Pulsecount its `2.3s`.
+The time required for 10K updates of the whole graph is `1.6s` for sequential toposort, but for Pulsecount its `2.5s`.
 Even if Pulsecount would slightly outperform the single-threaded algorithm, the extra CPU time induced by overhead is disproportionate.
+
+
+## Conclusions
+
+The Pulsecount engine uses an algorithm specifically designed for parallel updating.
+Synchronization is mostly based on atomic counters and results in the least overhead among parallel strategies.
+Hence, this engine should be selected when parallelization is known to be worthwile.

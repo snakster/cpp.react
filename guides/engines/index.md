@@ -34,7 +34,7 @@ We'll show how the engines behave based on two examples.
 A 100x100 matrix of signals, where `A[i][j] = A[i-1][j] + A[i][j-1]`. Out-of-bounds cells are replaced by zero.
 `A[0][0]` is the single input node that can be manipulated imperatively.
 
-We measure the execution time (seconds) on 8 CPUs of `A[0][0] = 1 ... 10000`, i.e. 10K updates of the whole graph.
+We measure the execution time (seconds) of `A[0][0] <- 1 ... 10000`, i.e. 10K updates of the whole graph, on 8 CPUs.
 
 ### Results
 
@@ -64,7 +64,7 @@ It does so less efficiently than the purely single-threaded algorithm, but in te
 A synthetic 20x10 graph with a parallelizable base structure and random additional edges.
 20% of the nodes are heavyweight (~1ms busy waiting per update), others are trivial arithmetic operations.
 
-We measure the execution time (seconds) on 8 CPUs of 100 updates of the whole graph.
+We measure the execution time (seconds) of 100 updates of the whole graph on 8 CPUs.
 
 ### Results
 
