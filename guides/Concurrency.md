@@ -15,7 +15,7 @@ groups:
 
 The goal of C++React is to enable implicit parallelism for the previously defined [dataflow model](Dataflow-model.html).
 Implicit parallelism means that code is automatically executed in parallel, if the structure of the computations allows for it.
-This is to avoid the complexity that come with managing parallelism manually, in particular when combined with callbacks.
+This is to avoid the complexity that comes with managing parallelism manually, in particular when combined with callbacks.
 
 Another goal is to support concurrent input to the reactive system from multiple threads, both synchronously and asynchronously, in a scalable manner.
 
@@ -39,7 +39,7 @@ The following figure shows an example of how node updates could be parallelized:
 
 <img src="{{ site.baseurl }}/media/conc1.png" alt="Drawing" width="500px"/>
 
-Propagation is inherently parallelizable and synchronization can be implemented efficiently based on atomic counters, though details depend on the implementation.
+Propagation is inherently parallelizable and synchronization can be realized efficiently based on atomic counters, though details depend on the implementation.
 There exist different concrete algorithms, which can be selected as part of the concurrency policy of a domain.
 This includes the option of sequential updating, which disables automatic parallelization.
 
@@ -68,7 +68,6 @@ A common example to demonstrate parallelization primitives is the calculation of
 We could generate a graph that represents the unfolded recursive structure of a specific Fibonacci number, but that would certainly not be an effective way to go about it;
 graph creation is also not parallel.
 If, on the other hand, we have some data `x`, and we want to run several calculations on it, among them being `Fib(x)`, then we can automatically parallelize that.
-This example should illustrate the level of parallelism we are targeting.
 
 ## Concurrent input
 
@@ -84,11 +83,11 @@ The following image visualizes this:
 
 <img src="{{ site.baseurl }}/media/conc2.png" alt="Drawing" width="500px"/>
 
-The problem, however, are dynamic nodes. The nature of dynamic nodes is that they change the topology as part of being updated; we do know in which way until after the update.
+The problem, however, are dynamic nodes. The nature of dynamic nodes is that they change the topology as part of being updated; we do not know in which way until after the update.
 Thus, in the presence of dynamic node, regions may shift dynamically.
 This can lead to scenarios where several turns have already started and cannot continue, unless they start rolling back already committed updates.
 
-While a rollback of updates would not be impossible, for this library it was considered too expensive.
+Such a rollback of updates would not be impossible, but for this library it was considered too expensive.
 Since giving up update minimality and glitch freedom was not desirable either, we use a different approach.
 
 ### Transaction merging
@@ -109,11 +108,11 @@ Here's how that works:
 
 Each turn still has exclusive access to the whole graph, but the workload per turn is increased.
 Instead of adding another dimension, we attempt to extend the existing one.
-The following figure summarizes the idea:
+The following figure depicts this graphically:
 
 <img src="{{ site.baseurl }}/media/conc3.png" alt="Drawing" width="500px"/>
 
-The intended benefits are:
+The intended effects are:
 
 * More changed input nodes per turn => more nodes of the graph are reached => more opportunity for horizontal parallelization.
 * More workload per node => move effective processing and parallelization as overhead becomes less significant.
@@ -123,7 +122,7 @@ The benefits w.r.t. to reduced overhead do always apply, but to gain increased h
 To put this into perspective with some numbers, for a single event source with an observer, processing one million events takes 0.552s.
 With merging enabled, the time is halved to 0.275s.
 
-There is one noteworthy caveat: For signals, only the last value change during a transaction is applied.
+There is one noteworthy caveat: If the value of a signal is changed multiple times during a transaction, only the final one is propagated as a change.
 The reasoning behind this is that unlike for event streams, where every single event should be registered,
 for signals we only care about the most recent value.
 If a value is already known to be outdated, there is no need to process it.
