@@ -39,7 +39,7 @@ This is what C++React does.
 ## Design outline
 
 The issue of uncoordinated callback execution is handled by delegating this task to a dedicated entity - a so called _propagation engine_.
-This engine "intelligently" schedules callbacks that are ready to be executed, potentially using multiple threads, while guarenteeing certain safety and complexity properteries.
+This engine "intelligently" schedules callbacks that are ready to be executed, potentially using multiple threads, while guarenteeing certain safety and complexity properties.
 
 The aforementioned usage of shared state and side effects is employed due to a lack of alternatives to implement dataflow between callbacks.
 Thus, to improve the situation, proper abstractions to model dataflow explicitly are needed.
