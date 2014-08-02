@@ -9,7 +9,7 @@ groups:
 * [Goals](#goals)
 * [Parallel updating](#parallel-updating)
 * [Concurrent input](#concurrent-input)
-* [Conclusion](#conclusion)
+* [Conclusions](#conclusions)
 
 ## Goals
 
