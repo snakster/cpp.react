@@ -25,8 +25,8 @@ so the programmer can decide for which domains parallel updating and concurrenct
 
 ## Parallel updating
 
-The [Dataflow model guide](Dataflow-model.html) showed how interdependent reactive values can be represented as graphs.
-It further showed how inputs are grouped into transactions and processed in turns that propagate changes through the graph.
+The [Dataflow model guide](Dataflow-model.html) showed, how interdependent reactive values can be represented as graphs.
+It further showed, how inputs are grouped into transactions and processed in turns that propagate changes through the graph.
 Based on this dataflow model, we can immediately devise a scheme to parallelize the updating process:
 When there are more than two outgoing edges, both paths can be traversed in parallel by different threads.
 Coupled with the requirement for update minimality, if a node has multiple predecessors, only the last arriving thread coming from a predecessor may proceed.
@@ -55,7 +55,7 @@ To reduce the overhead, a template-based technique to merge r-value expressions 
 At the cost of a small overhead at creation time, the presented expression only results in a single node.
 
 Nonetheless, parallelizing trivial updates remains challenging as the overall implementation becomes more optimized.
-That is because by removing overhead, the workload per task is reduced as well.
+That is, because by removing overhead, the workload per task is reduced as well.
 
 ### Limitations
 
@@ -113,9 +113,9 @@ The following figure depicts this graphically:
 
 The intended effects are:
 
-* More changed input nodes per turn => more nodes of the graph are reached => more opportunity for horizontal parallelization.
-* More workload per node => move effective processing and parallelization as overhead becomes less significant.
-* Less turns => less overhead.
+* More changed input nodes per turn &#8658; more nodes of the graph are reached &#8658; more opportunity for horizontal parallelization.
+* More workload per node &#8658; move effective processing and parallelization as overhead becomes less significant.
+* Less turns &#8658; less overhead.
 
 The benefits w.r.t. reduced overhead do always apply, but to gain increased horizontal parallelization, the graph topology must allow for it.
 To put this into perspective with some numbers, for a single event source with an observer, processing one million events takes 0.552s.
