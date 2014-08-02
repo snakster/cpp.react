@@ -15,19 +15,18 @@ groups:
 
 ## Motivation
 
-The Pulsecount engine is designed around tasks and synchroninizion through atomic counters.
-The goal is to apply a more effective parallelization scheme than parallel Toposort.
-Instead of synchronizing the control flow based on topology level, nodes should have to wait for their individual dependencies.
+The Pulsecount engine is intended as a purely parallel engine, implemented around tasks and non-blocking synchronization.
+Instead of synchronizing the control flow based on topology level like parallel Toposort, nodes should only have to wait for their respective dependencies.
 
 
 ## Concept
 
-The updating turn happens in two phases.
+A turn divided into two phases.
 
 1. The reachable portion of the graph is marked.
    During thise phase, an atomic counter on each node is initialized to the number of reachable predecessors.
-2. The actual update propagation starts. Each node notifies its successors when its done; this decrements their counters.
-   If the counter value of a node reaches zero, i.e. all its predecessors are done, it is ready to be updated.
+2. The actual update propagation starts. Each node notifies its successors after it has been processed; this decrements their counters.
+   If the counter value of a node reaches zero, i.e. all its predecessors are done, it is ready to be processed as well.
 
 ## Algorithm
 
@@ -100,7 +99,7 @@ While Q is not empty
             Continue with next successor
 
         If successor is heavyweight:
-            Spawn a dedicated task for heavyweight successor
+            Spawn new dedicated task with Q = successor
 
         Else:
             Add successor to Q
@@ -131,7 +130,7 @@ While the Pulsecount algorithm tries to account for lightweight nodes, using it 
 To back this up with some data, consider a reactive matrix with 10K signals.
 `A[i][j]` is the single input node and `A[i][j] = A[i-1][j] + A[i][j-1]` (out-of-bounds cells default to zero).
 
-The time required for 10K updates of the whole graph is `1.6s` for sequential toposort, but for Pulsecount its `2.5s`.
+The time required for 10K updates of the whole graph is `1.6s` for sequential toposort, but for Pulsecount it's `2.5s`.
 Even if Pulsecount would slightly outperform the single-threaded algorithm, the extra CPU time induced by overhead is disproportionate.
 
 
