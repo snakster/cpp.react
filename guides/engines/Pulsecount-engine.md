@@ -16,7 +16,6 @@ groups:
 ## Motivation
 
 The Pulsecount engine is designed around tasks and synchroninizion through atomic counters.
-
 The goal is to apply a more effective parallelization scheme than parallel Toposort.
 Instead of synchronizing the control flow based on topology level, nodes should have to wait for their individual dependencies.
 

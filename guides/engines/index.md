@@ -7,7 +7,6 @@ groups:
 ---
 
 The update propagation strategy is implemented by a propagation engine.
-
 There are different algorithms available, which are described in detail in the following articles:
 
 ### [Toposort engine]({{ site.baseurl }}/guides/engines/Toposort-engine.html)
@@ -50,13 +49,13 @@ We measure the execution time (seconds) of `A[0][0] <- 1 ... 10000`, i.e. 10K up
         Pulsecount
         2.3803 (CPU time: ~ 8x on 8 CPUs)
 
-In cases where the workload per node is minimal - in this case it's a single addition - the parallelization overhead will outweight its benefits.
+In cases where the workload per node is minimal - i.e. a single addition - the parallelization overhead will outweight its benefits.
 This is not necessarily surprising, because both the updating itself and sequential Toposort are fairly lightweight;
-it's hard to beat them with the kind of general purpose, high-level parallelism this library provides.
+it's hard to beat them with the kind of high-level parallelization this library provides.
 
 Among the parallel algorithms, Pulsecount is the fastest, but only by fully utilizing all available parallel ressources.
 Subtree supports on-demand parallelism for heavyweight nodes, so in this scenario, it reverts to purely single-threaded updating.
-It does so less efficiently than the purely single-threaded algorithm, but in terms of combined CPU time, it is still more efficient than Pulsecount.
+It does so less efficiently than the purely single-threaded algorithm, but in terms of combined CPU time, it is still much more efficient than Pulsecount.
 
 
 ## Example 2

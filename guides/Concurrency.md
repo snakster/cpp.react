@@ -27,19 +27,18 @@ so the programmer can decide for which domains parallel updating and concurrenct
 
 The [Dataflow model guide](Dataflow-model.html) showed how interdependent reactive values can be represented as graphs.
 It further showed how inputs are grouped into transactions and processed in turns that propagate changes through the graph.
-
 Based on this dataflow model, we can immediately devise a scheme to parallelize the updating process:
 When there are more than two outgoing edges, both paths can be traversed in parallel by different threads.
 Coupled with the requirement for update minimality, if a node has multiple predecessors, only the last arriving thread coming from a predecessor may proceed.
 
 In other words, threads are forked and joined analogously to the paths in the graph.
-Instead of using threads directly, C++React utilizes TBB's tasks interface.
+Instead of using threads directly, C++React utilizes TBB's task interface.
 Tasks are units of computation that are automatically mapped to a thread pool.
 The following figure shows an example of how node updates could be parallelized:
 
 <img src="{{ site.baseurl }}/media/conc1.png" alt="Drawing" width="500px"/>
 
-Propagation is inherently parallelizable and synchronization can be realized efficiently based on atomic counters, though details depend on the implementation.
+Propagation is inherently parallelizable and synchronization can be realized efficiently with on atomic counters, though details depend on the implementation.
 There exist different concrete algorithms, which can be selected as part of the concurrency policy of a domain.
 This includes the option of sequential updating, which disables automatic parallelization.
 
@@ -118,11 +117,11 @@ The intended effects are:
 * More workload per node => move effective processing and parallelization as overhead becomes less significant.
 * Less turns => less overhead.
 
-The benefits w.r.t. to reduced overhead do always apply, but to gain increased horizontal parallelization, the graph topology must allow for it.
+The benefits w.r.t. reduced overhead do always apply, but to gain increased horizontal parallelization, the graph topology must allow for it.
 To put this into perspective with some numbers, for a single event source with an observer, processing one million events takes 0.552s.
 With merging enabled, the time is halved to 0.275s.
 
-There is one noteworthy caveat: If the value of a signal is changed multiple times during a transaction, only the final one is propagated as a change.
+There is one noteworthy caveat: If the value of a signal is changed multiple times during a transaction, only the final value is propagated as a change.
 The reasoning behind this is that unlike for event streams, where every single event should be registered,
 for signals we only care about the most recent value.
 If a value is already known to be outdated, there is no need to process it.

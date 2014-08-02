@@ -20,7 +20,6 @@ Topological sorting of the graph nodes to decide on the update order is a common
 It can guarantee glitch freedom and update minimality.
 The algorithm can easily be adapted to support parallel updating, too.
 
-
 ## Concept
 
 To apply the topological sorting, each node is assigned a level, which is the maximum level of its predecessors plus 1. Nodes without any predecessors are at level 0.

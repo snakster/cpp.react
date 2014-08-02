@@ -16,7 +16,6 @@ groups:
 
 If a graph mostly consists of nodes representing lightweight operations, parallelization with Pulsecount is not economic w.r.t. used CPU time.
 Sequential toposort, on the other hand, has excellent metrics in this regard, but if there are heavyweight nodes, we waste potential by not parallelizing.
-
 The goal of the Subtree engine is to provide a balance between these two approaches by parallelizing only when encountering heavyweight nodes.
 
 

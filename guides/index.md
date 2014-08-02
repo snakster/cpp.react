@@ -17,10 +17,10 @@ groups:
 
 > Describes how implicit parallelism and concurrent input are supported.
 
-### [Design rationale]({{ site.baseurl }}/guides/Design-rationale.html)
-
-> Discusses various design decisions.
-
 ### [Propagation engines]({{ site.baseurl }}/guides/engines/)
 
 > Explains algorithmic details behind the propagation engines.
+
+### [Design rationale]({{ site.baseurl }}/guides/Design-rationale.html)
+
+> Discusses various design decisions.
