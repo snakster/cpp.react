@@ -3,12 +3,12 @@
 C++React is reactive programming library for C++11.
 
 Generally speaking, it provides abstractions to handle change propagation and data processing for a push-based event model.
-A more practical description is that it enables coordinated, multi-layered - and potentially parallel - execution of callbacks.
+A more practical description is that it enables coordinated, multi-layered - _and potentially parallel_ - execution of callbacks.
 All this happens implicitly, based on declarative definitions, with guarantees regarding
 
 - _update minimality_ - nothing is re-calculated or processed unnecessarily;
 - _glitch freedom_ - no transiently inconsistent data sets;
-- _thread safety_ - no data races for parallel execution.
+- _thread safety_ - no data races for parallel execution by avoiding side effects.
 
 The core abstractions of the library are
 
@@ -30,18 +30,16 @@ Additional features include
 [If you're interested in learning about C++React, have a look at its documentation.](http://schlangster.github.io/cpp.react/)
 
 
-## Development
+## Using the library
 
-This library is a work-in-progress and should not be considered release quality yet.
+This library is a work-in-progress. It should not be considered release quality yet and its API might still change.
 It is, however, in a perfectly usable state and has already received a fair amount of testing and tuning.
-
 
 ### Dependencies
 
 * [Intel TBB 4.2](https://www.threadingbuildingblocks.org/) (required)
 * [Google test framework](https://code.google.com/p/googletest/) (optional, to compile the unit tests)
 * [Boost 1.55.0 C++ Libraries](http://www.boost.org/) (optional, to include Reactor.h, which requires `boost::coroutine`)
-
 
 ### Compiling
 
@@ -69,20 +67,21 @@ For more details, refer to the [Build instructions](https://github.com/schlangst
 ### Signals
 
 Signals are self-updating reactive variables.
-They can be combined as expressions to create new signals, which are automatically re-calculated whenever one of their dependencies changes.
+They can be combined in expressions to create new signals, which are automatically re-calculated when their dependencies change.
 
 ```C++
 using namespace std;
 using namespace react;
 
-// Define a reactive domain that uses single-threaded, sequential updating
+// Defines a reactive domain that uses single-threaded, sequential updating
 REACTIVE_DOMAIN(D, sequential)
 
-// Define aliases for types of the given domain,
+// Defines aliases for types of the given domain,
 // e.g. using VarSignalT<X> = VarSignal<D,X>
 USING_REACTIVE_DOMAIN(D)
 
 // Two reactive variables that can be manipulated imperatively
+// to input external changes
 VarSignalT<int> width  = MakeVar<D>(1);
 VarSignalT<int> height = MakeVar<D>(2);
 
@@ -110,7 +109,7 @@ Observe(area, [] (int newValue) {
 });
 ```
 
-Overloaded operators for signal types allow to omit `MakeSignal` in this case for a more concise syntax:
+Overloaded operators for signal types allow to omit `MakeSignal` for a more concise syntax:
 ```C++
 // Lift as reactive expression - equivalent to previous example
 SignalT<int> area = width * height;
@@ -118,7 +117,8 @@ SignalT<int> area = width * height;
 
 ### Event streams
 
-Event streams represent flows of discrete values. They are first-class objects and can be merged, filtered, transformed or composed to more complex types:
+Unlike signals, event streams are not centered on changing state, but represent flows of discrete values. 
+They are first-class objects and can be merged, filtered, transformed or composed to more complex types:
 
 ```C++
 using namespace std;
@@ -128,39 +128,27 @@ REACTIVE_DOMAIN(D, sequential)
 USING_REACTIVE_DOMAIN(D)
 
 // Two event sources
-EventSourceT<Token> leftClicked  = MakeEventSource<D>();
-EventSourceT<Token> rightClicked = MakeEventSource<D>();
+EventSourceT<Token> leftClick  = MakeEventSource<D>();
+EventSourceT<Token> rightClick = MakeEventSource<D>();
 
 // Merge both event streams
-EventsT<Token> merged = leftClicked | rightClicked;
+EventsT<Token> anyClick = leftClick | rightClick;
 
 // React to events
-Observe(merged, [] (Token) {
+Observe(anyClick, [] (Token) {
     cout << "clicked!" << endl;
 });
 ```
 ```
-rightClicked.Emit(); // => clicked!
+leftClick.Emit(); // => clicked!
+rightClick.Emit(); // => clicked!
 ```
 
 ### Parallelism and concurrency
 
-The change propagation is handled implicitly.
-Depending on the selected concurrency policy, updates can be parallelized:
+When enabling it through the concurrency policy, updates are automatically parallelized:
 
 ```C++
-// Sequential updating
-REACTIVE_DOMAIN(D, sequential)
-
-VarSignalT<int> a = MakeVar<D>(1);
-VarSignalT<int> b = MakeVar<D>(2);
-VarSignalT<int> c = MakeVar<D>(3);
-
-SignalT<int> x = (a + b) * c;
-```
-
-```C++
-// Parallel updating
 REACTIVE_DOMAIN(D, parallel)
 
 VarSignalT<int> in = MakeVar<D>(0);
@@ -180,11 +168,6 @@ SignalT<int> op2 = MakeSignal(in, [] (int in)
 // op1 and op2 can be re-calculated in parallel
 SignalT<int> out = op1 + op2;
 ```
-
-### More examples
-
-* [Examples](https://github.com/schlangster/cpp.react/tree/master/examples/src)
-* [Test cases](https://github.com/schlangster/cpp.react/tree/master/tests/src)
 
 ## Acknowledgements
 
