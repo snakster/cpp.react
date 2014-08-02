@@ -157,6 +157,7 @@ There are several guaranteed properties for such update sequences:
 - _Consistency_: After a node has been changed, its successors will be updated.
 - _Update minimality_: A node is only updated, if it has at least one changed predecessor. A node is only updated once per turn.
 - _Glitch freedom_: A node is only updated after all its predecessors, that would be updated in the same turn, are done.
+  Further, it does not use inconsistent value sets from other turns that might be running at the same time.
 
 Consistency describes the nature of change propagation, which must leave the whole graph in a consistent state afterwards.
 
