@@ -153,17 +153,17 @@ REACTIVE_DOMAIN(D, parallel)
 
 VarSignalT<int> in = MakeVar<D>(0);
 
-SignalT<int> op1 = MakeSignal(in, [] (int in)
-{
-    int result = doCostlyOperation1(in);
-    return result;
-};
+SignalT<int> op1 = MakeSignal(in,
+    [] (int in) {
+        int result = doCostlyOperation1(in);
+        return result;
+    });
 
-SignalT<int> op2 = MakeSignal(in, [] (int in)
-{
-    int result = doCostlyOperation2(in);
-    return result;
-};
+SignalT<int> op2 = MakeSignal(in,
+    [] (int in) {
+        int result = doCostlyOperation2(in);
+        return result;
+    });
 
 // op1 and op2 can be re-calculated in parallel
 SignalT<int> out = op1 + op2;
