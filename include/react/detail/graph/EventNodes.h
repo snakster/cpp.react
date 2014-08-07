@@ -783,6 +783,7 @@ public:
             func_(
                 EventRange<TIn>( source_->Events() ),
                 std::back_inserter(this->events_));
+
         }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
@@ -869,7 +870,8 @@ public:
                 {
                     func_(
                         EventRange<TIn>( source_->Events() ),
-                        std::back_inserter(this->events_));
+                        std::back_inserter(this->events_),
+                        args->ValueRef() ...);
                 },
                 deps_);
 

@@ -124,7 +124,7 @@ public:
             using TimerT = typename IterateNode::ScopedUpdateTimer;
             TimerT scopedTimer( *this, events_->Events().size() );
 
-            S newValue = func_(EventRange<E>( events_->Events() ),  this->value_);
+            S newValue = func_(EventRange<E>( events_->Events() ), this->value_);
 
             if (! Equals(newValue, this->value_))
             {
