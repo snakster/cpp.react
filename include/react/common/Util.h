@@ -206,10 +206,14 @@ private:
     using NoT = char[1];
     using YesT = char[2];
 
-    template <typename U>
-    static YesT& check(
-        decltype( static_cast<TRet>(
-            (std::declval<U>())(std::declval<TArgs>() ...))) *);
+    template
+    <
+        typename U,
+        class = decltype(
+            static_cast<TRet>(
+                (std::declval<U>())(std::declval<TArgs>() ...)))
+    >
+    static YesT& check(void*);
 
     template <typename U>
     static NoT& check(...);
