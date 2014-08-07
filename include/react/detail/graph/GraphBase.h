@@ -253,11 +253,15 @@ class EventRange
 {
 public:
     using const_iterator = typename std::vector<E>::const_iterator;
+    using size_type = typename std::vector<E>::size_type;
 
     EventRange(const EventRange&) = default;
 
     const_iterator begin() const    { return data_.begin(); }
     const_iterator end() const      { return data_.end(); }
+
+    size_type   Size() const        { return data_.size(); }
+    bool        IsEmpty() const     { return data_.empty(); }
 
     explicit EventRange(const std::vector<E>& data) :
         data_( data )
