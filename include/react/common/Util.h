@@ -103,17 +103,28 @@ struct Identity
 struct DontMove {};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// DisableIfSame
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T, typename U>
+struct DisableIfSame :
+    std::enable_if<! std::is_same<
+        typename std::decay<T>::type,
+        typename std::decay<U>::type>::value> {};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// AddDummyArgWrapper
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TArg, typename F, typename TRet, typename ... TDepValues>
 struct AddDummyArgWrapper
 {
-    // Dummy int to make sure it calls the right ctor
-    template <typename FIn>
-    AddDummyArgWrapper(int, FIn&& func) : MyFunc( std::forward<FIn>(func) ) {}
-
     AddDummyArgWrapper(const AddDummyArgWrapper& other) = default;
-    AddDummyArgWrapper(AddDummyArgWrapper&& other) : MyFunc( std::move(other.MyFunc) ) {}
+
+    AddDummyArgWrapper(AddDummyArgWrapper&& other) :
+        MyFunc( std::move(other.MyFunc) )
+    {}
+
+    template <typename FIn, class = typename DisableIfSame<FIn,AddDummyArgWrapper>::type>
+    explicit AddDummyArgWrapper(FIn&& func) : MyFunc( std::forward<FIn>(func) ) {}
 
     TRet operator()(TArg, TDepValues& ... args)
     {
@@ -126,12 +137,15 @@ struct AddDummyArgWrapper
 template <typename TArg, typename F, typename ... TDepValues>
 struct AddDummyArgWrapper<TArg,F,void,TDepValues...>
 {
-    // Dummy int to make sure it calls the right ctor
-    template <typename FIn>
-    AddDummyArgWrapper(int, FIn&& func) : MyFunc( std::forward<FIn>(func) ) {}
-
+public:
     AddDummyArgWrapper(const AddDummyArgWrapper& other) = default;
-    AddDummyArgWrapper(AddDummyArgWrapper&& other) : MyFunc( std::move(other.MyFunc) ) {}
+
+    AddDummyArgWrapper(AddDummyArgWrapper&& other) :
+        MyFunc( std::move(other.MyFunc) )
+    {}
+
+    template <typename FIn, class = typename DisableIfSame<FIn,AddDummyArgWrapper>::type>
+    explicit AddDummyArgWrapper(FIn&& func) : MyFunc( std::forward<FIn>(func) ) {}
 
     void operator()(TArg, TDepValues& ... args)
     {
@@ -152,8 +166,20 @@ template
 >
 struct AddDefaultReturnValueWrapper
 {
-    template <typename FIn>
-    AddDefaultReturnValueWrapper(FIn&& func) : MyFunc( std::forward<FIn>(func) ) {}
+    AddDefaultReturnValueWrapper(const AddDefaultReturnValueWrapper&) = default;
+
+    AddDefaultReturnValueWrapper(AddDefaultReturnValueWrapper&& other) :
+        MyFunc( std::move(other.MyFunc) )
+    {}
+
+    template
+    <
+        typename FIn,
+        class = typename DisableIfSame<FIn,AddDefaultReturnValueWrapper>::type
+    >
+    explicit AddDefaultReturnValueWrapper(FIn&& func) :
+        MyFunc( std::forward<FIn>(func) )
+    {}
 
     template <typename ... TArgs>
     TRet operator()(TArgs&& ... args)
@@ -163,6 +189,33 @@ struct AddDefaultReturnValueWrapper
     }
 
     F MyFunc;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// IsCallableWith
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename F,
+    typename TRet,
+    typename ... TArgs
+>
+class IsCallableWith
+{
+private:
+    using NoT = char[1];
+    using YesT = char[2];
+
+    template <typename U>
+    static YesT& check(
+        decltype( static_cast<TRet>(
+            (std::declval<U>())(std::declval<TArgs>() ...))) *);
+
+    template <typename U>
+    static NoT& check(...);
+
+public:
+    enum { value = sizeof(check<F>(nullptr)) == sizeof(YesT) };
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
