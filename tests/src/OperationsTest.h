@@ -587,6 +587,226 @@ TYPED_TEST_P(OperationsTest, SyncedIterate2)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SyncedIterate3 test (event range)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, SyncedIterate3)
+{
+    using D = typename SyncedIterate3::MyDomain;
+
+    auto in1 = MakeVar<D>(1);
+    auto in2 = MakeVar<D>(1);
+
+    auto op1 = in1 + in2;
+    auto op2 = (in1 + in2) * 10;
+
+    auto src1 = MakeEventSource<D>();
+    auto src2 = MakeEventSource<D,int>();
+
+    auto out1 = Iterate(
+        src1,
+        make_tuple(0,0),
+        With(op1,op2),
+        [] (EventRange<Token> range, const tuple<int,int>& t, int op1, int op2) {
+            return make_tuple(
+                get<0>(t) + (op1 * range.Size()),
+                get<1>(t) + (op2 * range.Size()));
+        });
+
+    auto out2 = Iterate(
+        src2,
+        make_tuple(0,0,0),
+        With(op1,op2),
+        [] (EventRange<int> range, const tuple<int,int,int>& t, int op1, int op2) {
+            int sum = 0;
+            for (const auto& e : range)
+                sum += e;
+
+            return make_tuple(
+                get<0>(t) + sum,
+                get<1>(t) + (op1 * range.Size()),
+                get<2>(t) + (op2 * range.Size()));
+        });
+
+    int obsCount1 = 0;
+    int obsCount2 = 0;
+
+    {
+        auto obs1 = Observe(out1, [&] (const tuple<int,int>& t) {
+            ++obsCount1;
+
+            ASSERT_EQ(get<0>(t), 33);
+            ASSERT_EQ(get<1>(t), 330);
+        });
+
+        auto obs2 = Observe(out2, [&] (const tuple<int,int,int>& t) {
+            ++obsCount2;
+
+            ASSERT_EQ(get<0>(t), 42);
+            ASSERT_EQ(get<1>(t), 33);
+            ASSERT_EQ(get<2>(t), 330);
+        });
+
+        in1 <<= 22;
+        in2 <<= 11;
+
+        src1.Emit();
+        src2.Emit(42);
+
+        ASSERT_EQ(obsCount1, 1);
+        ASSERT_EQ(obsCount2, 1);
+
+        obs1.Detach();
+        obs2.Detach();
+    }
+
+    {
+        auto obs1 = Observe(out1, [&] (const tuple<int,int>& t) {
+            ++obsCount1;
+
+            ASSERT_EQ(get<0>(t), 33 + 330);
+            ASSERT_EQ(get<1>(t), 330 + 3300);
+        });
+
+        auto obs2 = Observe(out2, [&] (const tuple<int,int,int>& t) {
+            ++obsCount2;
+
+            ASSERT_EQ(get<0>(t), 42 + 420);
+            ASSERT_EQ(get<1>(t), 33 + 330);
+            ASSERT_EQ(get<2>(t), 330 + 3300);
+        });
+
+        in1 <<= 220;
+        in2 <<= 110;
+
+        src1.Emit();
+        src2.Emit(420);
+
+        ASSERT_EQ(obsCount1, 2);
+        ASSERT_EQ(obsCount2, 2);
+
+        obs1.Detach();
+        obs2.Detach();
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SyncedIterate4 test (event range, by ref)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, SyncedIterate4)
+{
+    using D = typename SyncedIterate4::MyDomain;
+
+    auto in1 = MakeVar<D>(1);
+    auto in2 = MakeVar<D>(1);
+
+    auto op1 = in1 + in2;
+    auto op2 = (in1 + in2) * 10;
+
+    auto src1 = MakeEventSource<D>();
+    auto src2 = MakeEventSource<D,int>();
+
+    auto out1 = Iterate(
+        src1,
+        vector<int>{},
+        With(op1,op2),
+        [] (EventRange<Token> range, vector<int>& v, int op1, int op2) -> void {
+            for (const auto& e : range)
+            {
+                v.push_back(op1);
+                v.push_back(op2);
+            }
+        });
+
+    auto out2 = Iterate(
+        src2,
+        vector<int>{},
+        With(op1,op2),
+        [] (EventRange<int> range, vector<int>& v, int op1, int op2) -> void {
+            for (const auto& e : range)
+            {
+                v.push_back(e);
+                v.push_back(op1);
+                v.push_back(op2);
+            }
+        });
+
+    int obsCount1 = 0;
+    int obsCount2 = 0;
+
+    {
+        auto obs1 = Observe(out1, [&] (const vector<int>& v) {
+            ++obsCount1;
+
+            ASSERT_EQ(v.size(), 2);
+
+            ASSERT_EQ(v[0], 33);
+            ASSERT_EQ(v[1], 330);
+        });
+
+        auto obs2 = Observe(out2, [&] (const vector<int>& v) {
+            ++obsCount2;
+
+            ASSERT_EQ(v.size(), 3);
+
+            ASSERT_EQ(v[0], 42);
+            ASSERT_EQ(v[1], 33);
+            ASSERT_EQ(v[2], 330);
+        });
+
+        in1 <<= 22;
+        in2 <<= 11;
+
+        src1.Emit();
+        src2.Emit(42);
+
+        ASSERT_EQ(obsCount1, 1);
+        ASSERT_EQ(obsCount2, 1);
+
+        obs1.Detach();
+        obs2.Detach();
+    }
+
+    {
+        auto obs1 = Observe(out1, [&] (const vector<int>& v) {
+            ++obsCount1;
+
+            ASSERT_EQ(v.size(), 4);
+
+            ASSERT_EQ(v[0], 33);
+            ASSERT_EQ(v[1], 330);
+            ASSERT_EQ(v[2], 330);
+            ASSERT_EQ(v[3], 3300);
+        });
+
+        auto obs2 = Observe(out2, [&] (const vector<int>& v) {
+            ++obsCount2;
+
+            ASSERT_EQ(v.size(), 6);
+
+            ASSERT_EQ(v[0], 42);
+            ASSERT_EQ(v[1], 33);
+            ASSERT_EQ(v[2], 330);
+
+            ASSERT_EQ(v[3], 420);
+            ASSERT_EQ(v[4], 330);
+            ASSERT_EQ(v[5], 3300);
+        });
+
+        in1 <<= 220;
+        in2 <<= 110;
+
+        src1.Emit();
+        src2.Emit(420);
+
+        ASSERT_EQ(obsCount1, 2);
+        ASSERT_EQ(obsCount2, 2);
+
+        obs1.Detach();
+        obs2.Detach();
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventFilter1
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, SyncedEventFilter1)
@@ -688,6 +908,8 @@ REGISTER_TYPED_TEST_CASE_P
     SyncedTransform1,
     SyncedIterate1,
     SyncedIterate2,
+    SyncedIterate3,
+    SyncedIterate4,
     SyncedEventFilter1,
     SyncedEventTransform1
 );
