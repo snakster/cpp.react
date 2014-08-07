@@ -185,7 +185,6 @@ auto Observe(const Signal<D,S>& subject, FIn&& func)
         SignalObserverNode<D,S,F>
             >::type;
 
-
     const auto& subjectPtr = GetNodePtr(subject);
 
     std::unique_ptr<ObserverNode<D>> nodePtr( new TNode(subjectPtr, std::forward<FIn>(func)) );
@@ -212,18 +211,29 @@ auto Observe(const Events<D,E>& subject, FIn&& func)
     using REACT_IMPL::ObserverNode;
     using REACT_IMPL::EventObserverNode;
     using REACT_IMPL::AddDefaultReturnValueWrapper;
+    using REACT_IMPL::AddObserverRangeWrapper;
+    using REACT_IMPL::IsCallableWith;
+    using REACT_IMPL::EventRange;
 
     using F = typename std::decay<FIn>::type;
-    using R = typename std::result_of<FIn(E)>::type;
-    using WrapperT = AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>;
 
-    // If return value of passed function is void, add ObserverAction::next as
-    // default return value.
-    using TNode = typename std::conditional<
-        std::is_same<void,R>::value,
-        EventObserverNode<D,E,WrapperT>,
-        EventObserverNode<D,E,F>
-            >::type;
+    using WrapperT =
+        typename std::conditional<
+            IsCallableWith<F, ObserverAction, EventRange<E>>::value,
+            F,
+            typename std::conditional<
+                IsCallableWith<F, ObserverAction, E>::value,
+                AddObserverRangeWrapper<E, F>,
+                typename std::conditional<
+                    IsCallableWith<F, void, EventRange<E>>::value,
+                    AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>,
+                    AddObserverRangeWrapper<E,
+                        AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>>
+                >::type
+            >::type
+        >::type;
+    
+    using TNode = EventObserverNode<D,E,WrapperT>;
     
     const auto& subjectPtr = GetNodePtr(subject);
 
@@ -253,18 +263,30 @@ auto Observe(const Events<D,E>& subject,
     using REACT_IMPL::ObserverNode;
     using REACT_IMPL::SyncedObserverNode;
     using REACT_IMPL::AddDefaultReturnValueWrapper;
+    using REACT_IMPL::AddObserverRangeWrapper;
+    using REACT_IMPL::IsCallableWith;
+    using REACT_IMPL::EventRange;
 
     using F = typename std::decay<FIn>::type;
-    using R = typename std::result_of<FIn(E,TDepValues...)>::type;
-    using WrapperT = AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>;
 
-    // If return value of passed function is void, add ObserverAction::next as
-    // default return value.
-    using TNode = typename std::conditional<
-        std::is_same<void,R>::value,
-        SyncedObserverNode<D,E,WrapperT,TDepValues ...>,
-        SyncedObserverNode<D,E,F,TDepValues ...>
-            >::type;
+    using WrapperT =
+        typename std::conditional<
+            IsCallableWith<F, ObserverAction, EventRange<E>, TDepValues ...>::value,
+            F,
+            typename std::conditional<
+                IsCallableWith<F, ObserverAction, E, TDepValues ...>::value,
+                AddObserverRangeWrapper<E, F, TDepValues ...>,
+                typename std::conditional<
+                    IsCallableWith<F, void, EventRange<E>, TDepValues ...>::value,
+                    AddDefaultReturnValueWrapper<F, ObserverAction ,ObserverAction::next>,
+                    AddObserverRangeWrapper<E,
+                        AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>,
+                        TDepValues...>
+                >::type
+            >::type
+        >::type;
+
+    using TNode = SyncedObserverNode<D,E,WrapperT,TDepValues ...>;
 
     struct NodeBuilder_
     {

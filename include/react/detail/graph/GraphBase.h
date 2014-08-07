@@ -245,6 +245,30 @@ protected:
     DepHolderT   deps_;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Iterators for event processing
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename E>
+class EventRange
+{
+public:
+    using const_iterator = typename std::vector<E>::const_iterator;
+
+    EventRange(const EventRange&) = default;
+
+    const_iterator begin() const    { return data_.begin(); }
+    const_iterator end() const      { return data_.end(); }
+
+    explicit EventRange(const std::vector<E>& data) :
+        data_( data )
+    {}
+
+private:
+    const std::vector<E>&    data_;
+};
+
+template <typename E>
+using EventInserter = std::back_insert_iterator<std::vector<E>>;
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

@@ -547,7 +547,7 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SycnedEventTransformNode
+/// SyncedEventTransformNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -590,22 +590,6 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
-        struct EvalFunctor_
-        {
-            EvalFunctor_(const TIn& e, TFunc& f) :
-                MyEvent( e ),
-                MyFunc( f )
-            {}
-
-            TOut operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-            {
-                return MyFunc(MyEvent, args->ValueRef() ...);
-            }
-
-            const TIn&  MyEvent;
-            TFunc&      MyFunc;
-        };
-
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
@@ -617,12 +601,20 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
+        // Don't time if there is nothing to do
+        if (! source_->Events().empty())
         {// timer
             using TimerT = typename SyncedEventTransformNode::ScopedUpdateTimer;
             TimerT scopedTimer( *this, source_->Events().size() );
 
             for (const auto& e : source_->Events())
-                this->events_.push_back(apply(EvalFunctor_( e, func_ ), deps_));
+                this->events_.push_back(apply(
+                        [this, &e] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
+                        {
+                            return func_(e, args->ValueRef() ...);
+                        },
+                        deps_));
+                    
         }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
@@ -647,7 +639,7 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SycnedEventFilterNode
+/// SyncedEventFilterNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -689,22 +681,6 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
-        struct EvalFunctor_
-        {
-            EvalFunctor_(const E& e, TFunc& f) :
-                MyEvent( e ),
-                MyFilter( f )
-            {}
-
-            bool operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-            {
-                return MyFilter(MyEvent, args->ValueRef() ...);
-            }
-
-            const E&    MyEvent;
-            TFunc&      MyFilter;
-        };
-
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
@@ -716,12 +692,19 @@ public:
         REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
             GetObjectId(*this), turn.Id()));
 
+        // Don't time if there is nothing to do
+        if (! source_->Events().empty())
         {// timer
             using TimerT = typename SyncedEventFilterNode::ScopedUpdateTimer;
             TimerT scopedTimer( *this, source_->Events().size() );
 
             for (const auto& e : source_->Events())
-                if (apply(EvalFunctor_( e, filter_ ), deps_))
+                if (apply(
+                        [this, &e] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
+                        {
+                            return filter_(e, args->ValueRef() ...);
+                        },
+                        deps_))
                     this->events_.push_back(e);
         }// ~timer
 
@@ -748,6 +731,168 @@ private:
     std::shared_ptr<EventStreamNode<D,E>>   source_;
 
     TFunc       filter_;
+    DepHolderT  deps_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventProcessingNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename TIn,
+    typename TOut,
+    typename TFunc
+>
+class EventProcessingNode :
+    public EventStreamNode<D,TOut>
+{
+    using Engine = typename EventProcessingNode::Engine;
+
+public:
+    template <typename F>
+    EventProcessingNode(const std::shared_ptr<EventStreamNode<D,TIn>>& source, F&& func) :
+        EventProcessingNode::EventStreamNode( ),
+        source_( source ),
+        func_( std::forward<F>(func) )
+    {
+        Engine::OnNodeCreate(*this);
+        Engine::OnNodeAttach(*this, *source);
+    }
+
+    ~EventProcessingNode()
+    {
+        Engine::OnNodeDetach(*this, *source_);
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+
+        this->SetCurrentTurn(turn, true);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        {// timer
+            using TimerT = typename EventProcessingNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, source_->Events().size() );
+
+            func_(
+                EventRange<TIn>( source_->Events() ),
+                std::back_inserter(this->events_));
+        }// ~timer
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        if (! this->events_.empty())
+            Engine::OnNodePulse(*this, turn);
+        else
+            Engine::OnNodeIdlePulse(*this, turn);
+    }
+
+    virtual const char* GetNodeType() const override        { return "EventProcessingNode"; }
+    virtual int         DependencyCount() const override    { return 1; }
+
+private:
+    std::shared_ptr<EventStreamNode<D,TIn>>   source_;
+
+    TFunc       func_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SyncedEventProcessingNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename TIn,
+    typename TOut,
+    typename TFunc,
+    typename ... TDepValues
+>
+class SyncedEventProcessingNode :
+    public EventStreamNode<D,TOut>
+{
+    using Engine = typename SyncedEventProcessingNode::Engine;
+
+public:
+    template <typename F>
+    SyncedEventProcessingNode(const std::shared_ptr<EventStreamNode<D,TIn>>& source, F&& func, 
+                             const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
+        SyncedEventProcessingNode::EventStreamNode( ),
+        source_( source ),
+        func_( std::forward<F>(func) ),
+        deps_( deps ... )
+    {
+        Engine::OnNodeCreate(*this);
+        Engine::OnNodeAttach(*this, *source);
+        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
+    }
+
+    ~SyncedEventProcessingNode()
+    {
+        Engine::OnNodeDetach(*this, *source_);
+
+        apply(
+            DetachFunctor<D,SyncedEventProcessingNode,
+                std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
+            deps_);
+
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+
+        this->SetCurrentTurn(turn, true);
+        // Update of this node could be triggered from deps,
+        // so make sure source doesnt contain events from last turn
+        source_->SetCurrentTurn(turn);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        // Don't time if there is nothing to do
+        if (! source_->Events().empty())
+        {// timer
+            using TimerT = typename SyncedEventProcessingNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, source_->Events().size() );
+
+            apply(
+                [this] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
+                {
+                    func_(
+                        EventRange<TIn>( source_->Events() ),
+                        std::back_inserter(this->events_));
+                },
+                deps_);
+
+        }// ~timer
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        if (! this->events_.empty())
+            Engine::OnNodePulse(*this, turn);
+        else
+            Engine::OnNodeIdlePulse(*this, turn);
+    }
+
+    virtual const char* GetNodeType() const override        { return "SycnedEventProcessingNode"; }
+    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+
+private:
+    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
+
+    std::shared_ptr<EventStreamNode<D,TIn>>   source_;
+
+    TFunc       func_;
     DepHolderT  deps_;
 };
 

@@ -346,6 +346,72 @@ auto Transform(const Events<D,TIn>& source, const SignalPack<D,TDepValues...>& d
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Process
+///////////////////////////////////////////////////////////////////////////////////////////////////
+using REACT_IMPL::EventRange;
+using REACT_IMPL::EventInserter;
+
+template
+<
+    typename TOut,
+    typename D,
+    typename TIn,
+    typename FIn,
+    typename F = typename std::decay<FIn>::type
+>
+auto Process(const Events<D,TIn>& src, FIn&& func)
+    -> Events<D,TOut>
+{
+    using REACT_IMPL::EventProcessingNode;
+
+    return Events<D,TOut>(
+        std::make_shared<EventProcessingNode<D,TIn,TOut,F>>(
+            GetNodePtr(src), std::forward<FIn>(func)));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Process - Synced
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename TOut,
+    typename D,
+    typename TIn,
+    typename FIn,
+    typename ... TDepValues
+>
+auto Process(const Events<D,TIn>& source, const SignalPack<D,TDepValues...>& depPack, FIn&& func)
+    -> Events<D,TOut>
+{
+    using REACT_IMPL::SyncedEventProcessingNode;
+
+    using F = typename std::decay<FIn>::type;
+
+    struct NodeBuilder_
+    {
+        NodeBuilder_(const Events<D,TIn>& source, FIn&& func) :
+            MySource( source ),
+            MyFunc( std::forward<FIn>(func) )
+        {}
+
+        auto operator()(const Signal<D,TDepValues>& ... deps)
+            -> Events<D,TOut>
+        {
+            return Events<D,TOut>(
+                std::make_shared<SyncedEventProcessingNode<D,TIn,TOut,F,TDepValues ...>>(
+                     GetNodePtr(MySource), std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
+        }
+
+        const Events<D,TIn>&    MySource;
+        FIn                     MyFunc;
+    };
+
+    return REACT_IMPL::apply(
+        NodeBuilder_( source, std::forward<FIn>(func) ),
+        depPack.Data);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Flatten
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template

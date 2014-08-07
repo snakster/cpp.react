@@ -39,6 +39,39 @@ enum class ObserverAction
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// AddObserverRangeWrapper
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename E, typename F, typename ... TArgs>
+struct AddObserverRangeWrapper
+{
+    AddObserverRangeWrapper(const AddObserverRangeWrapper& other) = default;
+
+    AddObserverRangeWrapper(AddObserverRangeWrapper&& other) :
+        MyFunc( std::move(other.MyFunc) )
+    {}
+
+    template
+    <
+        typename FIn,
+        class = typename DisableIfSame<FIn,AddObserverRangeWrapper>::type
+    >
+    explicit AddObserverRangeWrapper(FIn&& func) :
+        MyFunc( std::forward<FIn>(func) )
+    {}
+
+    ObserverAction operator()(EventRange<E> range, const TArgs& ... args)
+    {
+        for (const auto& e : range)
+            if (MyFunc(e, args ...) == ObserverAction::stop_and_detach)
+                return ObserverAction::stop_and_detach;
+
+        return ObserverAction::next;
+    }
+
+    F MyFunc;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
@@ -183,15 +216,9 @@ public:
         {// timer
             using TimerT = typename EventObserverNode::ScopedUpdateTimer;
             TimerT scopedTimer( *this, p->Events().size() );
-            
-            for (const auto& e : p->Events())
-            {
-                if (func_(e) == ObserverAction::stop_and_detach)
-                {
-                    shouldDetach = true;
-                    break;
-                }
-            }
+
+            shouldDetach = func_(EventRange<E>( p->Events() )) == ObserverAction::stop_and_detach;
+
         }// ~timer
 
         if (shouldDetach)
@@ -263,22 +290,6 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
-        struct EvalFunctor_
-        {
-            EvalFunctor_(const E& e, TFunc& f) :
-                MyEvent( e ),
-                MyFunc( f )
-            {}
-
-            ObserverAction operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-            {
-                return MyFunc(MyEvent, args->ValueRef() ...);
-            }
-
-            const E&    MyEvent;
-            TFunc&      MyFunc;
-        };
-
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
@@ -297,14 +308,13 @@ public:
                 using TimerT = typename SyncedObserverNode::ScopedUpdateTimer;
                 TimerT scopedTimer( *this, p->Events().size() );
             
-                for (const auto& e : p->Events())
-                {
-                    if (apply(EvalFunctor_( e, func_ ), deps_) == ObserverAction::stop_and_detach)
+                shouldDetach = apply(
+                    [this, &p] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
                     {
-                        shouldDetach = true;
-                        break;
-                    }
-                }
+                        return func_(EventRange<E>( p->Events() ), args->ValueRef() ...);
+                    },
+                    deps_) == ObserverAction::stop_and_detach;
+
             }// ~timer
         }
 

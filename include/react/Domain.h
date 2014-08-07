@@ -235,10 +235,21 @@ auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger, FIn&&
         "MakeContinuation requires support for concurrent input to target domain.");
 
     using REACT_IMPL::EventContinuationNode;
+    using REACT_IMPL::AddContinuationRangeWrapper;
+    using REACT_IMPL::IsCallableWith;
+    using REACT_IMPL::EventRange;
+
     using F = typename std::decay<FIn>::type;
 
+    using WrapperT =
+        typename std::conditional<
+            IsCallableWith<F,void, EventRange<E>>::value,
+            F,
+            AddContinuationRangeWrapper<E, F>
+        >::type;
+
     return Continuation<D,DOut>(
-        std::make_shared<EventContinuationNode<D,DOut,E,F>>(
+        std::make_shared<EventContinuationNode<D,DOut,E,WrapperT>>(
             flags, GetNodePtr(trigger), std::forward<FIn>(func)));
 }
 
@@ -274,7 +285,18 @@ auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger,
         "MakeContinuation requires support for concurrent input to target domain.");
 
     using REACT_IMPL::SyncedContinuationNode;
+    using REACT_IMPL::AddContinuationRangeWrapper;
+    using REACT_IMPL::IsCallableWith;
+    using REACT_IMPL::EventRange;
+
     using F = typename std::decay<FIn>::type;
+
+    using WrapperT =
+        typename std::conditional<
+            IsCallableWith<F, void, EventRange<E>, TDepValues ...>::value,
+            F,
+            AddContinuationRangeWrapper<E, F, TDepValues ...>
+        >::type;
 
     struct NodeBuilder_
     {
@@ -288,7 +310,7 @@ auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger,
             -> Continuation<D,DOut>
         {
             return Continuation<D,DOut>(
-                std::make_shared<SyncedContinuationNode<D,DOut,E,F,TDepValues...>>(
+                std::make_shared<SyncedContinuationNode<D,DOut,E,WrapperT,TDepValues...>>(
                     MyFlags,
                     GetNodePtr(MyTrigger),
                     std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));

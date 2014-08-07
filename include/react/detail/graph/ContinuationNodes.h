@@ -31,6 +31,36 @@ template <typename D, typename E>
 class EventStreamNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// AddContinuationRangeWrapper
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename E, typename F, typename ... TArgs>
+struct AddContinuationRangeWrapper
+{
+    AddContinuationRangeWrapper(const AddContinuationRangeWrapper& other) = default;
+
+    AddContinuationRangeWrapper(AddContinuationRangeWrapper&& other) :
+        MyFunc( std::move(other.MyFunc) )
+    {}
+
+    template
+    <
+        typename FIn,
+        class = typename DisableIfSame<FIn,AddContinuationRangeWrapper>::type
+    >
+    explicit AddContinuationRangeWrapper(FIn&& func) :
+        MyFunc( std::forward<FIn>(func) )
+    {}
+
+    void operator()(EventRange<E> range, const TArgs& ... args)
+    {
+        for (const auto& e : range)
+            MyFunc(e, args ...);
+    }
+
+    F MyFunc;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ContinuationNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
@@ -171,12 +201,9 @@ public:
             // Copy events and func
             [storedFunc,storedEvents] () mutable
             {
-                for (const auto& e : storedEvents)
-                    storedFunc(e);
+                storedFunc(EventRange<E>( storedEvents ));
             }
         );
-
-        TransactionFuncT cont2 = [] { return; };
 
         DomainSpecificInputManager<D>::Instance()
             .StoreContinuation(
@@ -291,10 +318,12 @@ public:
             // Copy events, func, value tuple (note: 2x copy)
             [storedFunc,storedEvents,storedValues] () mutable
             {
-                for (const auto& e : storedEvents)
-                {
-                    apply(EvalFunctor_( e, storedFunc ), storedValues);
-                }
+                apply(
+                    [&storedFunc,&storedEvents] (const TDepValues& ... vals)
+                    {
+                        storedFunc(EventRange<E>( storedEvents ), vals ...);
+                    },
+                    storedValues);
             }
         };
 
