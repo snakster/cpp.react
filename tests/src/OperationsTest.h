@@ -847,7 +847,7 @@ TYPED_TEST_P(OperationsTest, SyncedEventFilter1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventTransform1
+/// SyncedEventTransform1
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TYPED_TEST_P(OperationsTest, SyncedEventTransform1)
 {
@@ -893,6 +893,59 @@ TYPED_TEST_P(OperationsTest, SyncedEventTransform1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SyncedEventProcess1
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(OperationsTest, SyncedEventProcess1)
+{
+    using D = typename SyncedEventProcess1::MyDomain;
+
+    std::vector<float> results;
+
+    auto in1 = MakeEventSource<D,int>();
+    auto in2 = MakeEventSource<D,int>();
+
+    auto mult = MakeVar<D>(10);
+
+    auto merged = Merge(in1, in2);
+    int callCount = 0;
+
+    auto processed = Process<float>(merged,
+        With(mult),
+        [&] (EventRange<int> range, EventInserter<float> out, int mult)
+        {
+            for (const auto& e : range)
+            {
+                *out = 0.1f * e * mult;
+                *out = 1.5f * e * mult;
+            }
+
+            callCount++;
+        });
+
+    Observe(processed,
+        [&] (float s)
+        {
+            results.push_back(s);
+        });
+
+    DoTransaction<D>([&] {
+        in1 << 10 << 20;
+    });
+
+    in2 << 30;
+
+    ASSERT_EQ(results.size(), 6);
+    ASSERT_EQ(callCount, 2);
+
+    ASSERT_EQ(results[0], 10.0f);
+    ASSERT_EQ(results[1], 150.0f);
+    ASSERT_EQ(results[2], 20.0f);
+    ASSERT_EQ(results[3], 300.0f);
+    ASSERT_EQ(results[4], 30.0f);
+    ASSERT_EQ(results[5], 450.0f);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     OperationsTest,
@@ -911,7 +964,8 @@ REGISTER_TYPED_TEST_CASE_P
     SyncedIterate3,
     SyncedIterate4,
     SyncedEventFilter1,
-    SyncedEventTransform1
+    SyncedEventTransform1,
+    SyncedEventProcess1
 );
 
 } // ~namespace

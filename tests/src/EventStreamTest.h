@@ -270,6 +270,56 @@ TYPED_TEST_P(EventStreamTest, EventTransform)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventProcess test
+///////////////////////////////////////////////////////////////////////////////////////////////////
+TYPED_TEST_P(EventStreamTest, EventProcess)
+{
+    using D = typename EventProcess::MyDomain;
+
+    std::vector<float> results;
+
+    auto in1 = MakeEventSource<D,int>();
+    auto in2 = MakeEventSource<D,int>();
+
+    auto merged = Merge(in1, in2);
+    int callCount = 0;
+
+    auto processed = Process<float>(merged,
+        [&] (EventRange<int> range, EventInserter<float> out)
+        {
+            for (const auto& e : range)
+            {
+                *out = 0.1f * e;
+                *out = 1.5f * e;
+            }
+
+            callCount++;
+        });
+
+    Observe(processed,
+        [&] (float s)
+        {
+            results.push_back(s);
+        });
+
+    DoTransaction<D>([&] {
+        in1 << 10 << 20;
+    });
+
+    in2 << 30;
+
+    ASSERT_EQ(results.size(), 6);
+    ASSERT_EQ(callCount, 2);
+
+    ASSERT_EQ(results[0], 1.0f);
+    ASSERT_EQ(results[1], 15.0f);
+    ASSERT_EQ(results[2], 2.0f);
+    ASSERT_EQ(results[3], 30.0f);
+    ASSERT_EQ(results[4], 3.0f);
+    ASSERT_EQ(results[5], 45.0f);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 REGISTER_TYPED_TEST_CASE_P
 (
     EventStreamTest,
@@ -278,7 +328,8 @@ REGISTER_TYPED_TEST_CASE_P
     EventMerge2,
     EventMerge3,
     EventFilter,
-    EventTransform
+    EventTransform,
+    EventProcess
 );
 
 } // ~namespace
