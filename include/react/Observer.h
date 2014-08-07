@@ -179,7 +179,7 @@ auto Observe(const Signal<D,S>& subject, FIn&& func)
 
     // If return value of passed function is void, add ObserverAction::next as
     // default return value.
-    using TNode = typename std::conditional<
+    using NodeT = typename std::conditional<
         std::is_same<void,R>::value,
         SignalObserverNode<D,S,WrapperT>,
         SignalObserverNode<D,S,F>
@@ -187,7 +187,7 @@ auto Observe(const Signal<D,S>& subject, FIn&& func)
 
     const auto& subjectPtr = GetNodePtr(subject);
 
-    std::unique_ptr<ObserverNode<D>> nodePtr( new TNode(subjectPtr, std::forward<FIn>(func)) );
+    std::unique_ptr<ObserverNode<D>> nodePtr( new NodeT(subjectPtr, std::forward<FIn>(func)) );
     ObserverNode<D>* rawNodePtr = nodePtr.get();
 
     subjectPtr->RegisterObserver(std::move(nodePtr));
@@ -227,17 +227,25 @@ auto Observe(const Events<D,E>& subject, FIn&& func)
                 typename std::conditional<
                     IsCallableWith<F, void, EventRange<E>>::value,
                     AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>,
-                    AddObserverRangeWrapper<E,
-                        AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>>
+                    typename std::conditional<
+                        IsCallableWith<F, void, E>::value,
+                        AddObserverRangeWrapper<E,
+                            AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>>,
+                        void
+                    >::type
                 >::type
             >::type
         >::type;
+
+    static_assert(
+        ! std::is_same<WrapperT,void>::value,
+        "Observe: Passed function does not match any of the supported signatures.");
     
-    using TNode = EventObserverNode<D,E,WrapperT>;
+    using NodeT = EventObserverNode<D,E,WrapperT>;
     
     const auto& subjectPtr = GetNodePtr(subject);
 
-    std::unique_ptr<ObserverNode<D>> nodePtr( new TNode(subjectPtr, std::forward<FIn>(func)) );
+    std::unique_ptr<ObserverNode<D>> nodePtr( new NodeT(subjectPtr, std::forward<FIn>(func)) );
     ObserverNode<D>* rawNodePtr = nodePtr.get();
 
     subjectPtr->RegisterObserver(std::move(nodePtr));
@@ -279,14 +287,22 @@ auto Observe(const Events<D,E>& subject,
                 typename std::conditional<
                     IsCallableWith<F, void, EventRange<E>, TDepValues ...>::value,
                     AddDefaultReturnValueWrapper<F, ObserverAction ,ObserverAction::next>,
-                    AddObserverRangeWrapper<E,
-                        AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>,
-                        TDepValues...>
+                    typename std::conditional<
+                        IsCallableWith<F, void, E, TDepValues ...>::value,
+                        AddObserverRangeWrapper<E,
+                            AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>,
+                                TDepValues...>,
+                            void
+                        >::type
                 >::type
             >::type
         >::type;
 
-    using TNode = SyncedObserverNode<D,E,WrapperT,TDepValues ...>;
+    static_assert(
+        ! std::is_same<WrapperT,void>::value,
+        "Observe: Passed function does not match any of the supported signatures.");
+
+    using NodeT = SyncedObserverNode<D,E,WrapperT,TDepValues ...>;
 
     struct NodeBuilder_
     {
@@ -298,7 +314,7 @@ auto Observe(const Events<D,E>& subject,
         auto operator()(const Signal<D,TDepValues>& ... deps)
             -> ObserverNode<D>*
         {
-            return new TNode(
+            return new NodeT(
                 GetNodePtr(MySubject), std::forward<FIn>(MyFunc), GetNodePtr(deps) ... );
         }
 

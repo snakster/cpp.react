@@ -195,7 +195,7 @@ auto MakeContinuation(TransactionFlagsT flags, const Signal<D,S>& trigger, FIn&&
     -> Continuation<D,DOut>
 {
     static_assert(DOut::is_concurrent,
-        "MakeContinuation requires support for concurrent input to target domain.");
+        "MakeContinuation: Target domain does not support concurrent input.");
 
     using REACT_IMPL::SignalContinuationNode;
     using F = typename std::decay<FIn>::type;
@@ -232,7 +232,7 @@ auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger, FIn&&
     -> Continuation<D,DOut>
 {
     static_assert(DOut::is_concurrent,
-        "MakeContinuation requires support for concurrent input to target domain.");
+        "MakeContinuation: Target domain does not support concurrent input.");
 
     using REACT_IMPL::EventContinuationNode;
     using REACT_IMPL::AddContinuationRangeWrapper;
@@ -245,8 +245,15 @@ auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger, FIn&&
         typename std::conditional<
             IsCallableWith<F,void, EventRange<E>>::value,
             F,
-            AddContinuationRangeWrapper<E, F>
+            typename std::conditional<
+                IsCallableWith<F, void, E>::value,
+                AddContinuationRangeWrapper<E, F>,
+                void
+            >::type
         >::type;
+
+    static_assert(! std::is_same<WrapperT,void>::value,
+        "MakeContinuation: Passed function does not match any of the supported signatures.");
 
     return Continuation<D,DOut>(
         std::make_shared<EventContinuationNode<D,DOut,E,WrapperT>>(
@@ -282,7 +289,7 @@ auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger,
     -> Continuation<D,DOut>
 {
     static_assert(DOut::is_concurrent,
-        "MakeContinuation requires support for concurrent input to target domain.");
+        "MakeContinuation: Target domain does not support concurrent input.");
 
     using REACT_IMPL::SyncedContinuationNode;
     using REACT_IMPL::AddContinuationRangeWrapper;
@@ -295,8 +302,15 @@ auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger,
         typename std::conditional<
             IsCallableWith<F, void, EventRange<E>, TDepValues ...>::value,
             F,
-            AddContinuationRangeWrapper<E, F, TDepValues ...>
+            typename std::conditional<
+                IsCallableWith<F, void, E, TDepValues ...>::value,
+                AddContinuationRangeWrapper<E, F, TDepValues ...>,
+                void
+            >::type
         >::type;
+
+    static_assert(! std::is_same<WrapperT,void>::value,
+        "MakeContinuation: Passed function does not match any of the supported signatures.");
 
     struct NodeBuilder_
     {
@@ -364,7 +378,8 @@ void DoTransaction(TransactionFlagsT flags, F&& func)
 template <typename D, typename F>
 void AsyncTransaction(F&& func)
 {
-    static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
+    static_assert(D::is_concurrent,
+        "AsyncTransaction: Domain does not support concurrent input.");
 
     using REACT_IMPL::DomainSpecificInputManager;
     DomainSpecificInputManager<D>::Instance()
@@ -374,7 +389,8 @@ void AsyncTransaction(F&& func)
 template <typename D, typename F>
 void AsyncTransaction(TransactionFlagsT flags, F&& func)
 {
-    static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
+    static_assert(D::is_concurrent,
+        "AsyncTransaction: Domain does not support concurrent input.");
 
     using REACT_IMPL::DomainSpecificInputManager;
     DomainSpecificInputManager<D>::Instance()
@@ -384,7 +400,8 @@ void AsyncTransaction(TransactionFlagsT flags, F&& func)
 template <typename D, typename F>
 void AsyncTransaction(TransactionStatus& status, F&& func)
 {
-    static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
+    static_assert(D::is_concurrent,
+        "AsyncTransaction: Domain does not support concurrent input.");
 
     using REACT_IMPL::DomainSpecificInputManager;
 
@@ -395,7 +412,8 @@ void AsyncTransaction(TransactionStatus& status, F&& func)
 template <typename D, typename F>
 void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& func)
 {
-    static_assert(D::is_concurrent, "AsyncTransaction requires concurrent domain.");
+    static_assert(D::is_concurrent,
+        "AsyncTransaction: Domain does not support concurrent input.");
 
     using REACT_IMPL::DomainSpecificInputManager;
     DomainSpecificInputManager<D>::Instance()
