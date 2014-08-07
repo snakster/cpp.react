@@ -20,6 +20,65 @@
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// AddIterateRangeWrapper
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename E, typename S, typename F, typename ... TArgs>
+struct AddIterateRangeWrapper
+{
+    AddIterateRangeWrapper(const AddIterateRangeWrapper& other) = default;
+
+    AddIterateRangeWrapper(AddIterateRangeWrapper&& other) :
+        MyFunc( std::move(other.MyFunc) )
+    {}
+
+    template
+    <
+        typename FIn,
+        class = typename DisableIfSame<FIn,AddIterateRangeWrapper>::type
+    >
+    explicit AddIterateRangeWrapper(FIn&& func) :
+        MyFunc( std::forward<FIn>(func) )
+    {}
+
+    S operator()(EventRange<E> range, S value, const TArgs& ... args)
+    {
+        for (const auto& e : range)
+            value = MyFunc(e, value, args ...);
+
+        return value;
+    }
+
+    F MyFunc;
+};
+
+template <typename E, typename S, typename F, typename ... TArgs>
+struct AddIterateByRefRangeWrapper
+{
+    AddIterateByRefRangeWrapper(const AddIterateByRefRangeWrapper& other) = default;
+
+    AddIterateByRefRangeWrapper(AddIterateByRefRangeWrapper&& other) :
+        MyFunc( std::move(other.MyFunc) )
+    {}
+
+    template
+    <
+        typename FIn,
+        class = typename DisableIfSame<FIn,AddIterateByRefRangeWrapper>::type
+    >
+    explicit AddIterateByRefRangeWrapper(FIn&& func) :
+        MyFunc( std::forward<FIn>(func) )
+    {}
+
+    void operator()(EventRange<E> range, S& valueRef, const TArgs& ... args)
+    {
+        for (const auto& e : range)
+            MyFunc(e, valueRef, args ...);
+    }
+
+    F MyFunc;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IterateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
@@ -65,10 +124,7 @@ public:
             using TimerT = typename IterateNode::ScopedUpdateTimer;
             TimerT scopedTimer( *this, events_->Events().size() );
 
-            S newValue = this->value_;
-            
-            for (const auto& e : events_->Events())
-                newValue = func_(e, newValue);
+            S newValue = func_(EventRange<E>( events_->Events() ),  this->value_);
 
             if (! Equals(newValue, this->value_))
             {
@@ -139,8 +195,8 @@ public:
             using TimerT = typename IterateByRefNode::ScopedUpdateTimer;
             TimerT scopedTimer( *this, events_->Events().size() );
 
-            for (const auto& e : events_->Events())
-                func_(e, this->value_);
+            func_(EventRange<E>( events_->Events() ), this->value_);
+
         }// ~timer
 
         REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
@@ -203,24 +259,6 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
-        struct EvalFunctor_
-        {
-            EvalFunctor_(const E& e, const S& v, TFunc& f) :
-                MyEvent( e ),
-                MyValue( v ),
-                MyFunc( f )
-            {}
-
-            S operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-            {
-                return MyFunc(MyEvent, MyValue, args->ValueRef() ...);
-            }
-
-            const E&    MyEvent;
-            const S&    MyValue;
-            TFunc&      MyFunc;
-        };
-
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
@@ -235,11 +273,13 @@ public:
         {// timer
             using TimerT = typename SyncedIterateNode::ScopedUpdateTimer;
             TimerT scopedTimer( *this, events_->Events().size() );
-
-            S newValue = this->value_;
-
-            for (const auto& e : events_->Events())
-                newValue = apply(EvalFunctor_( e, std::move(newValue), func_ ), deps_);
+            
+            S newValue = apply(
+                [this] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
+                {
+                    return func_(EventRange<E>( events_->Events() ), this->value_, args->ValueRef() ...);
+                },
+                deps_);
 
             if (! Equals(newValue, this->value_))
             {
@@ -313,24 +353,6 @@ public:
 
     virtual void Tick(void* turnPtr) override
     {
-        struct EvalFunctor_
-        {
-            EvalFunctor_(const E& e, S& v, TFunc& f) :
-                MyEvent( e ),
-                MyValue( v ),
-                MyFunc( f )
-            {}
-
-            void operator()(const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-            {
-                MyFunc(MyEvent, MyValue, args->ValueRef() ...);
-            }
-
-            const E&    MyEvent;
-            S&          MyValue;
-            TFunc&      MyFunc;
-        };
-
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
@@ -346,8 +368,12 @@ public:
             using TimerT = typename SyncedIterateByRefNode::ScopedUpdateTimer;
             TimerT scopedTimer( *this, events_->Events().size() );
 
-            for (const auto& e : events_->Events())
-                apply(EvalFunctor_( e, this->value_, func_ ), deps_);
+            apply(
+                [this] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
+                {
+                    func_(EventRange<E>( events_->Events() ), this->value_, args->ValueRef() ...);
+                },
+                deps_);
 
             changed = true;
         }// ~timer

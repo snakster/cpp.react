@@ -77,7 +77,7 @@ auto Monitor(const Signal<D,S>& target)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Iterate - Iteratively combines signal value with values from event stream
+/// Iterate - Iteratively combines signal value with values from event stream (aka Fold)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
@@ -92,17 +92,38 @@ auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
 {
     using REACT_IMPL::IterateNode;
     using REACT_IMPL::IterateByRefNode;
+    using REACT_IMPL::AddIterateRangeWrapper;
+    using REACT_IMPL::AddIterateByRefRangeWrapper;
+    using REACT_IMPL::IsCallableWith;
+    using REACT_IMPL::EventRange;
 
     using F = typename std::decay<FIn>::type;
-    using R = typename std::result_of<FIn(E,S&)>::type;
-    using TNode = typename std::conditional<
-        std::is_same<void,R>::value,
-        IterateByRefNode<D,S,E,F>,
-        IterateNode<D,S,E,F>
-            >::type;
+
+    using NodeT =
+        typename std::conditional<
+            IsCallableWith<F,S,EventRange<E>,S>::value,
+            IterateNode<D,S,E,F>,
+            typename std::conditional<
+                IsCallableWith<F,S,E,S>::value,
+                IterateNode<D,S,E,AddIterateRangeWrapper<E,S,F>>,
+                typename std::conditional<
+                    IsCallableWith<F, void, EventRange<E>, S&>::value,
+                    IterateByRefNode<D,S,E,F>,
+                    typename std::conditional<
+                        IsCallableWith<F,void,E,S&>::value,
+                        IterateByRefNode<D,S,E,AddIterateByRefRangeWrapper<E,S,F>>,
+                        void
+                    >::type
+                >::type
+            >::type
+        >::type;
+
+    static_assert(
+        ! std::is_same<NodeT,void>::value,
+        "Iterate: Passed function does not match any of the supported signatures.");
 
     return Signal<D,S>(
-        std::make_shared<TNode>(
+        std::make_shared<NodeT>(
             std::forward<V>(init), GetNodePtr(events), std::forward<FIn>(func)));
 }
 
@@ -124,14 +145,41 @@ auto Iterate(const Events<D,E>& events, V&& init,
 {
     using REACT_IMPL::SyncedIterateNode;
     using REACT_IMPL::SyncedIterateByRefNode;
+    using REACT_IMPL::AddIterateRangeWrapper;
+    using REACT_IMPL::AddIterateByRefRangeWrapper;
+    using REACT_IMPL::IsCallableWith;
+    using REACT_IMPL::EventRange;
 
     using F = typename std::decay<FIn>::type;
-    using R = typename std::result_of<FIn(E,S&,TDepValues...)>::type;
-    using TNode = typename std::conditional<
-        std::is_same<void,R>::value,
-        SyncedIterateByRefNode<D,S,E,F,TDepValues ...>,
-        SyncedIterateNode<D,S,E,F,TDepValues ...>
-            >::type;
+
+    using NodeT =
+        typename std::conditional<
+            IsCallableWith<F,S,EventRange<E>,S,TDepValues ...>::value,
+            SyncedIterateNode<D,S,E,F,TDepValues ...>,
+            typename std::conditional<
+                IsCallableWith<F,S,E,S,TDepValues ...>::value,
+                SyncedIterateNode<D,S,E,
+                    AddIterateRangeWrapper<E,S,F,TDepValues ...>,
+                    TDepValues ...>,
+                typename std::conditional<
+                    IsCallableWith<F,void,EventRange<E>,S&,TDepValues ...>::value,
+                    SyncedIterateByRefNode<D,S,E,F,TDepValues ...>,
+                    typename std::conditional<
+                        IsCallableWith<F,void,E,S&,TDepValues ...>::value,
+                        SyncedIterateByRefNode<D,S,E,
+                            AddIterateByRefRangeWrapper<E,S,F,TDepValues ...>,
+                            TDepValues ...>,
+                        void
+                    >::type
+                >::type
+            >::type
+        >::type;
+
+    static_assert(
+        ! std::is_same<NodeT,void>::value,
+        "Iterate: Passed function does not match any of the supported signatures.");
+
+    //static_assert(NodeT::dummy_error, "DUMP MY TYPE" );
 
     struct NodeBuilder_
     {
@@ -145,7 +193,7 @@ auto Iterate(const Events<D,E>& events, V&& init,
             -> Signal<D,S>
         {
             return Signal<D,S>(
-                std::make_shared<TNode>(
+                std::make_shared<NodeT>(
                     std::forward<V>(MyInit), GetNodePtr(MySource),
                     std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
         }
