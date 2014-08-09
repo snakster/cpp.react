@@ -60,7 +60,6 @@ auto MakeEventSource()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Merge
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// Note: Default template arguments are in forward declaration
 template
 <
     typename D,
@@ -77,7 +76,7 @@ auto Merge(const Events<D,TArg1>& arg1, const Events<D,TArgs>& ... args)
     using REACT_IMPL::EventOpNode;
 
     static_assert(sizeof...(TArgs) > 0,
-        "react::Merge requires at least 2 arguments.");
+        "Merge: 2+ arguments are required.");
 
     return TempEvents<D,E,TOp>(
         std::make_shared<EventOpNode<D,E,TOp>>(
@@ -425,6 +424,27 @@ auto Flatten(const Signal<D,Events<D,TInnerValue>>& outer)
     return Events<D,TInnerValue>(
         std::make_shared<REACT_IMPL::EventFlattenNode<D, Events<D,TInnerValue>, TInnerValue>>(
             GetNodePtr(outer), GetNodePtr(outer.Value())));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Join
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename ... TArgs
+>
+auto Join(const Events<D,TArgs>& ... args)
+    -> Events<D, std::tuple<TArgs ...>>
+{
+    using REACT_IMPL::EventJoinNode;
+
+    static_assert(sizeof...(TArgs) > 1,
+        "Join: 2+ arguments are required.");
+
+    return Events<D, std::tuple<TArgs ...>>(
+        std::make_shared<EventJoinNode<D,TArgs...>>(
+            GetNodePtr(args) ...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

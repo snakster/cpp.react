@@ -898,6 +898,135 @@ private:
     DepHolderT  deps_;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventJoinNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename D,
+    typename ... TValues
+>
+class EventJoinNode :
+    public EventStreamNode<D,std::tuple<TValues ...>>
+{
+    using Engine = typename EventJoinNode::Engine;
+    using TurnT = typename Engine::TurnT;
+
+public:
+    EventJoinNode(const std::shared_ptr<EventStreamNode<D,TValues>>& ... sources) :
+        EventJoinNode::EventStreamNode( ),
+        slots_( sources ... )
+    {
+        Engine::OnNodeCreate(*this);
+        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *sources));
+    }
+
+    ~EventJoinNode()
+    {
+        apply(
+            [this] (Slot<TValues>& ... slots) {
+                REACT_EXPAND_PACK(Engine::OnNodeDetach(*this, *slots.Source));
+            },
+            slots_);
+
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual void Tick(void* turnPtr) override
+    {
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+
+        this->SetCurrentTurn(turn, true);
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        // Don't time if there is nothing to do
+        {// timer
+            size_t count = 0;
+            using TimerT = typename EventJoinNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, count );
+
+            // Move events into buffers
+            apply(
+                [this, &turn] (Slot<TValues>& ... slots) {
+                    REACT_EXPAND_PACK(fetchBuffer(turn, slots));
+                },
+                slots_);
+
+            while (true)
+            {
+                bool isReady = true;
+
+                // All slots ready?
+                apply(
+                    [this,&isReady] (Slot<TValues>& ... slots) {
+                        // Todo: combine return values instead
+                        REACT_EXPAND_PACK(checkSlot(slots, isReady));
+                    },
+                    slots_);
+
+                if (!isReady)
+                    break;
+
+                // Pop values from buffers and emit tuple
+                apply(
+                    [this] (Slot<TValues>& ... slots) {
+                        this->events_.emplace_back(slots.Buffer.front() ...);
+                        REACT_EXPAND_PACK(slots.Buffer.pop_front());
+                    },
+                    slots_);
+            }
+
+            count = this->events_.size();
+
+        }// ~timer
+
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
+            GetObjectId(*this), turn.Id()));
+
+        if (! this->events_.empty())
+            Engine::OnNodePulse(*this, turn);
+        else
+            Engine::OnNodeIdlePulse(*this, turn);
+    }
+
+    virtual const char* GetNodeType() const override        { return "EventJoinNode"; }
+    virtual int         DependencyCount() const override    { return sizeof...(TValues); }
+
+private:
+    template <typename T>
+    struct Slot
+    {
+        Slot(const std::shared_ptr<EventStreamNode<D,T>>& src) :
+            Source( src )
+        {}
+
+        std::shared_ptr<EventStreamNode<D,T>>   Source;
+        std::deque<T>                           Buffer;
+    };
+
+    template <typename T>
+    static void fetchBuffer(TurnT& turn, Slot<T>& slot)
+    {
+        slot.Source->SetCurrentTurn(turn);
+
+        slot.Buffer.insert(
+            slot.Buffer.end(),
+            slot.Source->Events().begin(),
+            slot.Source->Events().end());
+    }
+
+    template <typename T>
+    static void checkSlot(Slot<T>& slot, bool& isReady)
+    {
+        auto t = isReady && !slot.Buffer.empty();
+        isReady = t;
+    }
+
+    std::tuple<Slot<TValues>...>    slots_;
+};
+
 /****************************************/ REACT_IMPL_END /***************************************/
 
 #endif // REACT_DETAIL_GRAPH_EVENTNODES_H_INCLUDED
