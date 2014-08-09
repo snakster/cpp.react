@@ -19,10 +19,10 @@
 #include <memory>
 #include <mutex>
 #include <utility>
-#include <thread>
 #include <type_traits>
 #include <vector>
 
+#include "tbb/task.h"
 #include "tbb/concurrent_queue.h"
 #include "tbb/enumerable_thread_specific.h"
 #include "tbb/queuing_mutex.h"
@@ -38,6 +38,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct IInputNode;
 class IObserver;
+
+template <typename D>
+class InputManager;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Common types & constants
@@ -478,6 +481,118 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// AsyncWorker
+///////////////////////////////////////////////////////////////////////////////////////////////////
+struct AsyncItem
+{
+    TransactionFlagsT       Flags;
+    WaitingStatePtrT        WaitingStatePtr;
+    TransactionFuncT        Func;
+};
+
+// Interface
+template <typename D, EInputMode>
+class AsyncWorker
+{
+public:
+    AsyncWorker(InputManager<D>& mgr);
+
+    void PushItem(AsyncItem&& item);
+
+    void PopItem(AsyncItem& item);
+    bool TryPopItem(AsyncItem& item);
+
+    bool IncrementItemCount(size_t n);
+    bool DecrementItemCount(size_t n);
+
+    void Start();
+};
+
+// Disabled
+template <typename D>
+struct AsyncWorker<D, consecutive_input>
+{
+public:
+    AsyncWorker(InputManager<D>& mgr)
+    {}
+
+    void PushItem(AsyncItem&& item)     { assert(false); }
+
+    void PopItem(AsyncItem& item)       { assert(false); }
+    bool TryPopItem(AsyncItem& item)    { assert(false); return false; }
+
+    bool IncrementItemCount(size_t n)   { assert(false); return false; }
+    bool DecrementItemCount(size_t n)   { assert(false); return false; }
+
+    void Start()                        { assert(false); }
+};
+
+// Enabled
+template <typename D>
+struct AsyncWorker<D, concurrent_input>
+{
+    using DataT = tbb::concurrent_bounded_queue<AsyncItem>;
+
+    class WorkerTask : public tbb::task
+    {
+    public:
+        WorkerTask(InputManager<D>& mgr) :
+            mgr_( mgr )
+        {}
+
+        tbb::task* execute()
+        {
+            mgr_.processAsyncQueue();
+            return nullptr;
+        }
+
+    private:
+        InputManager<D>& mgr_;
+    };
+
+public:
+    AsyncWorker(InputManager<D>& mgr) :
+        mgr_( mgr )
+    {}
+
+    void PushItem(AsyncItem&& item)
+    {
+        data_.push(std::move(item));
+    }
+
+    void PopItem(AsyncItem& item)
+    {
+        data_.pop(item);
+    }
+
+    bool TryPopItem(AsyncItem& item)
+    {
+        return data_.try_pop(item);
+    }
+
+    bool IncrementItemCount(size_t n)
+    {
+        return count_.fetch_add(n, std::memory_order_relaxed) == 0;
+    }
+
+    bool DecrementItemCount(size_t n)
+    {
+        return count_.fetch_sub(n, std::memory_order_relaxed) == n;
+    }
+
+    void Start()
+    {
+        tbb::task::enqueue(*new(tbb::task::allocate_root()) WorkerTask(mgr_));
+    }
+
+private:
+    DataT               data_;
+    std::atomic<size_t> count_{ 0 };
+
+    InputManager<D>&    mgr_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// InputManager
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D>
@@ -485,30 +600,23 @@ class InputManager :
     public IContinuationTarget
 {
 private:
-    struct AsyncItem
-    {
-        TransactionFlagsT              Flags;
-        WaitingStatePtrT        WaitingStatePtr;
-        TransactionFuncT        Func;
-    };
-
-    using AsyncQueueT = tbb::concurrent_bounded_queue<AsyncItem>;
-
     // Select between thread-safe and non thread-safe implementations
     using TransactionQueueT = TransactionQueue<D::Policy::input_mode>;
-    using ContinuationManagerT = ContinuationManager<D::Policy::propagation_mode>;
-
     using QueueEntryT = typename TransactionQueueT::QueueEntry;
+
+    using ContinuationManagerT = ContinuationManager<D::Policy::propagation_mode>;
+    using AsyncWorkerT = AsyncWorker<D, D::Policy::input_mode>;
+
+    template <typename, EInputMode>
+    friend class AsyncWorker;
 
 public:
     using TurnT = typename D::TurnT;
     using Engine = typename D::Engine;
 
     InputManager() :
-        asyncWorker_( [this] { processAsyncQueue(); } )
-    {
-        asyncWorker_.detach();
-    }
+        asyncWorker_(*this)
+    {}
 
     template <typename F>
     void DoTransaction(TransactionFlagsT flags, F&& func)
@@ -556,7 +664,10 @@ public:
         if (waitingStatePtr != nullptr)
             waitingStatePtr->IncWaitCount();
 
-        asyncQueue_.push(AsyncItem{ flags, waitingStatePtr, std::forward<F>(func) } );
+        asyncWorker_.PushItem(AsyncItem{ flags, waitingStatePtr, std::forward<F>(func) });
+
+        if (asyncWorker_.IncrementItemCount(1))
+            asyncWorker_.Start();
     }
 
     template <typename R, typename V>
@@ -702,11 +813,20 @@ private:
 
         while (true)
         {
-            // Blocks if queue is empty
+            size_t popCount = 0;
+
             if (!skipPop)
-                asyncQueue_.pop(item);
+            {
+                // Blocks if queue is empty.
+                // This should never happen,
+                // and if (maybe due to some memory access internals), only briefly
+                asyncWorker_.PopItem(item);
+                popCount++;
+            }
             else
+            {
                 skipPop = false;
+            }
 
             // First try to merge to an existing synchronous item in the queue
             bool canMerge = (item.Flags & allow_merging) != 0;
@@ -745,8 +865,10 @@ private:
             {
                 uint extraCount = 0;
                 // Todo: Make configurable
-                while (extraCount < 512 && asyncQueue_.try_pop(item))
+                while (extraCount < 1024 && asyncWorker_.TryPopItem(item))
                 {
+                    ++popCount;
+
                     bool canMergeNext = (item.Flags & allow_merging) != 0;
                     if (canMergeNext)
                     {
@@ -786,10 +908,6 @@ private:
 
             continuationManager_.template DetachQueuedObservers<D>();
 
-            //printf("1\n");
-            //for (const auto& p : waitingStatePtrs)
-            //    printf("%08X\n", p.Get());
-
             // Has continuations? If so, status ptrs have to be passed on to
             // continuation transactions
             if (continuationManager_.HasContinuations())
@@ -800,10 +918,6 @@ private:
                 // More than 1 waiting state -> create collection from vector
                 if (waitingStatePtrs.size() > 1)
                 {
-  /*                  printf("2\n");
-                    for (const auto& p : waitingStatePtrs)
-                        printf("%08X\n", p.Get());*/
-
                     WaitingStatePtrT p
                     (
                         SharedWaitingStateCollection::Create(std::move(waitingStatePtrs))
@@ -839,14 +953,17 @@ private:
             }
 
             waitingStatePtrs.clear();
+
+            // Stop this task if the number of items has just been decremented zero.
+            // A new task will be started by the thread that increments the item count from zero.
+            if (asyncWorker_.DecrementItemCount(popCount))
+                break;
         }
     }
 
     TransactionQueueT       transactionQueue_;
     ContinuationManagerT    continuationManager_;
-
-    AsyncQueueT             asyncQueue_;
-    std::thread             asyncWorker_;
+    AsyncWorkerT            asyncWorker_;
 
     std::atomic<TurnIdT>    nextTurnId_{ 0 };
 
