@@ -17,8 +17,8 @@ template <typename E>
 class EventRange
 {
 public:
-    using const_iterator =	typename /*adaptee*/::const_iterator;
-    using size_type =		typename /*adaptee*/::size_type;
+    using const_iterator =  typename /*adaptee<E>*/::const_iterator;
+    using size_type =       typename /*adaptee<E>*/::size_type;
 
     // Constructor
     EventRange(const EventRange&); // Copy
