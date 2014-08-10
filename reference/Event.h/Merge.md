@@ -16,11 +16,11 @@ template
     typename ... TValues
 >
 TempEvents<D,E,/*unspecified*/>
-    Merge(const Events<D,E>& arg1, const Events<D,TValues>& ... args);
+    Merge(const Events<D,E>& source1, const Events<D,TValues>& ... sources);
 {% endhighlight %}
 
 ## Semantics
-Emit all events in `arg1, ... args`.
+Emit all events in `source1, ... sources`.
 
 ## Graph
 <img src="{{ site.baseurl }}/media/flow_merge.png" alt="Drawing" width="500px"/>

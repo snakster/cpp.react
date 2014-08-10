@@ -53,6 +53,10 @@ The signature of `func` should be equivalent to:
 * (3) `TRet func(const E&, const TDepValues& ...)`
 
 `TRet` can be either `ObserverAction` or `void`.
+The event parameter `const E&` can also be replaced by an event range, i.e. `TRet func(EventRange<E> range, const TDepValues& ...)` for case (3).
+This allows for explicit batch processing of events of a single turn.
+
+
 
 By returning `ObserverAction::stop_and_detach`, the observer function can request its own detachment.
 Returning `ObserverAction::next` keeps the observer attached. Using a `void` return type is the same as

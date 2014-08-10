@@ -140,10 +140,10 @@
     <node id="n6">
       <data key="d6">
         <y:ShapeNode>
-          <y:Geometry height="25.0" width="219.328125" x="990.0" y="617.5"/>
+          <y:Geometry height="25.0" width="196.28812500000004" x="990.0" y="617.5"/>
           <y:Fill hasColor="false" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Consolas" fontSize="16" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="20.0" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="197.53125" x="10.8984375" y="2.5">[e1,...,e2,...,eN,...]</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Consolas" fontSize="16" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="20.0" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="188.734375" x="3.776875000000018" y="2.5">[(e1,e2,...,eN), ...]</y:NodeLabel>
           <y:Shape type="rectangle"/>
         </y:ShapeNode>
       </data>
@@ -191,7 +191,7 @@
       <data key="d8"/>
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="-109.6640625" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:Path sx="-98.14406250000003" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="standard" target="none"/>
           <y:BendStyle smoothed="false"/>

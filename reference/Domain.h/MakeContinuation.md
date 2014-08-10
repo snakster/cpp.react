@@ -113,5 +113,8 @@ The signature of `func` should be equivalent to:
 
 (4,5,6) behave similar to (1,2,3), respectively, but allow to specify the flags that are used for the continuation transaction.
 
+The event parameter `const E&` can also be replaced by an event range, i.e. `void func(EventRange<E> range, const TDepValues& ...)` for case (3).
+This allows for explicit batch processing of events of a single turn.
+
 The initiating transaction is only complete, when all its continuations are complete, i.e. `DoTransaction` will block, and `AsyncContinuation` passes on its `TransactionStatus` to all continuation transactions.
 Waiting on continuations does not occupy the engine; other transactions can already start running and continuations can bounce back and forth between domains without blocking each other.

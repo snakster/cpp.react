@@ -55,6 +55,9 @@ The signature of `func` should be equivalent to:
 * (2a) `S func(const E&, const S&, const TDepValues& ...)`
 * (2b) `void func(const E&, S&, const TDepValues& ...)`
 
+The event parameter `const E&` can also be replaced by an event range, i.e. `S func(EventRange<E> range, const S&)` for case (1a).
+This allows for explicit batch processing of events of a single turn.
+
 ## Graph
 (1a) <br/>
 <img src="{{ site.baseurl }}/media/flow_iterate.png" width="500px" />

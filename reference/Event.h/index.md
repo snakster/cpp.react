@@ -29,6 +29,9 @@ Contains the event stream template classes and functions.
 
     <span class="c1">// TempEvents</span>
     <span class="k">class</span> <a class="code_link" href="{{ site.baseurl }}/reference/Event.h/TempEvents.html">TempEvents</a><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="p">,</span><span class="cm">/*unspecified*/</span><span class="o">&gt;</span>
+
+    <span class="c1">// EventRange</span>
+    <span class="k">class</span> <a class="code_link" href="{{ site.baseurl }}/reference/Event.h/EventRange.html">EventRange</a><span class="o">&lt;</span><span class="n">E</span><span class="o">&gt;</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -60,7 +63,7 @@ namespace react
       <span class="o">-&gt;</span> <span class="n">EventSource</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="o">&gt;</span>
 
     <span class="c1">// Creates a new event stream that merges events from given streams</span>
-    <a class="code_link" href="{{ site.baseurl }}/reference/Event.h/Merge.html">Merge</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="o">&gt;&amp;</span> <span class="n">arg1</span><span class="p">,</span> <span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">TValues</span><span class="o">&gt;&amp;</span> <span class="p">...</span> <span class="n">args</span><span class="p">)</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Event.h/Merge.html">Merge</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="o">&gt;&amp;</span> <span class="n">source1</span><span class="p">,</span> <span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">TValues</span><span class="o">&gt;&amp;</span> <span class="p">...</span> <span class="n">sources</span><span class="p">)</span>
       <span class="o">-&gt;</span> <span class="n">TempEvents</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="p">,</span><span class="cm">/*unspecified*/</span><span class="o">&gt;</span>
 
     <span class="c1">// Creates a new event stream that filters events from other stream</span>
@@ -80,6 +83,17 @@ namespace react
     <a class="code_link" href="{{ site.baseurl }}/reference/Event.h/Transform.html">Transform</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">TIn</span><span class="o">&gt;&amp;</span> <span class="n">source</span><span class="p">,</span> <span class="k">const</span> <span class="n">SignalPack</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">TDepValues</span><span class="p">...</span><span class="o">&gt;&amp;</span> <span class="n">depPack</span><span class="p">,</span>
               <span class="n">FIn</span><span class="o">&amp;&amp;</span> <span class="n">func</span><span class="p">)</span>
       <span class="o">-&gt;</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">T</span><span class="o">&gt;</span>
+
+    <span class="c1">// Creates a new event stream by batch processing events from other stream</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Event.h/Process.html">Process</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="o">&gt;&amp;</span> <span class="n">source</span><span class="p">,</span> <span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">func</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">T</span><span class="o">&gt;</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Event.h/Process.html">Process</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">E</span><span class="o">&gt;&amp;</span> <span class="n">source</span><span class="p">,</span> <span class="k">const</span> <span class="n">SignalPack</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">TDepValues</span><span class="p">...</span><span class="o">&gt;&amp;</span> <span class="n">depPack</span><span class="p">,</span>
+            <span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">func</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">T</span><span class="o">&gt;</span>
+
+    <span class="c1">// Creates a new event stream by joining events from other streams into a tuple</span>
+    <a class="code_link" href="{{ site.baseurl }}/reference/Event.h/Join.html">Join</a><span class="p">(</span><span class="k">const</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">TValues</span><span class="o">&gt;&amp;</span> <span class="p">...</span> <span class="n">sources</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span></span><span class="n">std</span><span class="o">::</span><span class="n">tuple</span><span class="o">&lt;</span><span class="n">TValues</span><span class="p">...</span><span class="o">&gt;&gt;</span>
 
     <span class="c1">// Creates a new event stream by flattening a signal of an event stream</span>
     <a class="code_link" href="{{ site.baseurl }}/reference/Event.h/Flatten.html">Flatten</a><span class="p">(</span><span class="k">const</span> <span class="n">Signal</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">Events</span><span class="o">&lt;</span><span class="n">D</span><span class="p">,</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span> <span class="n">other</span><span class="p">)</span>
@@ -109,7 +123,7 @@ namespace react
     Filter(TempEvents<D,E,/*unspecified*/>&& source, F&& func)
       -> TempEvents<D,E,/*unspecified*/>
     Filter(const Events<D,E>& source, const SignalPack<D,TDepValues...>& depPack,
-           FIn&& func)
+           F&& func)
       -> Events<D,E>
 
     // Creates a new event stream that transforms events from other stream
@@ -119,6 +133,13 @@ namespace react
       -> TempEvents<D,T,/*unspecified*/>
     Transform(const Events<D,TIn>& source, const SignalPack<D,TDepValues...>& depPack,
               FIn&& func)
+      -> Events<D,T>
+
+    // Process
+    Process(const Events<D,E>& source, F&& func)
+      -> Events<D,T>
+    Process(const Events<D,E>& source, const SignalPack<D,TDepValues...>& depPack,
+            F&& func)
       -> Events<D,T>
 
     // Creates a new event stream by flattening a signal of an event stream
