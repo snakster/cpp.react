@@ -91,7 +91,7 @@ For this reason, we allow multiple graphs in the form of domains.
 Each domain is independent and groups related reactives.
 The implementation uses static type tags, so the compiler prevents combination of reactives from different domains at compile time.
 Since the domain tag is part of the type, `Signal<S>` becomes `Signal<D,S>`, where `D` is the domain name.
-To reduce the amount of typing, there exists a macro to define scoped aliases for a given:
+To reduce the amount of typing, there exists a macro to define scoped aliases for a given domain name:
 {% highlight C++ %}
 // Defines a domain name D with single-threaded/sequential propagation
 REACTIVE_DOMAIN(D, sequential)
