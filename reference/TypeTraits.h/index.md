@@ -9,7 +9,7 @@ Contains traits for compile-time type inspection and transformation.
 
 ## Header
 {% highlight C++ %}
-#include "react/Signal.h"
+#include "react/TypeTraits.h"
 {% endhighlight %}
 
 ## Synopsis
