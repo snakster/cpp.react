@@ -29,7 +29,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class EventLog
 {
-    using TimestampT = std::chrono::time_point<std::chrono::high_resolution_clock>;
+    using TimestampT = std::chrono::time_point<std::chrono::system_clock>;
 
     class Entry
     {
