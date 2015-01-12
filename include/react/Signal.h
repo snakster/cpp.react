@@ -933,7 +933,7 @@ bool Equals(const Signal<D,L>& lhs, const Signal<D,R>& rhs)
                 REACT_IMPL::Identity<decltype(obj)>::Type::ValueT& r)                       \
             {                                                                               \
                 using T = decltype(r.name);                                                 \
-                using S = REACT_MSVC_NO_TYPENAME REACT::RemoveInput<T>::Type;               \
+                using S = REACT_MSVC_NO_TYPENAME REACT::DecayInput<T>::Type;                \
                 return static_cast<S>(r.name);                                              \
             }))
 
@@ -946,7 +946,7 @@ bool Equals(const Signal<D,L>& lhs, const Signal<D,R>& rhs)
             {                                                                               \
                 assert(r != nullptr);                                                       \
                 using T = decltype(r->name);                                                \
-                using S = REACT_MSVC_NO_TYPENAME REACT::RemoveInput<T>::Type;               \
+                using S = REACT_MSVC_NO_TYPENAME REACT::DecayInput<T>::Type;                \
                 return static_cast<S>(r->name);                                             \
             }))
 

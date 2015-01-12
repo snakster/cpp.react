@@ -911,7 +911,7 @@ TYPED_TEST_P(OperationsTest, SyncedEventProcess1)
 
     auto processed = Process<float>(merged,
         With(mult),
-        [&] (EventRange<int> range, EventInserter<float> out, int mult)
+        [&] (EventRange<int> range, EventEmitter<float> out, int mult)
         {
             for (const auto& e : range)
             {

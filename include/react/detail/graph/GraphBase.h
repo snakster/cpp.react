@@ -255,7 +255,11 @@ public:
     using const_iterator = typename std::vector<E>::const_iterator;
     using size_type = typename std::vector<E>::size_type;
 
+    // Copy ctor
     EventRange(const EventRange&) = default;
+
+    // Copy assignment
+    EventRange& operator=(const EventRange&) = default;
 
     const_iterator begin() const    { return data_.begin(); }
     const_iterator end() const      { return data_.end(); }
@@ -272,7 +276,7 @@ private:
 };
 
 template <typename E>
-using EventInserter = std::back_insert_iterator<std::vector<E>>;
+using EventEmitter = std::back_insert_iterator<std::vector<E>>;
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

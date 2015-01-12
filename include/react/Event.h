@@ -348,7 +348,7 @@ auto Transform(const Events<D,TIn>& source, const SignalPack<D,TDepValues...>& d
 /// Process
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 using REACT_IMPL::EventRange;
-using REACT_IMPL::EventInserter;
+using REACT_IMPL::EventEmitter;
 
 template
 <
