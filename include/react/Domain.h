@@ -428,7 +428,16 @@ void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& fu
 #define REACTIVE_DOMAIN(name, ...)                                                          \
     struct name :                                                                           \
         public REACT_IMPL::DomainBase<name, REACT_IMPL::DomainPolicy< __VA_ARGS__ >> {};    \
-    REACT_IMPL::DomainInitializer<name> name ## _initializer_;
+    static REACT_IMPL::DomainInitializer<name> name ## _initializer_;
+
+/*
+    A brief reminder why the domain initializer is here:
+    Each domain has a couple of singletons (debug log, engine, input manager) which are
+    currently implemented as meyer singletons. From what I understand, these are thread-safe
+    in C++11, but not all compilers implement that yet. That's why a static initializer has
+    been added to make sure singleton creation happens before any multi-threaded access.
+    This implemenation is obviously inconsequential.
+ */
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Define type aliases for given domain
