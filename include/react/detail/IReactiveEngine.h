@@ -72,7 +72,7 @@ struct EngineInterface
 
     static void OnTurnAdmissionStart(TurnT& turn)
     {
-        Instance().OnTurnAdmissionEnd(turn);
+        Instance().OnTurnAdmissionStart(turn);
     }
 
     static void OnTurnAdmissionEnd(TurnT& turn)
