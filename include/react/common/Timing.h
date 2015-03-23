@@ -189,7 +189,11 @@ public:
 private:
     // Only measure once
     bool shouldMeasure_ = true;
-    bool isThresholdExceeded_ = false;
+
+    // Until we have measured, assume the threshold is exceeded.
+    // The cost of initially not parallelizing what should be parallelized is much higher
+    // than for the other way around.
+    bool isThresholdExceeded_ = true;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
