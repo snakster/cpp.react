@@ -33,8 +33,11 @@ namespace {
 using namespace react;
 
 REACTIVE_DOMAIN(ToposortSTDomain, sequential, ToposortEngine)
+REACTIVE_DOMAIN(ToposortSTConDomain, sequential_concurrent, ToposortEngine)
 REACTIVE_DOMAIN(ToposortDomain, parallel, ToposortEngine)
+REACTIVE_DOMAIN(ToposortConDomain, parallel_concurrent, ToposortEngine)
 REACTIVE_DOMAIN(PulsecountDomain, parallel, PulsecountEngine)
+REACTIVE_DOMAIN(PulsecountConDomain, parallel_concurrent, PulsecountEngine)
 REACTIVE_DOMAIN(SubtreeDomain, parallel, SubtreeEngine)
 
 void runBenchmarkGrid(std::ostream& out)
@@ -130,10 +133,10 @@ void runBenchmarkLifeSim(std::ostream& out)
     //    SourceSetDomain, PulsecountDomain);
 
     RUN_BENCHMARK(out, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
-        ToposortSTDomain, ToposortDomain, PulsecountDomain);
+        ToposortSTConDomain, ToposortConDomain, PulsecountConDomain);
 
     //RUN_BENCHMARK(out, 3, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 50, 100),
-    //    PulsecountDomain, PulsecountDomain);
+    //    PulsecountConDomain, PulsecountConDomain);
 }
 
 void runBenchmarks()
@@ -228,7 +231,7 @@ void profileBenchmark()
         //ToposortSTDomain, ToposortDomain, PulsecountDomain, SubtreeDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
-        //ToposortSTDomain);
+        //ToposortSTConDomain);
 }
 
 } // ~anonymous namespace 
