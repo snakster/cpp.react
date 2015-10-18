@@ -1,6 +1,6 @@
 ---
 layout: default
-title: OnChangedTo
+title: ChangedTo
 type_tag: function
 groups: 
  - {name: Home, url: ''}
@@ -18,7 +18,7 @@ template
     typename V,
     typename S = decay<V>::type
 >
-Events<D,Token> OnChangedTo(const Signal<D,S>& target, V&& value);
+Events<D,Token> ChangedTo(const Signal<D,S>& target, V&& value);
 {% endhighlight %}
 
 ## Semantics

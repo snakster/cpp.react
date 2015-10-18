@@ -1,6 +1,6 @@
 ---
 layout: default
-title: OnChanged
+title: Changed
 type_tag: function
 groups: 
  - {name: Home, url: ''}
@@ -17,7 +17,7 @@ template
     typename D,
     typename S
 >
-Events<D,Token> OnChangedTo(const Signal<D,S>& target);
+Events<D,Token> Changed(const Signal<D,S>& target);
 {% endhighlight %}
 
 ## Semantics

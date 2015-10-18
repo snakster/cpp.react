@@ -26,7 +26,7 @@ public:
     USING_REACTIVE_DOMAIN(D)
 
     EventSourceT<int>   Samples     = MakeEventSource<int>();
-    SignalT<int>        LastSample  = Hold(Samples);
+    SignalT<int>        LastSample  = Hold(Samples, 0);
 };
 {% endhighlight %}
 {% highlight C++ %}
@@ -173,13 +173,13 @@ public:
     USING_REACTIVE_DOMAIN(D)
 
     EventSourceT<int>   Input       = MakeEventSource<D,int>();
-    Signal<int>         Threshold   = MakeSignal<D>(10);
+    SignalT<int>        Threshold   = MakeVar<D,int>(10);
 
     // ...
 };
 {% endhighlight %}
 
-We could just use the `Value()` accessor of `Threadhold`:
+We could just use the `Value()` accessor of `Threshold`:
 {% highlight C++ %}
 // Note: This is potentially unsafe
 SignalT<vector<int>> CriticalSamples = Iterate(
