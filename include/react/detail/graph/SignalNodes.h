@@ -21,18 +21,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename L, typename R>
+template <typename L, typename R>
 bool Equals(const L& lhs, const R& rhs);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S
->
-class SignalNode : public ObservableNode<D>
+template <typename S>
+class SignalNode : public ObservableNode
 {
 public:
     SignalNode() = default;
@@ -52,19 +48,15 @@ protected:
     S value_;
 };
 
-template <typename D, typename S>
-using SignalNodePtrT = std::shared_ptr<SignalNode<D,S>>;
+template <typename S>
+using SignalNodePtrT = std::shared_ptr<SignalNode<S>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// VarNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S
->
+template <typename S>
 class VarNode :
-    public SignalNode<D,S>,
+    public SignalNode<S>,
     public IInputNode
 {
     using Engine = typename VarNode::Engine;
@@ -228,12 +220,10 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename D,
     typename S,
     typename TOp
 >
-class SignalOpNode :
-    public SignalNode<D,S>
+class SignalOpNode : public SignalNode<S>
 {
     using Engine = typename SignalOpNode::Engine;
 
@@ -261,8 +251,7 @@ public:
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
+        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id()));
         
         bool changed = false;
 
@@ -279,8 +268,7 @@ public:
             }
         }// ~timer
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
+        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id()));
 
         if (changed)
             Engine::OnNodePulse(*this, turn);
@@ -309,11 +297,10 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename D,
     typename TOuter,
     typename TInner
 >
-class FlattenNode : public SignalNode<D,TInner>
+class FlattenNode : public SignalNode<TInner>
 {
     using Engine = typename FlattenNode::Engine;
 
@@ -377,8 +364,8 @@ public:
     virtual int         DependencyCount() const override    { return 2; }
 
 private:
-    std::shared_ptr<SignalNode<D,TOuter>>   outer_;
-    std::shared_ptr<SignalNode<D,TInner>>   inner_;
+    std::shared_ptr<SignalNode<TOuter>>   outer_;
+    std::shared_ptr<SignalNode<TInner>>   inner_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

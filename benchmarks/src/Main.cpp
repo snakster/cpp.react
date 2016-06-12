@@ -37,6 +37,11 @@ REACTIVE_DOMAIN(ToposortDomain, parallel, ToposortEngine)
 REACTIVE_DOMAIN(PulsecountDomain, parallel, PulsecountEngine)
 REACTIVE_DOMAIN(SubtreeDomain, parallel, SubtreeEngine)
 
+REACTIVE_DOMAIN(ToposortSTDomainConc, sequential_concurrent, ToposortEngine)
+REACTIVE_DOMAIN(ToposortDomainConc, parallel_concurrent, ToposortEngine)
+REACTIVE_DOMAIN(PulsecountDomainConc, parallel_concurrent, PulsecountEngine)
+REACTIVE_DOMAIN(SubtreeDomainConc, parallel_concurrent, SubtreeEngine)
+
 void runBenchmarkGrid(std::ostream& out)
 {
     RUN_BENCHMARK(out, 5, Benchmark_Grid, BenchmarkParams_Grid(20, 10000),
@@ -130,7 +135,7 @@ void runBenchmarkLifeSim(std::ostream& out)
     //    SourceSetDomain, PulsecountDomain);
 
     RUN_BENCHMARK(out, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
-        ToposortSTDomain, ToposortDomain, PulsecountDomain);
+        ToposortSTDomainConc, ToposortDomainConc, PulsecountDomainConc);
 
     //RUN_BENCHMARK(out, 3, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 50, 100),
     //    PulsecountDomain, PulsecountDomain);
@@ -216,9 +221,9 @@ void debugBenchmarks()
 
 void profileBenchmark()
 {
-    RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
-        ToposortSTDomain);
-        //ToposortSTDomain, ToposortDomain, PulsecountDomain, SubtreeDomain);
+    RUN_BENCHMARK(std::cout, 3, Benchmark_Grid, BenchmarkParams_Grid(100, 10000),
+        //SubtreeDomain);
+        ToposortSTDomain, ToposortDomain, PulsecountDomain, SubtreeDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_Grid, BenchmarkParams_Grid(30, 10000),
         //SourceSetDomain);
@@ -228,7 +233,7 @@ void profileBenchmark()
         //ToposortSTDomain, ToposortDomain, PulsecountDomain, SubtreeDomain);
 
     //RUN_BENCHMARK(std::cout, 1, Benchmark_LifeSim, BenchmarkParams_LifeSim(100, 15, 10000),
-        //ToposortSTDomain);
+        //ToposortSTDomainConc);
 }
 
 } // ~anonymous namespace 
