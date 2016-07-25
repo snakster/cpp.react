@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2014.
+//          Copyright Sebastian Jeckel 2016.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -13,6 +13,12 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+enum class EUpdateResult
+{
+    UNCHANGED,
+    CHANGED
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,24 +31,24 @@ struct IReactiveNode
 
     // Note: Could get rid of this ugly ptr by adding a template parameter to the interface
     // But that would mean all engine nodes need that template parameter too - so rather cast
-    virtual void    Tick(void* turnPtr) = 0;  
+    virtual EUpdateResult Update() = 0;  
 
     /// Input nodes can be manipulated externally.
-    virtual bool    IsInputNode() const = 0;
+    virtual bool IsInputNode() const = 0;
 
     /// Output nodes can't have any successors.
-    virtual bool    IsOutputNode() const = 0;
+    virtual bool IsOutputNode() const = 0;
 
     /// Dynamic nodes may change in topology as a result of tick.
-    virtual bool    IsDynamicNode() const = 0;
+    virtual bool IsDynamicNode() const = 0;
 
     // Number of predecessors.
     // This information is statically available at compile time on the graph layer,
     // so the engine does not have to calculate it again.
-    virtual int     DependencyCount() const = 0;
+    virtual int DependencyCount() const = 0;
 
     // Heavyweight nodes are worth parallelizing.
-    virtual bool    IsHeavyweight() const = 0;
+    virtual bool IsHeavyweight() const = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

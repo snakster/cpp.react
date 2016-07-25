@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2014.
+//          Copyright Sebastian Jeckel 2016.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -29,128 +29,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
+template <typename T>
 class Signal;
 
-template <typename S>
+template <typename T>
 class VarSignal;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// MakeVar
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename V,
-    typename S = typename std::decay<V>::type,
-    class = typename std::enable_if<!IsSignalType<S>::value>::type,
-    class = typename std::enable_if<!IsEventType<S>::value>::type
->
-auto MakeVar(V&& value) -> VarSignal<S>
-{
-    return VarSignal<S>(
-        std::make_shared<REACT_IMPL::VarNode<S>>(
-            std::forward<V>(value)));
-}
-
-template <typename S>
-auto MakeVar(std::reference_wrapper<S> value) -> VarSignal<S&>
-{
-    return VarSignal<S&>(
-        std::make_shared<REACT_IMPL::VarNode<std::reference_wrapper<S>>>(value));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// MakeVar (higher order reactives)
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename V,
-    typename S = typename std::decay<V>::type,
-    typename TInner = typename S::ValueT,
-    class = typename std::enable_if<IsSignal<S>::value>::type
->
-auto MakeVar(V&& value)
-    -> VarSignal<Signal<TInner>>
-{
-    return VarSignal<D,Signal<D,TInner>>(
-        std::make_shared<REACT_IMPL::VarNode<D,Signal<D,TInner>>>(
-            std::forward<V>(value)));
-}
-
-template
-<
-    
-    typename V,
-    typename S = typename std::decay<V>::type,
-    typename TInner = typename S::ValueT,
-    class = typename std::enable_if<
-        IsEvent<S>::value>::type
->
-auto MakeVar(V&& value)
-    -> VarSignal<D,Events<D,TInner>>
-{
-    return VarSignal<D,Events<D,TInner>>(
-        std::make_shared<REACT_IMPL::VarNode<D,Events<D,TInner>>>(
-            std::forward<V>(value)));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// MakeSignal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Single arg
-template
-<
-    
-    typename TValue,
-    typename FIn,
-    typename F = typename std::decay<FIn>::type,
-    typename S = typename std::result_of<F(TValue)>::type,
-    typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtrT<D,TValue>>
->
-auto MakeSignal(const Signal<D,TValue>& arg, FIn&& func)
-    -> TempSignal<D,S,TOp>
-{
-    return TempSignal<D,S,TOp>(
-        std::make_shared<REACT_IMPL::SignalOpNode<D,S,TOp>>(
-            std::forward<FIn>(func), GetNodePtr(arg)));
-}
-
-// Multiple args
-template
-<
-    
-    typename ... TValues,
-    typename FIn,
-    typename F = typename std::decay<FIn>::type,
-    typename S = typename std::result_of<F(TValues...)>::type,
-    typename TOp = REACT_IMPL::FunctionOp<S,F, REACT_IMPL::SignalNodePtrT<D,TValues> ...>
->
-auto MakeSignal(const SignalPack<D,TValues...>& argPack, FIn&& func)
-    -> TempSignal<D,S,TOp>
-{
-    using REACT_IMPL::SignalOpNode;
-
-    struct NodeBuilder_
-    {
-        NodeBuilder_(FIn&& func) :
-            MyFunc( std::forward<FIn>(func) )
-        {}
-
-        auto operator()(const Signal<D,TValues>& ... args)
-            -> TempSignal<D,S,TOp>
-        {
-            return TempSignal<D,S,TOp>(
-                std::make_shared<SignalOpNode<D,S,TOp>>(
-                    std::forward<FIn>(MyFunc), GetNodePtr(args) ...));
-        }
-
-        FIn     MyFunc;
-    };
-
-    return REACT_IMPL::apply(
-        NodeBuilder_( std::forward<FIn>(func) ),
-        argPack.Data);
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Flatten
@@ -167,15 +50,15 @@ auto Flatten(const Signal<D,Signal<D,TInnerValue>>& outer)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class Signal : public REACT_IMPL::SignalBase<D,S>
+template <typename T>
+class Signal : public REACT_IMPL::SignalBase<T>
 {
 private:
-    using NodeT     = REACT_IMPL::SignalNode<D,S>;
-    using NodePtrT  = std::shared_ptr<NodeT>;
+    using NodeType     = REACT_IMPL::SignalNode<T>;
+    using NodePtrType  = std::shared_ptr<NodeType>;
 
 public:
-    using ValueT = S;
+    using ValueType = T;
 
     // Default ctor
     Signal() = default;
@@ -184,12 +67,10 @@ public:
     Signal(const Signal&) = default;
 
     // Move ctor
-    Signal(Signal&& other) :
-        Signal::SignalBase( std::move(other) )
-    {}
+    Signal(Signal&& other) = default;
 
     // Node ctor
-    explicit Signal(NodePtrT&& nodePtr) :
+    explicit Signal(NodePtrType&& nodePtr) :
         Signal::SignalBase( std::move(nodePtr) )
     {}
 
@@ -197,13 +78,9 @@ public:
     Signal& operator=(const Signal&) = default;
 
     // Move assignment
-    Signal& operator=(Signal&& other)
-    {
-        Signal::SignalBase::operator=( std::move(other) );
-        return *this;
-    }
+    Signal& operator=(Signal&& other) = default;
 
-    const S& Value() const      { return Signal::SignalBase::getValue(); }
+    const S& Get() const        { return Signal::SignalBase::getValue(); }
     const S& operator()() const { return Signal::SignalBase::getValue(); }
 
     bool Equals(const Signal& other) const
@@ -226,6 +103,19 @@ public:
         static_assert(IsSignal<S>::value || IsEvent<S>::value,
             "Flatten requires a Signal or Events value type.");
         return REACT::Flatten(*this);
+    }
+
+    template
+    <
+        typename ... Ts,
+        typename FIn,
+        typename F = typename std::decay<FIn>::type
+    >
+    static auto Create(FIn&& func, const Signal<TS>& ... args) -> Signal<S>
+    {
+        return Signal<S>(
+            std::make_shared<REACT_IMPL::SignalFuncNode<S, F>>(
+                std::forward<FIn>(func), GetNodePtr(args) ...));
     }
 };
 
@@ -292,6 +182,15 @@ public:
     void Modify(const F& func) const
     {
         VarSignal::SignalBase::modifyValue(func);
+    }
+
+    /// Create
+    template <typename V>
+    static auto Create(V&& value) -> VarSignal<S>
+    {
+        return VarSignal<S>(
+            std::make_shared<REACT_IMPL::VarSignalNode<S>>(
+                std::forward<V>(value)));
     }
 };
 

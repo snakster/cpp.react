@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2014.
+//          Copyright Sebastian Jeckel 2016.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -16,19 +16,18 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
+template <typename T>
 class Signal;
 
-template <typename S>
+template <typename T>
 class VarSignal;
 
-template <typename E>
+template <typename T>
 class Events;
 
-template <typename E>
+template <typename T>
 class EventSource;
 
-template <typename D>
 class Observer;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -43,9 +42,6 @@ struct IsSignal<Signal<T>> { static const bool value = true; };
 template <typename T>
 struct IsSignal<VarSignal<T>> { static const bool value = true; };
 
-template <typename T>
-constexpr bool IsSignalType = IsSignal<T>::value;
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsEvent
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,33 +53,6 @@ struct IsEvent<Events<T>> { static const bool value = true; };
 
 template <typename T>
 struct IsEvent<EventSource<T>> { static const bool value = true; };
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// IsObserver
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-struct IsObserver { static const bool value = false; };
-
-template <typename D>
-struct IsObserver<Observer<D>> { static const bool value = true; };
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// IsObservable
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-struct IsObservable { static const bool value = false; };
-
-template <typename T>
-struct IsObservable<Signal<T>> { static const bool value = true; };
-
-template <typename T>
-struct IsObservable<VarSignal<T>> { static const bool value = true; };
-
-template <typename T>
-struct IsObservable<Events<T>> { static const bool value = true; };
-
-template <typename T>
-struct IsObservable<EventSource<T>> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsReactive
@@ -103,8 +72,8 @@ struct IsReactive<Events<T>> { static const bool value = true; };
 template <typename T>
 struct IsReactive<EventSource<T>> { static const bool value = true; };
 
-template <typename D>
-struct IsReactive<Observer<D>> { static const bool value = true; };
+template <>
+struct IsReactive<Observer> { static const bool value = true; };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DecayInput

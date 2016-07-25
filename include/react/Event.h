@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2014.
+//          Copyright Sebastian Jeckel 2016.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -25,29 +25,18 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename E>
-class Events;
+template <typename T>
+class EventStream;
 
-template <typename E>
+template <typename T>
 class EventSource;
 
 enum class Token;
 
-template <typename S>
+template <typename T>
 class Signal;
 
 using REACT_IMPL::WeightHint;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// MakeEventSource
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename E = Token>
-auto MakeEventSource() -> EventSource<E>
-{
-    using REACT_IMPL::EventSourceNode;
-
-    return EventSource<E>(std::make_shared<EventSourceNode<E>>());
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Merge
@@ -284,24 +273,24 @@ struct Tokenizer
     Token operator()(const T&) const { return Token::value; }
 };
 
-template <typename TEvents>
-auto Tokenize(TEvents&& source) -> decltype(Transform(source, Tokenizer{}))
+template <typename T>
+auto Tokenize(T&& source) -> decltype(auto)
 {
-    return Transform(source, Tokenizer{});
+    return Transform(source, Tokenizer{ });
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Events
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename E = Token>
-class Events : public REACT_IMPL::EventStreamBase<E>
+template <typename T = Token>
+class Events : public REACT_IMPL::EventStreamBase<T>
 {
 private:
-    using NodeT     = REACT_IMPL::EventStreamNode<E>;
-    using NodePtrT  = std::shared_ptr<NodeT>;
+    using NodeType     = REACT_IMPL::EventStreamNode<T>;
+    using NodePtrType  = std::shared_ptr<NodeType>;
 
 public:
-    using ValueT = E;
+    using ValueType = T;
 
     // Default ctor
     Events() = default;
@@ -310,24 +299,16 @@ public:
     Events(const Events&) = default;
 
     // Move ctor
-    Events(Events&& other) :
-        Events::EventStreamBase( std::move(other) )
-    {}
+    Events(Events&& other) = default;
 
     // Node ctor
-    explicit Events(NodePtrT&& nodePtr) :
-        Events::EventStreamBase( std::move(nodePtr) )
-    {}
+    explicit Events(NodePtrT&& nodePtr) = default;
 
     // Copy assignment
     Events& operator=(const Events&) = default;
 
     // Move assignment
-    Events& operator=(Events&& other)
-    {
-        Events::EventStreamBase::operator=( std::move(other) );
-        return *this;
-    }
+    Events& operator=(Events&& other) = default;
 
     bool Equals(const Events& other) const
     {
@@ -344,43 +325,47 @@ public:
         Events::EventStreamBase::SetWeightHint(weight);
     }
 
-    auto Tokenize() const
-        -> decltype(REACT::Tokenize(std::declval<Events>()))
+    auto Tokenize() const -> decltype(auto)
     {
         return REACT::Tokenize(*this);
     }
 
     template <typename ... TArgs>
-    auto Merge(TArgs&& ... args) const
-        -> decltype(REACT::Merge(std::declval<Events>(), std::forward<TArgs>(args) ...))
+    auto Merge(TArgs&& ... args) const -> decltype(auto)
     {
         return REACT::Merge(*this, std::forward<TArgs>(args) ...);
     }
 
     template <typename F>
-    auto Filter(F&& f) const
-        -> decltype(REACT::Filter(std::declval<Events>(), std::forward<F>(f)))
+    auto Filter(F&& f) const -> decltype(auto)
     {
         return REACT::Filter(*this, std::forward<F>(f));
     }
 
     template <typename F>
-    auto Transform(F&& f) const
-        -> decltype(REACT::Transform(std::declval<Events>(), std::forward<F>(f)))
+    auto Transform(F&& f) const -> decltype(auto)
     {
         return REACT::Transform(*this, std::forward<F>(f));
+    }
+
+    template <typename E = Token>
+    static auto Create() -> EventSource<E>
+    {
+        using REACT_IMPL::EventSourceNode;
+
+        return EventSource<E>(std::make_shared<EventSourceNode<E>>());
     }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventSource
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename E = Token>
-class EventSource : public Events<E>
+template <typename T = Token>
+class EventSource : public Events<T>
 {
 private:
-    using NodeT     = REACT_IMPL::EventSourceNode<D,E>;
-    using NodePtrT  = std::shared_ptr<NodeT>;
+    using NodeType     = REACT_IMPL::EventSourceNode<T>;
+    using NodePtrType  = std::shared_ptr<NodeType>;
 
 public:
     // Default ctor
@@ -390,9 +375,7 @@ public:
     EventSource(const EventSource&) = default;
 
     // Move ctor
-    EventSource(EventSource&& other) :
-        EventSource::Events( std::move(other) )
-    {}
+    EventSource(EventSource&& other) = default;
 
     // Node ctor
     explicit EventSource(NodePtrT&& nodePtr) :
@@ -403,15 +386,11 @@ public:
     EventSource& operator=(const EventSource&) = default;
 
     // Move assignment
-    EventSource& operator=(EventSource&& other)
-    {
-        EventSource::Events::operator=( std::move(other) );
-        return *this;
-    }
+    EventSource& operator=(EventSource&& other) = default;
 
     // Explicit emit
-    void Emit(const E& e) const     { EventSource::EventStreamBase::emit(e); }
-    void Emit(E&& e) const          { EventSource::EventStreamBase::emit(std::move(e)); }
+    void Emit(const T& e) const     { EventSource::EventStreamBase::emit(e); }
+    void Emit(T&& e) const          { EventSource::EventStreamBase::emit(std::move(e)); }
 
     void Emit() const
     {
@@ -425,18 +404,18 @@ public:
 
     void operator()() const
     {
-        static_assert(std::is_same<E,Token>::value, "Can't emit on non token stream.");
+        static_assert(std::is_same<T,Token>::value, "Can't emit on non token stream.");
         EventSource::EventStreamBase::emit(Token::value);
     }
 
     // Stream style
-    const EventSource& operator<<(const E& e) const
+    const EventSource& operator<<(const T& e) const
     {
         EventSource::EventStreamBase::emit(e);
         return *this;
     }
 
-    const EventSource& operator<<(E&& e) const
+    const EventSource& operator<<(T&& e) const
     {
         EventSource::EventStreamBase::emit(std::move(e));
         return *this;

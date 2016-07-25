@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2014.
+//          Copyright Sebastian Jeckel 2016.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -21,132 +21,29 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename TNode,
-    typename TTurn
->
 struct IReactiveEngine
 {
-    using NodeT = TNode;
-    using TurnT = TTurn;
+    using NodeId = uint;
+    using TurnId = uint;
 
-    void OnTurnAdmissionStart(TurnT& turn)  {}
-    void OnTurnAdmissionEnd(TurnT& turn)    {}
+    void OnTurnAdmissionStart(TurnId& turn)  {}
+    void OnTurnAdmissionEnd(TurnId& turn)    {}
 
-    void OnInputChange(NodeT& node, TurnT& turn)    {}
+    void OnInputChange(NodeId& node, TurnId& turn)    {}
 
-    void Propagate(TurnT& turn)  {}
+    void Propagate(TurnId& turn)  {}
 
-    void OnNodeCreate(NodeT& node)  {}
-    void OnNodeDestroy(NodeT& node) {}
+    void OnNodeCreate(NodeId& node)  {}
+    void OnNodeDestroy(NodeId& node) {}
 
-    void OnNodeAttach(NodeT& node, NodeT& parent)   {}
-    void OnNodeDetach(NodeT& node, NodeT& parent)   {}
+    void OnNodeAttach(NodeId node, NodeId parent)   {}
+    void OnNodeDetach(NodeId node, NodeId parent)   {}
 
-    void OnNodePulse(NodeT& node, TurnT& turn)      {}
-    void OnNodeIdlePulse(NodeT& node, TurnT& turn)  {}
+    void OnNodePulse(NodeId& node, TurnId& turn)      {}
+    void OnNodeIdlePulse(NodeId& node, TurnId& turn)  {}
 
-    void OnDynamicNodeAttach(NodeT& node, NodeT& parent, TurnT& turn)    {}
-    void OnDynamicNodeDetach(NodeT& node, NodeT& parent, TurnT& turn)    {}
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EngineInterface - Static wrapper for IReactiveEngine
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename TEngine
->
-struct EngineInterface
-{
-    using NodeT = typename TEngine::NodeT;
-    using TurnT = typename TEngine::TurnT;
-
-    static TEngine& Instance()
-    {
-        static TEngine engine;
-        return engine;
-    }
-
-    static void OnTurnAdmissionStart(TurnT& turn)
-    {
-        Instance().OnTurnAdmissionStart(turn);
-    }
-
-    static void OnTurnAdmissionEnd(TurnT& turn)
-    {
-        Instance().OnTurnAdmissionEnd(turn);
-    }
-
-    static void OnInputChange(NodeT& node, TurnT& turn)
-    {
-        REACT_LOG(D::Log().template Append<InputNodeAdmissionEvent>(
-            GetObjectId(node), turn.Id()));
-        Instance().OnInputChange(node, turn);
-    }
-
-    static void Propagate(TurnT& turn)
-    {
-        Instance().Propagate(turn);
-    }
-
-    static void OnNodeCreate(NodeT& node)
-    {
-        REACT_LOG(D::Log().template Append<NodeCreateEvent>(
-            GetObjectId(node), node.GetNodeType()));
-        Instance().OnNodeCreate(node);
-    }
-
-    static void OnNodeDestroy(NodeT& node)
-    {
-        REACT_LOG(D::Log().template Append<NodeDestroyEvent>(
-            GetObjectId(node)));
-        Instance().OnNodeDestroy(node);
-    }
-
-    static void OnNodeAttach(NodeT& node, NodeT& parent)
-    {
-        REACT_LOG(D::Log().template Append<NodeAttachEvent>(
-            GetObjectId(node), GetObjectId(parent)));
-        Instance().OnNodeAttach(node, parent);
-    }
-
-    static void OnNodeDetach(NodeT& node, NodeT& parent)
-    {
-        REACT_LOG(D::Log().template Append<NodeDetachEvent>(
-            GetObjectId(node), GetObjectId(parent)));
-        Instance().OnNodeDetach(node, parent);
-    }
-
-    static void OnNodePulse(NodeT& node, TurnT& turn)
-    {
-        REACT_LOG(D::Log().template Append<NodePulseEvent>(
-            GetObjectId(node), turn.Id()));
-        Instance().OnNodePulse(node, turn);
-    }
-
-    static void OnNodeIdlePulse(NodeT& node, TurnT& turn)
-    {
-        REACT_LOG(D::Log().template Append<NodeIdlePulseEvent>(
-            GetObjectId(node), turn.Id()));
-        Instance().OnNodeIdlePulse(node, turn);
-    }
-
-    static void OnDynamicNodeAttach(NodeT& node, NodeT& parent, TurnT& turn)
-    {
-        REACT_LOG(D::Log().template Append<DynamicNodeAttachEvent>(
-            GetObjectId(node), GetObjectId(parent), turn.Id()));
-        Instance().OnDynamicNodeAttach(node, parent, turn);
-    }
-
-    static void OnDynamicNodeDetach(NodeT& node, NodeT& parent, TurnT& turn)
-    {
-        REACT_LOG(D::Log().template Append<DynamicNodeDetachEvent>(
-            GetObjectId(node), GetObjectId(parent), turn.Id()));
-        Instance().OnDynamicNodeDetach(node, parent, turn);
-    }
+    void OnDynamicNodeAttach(NodeId& node, NodeId& parent, TurnId& turn)    {}
+    void OnDynamicNodeDetach(NodeId& node, NodeId& parent, TurnId& turn)    {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

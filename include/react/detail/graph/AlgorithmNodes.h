@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2014.
+//          Copyright Sebastian Jeckel 2016.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -110,7 +110,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -183,7 +183,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -257,7 +257,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -351,7 +351,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -429,7 +429,7 @@ public:
 
     virtual const char* GetNodeType() const override    { return "HoldNode"; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -497,7 +497,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -564,7 +564,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -624,7 +624,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         typedef typename D::Engine::TurnT TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);

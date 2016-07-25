@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2014.
+//          Copyright Sebastian Jeckel 2016.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -27,7 +27,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename S>
+template <typename T>
 class SignalNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,19 +47,11 @@ struct BufferClearAccessPolicy :
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventStreamNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename E
->
-class EventStreamNode :
-    public ObservableNode<D>,
-    private BufferClearAccessPolicy<D>
+template <typename T>
+class EventStreamNode : public ObservableNode
 {
 public:
-    using DataT     = std::vector<E>;
-    using EngineT   = typename D::Engine;
-    using TurnT     = typename EngineT::TurnT;
+    using StorageType = std::vector<T>;
 
     EventStreamNode() = default;
 
@@ -75,10 +67,14 @@ public:
         });
     }
 
-    DataT&  Events() { return events_; }
+    StorageType&  Events()
+        { return events_; }
+
+    const StorageType&  Events() const
+        { return events_; }
 
 protected:
-    DataT   events_;
+    StorageType   events_;
 
 private:
     uint    curTurnId_  { (std::numeric_limits<uint>::max)() };
@@ -90,17 +86,11 @@ using EventStreamNodePtrT = std::shared_ptr<EventStreamNode<D,E>>;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventSourceNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename E
->
+template <typename E>
 class EventSourceNode :
-    public EventStreamNode<D,E>,
+    public EventStreamNode<E>,
     public IInputNode
 {
-    using Engine = typename EventSourceNode::Engine;
-
 public:
     EventSourceNode() :
         EventSourceNode::EventStreamNode{ }
@@ -117,7 +107,7 @@ public:
     virtual bool        IsInputNode() const override        { return true; }
     virtual int         DependencyCount() const override    { return 0; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         REACT_ASSERT(false, "Ticked EventSourceNode\n");
     }
@@ -158,24 +148,85 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventOpNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template
+<
+    typename T,
+    typename ... Ds
+>
+class EventMergeNode : public EventStreamNode<T>
+{
+public:
+    template <typename ... Us>
+    EventMergeNode(Us&& ... args) :
+        EventOpNode::EventStreamNode( ),
+        op_( std::forward<TArgs>(args) ... )
+    {
+        Engine::OnNodeCreate(*this);
+        op_.template Attach<D>(*this);
+    }
+
+    ~EventOpNode()
+    {
+        if (!wasOpStolen_)
+            op_.template Detach<D>(*this);
+        Engine::OnNodeDestroy(*this);
+    }
+
+    virtual EUpdateResult Update() override
+    {
+        using TurnT = typename D::Engine::TurnT;
+        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+
+        this->SetCurrentTurn(turn, true);
+
+        {// timer
+            size_t count = 0;
+            using TimerT = typename EventOpNode::ScopedUpdateTimer;
+            TimerT scopedTimer( *this, count );
+
+            op_.Collect(turn, EventCollector( this->events_ ));
+
+            // Note: Count was passed by reference, so we can still change before the dtor
+            // of the scoped timer is called
+            count = this->events_.size();
+        }// ~timer
+
+        if (! this->events_.empty())
+            return EUpdateResult::CHANGED;
+        else
+            return EUpdateResult::UNCHANGED;
+    }
+
+    virtual const char* GetNodeType() const override
+        { return "EventOpNode"; }
+
+    virtual int DependencyCount() const override
+        { return TOp::dependency_count; }
+
+private:
+    TOp     op_;
+    bool    wasOpStolen_ = false;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventMergeOp
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename E,
-    typename ... TDeps
+    typename T,
+    typename ... Ds
 >
-class EventMergeOp : public ReactiveOpBase<TDeps...>
+class EventMergeOp : public ReactiveOpBase<Ds...>
 {
 public:
-    template <typename ... TDepsIn>
-    EventMergeOp(TDepsIn&& ... deps) :
-        EventMergeOp::ReactiveOpBase(DontMove(), std::forward<TDepsIn>(deps) ...)
+    template <typename ... Us>
+    EventMergeOp(Us&& ... deps) :
+        EventMergeOp::ReactiveOpBase(DontMove(), std::forward<Us>(deps) ...)
     {}
 
-    EventMergeOp(EventMergeOp&& other) :
-        EventMergeOp::ReactiveOpBase( std::move(other) )
-    {}
+    EventMergeOp(EventMergeOp&& other) = default;
 
     template <typename TTurn, typename TCollector>
     void Collect(const TTurn& turn, const TCollector& collector) const
@@ -406,7 +457,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -500,7 +551,7 @@ public:
     virtual bool        IsDynamicNode() const override      { return true; }
     virtual int         DependencyCount() const override    { return 2; }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         typedef typename D::Engine::TurnT TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -588,7 +639,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -679,7 +730,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -766,7 +817,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -846,7 +897,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         using TurnT = typename D::Engine::TurnT;
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
@@ -932,7 +983,7 @@ public:
         Engine::OnNodeDestroy(*this);
     }
 
-    virtual void Tick(void* turnPtr) override
+    virtual void Update(void* turnPtr) override
     {
         TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
 

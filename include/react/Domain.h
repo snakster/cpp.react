@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2014.
+//          Copyright Sebastian Jeckel 2016.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -29,37 +29,21 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename S>
+template <typename T>
 class Signal;
 
-template <typename D, typename S>
+template <typename T>
 class VarSignal;
 
-template <typename D, typename S, typename TOp>
-class TempSignal;
-
-template <typename D, typename E>
+template <typename T>
 class Events;
 
-template <typename D, typename E>
+template <typename T>
 class EventSource;
-
-template <typename D, typename E, typename TOp>
-class TempEvents;
 
 enum class Token;
 
-template <typename D>
 class Observer;
-
-template <typename D>
-class ScopedObserver;
-
-template <typename D>
-class Reactor;
-
-template <typename D, typename ... TValues>
-class SignalPack;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Common types & constants
@@ -102,14 +86,14 @@ public:
     {}
 
     // Move ctor
-    inline TransactionStatus(TransactionStatus&& other) :
+    TransactionStatus(TransactionStatus&& other) :
         statePtr_( std::move(other.statePtr_) )
     {
         other.statePtr_ = StateT::Create();
     }
 
     // Move assignment
-    inline TransactionStatus& operator=(TransactionStatus&& other)
+    TransactionStatus& operator=(TransactionStatus&& other)
     {
         if (this != &other)
         {
@@ -138,222 +122,6 @@ private:
     template <typename D, typename F>
     friend void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& func);
 };
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Continuation
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename D2 = D
->
-class Continuation : public REACT_IMPL::ContinuationBase<D,D2>
-{
-private:
-    using NodePtrT  = REACT_IMPL::NodeBasePtrT<D>;
-
-public:
-    using SourceDomainT = D;
-    using TargetDomainT = D2;
-
-    // Default ctor
-    Continuation() = default;
-
-    // Move ctor
-    Continuation(Continuation&& other) :
-        Continuation::ContinuationBase( std::move(other) )
-    {}
-
-    // Node ctor
-    explicit Continuation(NodePtrT&& nodePtr) :
-        Continuation::ContinuationBase( std::move(nodePtr) )
-    {}
-
-    // Move assignment
-    Continuation& operator=(Continuation&& other)
-    {
-        Continuation::ContinuationBase::operator=( std::move(other) );
-        return *this;
-    }
-
-    // Deleted copy ctor & assignment
-    Continuation(const Continuation&) = delete;
-    Continuation& operator=(const Continuation&) = delete;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// MakeContinuation - Signals
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename DOut = D,
-    typename S,
-    typename FIn
->
-auto MakeContinuation(TransactionFlagsT flags, const Signal<D,S>& trigger, FIn&& func)
-    -> Continuation<D,DOut>
-{
-    static_assert(DOut::is_concurrent,
-        "MakeContinuation: Target domain does not support concurrent input.");
-
-    using REACT_IMPL::SignalContinuationNode;
-    using F = typename std::decay<FIn>::type;
-
-    return Continuation<D,DOut>(
-        std::make_shared<SignalContinuationNode<D,DOut,S,F>>(
-            flags, GetNodePtr(trigger), std::forward<FIn>(func)));
-}
-
-template
-<
-    typename D,
-    typename DOut = D,
-    typename S,
-    typename FIn
->
-auto MakeContinuation(const Signal<D,S>& trigger, FIn&& func)
-    -> Continuation<D,DOut>
-{
-    return MakeContinuation<D,DOut>(0, trigger, std::forward<FIn>(func));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// MakeContinuation - Events
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename DOut = D,
-    typename E,
-    typename FIn
->
-auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger, FIn&& func)
-    -> Continuation<D,DOut>
-{
-    static_assert(DOut::is_concurrent,
-        "MakeContinuation: Target domain does not support concurrent input.");
-
-    using REACT_IMPL::EventContinuationNode;
-    using REACT_IMPL::AddContinuationRangeWrapper;
-    using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::EventRange;
-
-    using F = typename std::decay<FIn>::type;
-
-    using WrapperT =
-        typename std::conditional<
-            IsCallableWith<F,void, EventRange<E>>::value,
-            F,
-            typename std::conditional<
-                IsCallableWith<F, void, E>::value,
-                AddContinuationRangeWrapper<E, F>,
-                void
-            >::type
-        >::type;
-
-    static_assert(! std::is_same<WrapperT,void>::value,
-        "MakeContinuation: Passed function does not match any of the supported signatures.");
-
-    return Continuation<D,DOut>(
-        std::make_shared<EventContinuationNode<D,DOut,E,WrapperT>>(
-            flags, GetNodePtr(trigger), std::forward<FIn>(func)));
-}
-
-template
-<
-    typename D,
-    typename DOut = D,
-    typename E,
-    typename FIn
->
-auto MakeContinuation(const Events<D,E>& trigger, FIn&& func)
-    -> Continuation<D,DOut>
-{
-    return MakeContinuation<D,DOut>(0, trigger, std::forward<FIn>(func));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// MakeContinuation - Synced
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename DOut = D,
-    typename E,
-    typename FIn,
-    typename ... TDepValues
->
-auto MakeContinuation(TransactionFlagsT flags, const Events<D,E>& trigger,
-                      const SignalPack<D,TDepValues...>& depPack, FIn&& func)
-    -> Continuation<D,DOut>
-{
-    static_assert(DOut::is_concurrent,
-        "MakeContinuation: Target domain does not support concurrent input.");
-
-    using REACT_IMPL::SyncedContinuationNode;
-    using REACT_IMPL::AddContinuationRangeWrapper;
-    using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::EventRange;
-
-    using F = typename std::decay<FIn>::type;
-
-    using WrapperT =
-        typename std::conditional<
-            IsCallableWith<F, void, EventRange<E>, TDepValues ...>::value,
-            F,
-            typename std::conditional<
-                IsCallableWith<F, void, E, TDepValues ...>::value,
-                AddContinuationRangeWrapper<E, F, TDepValues ...>,
-                void
-            >::type
-        >::type;
-
-    static_assert(! std::is_same<WrapperT,void>::value,
-        "MakeContinuation: Passed function does not match any of the supported signatures.");
-
-    struct NodeBuilder_
-    {
-        NodeBuilder_(TransactionFlagsT flags, const Events<D,E>& trigger, FIn&& func) :
-            MyFlags( flags ),
-            MyTrigger( trigger ),
-            MyFunc( std::forward<FIn>(func) )
-        {}
-
-        auto operator()(const Signal<D,TDepValues>& ... deps)
-            -> Continuation<D,DOut>
-        {
-            return Continuation<D,DOut>(
-                std::make_shared<SyncedContinuationNode<D,DOut,E,WrapperT,TDepValues...>>(
-                    MyFlags,
-                    GetNodePtr(MyTrigger),
-                    std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
-        }
-
-        TransactionFlagsT   MyFlags;
-        const Events<D,E>&  MyTrigger;
-        FIn                 MyFunc;
-    };
-
-    return REACT_IMPL::apply(
-        NodeBuilder_( flags, trigger, std::forward<FIn>(func) ),
-        depPack.Data);
-}
-
-template
-<
-    typename D,
-    typename DOut = D,
-    typename E,
-    typename FIn,
-    typename ... TDepValues
->
-auto MakeContinuation(const Events<D,E>& trigger,
-                      const SignalPack<D,TDepValues...>& depPack, FIn&& func)
-    -> Continuation<D,DOut>
-{
-    return MakeContinuation<D,DOut>(0, trigger, depPack, std::forward<FIn>(func));
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 /// DoTransaction
