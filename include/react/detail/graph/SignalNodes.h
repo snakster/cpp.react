@@ -27,14 +27,14 @@ bool Equals(const L& lhs, const R& rhs);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
+template <typename T>
 class SignalNode : public ObservableNode
 {
 public:
     SignalNode() = default;
 
-    template <typename T>
-    explicit SignalNode(T&& value) :
+    template <typename U>
+    explicit SignalNode(U&& value) :
         SignalNode::ObservableNode( ),
         value_( std::forward<T>(value) )
     {}

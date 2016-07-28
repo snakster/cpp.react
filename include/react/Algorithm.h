@@ -22,57 +22,43 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename S>
+template <typename T>
 class Signal;
 
-template <typename D, typename S>
+template <typename T>
 class VarSignal;
 
-template <typename D, typename E>
+template <typename T>
 class Events;
 
-template <typename D, typename E>
+template <typename T>
 class EventSource;
 
 enum class Token;
 
-template <typename D, typename ... TValues>
-class SignalPack;
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Hold - Hold the most recent event in a signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename V,
-    typename T = typename std::decay<V>::type
->
-auto Hold(const Events<D,T>& events, V&& init)
-    -> Signal<D,T>
+template <typename T, typename V>
+auto Hold(const Events<T>& events, V&& init) -> Signal<T>
 {
     using REACT_IMPL::HoldNode;
 
-    return Signal<D,T>(
-        std::make_shared<HoldNode<D,T>>(
+    return Signal<T>(
+        std::make_shared<HoldNode<T>>(
             std::forward<V>(init), GetNodePtr(events)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Monitor - Emits value changes of target signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S
->
-auto Monitor(const Signal<D,S>& target)
-    -> Events<D,S>
+template <typename T>
+auto Monitor(const Signal<T>& target) -> Events<T>
 {
     using REACT_IMPL::MonitorNode;
 
-    return Events<D,S>(
-        std::make_shared<MonitorNode<D, S>>(
+    return Events<T>(
+        std::make_shared<MonitorNode<T>>(
             GetNodePtr(target)));
 }
 
@@ -81,14 +67,13 @@ auto Monitor(const Signal<D,S>& target)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename D,
+    typename S,
     typename E,
     typename V,
-    typename FIn,
-    typename S = typename std::decay<V>::type
+    typename F,
+    
 >
-auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
-    -> Signal<D,S>
+auto Iterate(const Events<E>& events, V&& init, F&& func) -> Signal<S>
 {
     using REACT_IMPL::IterateNode;
     using REACT_IMPL::IterateByRefNode;
@@ -97,7 +82,7 @@ auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
     using REACT_IMPL::IsCallableWith;
     using REACT_IMPL::EventRange;
 
-    using F = typename std::decay<FIn>::type;
+    using TFunc = typename std::decay<F>::type;
 
     using NodeT =
         typename std::conditional<
@@ -122,7 +107,7 @@ auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
         ! std::is_same<NodeT,void>::value,
         "Iterate: Passed function does not match any of the supported signatures.");
 
-    return Signal<D,S>(
+    return Signal<S>(
         std::make_shared<NodeT>(
             std::forward<V>(init), GetNodePtr(events), std::forward<FIn>(func)));
 }
@@ -132,16 +117,13 @@ auto Iterate(const Events<D,E>& events, V&& init, FIn&& func)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename D,
+    typename S,
     typename E,
     typename V,
     typename FIn,
-    typename ... TDepValues,
-    typename S = typename std::decay<V>::type
+    typename ... TDepValues
 >
-auto Iterate(const Events<D,E>& events, V&& init,
-             const SignalPack<D,TDepValues...>& depPack, FIn&& func)
-    -> Signal<D,S>
+auto Iterate(const Events<E>& events, V&& init, const SignalPack<TDepValues...>& depPack, FIn&& func) -> Signal<S>
 {
     using REACT_IMPL::SyncedIterateNode;
     using REACT_IMPL::SyncedIterateByRefNode;
@@ -211,19 +193,13 @@ auto Iterate(const Events<D,E>& events, V&& init,
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Snapshot - Sets signal value to value of other signal when event is received
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E
->
-auto Snapshot(const Events<D,E>& trigger, const Signal<D,S>& target)
-    -> Signal<D,S>
+template <typename S, typename E>
+auto Snapshot(const Events<E>& trigger, const Signal<S>& target) -> Signal<S>
 {
     using REACT_IMPL::SnapshotNode;
 
-    return Signal<D,S>(
-        std::make_shared<SnapshotNode<D,S,E>>(
+    return Signal<S>(
+        std::make_shared<SnapshotNode<S,E>>(
             GetNodePtr(target), GetNodePtr(trigger)));
 }
 
@@ -232,32 +208,21 @@ auto Snapshot(const Events<D,E>& trigger, const Signal<D,S>& target)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Pulse - Emits value of target signal when event is received
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E
->
-auto Pulse(const Events<D,E>& trigger, const Signal<D,S>& target)
-    -> Events<D,S>
+template <typename S, typename E>
+auto Pulse(const Events<E>& trigger, const Signal<S>& target) -> Events<S>
 {
     using REACT_IMPL::PulseNode;
 
-    return Events<D,S>(
-        std::make_shared<PulseNode<D,S,E>>(
+    return Events<S>(
+        std::make_shared<PulseNode<S,E>>(
             GetNodePtr(target), GetNodePtr(trigger)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Changed - Emits token when target signal was changed
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S
->
-auto Changed(const Signal<D,S>& target)
-    -> Events<D,Token>
+template <typename T>
+auto Changed(const Signal<T>& target) -> Events<Token>
 {
     return Monitor(target).Tokenize();
 }
@@ -267,12 +232,10 @@ auto Changed(const Signal<D,S>& target)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template
 <
-    typename D,
+    typename T,
     typename V,
-    typename S = typename std::decay<V>::type
 >
-auto ChangedTo(const Signal<D,S>& target, V&& value)
-    -> Events<D,Token>
+auto ChangedTo(const Signal<T>& target, V&& value) -> Events<Token>
 {
     return Monitor(target)
         .Filter([=] (const S& v) { return v == value; })

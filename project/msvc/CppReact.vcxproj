@@ -159,7 +159,6 @@
     <ClInclude Include="..\..\include\react\detail\DomainBase.h" />
     <ClInclude Include="..\..\include\react\detail\EventBase.h" />
     <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\ContinuationNodes.h" />
     <ClInclude Include="..\..\include\react\detail\ObserverBase.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveInput.h" />
     <ClInclude Include="..\..\include\react\detail\Defs.h" />
@@ -167,9 +166,8 @@
     <ClInclude Include="..\..\include\react\detail\graph\AlgorithmNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\EventNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\ReactorNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\SignalNodes.h" />
-    <ClInclude Include="..\..\include\react\detail\IReactiveEngine.h" />
+    <ClInclude Include="..\..\include\react\detail\IReactiveGroup.h" />
     <ClInclude Include="..\..\include\react\detail\IReactiveNode.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveBase.h" />
     <ClInclude Include="..\..\include\react\detail\SignalBase.h" />
@@ -189,7 +187,6 @@
     <ClInclude Include="..\..\include\react\Algorithm.h" />
     <ClInclude Include="..\..\include\react\Event.h" />
     <ClInclude Include="..\..\include\react\Observer.h" />
-    <ClInclude Include="..\..\include\react\Reactor.h" />
     <ClInclude Include="..\..\include\react\Signal.h" />
     <ClInclude Include="..\..\include\react\TypeTraits.h" />
   </ItemGroup>

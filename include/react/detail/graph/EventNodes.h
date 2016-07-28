@@ -31,29 +31,22 @@ template <typename T>
 class SignalNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// BufferClearAccessPolicy
-///
-/// Provides thread safe access to clear event buffer if parallel updating is enabled.
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Note: Weird design due to empty base class optimization
-template <typename D>
-struct BufferClearAccessPolicy :
-    private ConditionalCriticalSection<tbb::spin_mutex, D::is_parallel>
-{
-    template <typename F>
-    void AccessBufferForClearing(const F& f) { this->Access(f); }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventStreamNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-class EventStreamNode : public ObservableNode
+class EventStreamNode : public NodeBase
 {
 public:
     using StorageType = std::vector<T>;
 
-    EventStreamNode() = default;
+    EventStreamNode(IReactiveGroup* group) : NodeBase( group )
+        { }
+
+    EventStreamNode(NodeBase&&) = default;
+    EventStreamNode& operator=(NodeBase&&) = default;
+
+    EventStreamNode(const NodeBase&) = delete;
+    EventStreamNode& operator=(const NodeBase&) = delete;
 
     void SetCurrentTurn(const TurnT& turn, bool forceUpdate = false, bool noClear = false)
     {
@@ -74,43 +67,36 @@ public:
         { return events_; }
 
 protected:
-    StorageType   events_;
+    StorageType events_;
 
 private:
-    uint    curTurnId_  { (std::numeric_limits<uint>::max)() };
+    uint curTurnId_ { (std::numeric_limits<uint>::max)() };
 };
-
-template <typename D, typename E>
-using EventStreamNodePtrT = std::shared_ptr<EventStreamNode<D,E>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventSourceNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename E>
-class EventSourceNode :
-    public EventStreamNode<E>,
-    public IInputNode
+template <typename T>
+class EventSourceNode : public EventStreamNode<T>, public IInputNode
 {
 public:
-    EventSourceNode() :
-        EventSourceNode::EventStreamNode{ }
-    {
-        Engine::OnNodeCreate(*this);
-    }
+    EventSourceNode(IReactiveGroup* group) : EventSourceNode::EventStreamNode( group )
+        { this->RegisterMe(); }
 
     ~EventSourceNode()
-    {
-        Engine::OnNodeDestroy(*this);
-    }
+        { this->UnregisterMe(); }
 
-    virtual const char* GetNodeType() const override        { return "EventSourceNode"; }
-    virtual bool        IsInputNode() const override        { return true; }
-    virtual int         DependencyCount() const override    { return 0; }
+    virtual const char* GetNodeType() const override
+        { return "EventSource"; }
+
+    virtual bool IsInputNode() const override
+        { return true; }
+
+    virtual int DependencyCount() const override
+        { return 0; }
 
     virtual void Update(void* turnPtr) override
-    {
-        REACT_ASSERT(false, "Ticked EventSourceNode\n");
-    }
+        { REACT_ASSERT(false, "Updated EventSourceNode\n"); }
 
     template <typename V>
     void AddInput(V&& v)
@@ -148,416 +134,189 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventOpNode
+/// EventMergeNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename T,
-    typename ... Ds
->
-class EventMergeNode : public EventStreamNode<T>
+template <typename TOut, typename ... TIns>
+class EventMergeNode : public EventStreamNode<TOut>
 {
 public:
-    template <typename ... Us>
-    EventMergeNode(Us&& ... args) :
-        EventOpNode::EventStreamNode( ),
-        op_( std::forward<TArgs>(args) ... )
+    EventMergeNode(IReactiveGroup* group, const std::shared_ptr<EventStreamNode<TIns>>& ... deps) :
+        EventMergeNode::EventStreamNode( group ),
+        depHolder_( deps ... )
     {
-        Engine::OnNodeCreate(*this);
-        op_.template Attach<D>(*this);
+        this->RegisterMe();
+        REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
-    ~EventOpNode()
+    ~EventMergeNode()
     {
-        if (!wasOpStolen_)
-            op_.template Detach<D>(*this);
-        Engine::OnNodeDestroy(*this);
+        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(deps->GetNodeId())); }, depHolder_);
+        this->UnregisterMe();
     }
 
-    virtual EUpdateResult Update() override
+    virtual UpdateResult Update() override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+        // this->SetCurrentTurn(turn, true);
 
-        this->SetCurrentTurn(turn, true);
+        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(MergeFromDep(deps)); }, depHolder_);
 
-        {// timer
-            size_t count = 0;
-            using TimerT = typename EventOpNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, count );
-
-            op_.Collect(turn, EventCollector( this->events_ ));
-
-            // Note: Count was passed by reference, so we can still change before the dtor
-            // of the scoped timer is called
-            count = this->events_.size();
-        }// ~timer
-
-        if (! this->events_.empty())
-            return EUpdateResult::CHANGED;
+        if (! this->Events().empty())
+            return UpdateResult::changed;
         else
-            return EUpdateResult::UNCHANGED;
+            return UpdateResult::unchanged;
     }
 
     virtual const char* GetNodeType() const override
-        { return "EventOpNode"; }
+        { return "EventMerge"; }
 
     virtual int DependencyCount() const override
-        { return TOp::dependency_count; }
+        { return sizeof...(Es); }
 
 private:
-    TOp     op_;
-    bool    wasOpStolen_ = false;
+    template <typename U>
+    void MergeFromDep(const std::shared_ptr<EventStreamNode<U>& other)
+    {
+        //arg->SetCurrentTurn(turn);
+        this->Events().insert(this->Events().end(), other->Events().begin(), other->Events().end());
+    }
+
+    std::tuple<std::shared_ptr<EventStreamNode<TIns> ...> depHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventMergeOp
+/// EventTransformNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename T,
-    typename ... Ds
->
-class EventMergeOp : public ReactiveOpBase<Ds...>
+template <typename TOut, typename TIn, typename F>
+class EventTransformNode : public EventStreamNode<TOut>
 {
 public:
-    template <typename ... Us>
-    EventMergeOp(Us&& ... deps) :
-        EventMergeOp::ReactiveOpBase(DontMove(), std::forward<Us>(deps) ...)
-    {}
-
-    EventMergeOp(EventMergeOp&& other) = default;
-
-    template <typename TTurn, typename TCollector>
-    void Collect(const TTurn& turn, const TCollector& collector) const
+    template <typename U>
+    EventTransformNode(IReactiveGroup* group, const std::shared_ptr<EventStreamNode<TIn>>& dep, U&& func) :
+        EventTransformNode::EventStreamNode( group ),
+        dep_( dep ),
+        func_( std::forward<U>(func) )
     {
-        apply(CollectFunctor<TTurn, TCollector>( turn, collector ), this->deps_);
+        this->RegisterMe();
+        this->AttachToMe(dep->GetNodeId());
     }
 
-    template <typename TTurn, typename TCollector, typename TFunctor>
-    void CollectRec(const TFunctor& functor) const
+    ~EventTransformNode()
     {
-        apply(reinterpret_cast<const CollectFunctor<TTurn,TCollector>&>(functor), this->deps_);
+        this->DetachFromMe(dep_->GetNodeId());
+        this->UnregisterMe();
     }
 
-private:
-    template <typename TTurn, typename TCollector>
-    struct CollectFunctor
+    virtual UpdateResult Update() override
     {
-        CollectFunctor(const TTurn& turn, const TCollector& collector) :
-            MyTurn( turn ),
-            MyCollector( collector )
-        {}
+        // this->SetCurrentTurn(turn, true);
 
-        void operator()(const TDeps& ... deps) const
-        {
-            REACT_EXPAND_PACK(collect(deps));
-        }
+        for (const auto& v : dep_->Events())
+            this->Events().push_back(func_(v));
 
-        template <typename T>
-        void collect(const T& op) const
-        {
-            op.template CollectRec<TTurn,TCollector>(*this);
-        }
-
-        template <typename T>
-        void collect(const std::shared_ptr<T>& depPtr) const
-        {
-            depPtr->SetCurrentTurn(MyTurn);
-
-            for (const auto& v : depPtr->Events())
-                MyCollector(v);
-        }
-
-        const TTurn&        MyTurn;
-        const TCollector&   MyCollector;
-    };
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventFilterOp
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename E,
-    typename TFilter,
-    typename TDep
->
-class EventFilterOp : public ReactiveOpBase<TDep>
-{
-public:
-    template <typename TFilterIn, typename TDepIn>
-    EventFilterOp(TFilterIn&& filter, TDepIn&& dep) :
-        EventFilterOp::ReactiveOpBase{ DontMove(), std::forward<TDepIn>(dep) },
-        filter_( std::forward<TFilterIn>(filter) )
-    {}
-
-    EventFilterOp(EventFilterOp&& other) :
-        EventFilterOp::ReactiveOpBase{ std::move(other) },
-        filter_( std::move(other.filter_) )
-    {}
-
-    template <typename TTurn, typename TCollector>
-    void Collect(const TTurn& turn, const TCollector& collector) const
-    {
-        collectImpl(turn, FilteredEventCollector<TCollector>{ filter_, collector }, getDep());
-    }
-
-    template <typename TTurn, typename TCollector, typename TFunctor>
-    void CollectRec(const TFunctor& functor) const
-    {
-        // Can't recycle functor because MyFunc needs replacing
-        Collect<TTurn,TCollector>(functor.MyTurn, functor.MyCollector);
-    }
-
-private:
-    const TDep& getDep() const { return std::get<0>(this->deps_); }
-
-    template <typename TCollector>
-    struct FilteredEventCollector
-    {
-        FilteredEventCollector(const TFilter& filter, const TCollector& collector) :
-            MyFilter( filter ),
-            MyCollector( collector )
-        {}
-
-        void operator()(const E& e) const
-        {
-            // Accepted?
-            if (MyFilter(e))
-                MyCollector(e);
-        }
-
-        const TFilter&      MyFilter;
-        const TCollector&   MyCollector;    // The wrapped collector
-    };
-
-    template <typename TTurn, typename TCollector, typename T>
-    static void collectImpl(const TTurn& turn, const TCollector& collector, const T& op)
-    {
-       op.Collect(turn, collector);
-    }
-
-    template <typename TTurn, typename TCollector, typename T>
-    static void collectImpl(const TTurn& turn, const TCollector& collector,
-                            const std::shared_ptr<T>& depPtr)
-    {
-        depPtr->SetCurrentTurn(turn);
-
-        for (const auto& v : depPtr->Events())
-            collector(v);
-    }
-
-    TFilter filter_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventTransformOp
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Todo: Refactor code duplication
-template
-<
-    typename E,
-    typename TFunc,
-    typename TDep
->
-class EventTransformOp : public ReactiveOpBase<TDep>
-{
-public:
-    template <typename TFuncIn, typename TDepIn>
-    EventTransformOp(TFuncIn&& func, TDepIn&& dep) :
-        EventTransformOp::ReactiveOpBase( DontMove(), std::forward<TDepIn>(dep) ),
-        func_( std::forward<TFuncIn>(func) )
-    {}
-
-    EventTransformOp(EventTransformOp&& other) :
-        EventTransformOp::ReactiveOpBase( std::move(other) ),
-        func_( std::move(other.func_) )
-    {}
-
-    template <typename TTurn, typename TCollector>
-    void Collect(const TTurn& turn, const TCollector& collector) const
-    {
-        collectImpl(turn, TransformEventCollector<TCollector>( func_, collector ), getDep());
-    }
-
-    template <typename TTurn, typename TCollector, typename TFunctor>
-    void CollectRec(const TFunctor& functor) const
-    {
-        // Can't recycle functor because MyFunc needs replacing
-        Collect<TTurn,TCollector>(functor.MyTurn, functor.MyCollector);
-    }
-
-private:
-    const TDep& getDep() const { return std::get<0>(this->deps_); }
-
-    template <typename TTarget>
-    struct TransformEventCollector
-    {
-        TransformEventCollector(const TFunc& func, const TTarget& target) :
-            MyFunc( func ),
-            MyTarget( target )
-        {}
-
-        void operator()(const E& e) const
-        {
-            MyTarget(MyFunc(e));
-        }
-
-        const TFunc&    MyFunc;
-        const TTarget&  MyTarget;
-    };
-
-    template <typename TTurn, typename TCollector, typename T>
-    static void collectImpl(const TTurn& turn, const TCollector& collector, const T& op)
-    {
-       op.Collect(turn, collector);
-    }
-
-    template <typename TTurn, typename TCollector, typename T>
-    static void collectImpl(const TTurn& turn, const TCollector& collector, const std::shared_ptr<T>& depPtr)
-    {
-        depPtr->SetCurrentTurn(turn);
-
-        for (const auto& v : depPtr->Events())
-            collector(v);
-    }
-
-    TFunc func_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventOpNode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename E,
-    typename TOp
->
-class EventOpNode :
-    public EventStreamNode<D,E>
-{
-    using Engine = typename EventOpNode::Engine;
-
-public:
-    template <typename ... TArgs>
-    EventOpNode(TArgs&& ... args) :
-        EventOpNode::EventStreamNode( ),
-        op_( std::forward<TArgs>(args) ... )
-    {
-        Engine::OnNodeCreate(*this);
-        op_.template Attach<D>(*this);
-    }
-
-    ~EventOpNode()
-    {
-        if (!wasOpStolen_)
-            op_.template Detach<D>(*this);
-        Engine::OnNodeDestroy(*this);
-    }
-
-    virtual void Update(void* turnPtr) override
-    {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        this->SetCurrentTurn(turn, true);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        {// timer
-            size_t count = 0;
-            using TimerT = typename EventOpNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, count );
-
-            op_.Collect(turn, EventCollector( this->events_ ));
-
-            // Note: Count was passed by reference, so we can still change before the dtor
-            // of the scoped timer is called
-            count = this->events_.size();
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! this->events_.empty())
-            Engine::OnNodePulse(*this, turn);
+        if (! this->Events().empty())
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override        { return "EventOpNode"; }
-    virtual int         DependencyCount() const override    { return TOp::dependency_count; }
+    virtual const char* GetNodeType() const override
+        { return "EventTransform"; }
 
-    TOp StealOp()
-    {
-        REACT_ASSERT(wasOpStolen_ == false, "Op was already stolen.");
-        wasOpStolen_ = true;
-        op_.template Detach<D>(*this);
-        return std::move(op_);
-    }
+    virtual int DependencyCount() const override
+        { return 1; }
 
 private:
-    struct EventCollector
+    std::shared_ptr<EventStreamNode<TIn> dep_;
+
+    F func_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventFilterNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T, typename F>
+class EventFilterNode : public EventStreamNode<T>
+{
+public:
+    template <typename U>
+    EventFilterNode(IReactiveGroup* group, const std::shared_ptr<EventStreamNode<T>>& dep, U&& pred) :
+        EventFilterNode::EventStreamNode( group ),
+        dep_( dep ),
+        pred_( std::forward<U>(pred) )
     {
-        using DataT = typename EventOpNode::DataT;
+        this->RegisterMe();
+        this->AttachToMe(dep->GetNodeId());
+    }
 
-        EventCollector(DataT& events) : MyEvents( events )  {}
+    ~EventFilterNode()
+    {
+        this->DetachFromMe(dep_->GetNodeId());
+        this->UnregisterMe();
+    }
 
-        void operator()(const E& e) const { MyEvents.push_back(e); }
+    virtual UpdateResult Update() override
+    {
+        // this->SetCurrentTurn(turn, true);
 
-        DataT& MyEvents;
-    };
+        for (const auto& v : dep_->Events())
+            if (pred_(v))
+                this->Events().push_back(v);
 
-    TOp     op_;
-    bool    wasOpStolen_ = false;
+        if (! this->Events().empty())
+            return UpdateResult::changed;
+        else
+            return UpdateResult::unchanged;
+    }
+
+    virtual const char* GetNodeType() const override
+        { return "EventFilter"; }
+
+    virtual int DependencyCount() const override
+        { return 1; }
+
+private:
+    std::shared_ptr<EventStreamNode<T> dep_;
+
+    F pred_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventFlattenNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename TOuter,
-    typename TInner
->
-class EventFlattenNode : public EventStreamNode<D,TInner>
+template <typename TOuter, typename TInner>
+class EventFlattenNode : public EventStreamNode<TInner>
 {
-    using Engine = typename EventFlattenNode::Engine;
-
 public:
-    EventFlattenNode(const std::shared_ptr<SignalNode<D,TOuter>>& outer,
-                     const std::shared_ptr<EventStreamNode<D,TInner>>& inner) :
-        EventFlattenNode::EventStreamNode( ),
+    EventFlattenNode(IReactiveGroup* group, const std::shared_ptr<SignalNode<TOuter>>& outer, const std::shared_ptr<EventStreamNode<TInner>>& inner) :
+        EventFlattenNode::EventStreamNode( group ),
         outer_( outer ),
         inner_( inner )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *outer_);
-        Engine::OnNodeAttach(*this, *inner_);
+        this->RegisterMe();
+        this->AttachToMe(outer->GetNodeId());
+        this->AttachToMe(inner->GetNodeId());
     }
 
     ~EventFlattenNode()
     {
-        Engine::OnNodeDetach(*this, *outer_);
-        Engine::OnNodeDetach(*this, *inner_);
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(inner->GetNodeId());
+        this->DetachFromMe(outer->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override        { return "EventFlattenNode"; }
-    virtual bool        IsDynamicNode() const override      { return true; }
-    virtual int         DependencyCount() const override    { return 2; }
+    virtual const char* GetNodeType() const override
+        { return "EventFlatten"; }
 
-    virtual void Update(void* turnPtr) override
+    virtual bool IsDynamicNode() const override
+        { return true; }
+
+    virtual int DependencyCount() const override
+        { return 2; }
+
+    virtual UpdateResult Update() override
     {
-        typedef typename D::Engine::TurnT TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        this->SetCurrentTurn(turn, true);
-        inner_->SetCurrentTurn(turn);
+        // this->SetCurrentTurn(turn, true);
+        // inner_->SetCurrentTurn(turn);
 
         auto newInner = GetNodePtr(outer_->ValueRef());
 
@@ -569,285 +328,180 @@ public:
             auto oldInner = inner_;
             inner_ = newInner;
 
-            Engine::OnDynamicNodeDetach(*this, *oldInner, turn);
-            Engine::OnDynamicNodeAttach(*this, *newInner, turn);
+            this->DynamicDetachFromMe(oldInner->GetNodeId(), 0);
+            this->DynamicAttachToMe(newInner->GetNodeId(), 0);
 
-            return;
+            return UpdateResult::shifted;
         }
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
+        this->Events().insert(this->Events().end(), inner_->Events().begin(), inner_->Events().end());
 
-        this->events_.insert(
-            this->events_.end(),
-            inner_->Events().begin(),
-            inner_->Events().end());
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (this->events_.size() > 0)
-            Engine::OnNodePulse(*this, turn);
+        if (! this->Events().empty())
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
 private:
-    std::shared_ptr<SignalNode<D,TOuter>>       outer_;
-    std::shared_ptr<EventStreamNode<D,TInner>>  inner_;
+    std::shared_ptr<SignalNode<TOuter>>       outer_;
+    std::shared_ptr<EventStreamNode<TInner>>  inner_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SyncedEventTransformNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename TIn,
-    typename TOut,
-    typename TFunc,
-    typename ... TDepValues
->
-class SyncedEventTransformNode :
-    public EventStreamNode<D,TOut>
+template <typename TOut, typename TIn, typename F, typename ... TSyncs>
+class SyncedEventTransformNode : public EventStreamNode<TOut>
 {
-    using Engine = typename SyncedEventTransformNode::Engine;
-
 public:
-    template <typename F>
-    SyncedEventTransformNode(const std::shared_ptr<EventStreamNode<D,TIn>>& source, F&& func, 
-                             const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        SyncedEventTransformNode::EventStreamNode( ),
-        source_( source ),
-        func_( std::forward<F>(func) ),
-        deps_( deps ... )
+    template <typename U>
+    SyncedEventTransformNode(IReactiveGroup* group, const std::shared_ptr<EventStreamNode<TIn>>& dep, U&& func, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+        SyncedEventTransformNode::EventStreamNode( group ),
+        dep_( dep ),
+        func_( std::forward<U>(func) ),
+        syncs_( syncs ... )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *source);
-        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
+        this->RegisterMe();
+        this->AttachToMe(dep->GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
 
     ~SyncedEventTransformNode()
     {
-        Engine::OnNodeDetach(*this, *source_);
-
-        apply(
-            DetachFunctor<D,SyncedEventTransformNode,
-                std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
-            deps_);
-
-        Engine::OnNodeDestroy(*this);
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(dep_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update() override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+        //this->SetCurrentTurn(turn, true);
 
-        this->SetCurrentTurn(turn, true);
         // Update of this node could be triggered from deps,
         // so make sure source doesnt contain events from last turn
-        source_->SetCurrentTurn(turn);
+        // source_->SetCurrentTurn(turn);
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
+        for (const auto& e : dep_->Events())
+            this->Events().push_back(apply([this, &e] (const auto& ... syncs) { return this->func_(e, syncs->ValueRef() ...); }, syncHolder_));
 
-        // Don't time if there is nothing to do
-        if (! source_->Events().empty())
-        {// timer
-            using TimerT = typename SyncedEventTransformNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, source_->Events().size() );
-
-            for (const auto& e : source_->Events())
-                this->events_.push_back(apply(
-                        [this, &e] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-                        {
-                            return func_(e, args->ValueRef() ...);
-                        },
-                        deps_));
-                    
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! this->events_.empty())
-            Engine::OnNodePulse(*this, turn);
+        if (! this->Events().empty())
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override        { return "SyncedEventTransformNode"; }
-    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+    virtual const char* GetNodeType() const override
+        { return "SyncedEventTransform"; }
+
+    virtual int DependencyCount() const override
+        { return 1 + sizeof...(TSyncs); }
 
 private:
-    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
+    std::shared_ptr<EventStreamNode<TIn>>   dep_;
 
-    std::shared_ptr<EventStreamNode<D,TIn>>   source_;
+    F func_;
 
-    TFunc       func_;
-    DepHolderT  deps_;
+    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SyncedEventFilterNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename E,
-    typename TFunc,
-    typename ... TDepValues
->
-class SyncedEventFilterNode :
-    public EventStreamNode<D,E>
+template <typename T, typename F, typename ... TSyncs>
+class SyncedEventFilterNode : public EventStreamNode<T>
 {
-    using Engine = typename SyncedEventFilterNode::Engine;
-
 public:
-    template <typename F>
-    SyncedEventFilterNode(const std::shared_ptr<EventStreamNode<D,E>>& source, F&& filter, 
-                          const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        SyncedEventFilterNode::EventStreamNode( ),
-        source_( source ),
-        filter_( std::forward<F>(filter) ),
-        deps_(deps ... )
+    template <typename U>
+    SyncedEventFilterNode(IReactiveGroup* group, const std::shared_ptr<EventStreamNode<T>>& dep, U&& pred, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+        SyncedEventFilterNode::EventStreamNode( group ),
+        dep_( dep ),
+        pred_( std::forward<F>(pred) ),
+        syncs_( syncs ... )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *source);
-        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
+        this->RegisterMe();
+        this->AttachToMe(dep->GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
 
     ~SyncedEventFilterNode()
     {
-        Engine::OnNodeDetach(*this, *source_);
-
-        apply(
-            DetachFunctor<D,SyncedEventFilterNode,
-                std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
-            deps_);
-
-        Engine::OnNodeDestroy(*this);
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(dep_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update() override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+        // this->SetCurrentTurn(turn, true);
 
-        this->SetCurrentTurn(turn, true);
         // Update of this node could be triggered from deps,
         // so make sure source doesnt contain events from last turn
-        source_->SetCurrentTurn(turn);
+        //source_->SetCurrentTurn(turn);
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
+        for (const auto& e : dep_->Events())
+            if (apply([this, &e] (const auto& ... syncs) { return this->func_(e, syncs->ValueRef() ...); }, syncHolder_))
+                this->Events().push_back(e);
 
-        // Don't time if there is nothing to do
-        if (! source_->Events().empty())
-        {// timer
-            using TimerT = typename SyncedEventFilterNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, source_->Events().size() );
-
-            for (const auto& e : source_->Events())
-                if (apply(
-                        [this, &e] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-                        {
-                            return filter_(e, args->ValueRef() ...);
-                        },
-                        deps_))
-                    this->events_.push_back(e);
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! this->events_.empty())
-            Engine::OnNodePulse(*this, turn);
+        if (! this->Events().empty())
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override        { return "SyncedEventFilterNode"; }
-    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+    virtual const char* GetNodeType() const override
+        { return "SyncedEventFilter"; }
 
-    virtual bool IsHeavyweight() const override
-    {
-        return this->IsUpdateThresholdExceeded();
-    }
+    virtual int DependencyCount() const override
+        { return 1 + sizeof...(TSyncs); }
 
 private:
-    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
+    std::shared_ptr<EventStreamNode<TIn>>   dep_;
 
-    std::shared_ptr<EventStreamNode<D,E>>   source_;
+    F pred_;
 
-    TFunc       filter_;
-    DepHolderT  deps_;
+    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventProcessingNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename TIn,
-    typename TOut,
-    typename TFunc
->
-class EventProcessingNode :
-    public EventStreamNode<D,TOut>
+template <typename TOut, typename TIn, typename F>
+class EventProcessingNode : public EventStreamNode<TOut>
 {
-    using Engine = typename EventProcessingNode::Engine;
-
 public:
-    template <typename F>
-    EventProcessingNode(const std::shared_ptr<EventStreamNode<D,TIn>>& source, F&& func) :
-        EventProcessingNode::EventStreamNode( ),
-        source_( source ),
-        func_( std::forward<F>(func) )
+    template <typename U>
+    EventProcessingNode(IReactiveGroup* group, const std::shared_ptr<EventStreamNode<TIn>>& dep, U&& func) :
+        EventProcessingNode::EventStreamNode( group ),
+        dep_( dep ),
+        func_( std::forward<U>(func) )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *source);
+        this->RegisterMe();
+        this->AttachToMe(dep->GetNodeId());
     }
 
     ~EventProcessingNode()
     {
-        Engine::OnNodeDetach(*this, *source_);
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(dep_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update() override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+        //this->SetCurrentTurn(turn, true);
 
-        this->SetCurrentTurn(turn, true);
+        func_(EventRange<TIn>( source_->Events() ), std::back_inserter(this->Events()));
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        {// timer
-            using TimerT = typename EventProcessingNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, source_->Events().size() );
-
-            func_(
-                EventRange<TIn>( source_->Events() ),
-                std::back_inserter(this->events_));
-
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! this->events_.empty())
-            Engine::OnNodePulse(*this, turn);
+        if (! this->Events().empty())
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override        { return "EventProcessingNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
+    virtual const char* GetNodeType() const override
+        { return "EventProcessing"; }
+
+    virtual int DependencyCount() const override
+        { return 1; }
 
 private:
     std::shared_ptr<EventStreamNode<D,TIn>>   source_;
@@ -858,224 +512,155 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SyncedEventProcessingNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename TIn,
-    typename TOut,
-    typename TFunc,
-    typename ... TDepValues
->
-class SyncedEventProcessingNode :
-    public EventStreamNode<D,TOut>
+template <typename TOut, typename TIn, typename F, typename ... TSyncs>
+class SyncedEventProcessingNode : public EventStreamNode<TOut>
 {
-    using Engine = typename SyncedEventProcessingNode::Engine;
-
 public:
-    template <typename F>
-    SyncedEventProcessingNode(const std::shared_ptr<EventStreamNode<D,TIn>>& source, F&& func, 
-                             const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        SyncedEventProcessingNode::EventStreamNode( ),
-        source_( source ),
-        func_( std::forward<F>(func) ),
-        deps_( deps ... )
+    template <typename U>
+    SyncedEventProcessingNode(IReactiveGroup* group, const std::shared_ptr<EventStreamNode<TIn>>& dep, U&& func, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+        SyncedEventProcessingNode::EventStreamNode( group ),
+        dep_( dep ),
+        func_( std::forward<U>(func) ),
+        syncs_( syncs ... )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *source);
-        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
+        this->RegisterMe();
+        this->AttachToMe(dep->GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
 
     ~SyncedEventProcessingNode()
     {
-        Engine::OnNodeDetach(*this, *source_);
-
-        apply(
-            DetachFunctor<D,SyncedEventProcessingNode,
-                std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
-            deps_);
-
-        Engine::OnNodeDestroy(*this);
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(dep_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update() override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        this->SetCurrentTurn(turn, true);
+        //this->SetCurrentTurn(turn, true);
         // Update of this node could be triggered from deps,
         // so make sure source doesnt contain events from last turn
-        source_->SetCurrentTurn(turn);
+        //source_->SetCurrentTurn(turn);
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
+        apply(
+            [this] (const auto& ... syncs)
+            {
+                func_(EventRange<TIn>( source_->Events() ), std::back_inserter(this->Events()), syncs->ValueRef() ...);
+            },
+            syncHolder_);
 
-        // Don't time if there is nothing to do
-        if (! source_->Events().empty())
-        {// timer
-            using TimerT = typename SyncedEventProcessingNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, source_->Events().size() );
-
-            apply(
-                [this] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-                {
-                    func_(
-                        EventRange<TIn>( source_->Events() ),
-                        std::back_inserter(this->events_),
-                        args->ValueRef() ...);
-                },
-                deps_);
-
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! this->events_.empty())
-            Engine::OnNodePulse(*this, turn);
+        if (! this->Events().empty())
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override        { return "SycnedEventProcessingNode"; }
-    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+    virtual const char* GetNodeType() const override
+        { return "SycnedEventProcessing"; }
+
+    virtual int DependencyCount() const override
+        { return 1 + sizeof...(TSyncs); }
 
 private:
-    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
+    std::shared_ptr<EventStreamNode<TIn>>   dep_;
 
-    std::shared_ptr<EventStreamNode<D,TIn>>   source_;
+    F func_;
 
-    TFunc       func_;
-    DepHolderT  deps_;
+    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventJoinNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename ... TValues
->
-class EventJoinNode :
-    public EventStreamNode<D,std::tuple<TValues ...>>
+template <typename ... Ts>
+class EventJoinNode : public EventStreamNode<std::tuple<Ts ...>>
 {
-    using Engine = typename EventJoinNode::Engine;
-    using TurnT = typename Engine::TurnT;
-
 public:
-    EventJoinNode(const std::shared_ptr<EventStreamNode<D,TValues>>& ... sources) :
-        EventJoinNode::EventStreamNode( ),
-        slots_( sources ... )
+    EventJoinNode(IReactiveGroup* group, const std::shared_ptr<EventStreamNode<Ts>>& ... deps) :
+        EventJoinNode::EventStreamNode( group ),
+        slots_( deps ... )
     {
-        Engine::OnNodeCreate(*this);
-        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *sources));
+        this->RegisterMe();
+        REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
     ~EventJoinNode()
     {
-        apply(
-            [this] (Slot<TValues>& ... slots) {
-                REACT_EXPAND_PACK(Engine::OnNodeDetach(*this, *slots.Source));
-            },
-            slots_);
-
-        Engine::OnNodeDestroy(*this);
+        apply([this] (const auto& ... slots) { REACT_EXPAND_PACK(this->DetachFromMe(slots.source->GetNodeId())); }, slots_);
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update() override
     {
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+        //this->SetCurrentTurn(turn, true);
 
-        this->SetCurrentTurn(turn, true);
+        // Move events into buffers
+        apply([this, &turn] (Slot<Ts>& ... slots) { REACT_EXPAND_PACK(FetchBuffer(turn, slots)); }, slots_);
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
+        while (true)
+        {
+            bool isReady = true;
 
-        // Don't time if there is nothing to do
-        {// timer
-            size_t count = 0;
-            using TimerT = typename EventJoinNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, count );
-
-            // Move events into buffers
+            // All slots ready?
             apply(
-                [this, &turn] (Slot<TValues>& ... slots) {
-                    REACT_EXPAND_PACK(fetchBuffer(turn, slots));
+                [this,&isReady] (Slot<Ts>& ... slots) {
+                    // Todo: combine return values instead
+                    REACT_EXPAND_PACK(CheckSlot(slots, isReady));
                 },
                 slots_);
 
-            while (true)
-            {
-                bool isReady = true;
+            if (!isReady)
+                break;
 
-                // All slots ready?
-                apply(
-                    [this,&isReady] (Slot<TValues>& ... slots) {
-                        // Todo: combine return values instead
-                        REACT_EXPAND_PACK(checkSlot(slots, isReady));
-                    },
-                    slots_);
+            // Pop values from buffers and emit tuple
+            apply(
+                [this] (Slot<Ts>& ... slots)
+                {
+                    this->Events().emplace_back(slots.buffer.front() ...);
+                    REACT_EXPAND_PACK(slots.buffer.pop_front());
+                },
+                slots_);
+        }
 
-                if (!isReady)
-                    break;
-
-                // Pop values from buffers and emit tuple
-                apply(
-                    [this] (Slot<TValues>& ... slots) {
-                        this->events_.emplace_back(slots.Buffer.front() ...);
-                        REACT_EXPAND_PACK(slots.Buffer.pop_front());
-                    },
-                    slots_);
-            }
-
-            count = this->events_.size();
-
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! this->events_.empty())
-            Engine::OnNodePulse(*this, turn);
+        if (! this->Events().empty())
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override        { return "EventJoinNode"; }
-    virtual int         DependencyCount() const override    { return sizeof...(TValues); }
+    virtual const char* GetNodeType() const override
+        { return "EventJoin"; }
+
+    virtual int DependencyCount() const override
+        { return sizeof...(Ts); }
 
 private:
-    template <typename T>
+    template <typename U>
     struct Slot
     {
-        Slot(const std::shared_ptr<EventStreamNode<D,T>>& src) :
-            Source( src )
-        {}
+        Slot(const std::shared_ptr<EventStreamNode<U>>& src) :
+            source( src )
+            { }
 
-        std::shared_ptr<EventStreamNode<D,T>>   Source;
-        std::deque<T>                           Buffer;
+        std::shared_ptr<EventStreamNode<U>>     source;
+        std::deque<U>                           buffer;
     };
 
-    template <typename T>
-    static void fetchBuffer(TurnT& turn, Slot<T>& slot)
+    template <typename U>
+    static void FetchBuffer(TurnT& turn, Slot<U>& slot)
     {
-        slot.Source->SetCurrentTurn(turn);
-
-        slot.Buffer.insert(
-            slot.Buffer.end(),
-            slot.Source->Events().begin(),
-            slot.Source->Events().end());
+        //slot.Source->SetCurrentTurn(turn);
+        slot.buffer.insert(slot.buffer.end(), slot.source->Events().begin(), slot.source->Events().end());
     }
 
     template <typename T>
-    static void checkSlot(Slot<T>& slot, bool& isReady)
+    static void CheckSlot(Slot<T>& slot, bool& isReady)
     {
-        auto t = isReady && !slot.Buffer.empty();
+        bool t = isReady && !slot.buffer.empty();
         isReady = t;
     }
 
-    std::tuple<Slot<TValues>...>    slots_;
+    std::tuple<Slot<Ts>...> slots_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

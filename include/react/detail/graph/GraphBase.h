@@ -17,7 +17,8 @@
 #include "react/common/Util.h"
 #include "react/common/Timing.h"
 #include "react/common/Types.h"
-#include "react/detail/IReactiveEngine.h"
+#include "react/detail/IReactiveGroup.h"
+#include "react/detail/IReactiveNode.h"
 #include "react/detail/ObserverBase.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
@@ -84,28 +85,28 @@ struct DepCounter<N, First, Args...>
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D>
-class NodeBase :
-    public D::Policy::Engine::NodeT,
-    public UpdateTimingPolicy<D,500>
+class NodeBase : public IReactiveNode
 {
 public:
-    using DomainT = D;
-    using Policy = typename D::Policy;
-    using Engine = typename D::Engine;
-    using NodeT = typename Engine::NodeT;
-    using TurnT = typename Engine::TurnT;
+    NodeBase(IReactiveGroup* group) : group_( group )
+        { }
 
-    NodeBase() = default;
-
-    // Nodes can't be copied
+    NodeBase(NodeBase&&) = delete;
+    NodeBase& operator=(NodeBase&&) = delete;
     NodeBase(const NodeBase&) = delete;
+    NodeBase& operator=(const NodeBase&) = delete;
     
-    virtual bool    IsInputNode() const override    { return false; }
-    virtual bool    IsOutputNode() const override   { return false; }
-    virtual bool    IsDynamicNode() const override  { return false; }
+    virtual bool IsInputNode() const override
+        { return false; }
+
+    virtual bool IsOutputNode() const override
+        { return false; }
+
+    virtual bool IsDynamicNode() const override
+        { return false; }
     
-    virtual bool    IsHeavyweight() const override  { return this->IsUpdateThresholdExceeded(); }
+    virtual bool IsHeavyweight() const override 
+        { return false; }
 
     void SetWeightHint(WeightHint weight)
     {
@@ -122,27 +123,38 @@ public:
             break;
         }
     }
-};
 
-template <typename D>
-using NodeBasePtrT = std::shared_ptr<NodeBase<D>>;
+    NodeId GetNodeId() const
+        { return nodeId_; }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ObservableNode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D>
-class ObservableNode :
-    public NodeBase<D>,
-    public Observable<D>
-{
-public:
-    ObservableNode() = default;
+protected:
+    void RegisterMe()
+        { nodeId_ = group_->RegisterNode(); }
+    
+    void UnregisterMe()
+        { group_->UnregisterNode(nodeId_); }
+
+    void AttachToMe(NodeId otherNodeId)
+        { group_->OnNodeAttach(nodeId_, otherNodeId); }
+
+    void DetachFromMe(NodeId otherNodeId)
+        { group_->OnNodeDetach(nodeId_, otherNodeId); }
+
+    void DynamicAttachToMe(NodeId otherNodeId, TurnId turnId)
+        { group_->OnDynamicNodeAttach(nodeId_, otherNodeId, turnId); }
+
+    void DynamicDetachFromMe(NodeId otherNodeId, TurnId turnId)
+        { group_->OnDynamicNodeDetach(nodeId_, otherNodeId, turnId); }
+
+private:
+    NodeId          nodeId_;
+    IReactiveGroup* group_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Attach/detach helper functors
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename TNode, typename ... TDeps>
+template <typename TNode, typename ... TDeps>
 struct AttachFunctor
 {
     AttachFunctor(TNode& node) : MyNode( node ) {}

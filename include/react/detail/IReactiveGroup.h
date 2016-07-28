@@ -18,32 +18,31 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+using NodeId = uint;
+using TurnId = uint;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-struct IReactiveEngine
+struct IReactiveGroup
 {
-    using NodeId = uint;
-    using TurnId = uint;
+    virtual ~IReactiveGroup() = 0;
 
-    void OnTurnAdmissionStart(TurnId& turn)  {}
-    void OnTurnAdmissionEnd(TurnId& turn)    {}
+    virtual void OnTurnAdmissionStart(TurnId turn) = 0;
+    virtual void OnTurnAdmissionEnd(TurnId turn) = 0;
 
-    void OnInputChange(NodeId& node, TurnId& turn)    {}
+    virtual void OnInputChange(NodeId node, TurnId turn) = 0;
 
-    void Propagate(TurnId& turn)  {}
+    virtual void Propagate(TurnId turn) = 0;
 
-    void OnNodeCreate(NodeId& node)  {}
-    void OnNodeDestroy(NodeId& node) {}
+    virtual NodeId OnNodeCreate() = 0;
+    virtual void OnNodeDestroy(NodeId node) = 0;
 
-    void OnNodeAttach(NodeId node, NodeId parent)   {}
-    void OnNodeDetach(NodeId node, NodeId parent)   {}
+    virtual void OnNodeAttach(NodeId node, NodeId parent) = 0;
+    virtual void OnNodeDetach(NodeId node, NodeId parent) = 0;
 
-    void OnNodePulse(NodeId& node, TurnId& turn)      {}
-    void OnNodeIdlePulse(NodeId& node, TurnId& turn)  {}
-
-    void OnDynamicNodeAttach(NodeId& node, NodeId& parent, TurnId& turn)    {}
-    void OnDynamicNodeDetach(NodeId& node, NodeId& parent, TurnId& turn)    {}
+    virtual void OnDynamicNodeAttach(NodeId node, NodeId parent, TurnId turn) = 0;
+    virtual void OnDynamicNodeDetach(NodeId node, NodeId parent, TurnId turn) = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
