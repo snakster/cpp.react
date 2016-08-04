@@ -28,66 +28,88 @@ bool Equals(const L& lhs, const R& rhs);
 /// SignalNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-class SignalNode : public ObservableNode
+class SignalNode : public NodeBase
 {
 public:
-    SignalNode() = default;
+    SignalNode(SignalNode&&) = default;
+    SignalNode& operator=(SignalNode&&) = default;
+
+    SignalNode(const SignalNode&) = delete;
+    SignalNode& operator=(const SignalNode&) = delete;
 
     template <typename U>
-    explicit SignalNode(U&& value) :
-        SignalNode::ObservableNode( ),
+    SignalNode(const std::shared_ptr<IReactiveGraph>& graphPtr, U&& value) :
+        SignalNode::NodeBase( graphPtr ),
         value_( std::forward<T>(value) )
-    {}
+        { }
 
-    const S& ValueRef() const
-    {
-        return value_;
-    }
+    T& Value()
+        { return value_; }
 
-protected:
-    S value_;
+    const T& Value() const
+        { return value_; }
+
+private:
+    T value_;
 };
-
-template <typename S>
-using SignalNodePtrT = std::shared_ptr<SignalNode<S>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// VarNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class VarNode :
-    public SignalNode<S>,
-    public IInputNode
+template <typename T>
+class VarSignalNode : public SignalNode<T>
 {
-    using Engine = typename VarNode::Engine;
-
 public:
     template <typename T>
-    VarNode(T&& value) :
-        VarNode::SignalNode( std::forward<T>(value) ),
+    VarSignalNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& value) :
+        VarSignalNode::SignalNode( graphPtr, std::forward<T>(value) ),
         newValue_( value )
+        { this->RegisterMe(); }
+
+    ~VarSignalNode()
+        { this->UnregisterMe(); }
+
+    virtual const char* GetNodeType() const override
+        { return "VarSignal"; }
+
+    virtual bool IsInputNode() const override
+        { return true; }
+
+    virtual int GetDependencyCount() const override
+        { return 0; }
+
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        Engine::OnNodeCreate(*this);
+        if (isInputAdded_)
+        {
+            isInputAdded_ = false;
+
+            if (! Equals(this->Value(), newValue_))
+            {
+                this->Value() = std::move(newValue_);
+                return UpdateResult::changed;
+            }
+            else
+            {
+                return UpdateResult::unchanged;
+            }
+        }
+        else if (isInputModified_)
+        {            
+            isInputModified_ = false;
+            return UpdateResult::changed;
+        }
+
+        else
+        {
+            return UpdateResult::unchanged;
+        }
     }
 
-    ~VarNode()
+    template <typename U>
+    void SetValue(U&& newValue)
     {
-        Engine::OnNodeDestroy(*this);
-    }
-
-    virtual const char* GetNodeType() const override        { return "VarNode"; }
-    virtual bool        IsInputNode() const override        { return true; }
-    virtual int         DependencyCount() const override    { return 0; }
-
-    virtual void Update(void* turnPtr) override
-    {
-        REACT_ASSERT(false, "Ticked VarNode\n");
-    }
-
-    template <typename V>
-    void AddInput(V&& newValue)
-    {
-        newValue_ = std::forward<V>(newValue);
+        newValue_ = std::forward<U>(newValue);
 
         isInputAdded_ = true;
 
@@ -98,12 +120,12 @@ public:
 
     // This is signal-specific
     template <typename F>
-    void ModifyInput(F& func)
+    void ModifyValue(F&& func)
     {
         // There hasn't been any Set(...) input yet, modify.
         if (! isInputAdded_)
         {
-            func(this->value_);
+            func(this->Value());
 
             isInputModified_ = true;
         }
@@ -116,219 +138,92 @@ public:
         }
     }
 
-    virtual bool ApplyInput(void* turnPtr) override
-    {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        if (isInputAdded_)
-        {
-            isInputAdded_ = false;
-
-            if (! Equals(this->value_, newValue_))
-            {
-                this->value_ = std::move(newValue_);
-                Engine::OnInputChange(*this, turn);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (isInputModified_)
-        {            
-            isInputModified_ = false;
-
-            Engine::OnInputChange(*this, turn);
-            return true;
-        }
-
-        else
-        {
-            return false;
-        }
-    }
-
 private:
-    S       newValue_;
+    T       newValue_;
     bool    isInputAdded_ = false;
     bool    isInputModified_ = false;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// FunctionOp
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename S,
-    typename F,
-    typename ... TDeps
->
-class FunctionOp : public ReactiveOpBase<TDeps...>
-{
-public:
-    template <typename FIn, typename ... TDepsIn>
-    FunctionOp(FIn&& func, TDepsIn&& ... deps) :
-        FunctionOp::ReactiveOpBase( DontMove(), std::forward<TDepsIn>(deps) ... ),
-        func_( std::forward<FIn>(func) )
-    {}
-
-    FunctionOp(FunctionOp&& other) :
-        FunctionOp::ReactiveOpBase( std::move(other) ),
-        func_( std::move(other.func_) )
-    {}
-
-    S Evaluate() 
-    {
-        return apply(EvalFunctor( func_ ), this->deps_);
-    }
-
-private:
-    // Eval
-    struct EvalFunctor
-    {
-        EvalFunctor(F& f) : MyFunc( f )   {}
-
-        template <typename ... T>
-        S operator()(T&& ... args)
-        {
-            return MyFunc(eval(args) ...);
-        }
-
-        template <typename T>
-        static auto eval(T& op) -> decltype(op.Evaluate())
-        {
-            return op.Evaluate();
-        }
-
-        template <typename T>
-        static auto eval(const std::shared_ptr<T>& depPtr) -> decltype(depPtr->ValueRef())
-        {
-            return depPtr->ValueRef();
-        }
-
-        F& MyFunc;
-    };
-
-private:
-    F   func_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalOpNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename S,
-    typename TOp
->
-class SignalOpNode : public SignalNode<S>
+template <typename T, typename F, typename ... TDeps>
+class SignalFuncNode : public SignalNode<T>
 {
-    using Engine = typename SignalOpNode::Engine;
-
 public:
-    template <typename ... TArgs>
-    SignalOpNode(TArgs&& ... args) :
-        SignalOpNode::SignalNode( ),
-        op_( std::forward<TArgs>(args) ... )
+    template <typename U>
+    SignalFuncNode(const std::shared_ptr<IReactiveGraph>& graphPtr, U&& func, const std::shared_ptr<SignalNode<TDeps>>& ... deps) :
+        SignalFuncNode::SignalNode( graphPtr, func(deps->Value() ...) ),
+        func_( std::forward<U>(func) ),
+        depHolder_( deps ... )
     {
-        this->value_ = op_.Evaluate();
-
-        Engine::OnNodeCreate(*this);
-        op_.template Attach<D>(*this);
+        this->RegisterMe();
+        REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
-    ~SignalOpNode()
+    ~SignalFuncNode()
     {
-        if (!wasOpStolen_)
-            op_.template Detach<D>(*this);
-        Engine::OnNodeDestroy(*this);
+        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(deps->GetNodeId())); }, depHolder_);
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
-    {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(GetObjectId(*this), turn.Id()));
-        
+    virtual UpdateResult Update(TurnId turnId) override
+    {   
         bool changed = false;
 
-        {// timer
-            using TimerT = typename SignalOpNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, 1 );
+        T newValue = apply([this] (const auto& ... deps) { return this->func_(deps->Value() ...); }, depHolder_);
 
-            S newValue = op_.Evaluate();
-
-            if (! Equals(this->value_, newValue))
-            {
-                this->value_ = std::move(newValue);
-                changed = true;
-            }
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(GetObjectId(*this), turn.Id()));
+        if (! Equals(this->Value(), newValue))
+        {
+            this->Value() = std::move(newValue);
+            changed = true;
+        }
 
         if (changed)
-            Engine::OnNodePulse(*this, turn);
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override        { return "SignalOpNode"; }
-    virtual int         DependencyCount() const override    { return TOp::dependency_count; }
+    virtual const char* GetNodeType() const override
+        { return "SignalFunc"; }
 
-    TOp StealOp()
-    {
-        REACT_ASSERT(wasOpStolen_ == false, "Op was already stolen.");
-        wasOpStolen_ = true;
-        op_.template Detach<D>(*this);
-        return std::move(op_);
-    }
+    virtual int GetDependencyCount() const override
+        { return sizeof...(TDeps); }
 
 private:
-    TOp     op_;
-    bool    wasOpStolen_ = false;
+    std::tuple<std::shared_ptr<SignalNode<TDeps>> ...> depHolder_;
+
+    F func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlattenNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename TOuter,
-    typename TInner
->
-class FlattenNode : public SignalNode<TInner>
+template <typename TOuter, typename TInner>
+class SignalFlattenNode : public SignalNode<TInner>
 {
-    using Engine = typename FlattenNode::Engine;
-
 public:
-    FlattenNode(const std::shared_ptr<SignalNode<D,TOuter>>& outer,
-                const std::shared_ptr<SignalNode<D,TInner>>& inner) :
-        FlattenNode::SignalNode( inner->ValueRef() ),
+    SignalFlattenNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<TOuter>>& outer, const std::shared_ptr<SignalNode<TInner>>& inner) :
+        SignalFlattenNode::SignalNode( graphPtr, inner->Value() ),
         outer_( outer ),
         inner_( inner )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *outer_);
-        Engine::OnNodeAttach(*this, *inner_);
+        this->RegisterMe();
+        this->AttachToMe(outer->GetNodeId());
+        this->AttachToMe(inner->GetNodeId());
     }
 
-    ~FlattenNode()
+    ~SignalFlattenNode()
     {
-        Engine::OnNodeDetach(*this, *inner_);
-        Engine::OnNodeDetach(*this, *outer_);
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(inner->GetNodeId());
+        this->DetachFromMe(outer->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        auto newInner = GetNodePtr(outer_->ValueRef());
+        auto newInner = GetNodePtr(outer_->Value());
 
         if (newInner != inner_)
         {
@@ -336,36 +231,35 @@ public:
             auto oldInner = inner_;
             inner_ = newInner;
 
-            Engine::OnDynamicNodeDetach(*this, *oldInner, turn);
-            Engine::OnDynamicNodeAttach(*this, *newInner, turn);
+            this->DynamicDetachFromMe(oldInner->GetNodeId(), 0);
+            this->DynamicAttachToMe(newInner->GetNodeId(), 0);
 
-            return;
+            return UpdateResult::shifted;
         }
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! Equals(this->value_, inner_->ValueRef()))
+        if (! Equals(this->Value(), inner_->Value()))
         {
-            this->value_ = inner_->ValueRef();
-            Engine::OnNodePulse(*this, turn);
+            this->Value() = inner_->Value();
+            return UpdateResult::changed;
         }
         else
         {
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
         }
     }
 
-    virtual const char* GetNodeType() const override        { return "FlattenNode"; }
-    virtual bool        IsDynamicNode() const override      { return true; }
-    virtual int         DependencyCount() const override    { return 2; }
+    virtual const char* GetNodeType() const override
+        { return "SignalFlatten"; }
+
+    virtual bool IsDynamicNode() const override
+        { return true; }
+
+    virtual int GetDependencyCount() const override
+        { return 2; }
 
 private:
-    std::shared_ptr<SignalNode<TOuter>>   outer_;
-    std::shared_ptr<SignalNode<TInner>>   inner_;
+    std::shared_ptr<SignalNode<TOuter>> outer_;
+    std::shared_ptr<SignalNode<TInner>> inner_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

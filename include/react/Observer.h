@@ -4,6 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#if 0
+
 #ifndef REACT_OBSERVER_H_INCLUDED
 #define REACT_OBSERVER_H_INCLUDED
 
@@ -334,3 +336,5 @@ auto Observe(const Events<D,E>& subject,
 /******************************************/ REACT_END /******************************************/
 
 #endif // REACT_OBSERVER_H_INCLUDED
+
+#endif

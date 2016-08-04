@@ -4,6 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#if 0
+
 #include "react/engine/PulsecountEngine.h"
 
 #include <cstdint>
@@ -282,3 +284,5 @@ void EngineBase::OnDynamicNodeDetach(Node& node, Node& parent, Turn& turn)
 
 } // ~namespace pulsecount
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif

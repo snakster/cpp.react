@@ -154,11 +154,12 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\react\API.h" />
     <ClInclude Include="..\..\include\react\common\RefCounting.h" />
     <ClInclude Include="..\..\include\react\common\Timing.h" />
-    <ClInclude Include="..\..\include\react\detail\DomainBase.h" />
-    <ClInclude Include="..\..\include\react\detail\EventBase.h" />
     <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h" />
+    <ClInclude Include="..\..\include\react\detail\graph\PropagationST.h" />
+    <ClInclude Include="..\..\include\react\detail\graph\PropagationMT.h" />
     <ClInclude Include="..\..\include\react\detail\ObserverBase.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveInput.h" />
     <ClInclude Include="..\..\include\react\detail\Defs.h" />
@@ -167,11 +168,8 @@
     <ClInclude Include="..\..\include\react\detail\graph\EventNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h" />
     <ClInclude Include="..\..\include\react\detail\graph\SignalNodes.h" />
-    <ClInclude Include="..\..\include\react\detail\IReactiveGroup.h" />
-    <ClInclude Include="..\..\include\react\detail\IReactiveNode.h" />
-    <ClInclude Include="..\..\include\react\detail\ReactiveBase.h" />
-    <ClInclude Include="..\..\include\react\detail\SignalBase.h" />
-    <ClInclude Include="..\..\include\react\Domain.h" />
+    <ClInclude Include="..\..\include\react\detail\IReactiveGraph.h" />
+    <ClInclude Include="..\..\include\react\Group.h" />
     <ClInclude Include="..\..\include\react\engine\PulsecountEngine.h" />
     <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h" />
     <ClInclude Include="..\..\include\react\engine\ToposortEngine.h" />
@@ -181,21 +179,16 @@
     <ClInclude Include="..\..\include\react\common\TopoQueue.h" />
     <ClInclude Include="..\..\include\react\common\Types.h" />
     <ClInclude Include="..\..\include\react\common\Util.h" />
-    <ClInclude Include="..\..\include\react\logging\EventLog.h" />
-    <ClInclude Include="..\..\include\react\logging\EventRecords.h" />
-    <ClInclude Include="..\..\include\react\logging\Logging.h" />
     <ClInclude Include="..\..\include\react\Algorithm.h" />
     <ClInclude Include="..\..\include\react\Event.h" />
     <ClInclude Include="..\..\include\react\Observer.h" />
     <ClInclude Include="..\..\include\react\Signal.h" />
-    <ClInclude Include="..\..\include\react\TypeTraits.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\debug.cpp" />
     <ClCompile Include="..\..\src\engine\PulsecountEngine.cpp" />
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp" />
     <ClCompile Include="..\..\src\engine\ToposortEngine.cpp" />
-    <ClCompile Include="..\..\src\logging\EventLog.cpp" />
-    <ClCompile Include="..\..\src\logging\EventRecords.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -25,14 +25,8 @@
     <Filter Include="Header Files\common">
       <UniqueIdentifier>{11a75126-8bfd-4693-be4b-4e06ab73450c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\logging">
-      <UniqueIdentifier>{f58215db-3a12-432a-a4c1-e24a90df70a9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\engine">
       <UniqueIdentifier>{3f444875-ab1a-4bbd-99eb-7018c930098a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\logging">
-      <UniqueIdentifier>{22da08e3-fb85-4fed-9fbc-8944ef866ccc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -51,9 +45,6 @@
     <ClInclude Include="..\..\include\react\common\Util.h">
       <Filter>Header Files\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\Signal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\common\Concurrency.h">
       <Filter>Header Files\common</Filter>
     </ClInclude>
@@ -66,29 +57,11 @@
     <ClInclude Include="..\..\include\react\detail\EngineBase.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\IReactiveNode.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\ReactiveBase.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h">
       <Filter>Header Files\detail\graph</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\detail\graph\SignalNodes.h">
       <Filter>Header Files\detail\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\logging\EventLog.h">
-      <Filter>Header Files\logging</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\logging\EventRecords.h">
-      <Filter>Header Files\logging</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\logging\Logging.h">
-      <Filter>Header Files\logging</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\Algorithm.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\detail\ReactiveInput.h">
       <Filter>Header Files\detail</Filter>
@@ -102,29 +75,11 @@
     <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h">
       <Filter>Header Files\detail\graph</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\SignalBase.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\Observer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\EventBase.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\Event.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\detail\graph\EventNodes.h">
       <Filter>Header Files\detail\graph</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\engine\ToposortEngine.h">
       <Filter>Header Files\engine</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\TypeTraits.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\Domain.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\common\Timing.h">
       <Filter>Header Files\common</Filter>
@@ -135,20 +90,35 @@
     <ClInclude Include="..\..\include\react\common\RefCounting.h">
       <Filter>Header Files\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\DomainBase.h">
+    <ClInclude Include="..\..\include\react\detail\IReactiveGraph.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\IReactiveGroup.h">
-      <Filter>Header Files\detail</Filter>
+    <ClInclude Include="..\..\include\react\detail\graph\PropagationST.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\graph\PropagationMT.h">
+      <Filter>Header Files\detail\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Algorithm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Event.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Observer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Signal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\API.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\Group.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\logging\EventLog.cpp">
-      <Filter>Source Files\logging</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\logging\EventRecords.cpp">
-      <Filter>Source Files\logging</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
@@ -157,6 +127,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\engine\PulsecountEngine.cpp">
       <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\debug.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

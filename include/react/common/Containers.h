@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <array>
+#include <iterator>
 #include <type_traits>
 #include <vector>
 
@@ -38,6 +39,153 @@ public:
 
 private:
     FlagsT  flags_ = 0;
+};
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// IndexMap
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+class IndexMap
+{
+    static const size_t initial_capacity = 8;
+    static const size_t grow_factor = 2;
+
+public:
+    using ValueType = T;
+
+    IndexMap() = default;
+
+    IndexMap(const IndexMap&) = default;
+    IndexMap& operator=(const IndexMap&) = default;
+
+    IndexMap(IndexMap&&) = default;
+    IndexMap& operator=(IndexMap&&) = default;
+
+    T& operator[](size_t index)
+        { return data_[index]; }
+
+    const T& operator[](size_t index) const
+        { return data_[index]; }
+
+    size_t Insert(T value)
+    {
+        if (IsAtFullCapacity())
+        {
+            Grow();
+            return InsertAtBack(std::move(value));
+        }
+        else if (HasFreeIndices())
+        {
+            return InsertAtFreeIndex(std::move(value));
+        }
+        else
+        {
+            return InsertAtBack(std::move(value));
+        }
+    }
+
+    void Remove(size_t index)
+    {
+        for (size_t index : freeIndices_)
+            data_[index].~T();
+        --size_;
+        freeIndices_.push_back(index);
+    }
+
+    void Clear()
+    {
+        // Sort free indexes so we can remove check for them in linear time
+        std::sort(freeIndices_.begin(), freeIndices_.end());
+        
+        const size_t totalSize = size_ + freeIndices_.size();
+        size_t i = 0;
+
+        // Skip over free indices
+        for (auto freeIndex : freeIndices_)
+        {
+            for (; i < totalSize; ++i)
+            {
+                if (i == freeIndex)
+                    break;
+                else
+                    data_[i].~T();
+            }
+        }
+
+        // Rest
+        for (; i < totalSize; ++i)
+            data_[i].~T();
+
+        size_ = 0;
+        freeIndices_.clear();
+    }
+
+    void Reset()
+    {
+        Clear();
+
+        capacity_ = 0;
+        delete[] data_;
+
+        freeIndices_.shrink_to_fit();
+    }
+
+    ~IndexMap()
+        { Reset(); }
+
+private:
+    bool IsAtFullCapacity() const
+        { return capacity_ == size_; }
+
+    bool HasFreeIndices() const
+        { return !freeIndices_.empty(); }
+
+    size_t CalcNextCapacity() const
+        { return capacity_ == 0? initial_capacity : capacity_ * grow_factor;  }
+
+    void Grow()
+    {
+        // Allocate new storage
+        size_t  newCapacity = CalcNextCapacity();
+        T*      newData = new T[newCapacity];
+
+        // Move data to new storage
+        for (size_t i = 0; i < size_; ++i)
+        {
+            new (&newData[i]) T(std::move(data_[i]));
+            data_[i].~T();
+        }
+            
+        delete[] data_;
+
+        // Use new storage
+        data_ = newData;
+        capacity_ = newCapacity;
+    }
+
+    size_t InsertAtBack(T&& value)
+    {
+        new (&data_[size_]) T(std::move(value));
+        return size_++;
+    }
+
+    size_t InsertAtFreeIndex(T&& value)
+    {
+        size_t nextFreeIndex = freeIndices_.back();
+        freeIndices_.pop_back();
+
+        new (&data_[nextFreeIndex]) T(std::move(value));
+        ++size_;
+
+        return nextFreeIndex;
+    }
+
+    T*      data_       = nullptr;
+    size_t  size_       = 0;
+    size_t  capacity_   = 0;
+
+    std::vector<size_t> freeIndices_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

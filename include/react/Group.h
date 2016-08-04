@@ -14,62 +14,25 @@
 #include <memory>
 #include <utility>
 
-#include "react/detail/DomainBase.h"
-#include "react/detail/ReactiveInput.h"
+#include "react/API.h"
+#include "react/Signal.h"
+//#include "react/Event.h"
 
-#include "react/detail/graph/ContinuationNodes.h"
+#include "react/detail/IReactiveGraph.h"
+#include "react/detail/graph/PropagationST.h"
 
-#ifdef REACT_ENABLE_LOGGING
-    #include "react/logging/EventLog.h"
-    #include "react/logging/EventRecords.h"
-#endif //REACT_ENABLE_LOGGING
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
+
+struct PrivateReactiveGroupInterface;
+struct PrivateConcurrentReactiveGroupInterface;
+
+/****************************************/ REACT_IMPL_END /***************************************/
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Forward declarations
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class Signal;
 
-template <typename T>
-class VarSignal;
 
-template <typename T>
-class Events;
-
-template <typename T>
-class EventSource;
-
-enum class Token;
-
-class Observer;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Common types & constants
-///////////////////////////////////////////////////////////////////////////////////////////////////
-using REACT_IMPL::TransactionFlagsT;
-
-// ETransactionFlags
-using REACT_IMPL::ETransactionFlags;
-using REACT_IMPL::allow_merging;
-
-#ifdef REACT_ENABLE_LOGGING
-    using REACT_IMPL::EventLog;
-#endif //REACT_ENABLE_LOGGING
-
-// Domain modes
-using REACT_IMPL::EDomainMode;
-using REACT_IMPL::sequential;
-using REACT_IMPL::sequential_concurrent;
-using REACT_IMPL::parallel;
-using REACT_IMPL::parallel_concurrent;
-
-// Expose enum type so aliases for engines can be declared, but don't
-// expose the actual enum values as they are reserved for internal use.
-using REACT_IMPL::EPropagationMode;
-
-using REACT_IMPL::WeightHint;
+#if 0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TransactionStatus
@@ -134,7 +97,7 @@ void DoTransaction(F&& func)
 }
 
 template <typename D, typename F>
-void DoTransaction(TransactionFlagsT flags, F&& func)
+void DoTransaction(TransactionFlags flags, F&& func)
 {
     using REACT_IMPL::DomainSpecificInputManager;
     DomainSpecificInputManager<D>::Instance().DoTransaction(flags, std::forward<F>(func));
@@ -155,7 +118,7 @@ void AsyncTransaction(F&& func)
 }
 
 template <typename D, typename F>
-void AsyncTransaction(TransactionFlagsT flags, F&& func)
+void AsyncTransaction(TransactionFlags flags, F&& func)
 {
     static_assert(D::is_concurrent,
         "AsyncTransaction: Domain does not support concurrent input.");
@@ -188,45 +151,124 @@ void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& fu
         .AsyncTransaction(flags, status.statePtr_, std::forward<F>(func));
 }
 
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ReactiveGroupBase
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class ReactiveGroupBase
+{
+    using GraphType = REACT_IMPL::SingleThreadedGraph;
+
+public:
+    ReactiveGroupBase() :
+        graphPtr_( std::make_shared<GraphType>() )
+        {  }
+
+    ReactiveGroupBase(const ReactiveGroupBase&) = default;
+    ReactiveGroupBase& operator=(const ReactiveGroupBase&) = default;
+
+    ReactiveGroupBase(ReactiveGroupBase&& other) = default;
+    ReactiveGroupBase& operator=(ReactiveGroupBase&& other) = default;
+
+    ~ReactiveGroupBase() = default;
+
+    template <typename F>
+    void DoTransaction(F&& func)
+        { DoTransaction(TransactionFlags::none, std::forward<F>(func)); }
+
+    template <typename F>
+    void DoTransaction(TransactionFlags flags, F&& func)
+        { graphPtr_->DoTransaction(flags, std::forward<F>(func)); }
+
+protected:
+    auto GraphPtr() -> std::shared_ptr<GraphType>&
+        { return graphPtr_; }
+
+    auto GraphPtr() const -> const std::shared_ptr<GraphType>&
+        { return graphPtr_; }
+
+private:
+    std::shared_ptr<GraphType> graphPtr_;
+
+    friend struct REACT_IMPL::PrivateReactiveGroupInterface;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Signal
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <>
+class ReactiveGroup<unique> : public ReactiveGroupBase
+{
+public:
+    ReactiveGroup() = default;
+
+    ReactiveGroup(const ReactiveGroup&) = delete;
+    ReactiveGroup& operator=(const ReactiveGroup&) = delete;
+
+    ReactiveGroup(ReactiveGroup&& other) = default;
+    ReactiveGroup& operator=(ReactiveGroup&& other) = default;
+};
+
+template <>
+class ReactiveGroup<shared> : public ReactiveGroupBase
+{
+public:
+    ReactiveGroup() = default;
+
+    ReactiveGroup(const ReactiveGroup&) = default;
+    ReactiveGroup& operator=(const ReactiveGroup&) = default;
+
+    ReactiveGroup(ReactiveGroup&& other) = default;
+    ReactiveGroup& operator=(ReactiveGroup&& other) = default;
+};
+
 /******************************************/ REACT_END /******************************************/
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Domain definition macro
-///////////////////////////////////////////////////////////////////////////////////////////////////
-#define REACTIVE_DOMAIN(name, ...)                                                          \
-    struct name :                                                                           \
-        public REACT_IMPL::DomainBase<name, REACT_IMPL::DomainPolicy< __VA_ARGS__ >> {};    \
-    static REACT_IMPL::DomainInitializer<name> name ## _initializer_;
+/***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-/*
-    A brief reminder why the domain initializer is here:
-    Each domain has a couple of singletons (debug log, engine, input manager) which are
-    currently implemented as meyer singletons. From what I understand, these are thread-safe
-    in C++11, but not all compilers implement that yet. That's why a static initializer has
-    been added to make sure singleton creation happens before any multi-threaded access.
-    This implemenation is obviously inconsequential.
- */
+struct PrivateNodeInterface
+{
+    template <typename TBase>
+    static auto NodePtr(const TBase& base) -> const std::shared_ptr<typename TBase::NodeType>&
+        { return base.NodePtr(); }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Define type aliases for given domain
-///////////////////////////////////////////////////////////////////////////////////////////////////
-#define USING_REACTIVE_DOMAIN(name)                                                         \
-    template <typename S>                                                                   \
-    using SignalT = Signal<name,S>;                                                         \
-                                                                                            \
-    template <typename S>                                                                   \
-    using VarSignalT = VarSignal<name,S>;                                                   \
-                                                                                            \
-    template <typename E = Token>                                                           \
-    using EventsT = Events<name,E>;                                                         \
-                                                                                            \
-    template <typename E = Token>                                                           \
-    using EventSourceT = EventSource<name,E>;                                               \
-                                                                                            \
-    using ObserverT = Observer<name>;                                                       \
-                                                                                            \
-    using ScopedObserverT = ScopedObserver<name>;                                           \
-                                                                                            \
-    using ReactorT = Reactor<name>;
+    template <typename TBase>
+    static auto NodePtr(TBase& base) -> std::shared_ptr<typename TBase::NodeType>&
+        { return base.NodePtr(); }
+
+    template <typename TBase>
+    static auto GraphPtr(const TBase& base) -> const std::shared_ptr<IReactiveGraph>&
+        { return base.NodePtr()->GraphPtr(); }
+
+    template <typename TBase>
+    static auto GraphPtr(TBase& base) -> std::shared_ptr<IReactiveGraph>&
+        { return base.NodePtr()->GraphPtr(); }
+};
+
+struct PrivateReactiveGroupInterface
+{
+    static auto GraphPtr(const ReactiveGroupBase& group) -> const std::shared_ptr<SingleThreadedGraph>&
+        { return group.GraphPtr(); }
+
+    static auto GraphPtr(ReactiveGroupBase& group) -> std::shared_ptr<SingleThreadedGraph>&
+        { return group.GraphPtr(); }
+};
+
+template <typename TBase1, typename ... TBases>
+static auto GetCheckedGraphPtr(const TBase1& dep1, const TBases& ... deps) -> const std::shared_ptr<IReactiveGraph>&
+{
+    const std::shared_ptr<IReactiveGraph>& graphPtr1 = PrivateNodeInterface::GraphPtr(dep1);
+
+    auto rawGraphPtrs = { PrivateNodeInterface::GraphPtr(deps).get() ... };
+
+    bool isSameGraphForAllDeps = std::all_of(rawGraphPtrs.begin(), rawGraphPtrs.end(), [&] (IReactiveGraph* p) { return p == graphPtr1.get(); });
+
+    REACT_ASSERT(isSameGraphForAllDeps, "All dependencies must belong to the same group.");
+
+    return graphPtr1;
+}
+
+/****************************************/ REACT_IMPL_END /***************************************/
 
 #endif // REACT_DOMAIN_H_INCLUDED

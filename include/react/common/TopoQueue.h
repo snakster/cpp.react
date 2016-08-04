@@ -25,7 +25,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// TopoQueue - Sequential
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename TLevelFunc>
+
+template <typename T>
+int GetNodeLevel(const T& node)
+    { return node.level; }
+
+template <typename T>
+int GetNodeLevel(const T* node)
+    { return node->level; }
+
+template <typename T>
 class TopoQueue
 {
 private:
@@ -39,14 +48,9 @@ public:
     TopoQueue() = default;
     TopoQueue(const TopoQueue&) = default;
 
-    template <typename FIn>
-    TopoQueue(FIn&& levelFunc) :
-        levelFunc_( std::forward<FIn>(levelFunc) )
-    {}
-
     void Push(const T& value)
     {
-        queueData_.emplace_back(value, levelFunc_(value));
+        queueData_.emplace_back(value, GetNodeLevel(value));
     }
 
     bool FetchNext()
@@ -64,7 +68,7 @@ public:
         auto p = std::partition(
             queueData_.begin(),
             queueData_.end(),
-            LevelCompFunctor{ minLevel_ });
+            [minLevel_] (const Entry& e) { return minLevel_ != e.level; });
 
         // Reserve once to avoid multiple re-allocations
         nextData_.reserve(std::distance(p, queueData_.end()));

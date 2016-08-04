@@ -4,6 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#if 0
+
 #ifndef REACT_DETAIL_REACTIVEINPUT_H_INCLUDED
 #define REACT_DETAIL_REACTIVEINPUT_H_INCLUDED
 
@@ -36,17 +38,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-struct IInputNode;
 class IObserver;
-
-template <typename D>
-class InputManager;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Common types & constants
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-using TurnIdT = uint;
-using TransactionFuncT = std::function<void()>;
 
 enum ETransactionFlags
 {
@@ -986,3 +982,5 @@ public:
 /****************************************/ REACT_IMPL_END /***************************************/
 
 #endif // REACT_DETAIL_REACTIVEINPUT_H_INCLUDED
+
+#endif

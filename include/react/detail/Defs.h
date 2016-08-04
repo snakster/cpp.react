@@ -21,22 +21,9 @@
 #define REACT_IMPL_END      REACT_END       }
 #define REACT_IMPL          REACT           ::impl
 
-#ifdef _DEBUG
-#define REACT_MESSAGE(...) printf(__VA_ARGS__)
-#else
-#define REACT_MESSAGE
-#endif
-
 // Assert with message
 #define REACT_ASSERT(condition, ...) for (; !(condition); assert(condition)) printf(__VA_ARGS__)
 #define REACT_ERROR(...)    REACT_ASSERT(false, __VA_ARGS__)
-
-// Logging
-#ifdef REACT_ENABLE_LOGGING
-    #define REACT_LOG(...) __VA_ARGS__
-#else
-    #define REACT_LOG(...)
-#endif
 
 // Thread local storage
 #if _WIN32 || _WIN64

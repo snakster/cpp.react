@@ -17,6 +17,12 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+template <typename ... Ts>
+struct MakeVoid { using type = void;};
+
+template <typename ... Ts>
+using VoidType = typename MakeVoid<Ts ...>::type;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Unpack tuple - see
 /// http://stackoverflow.com/questions/687490/how-do-i-expand-a-tuple-into-variadic-template-functions-arguments
@@ -25,8 +31,7 @@
 template<size_t N>
 struct Apply {
     template<typename F, typename T, typename... A>
-    static inline auto apply(F && f, T && t, A &&... a)
-        -> decltype(Apply<N-1>::apply(std::forward<F>(f), std::forward<T>(t), std::get<N-1>(std::forward<T>(t)), std::forward<A>(a)...))
+    static auto apply(F&& f, T&& t, A&&... a) -> decltype(auto)
     {
         return Apply<N-1>::apply(std::forward<F>(f), std::forward<T>(t), std::get<N-1>(std::forward<T>(t)), std::forward<A>(a)...);
     }
@@ -36,26 +41,22 @@ template<>
 struct Apply<0>
 {
     template<typename F, typename T, typename... A>
-    static inline auto apply(F && f, T &&, A &&... a)
-        -> decltype(std::forward<F>(f)(std::forward<A>(a)...))
+    static auto apply(F&& f, T&&, A&&... a) -> decltype(auto)
     {
         return std::forward<F>(f)(std::forward<A>(a)...);
     }
 };
 
 template<typename F, typename T>
-inline auto apply(F && f, T && t)
-    -> decltype(Apply<std::tuple_size<typename std::decay<T>::type>::value>::apply(std::forward<F>(f), std::forward<T>(t)))
+inline auto apply(F&& f, T&& t) -> decltype(auto)
 {
-    return Apply<std::tuple_size<typename std::decay<T>::type>::value>
-        ::apply(std::forward<F>(f), std::forward<T>(t));
+    return Apply<std::tuple_size<typename std::decay<T>::type>::value>::apply(std::forward<F>(f), std::forward<T>(t));
 }
 
 template<size_t N>
 struct ApplyMemberFn {
     template <typename O, typename F, typename T, typename... A>
-    static inline auto apply(O obj, F f, T && t, A &&... a)
-        -> decltype(ApplyMemberFn<N-1>::apply(obj, f, std::forward<T>(t), std::get<N-1>(std::forward<T>(t)), std::forward<A>(a)...))
+    static inline auto apply(O obj, F f, T && t, A &&... a) -> decltype(auto)
     {
         return ApplyMemberFn<N-1>::apply(obj, f, std::forward<T>(t), std::get<N-1>(std::forward<T>(t)), std::forward<A>(a)...);
     }
@@ -194,12 +195,7 @@ struct AddDefaultReturnValueWrapper
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IsCallableWith
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename F,
-    typename TRet,
-    typename ... TArgs
->
+template <typename F, typename TRet, typename ... TArgs>
 class IsCallableWith
 {
 private:
@@ -209,9 +205,7 @@ private:
     template
     <
         typename U,
-        class = decltype(
-            static_cast<TRet>(
-                (std::declval<U>())(std::declval<TArgs>() ...)))
+        typename = decltype(static_cast<TRet>((std::declval<U>())(std::declval<TArgs>() ...)))
     >
     static YesT& check(void*);
 
@@ -219,7 +213,7 @@ private:
     static NoT& check(...);
 
 public:
-    enum { value = sizeof(check<F>(nullptr)) == sizeof(YesT) };
+    static const bool value = sizeof(check<F>(nullptr)) == sizeof(YesT);
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
@@ -227,5 +221,23 @@ public:
 // Expand args by wrapping them in a dummy function
 // Use comma operator to replace potential void return value with 0
 #define REACT_EXPAND_PACK(...) REACT_IMPL::pass((__VA_ARGS__ , 0) ...)
+
+#define REACT_DEFINE_BITMASK_OPERATORS(t) \
+    inline t operator|(t lhs, t rhs) \
+        { return static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) | static_cast<std::underlying_type<t>::type>(rhs)); } \
+    inline t operator&(t lhs, t rhs) \
+        { return static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) & static_cast<std::underlying_type<t>::type>(rhs)); } \
+    inline t operator^(t lhs, t rhs) \
+        { return static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) ^ static_cast<std::underlying_type<t>::type>(rhs)); } \
+    inline t operator~(t rhs) \
+        { return static_cast<t>(~static_cast<std::underlying_type<t>::type>(rhs)); } \
+    inline t& operator|=(t& lhs, t rhs) \
+        { lhs = static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) | static_cast<std::underlying_type<t>::type>(rhs)); return lhs; } \
+    inline t& operator&=(t& lhs, t rhs) \
+        { lhs = static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) & static_cast<std::underlying_type<t>::type>(rhs)); return lhs; } \
+    inline t& operator^=(t& lhs, t rhs) \
+        { lhs = static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) ^ static_cast<std::underlying_type<t>::type>(rhs)); return lhs; }
+
+// Bitmask helper
 
 #endif // REACT_COMMON_UTIL_H_INCLUDED

@@ -11,76 +11,18 @@
 
 #include "react/detail/Defs.h"
 
+#include <iterator>
 #include <memory>
 #include <utility>
 
-#include "react/common/Util.h"
-#include "react/common/Timing.h"
 #include "react/common/Types.h"
-#include "react/detail/IReactiveGroup.h"
-#include "react/detail/IReactiveNode.h"
+#include "react/common/Util.h"
+#include "react/detail/IReactiveGraph.h"
 #include "react/detail/ObserverBase.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// WeightHint
-///////////////////////////////////////////////////////////////////////////////////////////////////
-enum class WeightHint
-{
-    automatic,
-    light,
-    heavy
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// UpdateTimingPolicy
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    long long threshold
->
-class UpdateTimingPolicy :
-    private ConditionalTimer<threshold, D::uses_node_update_timer>
-{
-    using ScopedTimer = typename UpdateTimingPolicy::ScopedTimer;
-
-public:
-    class ScopedUpdateTimer : private ScopedTimer
-    {
-    public:
-        ScopedUpdateTimer(UpdateTimingPolicy& parent, const size_t& count) :
-            ScopedTimer( parent, count )
-        {}
-    };
-
-    void ResetUpdateThreshold()                 { this->Reset(); }
-    void ForceUpdateThresholdExceeded(bool v)   { this->ForceThresholdExceeded(v); }
-    bool IsUpdateThresholdExceeded() const      { return this->IsThresholdExceeded(); }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// DepCounter
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-struct CountHelper { static const int value = T::dependency_count; };
-
-template <typename T>
-struct CountHelper<std::shared_ptr<T>> { static const int value = 1; };
-
-template <int N, typename... Args>
-struct DepCounter;
-
-template <>
-struct DepCounter<0> { static int const value = 0; };
-
-template <int N, typename First, typename... Args>
-struct DepCounter<N, First, Args...>
-{
-    static int const value =
-        CountHelper<typename std::decay<First>::type>::value + DepCounter<N-1,Args...>::value;
-};
+struct IReactiveGraph;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeBase
@@ -88,13 +30,14 @@ struct DepCounter<N, First, Args...>
 class NodeBase : public IReactiveNode
 {
 public:
-    NodeBase(IReactiveGroup* group) : group_( group )
+    NodeBase(const std::shared_ptr<IReactiveGraph>& graphPtr) : graphPtr_( graphPtr )
         { }
+    
+    NodeBase(const NodeBase&) = delete;
+    NodeBase& operator=(const NodeBase&) = delete;
 
     NodeBase(NodeBase&&) = delete;
     NodeBase& operator=(NodeBase&&) = delete;
-    NodeBase(const NodeBase&) = delete;
-    NodeBase& operator=(const NodeBase&) = delete;
     
     virtual bool IsInputNode() const override
         { return false; }
@@ -104,11 +47,8 @@ public:
 
     virtual bool IsDynamicNode() const override
         { return false; }
-    
-    virtual bool IsHeavyweight() const override 
-        { return false; }
 
-    void SetWeightHint(WeightHint weight)
+    /*void SetWeightHint(WeightHint weight)
     {
         switch (weight)
         {
@@ -122,173 +62,41 @@ public:
             this->ResetUpdateThreshold();
             break;
         }
-    }
+    }*/
 
     NodeId GetNodeId() const
         { return nodeId_; }
 
+    auto GraphPtr() const -> const std::shared_ptr<IReactiveGraph>&
+        { return graphPtr_; }
+
+    auto GraphPtr() -> std::shared_ptr<IReactiveGraph>&
+        { return graphPtr_; }
+
 protected:
     void RegisterMe()
-        { nodeId_ = group_->RegisterNode(); }
+        { nodeId_ = graphPtr_->RegisterNode(this); }
     
     void UnregisterMe()
-        { group_->UnregisterNode(nodeId_); }
+        { graphPtr_->UnregisterNode(nodeId_); }
 
     void AttachToMe(NodeId otherNodeId)
-        { group_->OnNodeAttach(nodeId_, otherNodeId); }
+        { graphPtr_->OnNodeAttach(nodeId_, otherNodeId); }
 
     void DetachFromMe(NodeId otherNodeId)
-        { group_->OnNodeDetach(nodeId_, otherNodeId); }
+        { graphPtr_->OnNodeDetach(nodeId_, otherNodeId); }
 
     void DynamicAttachToMe(NodeId otherNodeId, TurnId turnId)
-        { group_->OnDynamicNodeAttach(nodeId_, otherNodeId, turnId); }
+        { graphPtr_->OnDynamicNodeAttach(nodeId_, otherNodeId, turnId); }
 
     void DynamicDetachFromMe(NodeId otherNodeId, TurnId turnId)
-        { group_->OnDynamicNodeDetach(nodeId_, otherNodeId, turnId); }
+        { graphPtr_->OnDynamicNodeDetach(nodeId_, otherNodeId, turnId); }
 
 private:
     NodeId          nodeId_;
-    IReactiveGroup* group_;
+
+    std::shared_ptr<IReactiveGraph> graphPtr_;
 };
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Attach/detach helper functors
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TNode, typename ... TDeps>
-struct AttachFunctor
-{
-    AttachFunctor(TNode& node) : MyNode( node ) {}
-
-    void operator()(const TDeps& ...deps) const
-    {
-        REACT_EXPAND_PACK(attach(deps));
-    }
-
-    template <typename T>
-    void attach(const T& op) const
-    {
-        op.template AttachRec<D,TNode>(*this);
-    }
-
-    template <typename T>
-    void attach(const std::shared_ptr<T>& depPtr) const
-    {
-        D::Engine::OnNodeAttach(MyNode, *depPtr);
-    }
-
-    TNode& MyNode;
-};
-
-template <typename D, typename TNode, typename ... TDeps>
-struct DetachFunctor
-{
-    DetachFunctor(TNode& node) : MyNode( node ) {}
-
-    void operator()(const TDeps& ... deps) const
-    {
-        REACT_EXPAND_PACK(detach(deps));
-    }
-
-    template <typename T>
-    void detach(const T& op) const
-    {
-        op.template DetachRec<D,TNode>(*this);
-    }
-
-    template <typename T>
-    void detach(const std::shared_ptr<T>& depPtr) const
-    {
-        D::Engine::OnNodeDetach(MyNode, *depPtr);
-    }
-
-    TNode& MyNode;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ReactiveOpBase
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename ... TDeps>
-class ReactiveOpBase
-{
-public:
-    using DepHolderT = std::tuple<TDeps...>;
-
-    template <typename ... TDepsIn>
-    ReactiveOpBase(DontMove, TDepsIn&& ... deps) :
-        deps_( std::forward<TDepsIn>(deps) ... )
-    {}
-
-    ReactiveOpBase(ReactiveOpBase&& other) :
-        deps_( std::move(other.deps_) )
-    {}
-
-    // Can't be copied, only moved
-    ReactiveOpBase(const ReactiveOpBase& other) = delete;
-
-    template <typename D, typename TNode>
-    void Attach(TNode& node) const
-    {
-        apply(AttachFunctor<D,TNode,TDeps...>{ node }, deps_);
-    }
-
-    template <typename D, typename TNode>
-    void Detach(TNode& node) const
-    {
-        apply(DetachFunctor<D,TNode,TDeps...>{ node }, deps_);
-    }
-
-    template <typename D, typename TNode, typename TFunctor>
-    void AttachRec(const TFunctor& functor) const
-    {
-        // Same memory layout, different func
-        apply(reinterpret_cast<const AttachFunctor<D,TNode,TDeps...>&>(functor), deps_);
-    }
-
-    template <typename D, typename TNode, typename TFunctor>
-    void DetachRec(const TFunctor& functor) const
-    {
-        apply(reinterpret_cast<const DetachFunctor<D,TNode,TDeps...>&>(functor), deps_);
-    }
-
-public:
-    static const int dependency_count = DepCounter<sizeof...(TDeps), TDeps...>::value;
-
-protected:
-    DepHolderT   deps_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Iterators for event processing
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename E>
-class EventRange
-{
-public:
-    using const_iterator = typename std::vector<E>::const_iterator;
-    using size_type = typename std::vector<E>::size_type;
-
-    // Copy ctor
-    EventRange(const EventRange&) = default;
-
-    // Copy assignment
-    EventRange& operator=(const EventRange&) = default;
-
-    const_iterator begin() const    { return data_.begin(); }
-    const_iterator end() const      { return data_.end(); }
-
-    size_type   Size() const        { return data_.size(); }
-    bool        IsEmpty() const     { return data_.empty(); }
-
-    explicit EventRange(const std::vector<E>& data) :
-        data_( data )
-    {}
-
-private:
-    const std::vector<E>&    data_;
-};
-
-template <typename E>
-using EventEmitter = std::back_insert_iterator<std::vector<E>>;
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

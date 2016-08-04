@@ -81,578 +81,419 @@ struct AddIterateByRefRangeWrapper
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IterateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E,
-    typename TFunc
->
-class IterateNode :
-    public SignalNode<D,S>
+template <typename S, typename E, typename F>
+class IterateNode : public SignalNode<S>
 {
-    using Engine = typename IterateNode::Engine;
-
 public:
-    template <typename T, typename F>
-    IterateNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func) :
-        IterateNode::SignalNode( std::forward<T>(init) ),
+    template <typename U, typename V>
+    IterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, U&& init, const std::shared_ptr<EventStreamNode<E>>& events, V&& func) :
+        IterateNode::SignalNode( graphPtr, std::forward<U>(init) ),
         events_( events ),
-        func_( std::forward<F>(func) )
+        func_( std::forward<V>(func) )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *events);
+        this->RegisterMe();
+        this->AttachToMe(events->GetNodeId());
     }
 
     ~IterateNode()
     {
-        Engine::OnNodeDetach(*this, *events_);
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(events_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+        S newValue = func_(EventRange<E>( events_->Events() ), this->Value());
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        bool changed = false;
-
-        {// timer
-            using TimerT = typename IterateNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, events_->Events().size() );
-
-            S newValue = func_(EventRange<E>( events_->Events() ), this->value_);
-
-            if (! Equals(newValue, this->value_))
-            {
-                this->value_ = std::move(newValue);
-                changed = true;
-            }
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (changed)
-            Engine::OnNodePulse(*this, turn);
+        if (! Equals(newValue, this->Value()))
+        {
+            this->Value() = std::move(newValue);
+            return UpdateResult::changed;
+        }
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+        {
+            return UpdateResult::unchanged;
+        }
     }
 
-    virtual const char* GetNodeType() const override        { return "IterateNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
+    virtual const char* GetNodeType() const override
+        { return "Iterate"; }
+
+    virtual int GetDependencyCount() const override
+        { return 1; }
 
 private:
-    std::shared_ptr<EventStreamNode<D,E>> events_;
+    std::shared_ptr<EventStreamNode<E>> events_;
     
-    TFunc   func_;
+    F   func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IterateByRefNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E,
-    typename TFunc
->
-class IterateByRefNode :
-    public SignalNode<D,S>
+template <typename S, typename E, typename F>
+class IterateByRefNode : public SignalNode<S>
 {
-    using Engine = typename IterateByRefNode::Engine;
-
 public:
-    template <typename T, typename F>
-    IterateByRefNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func) :
-        IterateByRefNode::SignalNode( std::forward<T>(init) ),
-        func_( std::forward<F>(func) ),
+    template <typename SIn, typename FIn>
+    IterateByRefNode(const std::shared_ptr<IReactiveGraph>& graphPtr, SIn&& init, const std::shared_ptr<EventStreamNode<E>>& events, FIn&& func) :
+        IterateByRefNode::SignalNode( graphPtr, std::forward<SIn>(init) ),
+        func_( std::forward<FIn>(func) ),
         events_( events )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *events);
+        this->RegisterMe();
+        this->AttachToMe(events->GetNodeId());
     }
 
     ~IterateByRefNode()
     {
-        Engine::OnNodeDetach(*this, *events_);
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(events_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        {// timer
-            using TimerT = typename IterateByRefNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, events_->Events().size() );
-
-            func_(EventRange<E>( events_->Events() ), this->value_);
-
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
+        func_(EventRange<E>( events_->Events() ), this->Value());
 
         // Always assume change
-        Engine::OnNodePulse(*this, turn);
+        return UpdateResult::changed;
     }
 
-    virtual const char* GetNodeType() const override        { return "IterateByRefNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
+    virtual const char* GetNodeType() const override
+        { return "IterateByRefNode"; }
+
+    virtual int GetDependencyCount() const override
+        { return 1; }
 
 protected:
-    TFunc   func_;
+    F   func_;
 
-    std::shared_ptr<EventStreamNode<D,E>> events_;
+    std::shared_ptr<EventStreamNode<E>> events_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SyncedIterateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E,
-    typename TFunc,
-    typename ... TDepValues
->
-class SyncedIterateNode :
-    public SignalNode<D,S>
+template <typename S, typename E, typename F, typename ... TSyncs>
+class SyncedIterateNode : public SignalNode<S>
 {
-    using Engine = typename SyncedIterateNode::Engine;
-
 public:
-    template <typename T, typename F>
-    SyncedIterateNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func,
-                      const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        SyncedIterateNode::SignalNode( std::forward<T>(init) ),
+    template <typename SIn, typename FIn>
+    SyncedIterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, SIn&& init, const std::shared_ptr<EventStreamNode<E>>& events, FIn&& func, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+        SyncedIterateNode::SignalNode( graphPtr, std::forward<SIn>(init) ),
         events_( events ),
-        func_( std::forward<F>(func) ),
-        deps_( deps ... )
+        func_( std::forward<FIn>(func) ),
+        syncHolder_( syncs ... )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *events);
-        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
+        this->RegisterMe();
+        this->AttachToMe(dep->GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
 
     ~SyncedIterateNode()
     {
-        Engine::OnNodeDetach(*this, *events_);
-
-        apply(
-            DetachFunctor<D,SyncedIterateNode,
-                std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
-            deps_);
-
-        Engine::OnNodeDestroy(*this);
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(dep_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
         events_->SetCurrentTurn(turn);
 
-        bool changed = false;
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! events_->Events().empty())
-        {// timer
-            using TimerT = typename SyncedIterateNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, events_->Events().size() );
-            
-            S newValue = apply(
-                [this] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-                {
-                    return func_(EventRange<E>( events_->Events() ), this->value_, args->ValueRef() ...);
-                },
-                deps_);
-
-            if (! Equals(newValue, this->value_))
+        S newValue = apply(
+            [this] (const auto& ... syncs)
             {
-                changed = true;
-                this->value_ = std::move(newValue);
-            }            
-        }// ~timer
+                return func_(EventRange<E>( events_->Events() ), this->Value(), syncs->Value() ...);
+            },
+            syncHolder_);
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (changed)   
-            Engine::OnNodePulse(*this, turn);
+        if (! Equals(newValue, this->Value()))
+        {
+            this->Value() = std::move(newValue);
+            return UpdateResult::changed;
+        }
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+        {
+            return UpdateResult::unchanged;
+        }   
     }
 
-    virtual const char* GetNodeType() const override        { return "SyncedIterateNode"; }
-    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+    virtual const char* GetNodeType() const override
+        { return "SyncedIterate"; }
+
+    virtual int GetDependencyCount() const override
+        { return 1 + sizeof...(TSyncs); }
 
 private:
-    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
-
-    std::shared_ptr<EventStreamNode<D,E>> events_;
+    std::shared_ptr<EventStreamNode<E>> events_;
     
-    TFunc       func_;
-    DepHolderT  deps_;
+    F func_;
+
+    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SyncedIterateByRefNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E,
-    typename TFunc,
-    typename ... TDepValues
->
-class SyncedIterateByRefNode :
-    public SignalNode<D,S>
+template <typename S, typename E, typename TFunc, typename ... TSyncs>
+class SyncedIterateByRefNode : public SignalNode<S>
 {
-    using Engine = typename SyncedIterateByRefNode::Engine;
-
 public:
-    template <typename T, typename F>
-    SyncedIterateByRefNode(T&& init, const std::shared_ptr<EventStreamNode<D,E>>& events, F&& func,
-                           const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        SyncedIterateByRefNode::SignalNode( std::forward<T>(init) ),
+    template <typename SIn, typename FIn>
+    SyncedIterateByRefNode(const std::shared_ptr<IReactiveGraph>& graphPtr, SIn&& init, const std::shared_ptr<EventStreamNode<E>>& events, FIn&& func, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+        SyncedIterateByRefNode::SignalNode( graphPtr, std::forward<T>(init) ),
         events_( events ),
-        func_( std::forward<F>(func) ),
-        deps_( deps ... )
+        func_( std::forward<FIn>(func) ),
+        syncHolder_( syncs ... )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *events);
-        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
+        this->RegisterMe();
+        this->AttachToMe(dep->GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
 
     ~SyncedIterateByRefNode()
     {
-        Engine::OnNodeDetach(*this, *events_);
-
-        apply(
-            DetachFunctor<D,SyncedIterateByRefNode,
-                std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
-            deps_);
-
-        Engine::OnNodeDestroy(*this);
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(dep_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
         events_->SetCurrentTurn(turn);
 
         bool changed = false;
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
         if (! events_->Events().empty())
-        {// timer
-            using TimerT = typename SyncedIterateByRefNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, events_->Events().size() );
-
+        {
             apply(
-                [this] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
+                [this] (const auto& ... args)
                 {
-                    func_(EventRange<E>( events_->Events() ), this->value_, args->ValueRef() ...);
+                    func_(EventRange<E>( events_->Events() ), this->Value(), args->Value() ...);
                 },
                 deps_);
 
-            changed = true;
-        }// ~timer
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (changed)
-            Engine::OnNodePulse(*this, turn);
+            return UpdateResult::changed;
+        }
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+        {
+            return UpdateResult::unchanged;
+        }
     }
 
-    virtual const char* GetNodeType() const override        { return "SyncedIterateByRefNode"; }
-    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+    virtual const char* GetNodeType() const override
+        { return "SyncedIterateByRef"; }
+
+    virtual int GetDependencyCount() const override
+        { return 1 + sizeof...(TSyncs); }
 
 private:
-    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
-
-    std::shared_ptr<EventStreamNode<D,E>> events_;
+    std::shared_ptr<EventStreamNode<E>> events_;
     
-    TFunc       func_;
-    DepHolderT  deps_;
+    F func_;
+
+    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// HoldNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S
->
-class HoldNode : public SignalNode<D,S>
+template <typename T>
+class HoldNode : public SignalNode<T>
 {
-    using Engine = typename HoldNode::Engine;
-
 public:
-    template <typename T>
-    HoldNode(T&& init, const std::shared_ptr<EventStreamNode<D,S>>& events) :
-        HoldNode::SignalNode( std::forward<T>(init) ),
+    template <typename TIn>
+    HoldNode(const std::shared_ptr<IReactiveGraph>& graphPtr, TIn&& init, const std::shared_ptr<EventStreamNode<T>>& events) :
+        HoldNode::SignalNode( graphPtr, std::forward<TIn>(init) ),
         events_( events )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *events_);
+        this->RegisterMe();
+        this->AttachToMe(events->GetNodeId());
     }
 
     ~HoldNode()
     {
-        Engine::OnNodeDetach(*this, *events_);
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(events_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override    { return "HoldNode"; }
+    virtual const char* GetNodeType() const override
+        { return "HoldNode"; }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
         bool changed = false;
 
         if (! events_->Events().empty())
         {
             const S& newValue = events_->Events().back();
 
-            if (! Equals(newValue, this->value_))
+            if (! Equals(newValue, this->Value()))
             {
                 changed = true;
-                this->value_ = newValue;
+                this->Value() = newValue;
             }
         }
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
         if (changed)
-            Engine::OnNodePulse(*this, turn);
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual int     DependencyCount() const override    { return 1; }
+    virtual int GetDependencyCount() const override
+        { return 1; }
 
 private:
-    const std::shared_ptr<EventStreamNode<D,S>>    events_;
+    const std::shared_ptr<EventStreamNode<S>>    events_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SnapshotNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E
->
-class SnapshotNode : public SignalNode<D,S>
+template <typename S, typename E>
+class SnapshotNode : public SignalNode<S>
 {
-    using Engine = typename SnapshotNode::Engine;
-
 public:
-    SnapshotNode(const std::shared_ptr<SignalNode<D,S>>& target,
-                 const std::shared_ptr<EventStreamNode<D,E>>& trigger) :
-        SnapshotNode::SignalNode( target->ValueRef() ),
+    SnapshotNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target, const std::shared_ptr<EventStreamNode<E>>& trigger) :
+        SnapshotNode::SignalNode( graphPtr, target->Value() ),
         target_( target ),
         trigger_( trigger )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *target_);
-        Engine::OnNodeAttach(*this, *trigger_);
+        this->RegisterMe();
+        this->AttachToMe(target->GetNodeId());
+        this->AttachToMe(trigger->GetNodeId());
     }
 
     ~SnapshotNode()
     {
-        Engine::OnNodeDetach(*this, *target_);
-        Engine::OnNodeDetach(*this, *trigger_);
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(trigger_->GetNodeId());
+        this->DetachFromMe(target_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
-        trigger_->SetCurrentTurn(turn);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
+        trigger_->SetCurrentTurn(turnId);
 
         bool changed = false;
         
         if (! trigger_->Events().empty())
         {
-            const S& newValue = target_->ValueRef();
+            const S& newValue = target_->Value();
 
-            if (! Equals(newValue, this->value_))
+            if (! Equals(newValue, this->Value()))
             {
                 changed = true;
-                this->value_ = newValue;
+                this->Value() = newValue;
             }
         }
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
         if (changed)
-            Engine::OnNodePulse(*this, turn);
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override        { return "SnapshotNode"; }
-    virtual int         DependencyCount() const override    { return 2; }
+    virtual const char* GetNodeType() const override
+        { return "Snapshot"; }
+
+    virtual int GetDependencyCount() const override
+        { return 2; }
 
 private:
-    const std::shared_ptr<SignalNode<D,S>>      target_;
-    const std::shared_ptr<EventStreamNode<D,E>> trigger_;
+    std::shared_ptr<SignalNode<S>>      target_;
+    std::shared_ptr<EventStreamNode<E>> trigger_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MonitorNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename E
->
-class MonitorNode : public EventStreamNode<D,E>
+template <typename T>
+class MonitorNode : public EventStreamNode<T>
 {
-    using Engine = typename MonitorNode::Engine;
-
 public:
-    MonitorNode(const std::shared_ptr<SignalNode<D,E>>& target) :
-        MonitorNode::EventStreamNode( ),
+    MonitorNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<T>>& target) :
+        MonitorNode::EventStreamNode( graphPtr ),
         target_( target )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *target_);
+        this->RegisterMe();
+        this->AttachToMe(target->GetNodeId());
     }
 
     ~MonitorNode()
     {
-        Engine::OnNodeDetach(*this, *target_);
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(target_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
         this->SetCurrentTurn(turn, true);
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
+        this->Events().push_back(target_->Value());
 
-        this->events_.push_back(target_->ValueRef());
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! this->events_.empty())
-            Engine::OnNodePulse(*this, turn);
-        else
-            Engine::OnNodeIdlePulse(*this, turn);
+        return UpdateResult::changed;
     }
 
-    virtual const char* GetNodeType() const override        { return "MonitorNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
+    virtual const char* GetNodeType() const override
+        { return "Monitor"; }
+
+    virtual int GetDependencyCount() const override
+        { return 1; }
 
 private:
-    const std::shared_ptr<SignalNode<D,E>>    target_;
+    std::shared_ptr<SignalNode<E>>    target_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PulseNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename E
->
-class PulseNode : public EventStreamNode<D,S>
+template <typename S, typename E>
+class PulseNode : public EventStreamNode<S>
 {
-    using Engine = typename PulseNode::Engine;
-
 public:
-    PulseNode(const std::shared_ptr<SignalNode<D,S>>& target,
-              const std::shared_ptr<EventStreamNode<D,E>>& trigger) :
-        PulseNode::EventStreamNode( ),
+    PulseNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target, const std::shared_ptr<EventStreamNode<E>>& trigger) :
+        PulseNode::EventStreamNode( graphPtr ),
         target_( target ),
         trigger_( trigger )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *target_);
-        Engine::OnNodeAttach(*this, *trigger_);
+        this->RegisterMe();
+        this->AttachToMe(target->GetNodeId());
+        this->AttachToMe(trigger->GetNodeId());
     }
 
     ~PulseNode()
     {
-        Engine::OnNodeDetach(*this, *target_);
-        Engine::OnNodeDetach(*this, *trigger_);
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(trigger_->GetNodeId());
+        this->DetachFromMe(target_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual void Update(void* turnPtr) override
+    virtual UpdateResult Update(TurnId turnId) override
     {
-        typedef typename D::Engine::TurnT TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-
         this->SetCurrentTurn(turn, true);
         trigger_->SetCurrentTurn(turn);
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
+        for (size_t i=0; i<trigger_->Events().size(); i++)
+            this->Events().push_back(target_->Value());
 
-        for (uint i=0; i<trigger_->Events().size(); i++)
-            this->events_.push_back(target_->ValueRef());
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        if (! this->events_.empty())
-            Engine::OnNodePulse(*this, turn);
+        if (! this->Events().empty())
+            return UpdateResult::changed;
         else
-            Engine::OnNodeIdlePulse(*this, turn);
+            return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override        { return "PulseNode"; }
-    virtual int         DependencyCount() const override    { return 2; }
+    virtual const char* GetNodeType() const override
+        { return "PulseNode"; }
+
+    virtual int GetDependencyCount() const override
+        { return 2; }
 
 private:
-    const std::shared_ptr<SignalNode<D,S>>      target_;
-    const std::shared_ptr<EventStreamNode<D,E>> trigger_;
+    const std::shared_ptr<SignalNode<S>>      target_;
+    const std::shared_ptr<EventStreamNode<E>> trigger_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

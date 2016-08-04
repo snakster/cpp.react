@@ -4,6 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#if 0
+
 #include "react/engine/SubtreeEngine.h"
 
 #include <cstdint>
@@ -342,3 +344,5 @@ void EngineBase::invalidateSuccessors(Node& node)
 
 } // ~namespace subtree
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif

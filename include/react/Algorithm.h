@@ -15,32 +15,16 @@
 #include <type_traits>
 #include <utility>
 
+#include "react/API.h"
 #include "react/detail/graph/AlgorithmNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Forward declarations
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class Signal;
-
-template <typename T>
-class VarSignal;
-
-template <typename T>
-class Events;
-
-template <typename T>
-class EventSource;
-
-enum class Token;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Hold - Hold the most recent event in a signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename V>
-auto Hold(const Events<T>& events, V&& init) -> Signal<T>
+template <typename T, typename U>
+auto Hold(const Events<T>& events, U&& init) -> Signal<T>
 {
     using REACT_IMPL::HoldNode;
 

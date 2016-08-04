@@ -11,10 +11,8 @@
 #include <utility>
 #include <vector>
 
-#include "react/Domain.h"
 #include "react/Signal.h"
-#include "react/Observer.h"
-
+/*
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Example 1 - Hello world
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -26,7 +24,7 @@ namespace example1
     // Defines a domain.
     // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
     // Reactives of different domains can not be combined.
-    REACTIVE_DOMAIN(D, sequential)
+    ReactiveGroup
 
     // Define type aliases for the given domain in this namespace.
     // Now we can use VarSignalT instead of D::VarSignalT.
@@ -41,8 +39,8 @@ namespace example1
     namespace v1
     {
         // The two words
-        VarSignalT<string>  firstWord   = MakeVar<D>(string("Change"));
-        VarSignalT<string>  secondWord  = MakeVar<D>(string("me!"));
+        VarSignalT<string>  firstWord( string("Change") );
+        VarSignalT<string>  secondWord( string("me!") );
 
         SignalT<string>  bothWords = MakeSignal(With(firstWord,secondWord), concatFunc);
 
@@ -387,6 +385,33 @@ int main()
     example5::v1::Run();
     example5::v2::Run();
     example5::v3::Run();
+
+    return 0;
+}
+
+*/
+
+using namespace react;
+
+int main()
+{
+    auto group = ReactiveGroup<shared>( );
+
+    auto sig1 = VarSignal<int, unique>( 1, group );
+    auto sig2 = VarSignal<int, shared>( 2, group );
+
+    sig1.Set(1);
+    sig1 <<= 1;
+
+    sig2.Modify([] (int& value) { value = 3; });
+
+    group.DoTransaction(
+        [&]
+        {
+            sig1 <<= 2;
+        });
+
+    auto sig3 = Signal<int, unique>( [] (auto a, auto b) { return a + b; }, sig1, sig2 );
 
     return 0;
 }

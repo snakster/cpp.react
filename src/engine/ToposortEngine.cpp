@@ -4,6 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#if 0
+
 #include "react/engine/ToposortEngine.h"
 #include "tbb/parallel_for.h"
 
@@ -217,3 +219,5 @@ void ParEngineBase::invalidateSuccessors(ParNode& node)
 
 } // ~namespace toposort
 /****************************************/ REACT_IMPL_END /***************************************/
+
+#endif

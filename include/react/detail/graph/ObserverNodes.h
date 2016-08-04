@@ -23,337 +23,167 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename S>
+template <typename T>
 class SignalNode;
 
-template <typename D, typename E>
+template <typename T>
 class EventStreamNode;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ObserverAction
-///////////////////////////////////////////////////////////////////////////////////////////////////
-enum class ObserverAction
-{
-    next,
-    stop_and_detach
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// AddObserverRangeWrapper
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename E, typename F, typename ... TArgs>
-struct AddObserverRangeWrapper
-{
-    AddObserverRangeWrapper(const AddObserverRangeWrapper& other) = default;
-
-    AddObserverRangeWrapper(AddObserverRangeWrapper&& other) :
-        MyFunc( std::move(other.MyFunc) )
-    {}
-
-    template
-    <
-        typename FIn,
-        class = typename DisableIfSame<FIn,AddObserverRangeWrapper>::type
-    >
-    explicit AddObserverRangeWrapper(FIn&& func) :
-        MyFunc( std::forward<FIn>(func) )
-    {}
-
-    ObserverAction operator()(EventRange<E> range, const TArgs& ... args)
-    {
-        for (const auto& e : range)
-            if (MyFunc(e, args ...) == ObserverAction::stop_and_detach)
-                return ObserverAction::stop_and_detach;
-
-        return ObserverAction::next;
-    }
-
-    F MyFunc;
-};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D>
-class ObserverNode :
-    public NodeBase<D>,
-    public IObserver
+class ObserverNode : public NodeBase, public IObserver
 {
 public:
-    ObserverNode() = default;
+    ObserverNode(IReactiveGraph* group) : NodeBase( group )
+        { }
 
-    virtual bool IsOutputNode() const { return true; }
+    ObserverNode(ObserverNode&&) = default;
+    ObserverNode& operator=(ObserverNode&&) = default;
+
+    ObserverNode(const ObserverNode&) = delete;
+    ObserverNode& operator=(const ObserverNode&) = delete;
+
+    virtual bool IsOutputNode() const
+        { return true; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename S,
-    typename TFunc
->
-class SignalObserverNode :
-    public ObserverNode<D>
+template <typename T, typename F>
+class SignalObserverNode : public ObserverNode
 {
-    using Engine = typename SignalObserverNode::Engine;
-
 public:
-    template <typename F>
-    SignalObserverNode(const std::shared_ptr<SignalNode<D,S>>& subject, F&& func) :
-        SignalObserverNode::ObserverNode( ),
+    template <typename FIn>
+    SignalObserverNode(IReactiveGraph* group, const std::shared_ptr<SignalNode<T>>& subject, FIn&& func) :
+        SignalObserverNode::ObserverNode( group ),
         subject_( subject ),
-        func_( std::forward<F>(func) )
+        func_( std::forward<FIn>(func) )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *subject);
+        this->RegisterMe();
+        this->AttachToMe(subject->GetNodeId());
     }
 
     ~SignalObserverNode()
     {
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(subject->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override        { return "SignalObserverNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
+    virtual const char* GetNodeType() const override
+        { return "SignalObserver"; }
 
-    virtual void Update(void* turnPtr) override
+    virtual int DependencyCount() const override
+        { return 1; }
+
+    virtual UpdateResult Update(TurnId turnId) override
     {
-#ifdef REACT_ENABLE_LOGGING
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-#endif
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        bool shouldDetach = false;
-
-        if (auto p = subject_.lock())
-        {// timer
-            using TimerT = typename SignalObserverNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, 1 );
-            
-            if (func_(p->ValueRef()) == ObserverAction::stop_and_detach)
-                shouldDetach = true;
-        }// ~timer
-
-        if (shouldDetach)
-            DomainSpecificInputManager<D>::Instance()
-                .QueueObserverForDetach(*this);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-    }
-
-    virtual void UnregisterSelf() override
-    {
-        if (auto p = subject_.lock())
-            p->UnregisterObserver(this);
+        func_(subject_->Value());
+        return UpdateResult::unchanged;
     }
 
 private:
-    virtual void detachObserver() override
-    {
-        if (auto p = subject_.lock())
-        {
-            Engine::OnNodeDetach(*this, *p);
-            subject_.reset();
-        }
-    }
+    std::shared_ptr<SignalNode<T>> subject_;
 
-    std::weak_ptr<SignalNode<D,S>>  subject_;
-    TFunc                           func_;
+    F func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename E,
-    typename TFunc
->
-class EventObserverNode :
-    public ObserverNode<D>
+template <typename T, typename F>
+class EventObserverNode : public ObserverNode
 {
-    using Engine = typename EventObserverNode::Engine;
-
 public:
-    template <typename F>
-    EventObserverNode(const std::shared_ptr<EventStreamNode<D,E>>& subject, F&& func) :
-        EventObserverNode::ObserverNode( ),
+    template <typename FIn>
+    EventObserverNode(IReactiveGraph* group, const std::shared_ptr<EventStreamNode<T>>& subject, FIn&& func) :
+        EventObserverNode::ObserverNode( group ),
         subject_( subject ),
-        func_( std::forward<F>(func) )
+        func_( std::forward<FIn>(func) )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *subject);
+        this->RegisterMe();
+        this->AttachToMe(subject->GetNodeId());
     }
 
     ~EventObserverNode()
     {
-        Engine::OnNodeDestroy(*this);
+        this->DetachFromMe(subject->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override        { return "EventObserverNode"; }
-    virtual int         DependencyCount() const override    { return 1; }
+    virtual const char* GetNodeType() const override
+        { return "EventObserverNode"; }
 
-    virtual void Update(void* turnPtr) override
+    virtual int DependencyCount() const override
+        { return 1; }
+
+    virtual UpdateResult Update(TurnId turnId) override
     {
-#ifdef REACT_ENABLE_LOGGING
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
-#endif
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-
-        bool shouldDetach = false;
-
-        if (auto p = subject_.lock())
-        {// timer
-            using TimerT = typename EventObserverNode::ScopedUpdateTimer;
-            TimerT scopedTimer( *this, p->Events().size() );
-
-            shouldDetach = func_(EventRange<E>( p->Events() )) == ObserverAction::stop_and_detach;
-
-        }// ~timer
-
-        if (shouldDetach)
-            DomainSpecificInputManager<D>::Instance()
-                .QueueObserverForDetach(*this);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-    }
-
-    virtual void UnregisterSelf() override
-    {
-        if (auto p = subject_.lock())
-            p->UnregisterObserver(this);
+        func_(EventRange<T>( subject_->Events() ));
+        return UpdateResult::unchanged;
     }
 
 private:
-    std::weak_ptr<EventStreamNode<D,E>> subject_;
+    std::shared_ptr<EventStreamNode<T>> subject_;
 
-    TFunc   func_;
-
-    virtual void detachObserver()
-    {
-        if (auto p = subject_.lock())
-        {
-            Engine::OnNodeDetach(*this, *p);
-            subject_.reset();
-        }
-    }
+    F func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SyncedObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename E,
-    typename TFunc,
-    typename ... TDepValues
->
-class SyncedObserverNode :
-    public ObserverNode<D>
+template <typename T, typename F, typename ... TSyncs>
+class SyncedObserverNode : public ObserverNode
 {
-    using Engine = typename SyncedObserverNode::Engine;
-
 public:
-    template <typename F>
-    SyncedObserverNode(const std::shared_ptr<EventStreamNode<D,E>>& subject, F&& func, 
-                       const std::shared_ptr<SignalNode<D,TDepValues>>& ... deps) :
-        SyncedObserverNode::ObserverNode( ),
+    template <typename FIn>
+    SyncedObserverNode(IReactiveGraph* group, const std::shared_ptr<EventStreamNode<T>>& subject, FIn&& func, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+        SyncedObserverNode::ObserverNode( group ),
         subject_( subject ),
-        func_( std::forward<F>(func) ),
-        deps_( deps ... )
+        func_( std::forward<FIn>(func) ),
+        syncHolder_( syncs ... )
     {
-        Engine::OnNodeCreate(*this);
-        Engine::OnNodeAttach(*this, *subject);
-
-        REACT_EXPAND_PACK(Engine::OnNodeAttach(*this, *deps));
+        this->RegisterMe();
+        this->AttachToMe(subject->GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
 
     ~SyncedObserverNode()
     {
-        Engine::OnNodeDestroy(*this);
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(subject_->GetNodeId());
+        this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override        { return "SyncedObserverNode"; }
-    virtual int         DependencyCount() const override    { return 1 + sizeof...(TDepValues); }
+    virtual const char* GetNodeType() const override
+        { return "SyncedObserverNode"; }
 
-    virtual void Update(void* turnPtr) override
-    {
-        using TurnT = typename D::Engine::TurnT;
-        TurnT& turn = *reinterpret_cast<TurnT*>(turnPtr);
+    virtual int DependencyCount() const override
+        { return 1 + sizeof...(TSyncs); }
 
-        REACT_LOG(D::Log().template Append<NodeEvaluateBeginEvent>(
-            GetObjectId(*this), turn.Id()));
-        
-        bool shouldDetach = false;
-
-        if (auto p = subject_.lock())
-        {
-            // Update of this node could be triggered from deps,
-            // so make sure source doesnt contain events from last turn
-            p->SetCurrentTurn(turn);
-
-            {// timer
-                using TimerT = typename SyncedObserverNode::ScopedUpdateTimer;
-                TimerT scopedTimer( *this, p->Events().size() );
+    virtual UpdateResult Update(TurnId turnId) override
+    {   
+        // Update of this node could be triggered from deps,
+        // so make sure source doesnt contain events from last turn
+        p->SetCurrentTurn(turnId);
             
-                shouldDetach = apply(
-                    [this, &p] (const std::shared_ptr<SignalNode<D,TDepValues>>& ... args)
-                    {
-                        return func_(EventRange<E>( p->Events() ), args->ValueRef() ...);
-                    },
-                    deps_) == ObserverAction::stop_and_detach;
+        shouldDetach = apply(
+            [this] (const auto& ... syncs)
+            {
+                func_(EventRange<E>( this->subject_->Events() ), syncs->Value() ...);
+            },
+            syncHolder_);
 
-            }// ~timer
-        }
-
-        if (shouldDetach)
-            DomainSpecificInputManager<D>::Instance()
-                .QueueObserverForDetach(*this);
-
-        REACT_LOG(D::Log().template Append<NodeEvaluateEndEvent>(
-            GetObjectId(*this), turn.Id()));
-    }
-
-    virtual void UnregisterSelf() override
-    {
-        if (auto p = subject_.lock())
-            p->UnregisterObserver(this);
+        return UpdateResult::unchanged;
     }
 
 private:
-    using DepHolderT = std::tuple<std::shared_ptr<SignalNode<D,TDepValues>>...>;
-
-    std::weak_ptr<EventStreamNode<D,E>> subject_;
+    std::shared_ptr<EventStreamNode<T>> subject_;
     
-    TFunc       func_;
-    DepHolderT  deps_;
+    F func_;
 
-    virtual void detachObserver()
-    {
-        if (auto p = subject_.lock())
-        {
-            Engine::OnNodeDetach(*this, *p);
-
-            apply(
-                DetachFunctor<D,SyncedObserverNode,
-                    std::shared_ptr<SignalNode<D,TDepValues>>...>( *this ),
-                deps_);
-
-            subject_.reset();
-        }
-    }
+    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
