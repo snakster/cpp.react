@@ -23,41 +23,34 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Hold - Hold the most recent event in a signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename U>
-auto Hold(const Events<T>& events, U&& init) -> Signal<T>
+template <typename T, typename E>
+auto Hold(T&& initialValue, const EventBase<E>& events) -> Signal<E, unique>
 {
     using REACT_IMPL::HoldNode;
+    using REACT_IMPL::PrivateNodeInterface;
 
-    return Signal<T>(
-        std::make_shared<HoldNode<T>>(
-            std::forward<V>(init), GetNodePtr(events)));
+    return Signal<E, unique>( std::make_shared<HoldNode<T>>(
+        PrivateNodeInterface::GraphPtr(events), std::forward<U>(initialValue), PrivateNodeInterface::NodePtr(events)) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Monitor - Emits value changes of target signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-auto Monitor(const Signal<T>& target) -> Events<T>
+template <typename S>
+auto Monitor(const SignalBase<S>& signal) -> Event<S, unique>
 {
     using REACT_IMPL::MonitorNode;
+    using REACT_IMPL::PrivateNodeInterface;
 
-    return Events<T>(
-        std::make_shared<MonitorNode<T>>(
-            GetNodePtr(target)));
+    return Event<S, unique>( std::make_shared<MonitorNode<T>>(
+        PrivateNodeInterface::GraphPtr(signal), PrivateNodeInterface::NodePtr(signal)) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterate - Iteratively combines signal value with values from event stream (aka Fold)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename S,
-    typename E,
-    typename V,
-    typename F,
-    
->
-auto Iterate(const Events<E>& events, V&& init, F&& func) -> Signal<S>
+template <typename S, typename T, typename F, typename E>
+auto Iterate(T&& init, F&& func, const Events<E>& events) -> Signal<S, unique>
 {
     using REACT_IMPL::IterateNode;
     using REACT_IMPL::IterateByRefNode;
@@ -178,28 +171,28 @@ auto Iterate(const Events<E>& events, V&& init, const SignalPack<TDepValues...>&
 /// Snapshot - Sets signal value to value of other signal when event is received
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename E>
-auto Snapshot(const Events<E>& trigger, const Signal<S>& target) -> Signal<S>
+auto Snapshot(const Signal<S>& signal, const Events<E>& trigger) -> Signal<S>
 {
     using REACT_IMPL::SnapshotNode;
+    using REACT_IMPL::GetCheckedGraphPtr;
+    using REACT_IMPL::PrivateNodeInterface;
 
-    return Signal<S>(
-        std::make_shared<SnapshotNode<S,E>>(
-            GetNodePtr(target), GetNodePtr(trigger)));
+    return Events<S, unique>( std::make_shared<SnapshotNode<S, E>>(
+        GetCheckedGraphPtr(signal, trigger), PrivateNodeInterface::NodePtr(signal), PrivateNodeInterface::NodePtr(trigger)) );
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Pulse - Emits value of target signal when event is received
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename E>
-auto Pulse(const Events<E>& trigger, const Signal<S>& target) -> Events<S>
+auto Pulse(const Signal<S>& signal, const Events<E>& trigger) -> Events<S>
 {
     using REACT_IMPL::PulseNode;
+    using REACT_IMPL::GetCheckedGraphPtr;
+    using REACT_IMPL::PrivateNodeInterface;
 
-    return Events<S>(
-        std::make_shared<PulseNode<S,E>>(
-            GetNodePtr(target), GetNodePtr(trigger)));
+    return Events<S, unique>( std::make_shared<PulseNode<S, E>>(
+        GetCheckedGraphPtr(signal, trigger), PrivateNodeInterface::NodePtr(signal), PrivateNodeInterface::NodePtr(trigger)) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -293,11 +293,11 @@ template <typename TOut, typename TIn, typename F>
 class EventProcessingNode : public EventStreamNode<TOut>
 {
 public:
-    template <typename U>
-    EventProcessingNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<TIn>>& dep, U&& func) :
+    template <typename FIn>
+    EventProcessingNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<TIn>>& dep) :
         EventProcessingNode::EventStreamNode( graphPtr ),
-        dep_( dep ),
-        func_( std::forward<U>(func) )
+        func_( std::forward<FIn>(func) ),
+        dep_( dep )
     {
         this->RegisterMe();
         this->AttachToMe(dep->GetNodeId());
@@ -328,9 +328,9 @@ public:
         { return 1; }
 
 private:
-    std::shared_ptr<EventStreamNode<TIn>> dep_;
-
     F func_;
+
+    std::shared_ptr<EventStreamNode<TIn>> dep_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -340,11 +340,11 @@ template <typename TOut, typename TIn, typename F, typename ... TSyncs>
 class SyncedEventProcessingNode : public EventStreamNode<TOut>
 {
 public:
-    template <typename U>
-    SyncedEventProcessingNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<TIn>>& dep, U&& func, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+    template <typename FIn>
+    SyncedEventProcessingNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<TIn>>& dep, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
         SyncedEventProcessingNode::EventStreamNode( graphPtr ),
+        func_( std::forward<FIn>(func) ),
         dep_( dep ),
-        func_( std::forward<U>(func) ),
         syncHolder_( syncs ... )
     {
         this->RegisterMe();
@@ -364,7 +364,7 @@ public:
         this->SetCurrentTurn(turnId, true);
         // Update of this node could be triggered from deps,
         // so make sure source doesnt contain events from last turn
-        source_->SetCurrentTurn(turnId);
+        dep_->SetCurrentTurn(turnId);
 
         apply(
             [this] (const auto& ... syncs)
@@ -386,9 +386,9 @@ public:
         { return 1 + sizeof...(TSyncs); }
 
 private:
-    std::shared_ptr<EventStreamNode<TIn>>   dep_;
-
     F func_;
+
+    std::shared_ptr<EventStreamNode<TIn>>   dep_;
 
     std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
@@ -473,7 +473,7 @@ private:
     template <typename U>
     static void FetchBuffer(TurnId turnId, Slot<U>& slot)
     {
-        slot.Source->SetCurrentTurn(turnId);
+        slot.source->SetCurrentTurn(turnId);
         slot.buffer.insert(slot.buffer.end(), slot.source->Events().begin(), slot.source->Events().end());
     }
 

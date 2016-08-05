@@ -86,10 +86,10 @@ class IterateNode : public SignalNode<S>
 {
 public:
     template <typename U, typename V>
-    IterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, U&& init, const std::shared_ptr<EventStreamNode<E>>& events, V&& func) :
+    IterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, U&& init, const std::shared_ptr<EventStreamNode<E>>& events, FIn&& func) :
         IterateNode::SignalNode( graphPtr, std::forward<U>(init) ),
         events_( events ),
-        func_( std::forward<V>(func) )
+        func_( std::forward<FIn>(func) )
     {
         this->RegisterMe();
         this->AttachToMe(events->GetNodeId());

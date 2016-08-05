@@ -25,11 +25,11 @@
 /// Events
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <typename T = Token>
+template <typename E = Token>
 class EventBase
 {
 private:
-    using NodeType = REACT_IMPL::EventStreamNode<T>;
+    using NodeType = REACT_IMPL::EventStreamNode<E>;
 
 public:
     EventBase() = default;
@@ -69,16 +69,26 @@ protected:
     auto NodePtr() const -> const std::shared_ptr<NodeType>&
         { return nodePtr_; }
 
-    template <typename FIn, typename TIn>
-    auto CreateProcessingNode(FIn&& func, const EventBase<TIn>& dep) -> decltype(auto)
+    template <typename F, typename T>
+    auto CreateProcessingNode(F&& func, const EventBase<T>& dep) -> decltype(auto)
     {
-        using F = typename std::decay<FIn>::type;
-        using ProcessingNodeType = REACT_IMPL::EventProcessingNode<T, TIn, F>;
+        using ProcessingNodeType = REACT_IMPL::EventProcessingNode<E, T, typename std::decay<F>::type>;
 
         return std::make_shared<ProcessingNodeType>(
             REACT_IMPL::PrivateNodeInterface::GraphPtr(dep),
-            REACT_IMPL::PrivateNodeInterface::NodePtr(dep),
-            std::forward<F>(func));
+            std::forward<F>(func),
+            REACT_IMPL::PrivateNodeInterface::NodePtr(dep));
+    }
+
+    template <typename F, typename T, typename ... Us>
+    auto CreateSyncedProcessingNode(F&& func, const EventBase<T>& dep, const SignalBase<Us> ... syncs) -> decltype(auto)
+    {
+        using SyncedProcessingNodeType = REACT_IMPL::SyncedEventProcessingNode<E, T, typename std::decay<F>::type, Us ...>;
+
+        return std::make_shared<SyncedProcessingNodeType>(
+            REACT_IMPL::GetCheckedGraphPtr(dep, syncs ...),
+            std::forward<F>(func),
+            REACT_IMPL::PrivateNodeInterface::NodePtr(dep), REACT_IMPL::PrivateNodeInterface::NodePtr(syncs) ...);
     }
 
 private:
@@ -90,11 +100,11 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventSource
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T = Token>
-class EventSourceBase : public EventBase<T>
+template <typename E = Token>
+class EventSourceBase : public EventBase<E>
 {
 private:
-    using NodeType = REACT_IMPL::EventSourceNode<T>;
+    using NodeType = REACT_IMPL::EventSourceNode<E>;
 
 public:
     using EventBase::EventBase;
@@ -112,25 +122,25 @@ public:
         EventSourceBase::EventBase( std::make_shared<NodeType>(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
         { }
     
-    void Emit(const T& value)
+    void Emit(const E& value)
         { EmitValue(value); }
 
-    void Emit(T&& value)
+    void Emit(E&& value)
         { EmitValue(std::move(value)); }
 
-    template <typename U = T, typename = typename std::enable_if<std::is_same<U,Token>::value>::type>
+    template <typename T = E, typename = typename std::enable_if<std::is_same<T,Token>::value>::type>
     void Emit()
         { EmitValue(Token::value); }
 
-    EventSourceBase& operator<<(const T& value)
+    EventSourceBase& operator<<(const E& value)
         { EmitValue(e); return *this; }
 
-    EventSourceBase& operator<<(T&& value)
+    EventSourceBase& operator<<(E&& value)
         { EmitValue(std::move(value)); return *this; }
 
 private:
-    template <typename U>
-    void EmitValue(U&& value)
+    template <typename T>
+    void EmitValue(T&& value)
     {
         using REACT_IMPL::NodeId;
         using REACT_IMPL::IReactiveGraph;
@@ -139,20 +149,20 @@ private:
 
         NodeId nodeId = castedPtr->GetNodeId();
         auto& graphPtr = NodePtr()->GraphPtr();
-        graphPtr->AddInput(nodeId, [castedPtr, &value] { castedPtr->EmitValue(std::forward<U>(value)); });
+        graphPtr->AddInput(nodeId, [castedPtr, &value] { castedPtr->EmitValue(std::forward<T>(value)); });
     }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Event
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class Event<T, unique> : public EventBase<T>
+template <typename E>
+class Event<E, unique> : public EventBase<E>
 {
 public:
     using EventBase::EventBase;
 
-    using ValueType = T;
+    using ValueType = E;
 
     Event() = delete;
 
@@ -162,19 +172,24 @@ public:
     Event(Event&&) = default;
     Event& operator=(Event&&) = default;
 
-    template <typename F, typename U>
-    Event(F&& func, const EventBase<U>& dep) :
+    template <typename F, typename T>
+    Event(F&& func, const EventBase<T>& dep) :
         Event::EventBase( CreateProcessingNode(std::forward<F>(func), dep) )
+        { }
+
+    template <typename F, typename T, typename ... Us>
+    Event(F&& func, const EventBase<T>& dep, const SignalBase<Us> ... signals) :
+        Event::EventBase( CreateSyncedProcessingNode(std::forward<F>(func), dep, signals ...) )
         { }
 };
 
-template <typename T>
-class Event<T, shared> : public EventBase<T>
+template <typename E>
+class Event<E, shared> : public EventBase<E>
 {
 public:
     using EventBase::EventBase;
 
-    using ValueType = T;
+    using ValueType = E;
 
     Event() = delete;
 
@@ -184,29 +199,34 @@ public:
     Event(Event&&) = default;
     Event& operator=(Event&&) = default;
 
-    Event(Event<T, unique>&& other) :
+    Event(Event<E, unique>&& other) :
         Event::EventBase( std::move(other) )
         { }
 
-    Event& operator=(Event<T, unique>&& other)
+    Event& operator=(Event<E, unique>&& other)
         { Event::EventBase::operator=(std::move(other)); return *this; }
 
-    template <typename F, typename U>
-    Event(F&& func, const EventBase<U>& dep) :
+    template <typename F, typename T>
+    Event(F&& func, const EventBase<T>& dep) :
         Event::EventBase( CreateProcessingNode(std::forward<F>(func), dep) )
+        { }
+
+    template <typename F, typename T, typename ... Us>
+    Event(F&& func, const EventBase<T>& dep, const SignalBase<Us> ... signals) :
+        Event::EventBase( SyncedCreateProcessingNode(std::forward<F>(func), dep, signals ...) )
         { }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventSource
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class EventSource<T, unique> : public EventSourceBase<T>
+template <typename E>
+class EventSource<E, unique> : public EventSourceBase<E>
 {
 public:
     using EventSourceBase::EventSourceBase;
 
-    using ValueType = T;
+    using ValueType = E;
 
     EventSource() = delete;
 
@@ -217,13 +237,13 @@ public:
     EventSource& operator=(EventSource&&) = default;
 };
 
-template <typename T>
-class EventSource<T, shared> : public EventSourceBase<T>
+template <typename E>
+class EventSource<E, shared> : public EventSourceBase<E>
 {
 public:
     using EventSourceBase::EventSourceBase;
 
-    using ValueType = T;
+    using ValueType = E;
 
     EventSource() = delete;
 
@@ -233,11 +253,11 @@ public:
     EventSource(EventSource&&) = default;
     EventSource& operator=(EventSource&&) = default;
 
-    EventSource(EventSource<T, unique>&& other) :
+    EventSource(EventSource<E, unique>&& other) :
         EventSource::EventSourceBase( std::move(other) )
         { }
 
-    EventSource& operator=(EventSource<T, unique>&& other)
+    EventSource& operator=(EventSource<E, unique>&& other)
         { EventSource::EventSourceBase::operator=(std::move(other)); return *this; }
 };
 
@@ -251,7 +271,7 @@ auto Merge(const EventBase<U1>& dep1, const EventBase<Us>& ... deps) -> decltype
     using REACT_IMPL::GetCheckedGraphPtr;
     using REACT_IMPL::PrivateNodeInterface;
 
-    static_assert(sizeof...(Us) > 0, "Merge: 2+ arguments are required.");
+    static_assert(sizeof...(Us) > 0, "Merge requires at least 2 inputs.");
 
     // If supplied, use merge type, otherwise default to common type.
     using E = typename std::conditional<
@@ -268,174 +288,80 @@ auto Merge(const EventBase<U1>& dep1, const EventBase<Us>& ... deps) -> decltype
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Filter
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename F, typename T>
-auto Filter(F&& pred, const EventBase<T>& dep) -> Event<T, unique>
+template <typename F, typename E>
+auto Filter(F&& pred, const EventBase<E>& dep) -> Event<E, unique>
 {
-    auto filterFunc = [capturedPred = std::forward<F>(pred)] (EventRange<T> inRange, EventSink<T> out)
+    auto filterFunc = [capturedPred = std::forward<F>(pred)] (EventRange<E> inRange, EventSink<E> out)
         { std::copy_if(inRange.begin(), inRange.end(), out, capturedPred); };
 
-    return Event<T, unique>(std::move(filterFunc), dep);
+    return Event<E, unique>(std::move(filterFunc), dep);
+}
+
+template <typename F, typename E, typename ... Ts>
+auto Filter(F&& pred, const EventBase<E>& dep, const SignalBase<Ts>& ... signals) -> Event<E, unique>
+{
+    auto filterFunc = [capturedPred = std::forward<F>(pred)] (EventRange<E> inRange, EventSink<E> out, const Us& ... values)
+    {
+        for (const auto& v : inRange)
+            if (capturedPred(v, values ...))
+                *out++ = v;
+    };
+
+    return Event<E, unique>(std::move(filterFunc), dep, signals ...);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Transform
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename F, typename U>
-auto Transform(F&& op, const EventBase<U>& dep) -> Event<T, unique>
+template <typename E, typename F, typename T>
+auto Transform(F&& op, const EventBase<T>& dep) -> Event<E, unique>
 {
-    auto transformFunc = [capturedPred = std::forward<F>(op)] (EventRange<U> inRange, EventSink<T> out)
-        { std::transform(inRange.begin(), inRange.end(), out, pred); };
+    auto transformFunc = [capturedOp = std::forward<F>(op)] (EventRange<T> inRange, EventSink<E> out)
+        { std::transform(inRange.begin(), inRange.end(), out, capturedOp); };
 
-    return Event<T, unique>(std::move(transformFunc), dep);
+    return Event<E, unique>(std::move(transformFunc), dep);
 }
 
-#if 0
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Filter - Synced
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename E,
-    typename FIn,
-    typename ... TDepValues
->
-auto Filter(const Events<E>& source, const SignalPack<TDepValues...>& depPack, FIn&& func) -> Events<E>
+template <typename E, typename F, typename T, typename ... Us>
+auto Transform(F&& op, const EventBase<T>& dep, const SignalBase<Us>& ... signals) -> Event<E, unique>
 {
-    using REACT_IMPL::SyncedEventFilterNode;
-
-    using F = typename std::decay<FIn>::type;
-
-    struct NodeBuilder_
+    auto transformFunc = [capturedOp = std::forward<F>(pred)] (EventRange<T> inRange, EventSink<E> out, const Vs& ... values)
     {
-        NodeBuilder_(const Events<E>& source, FIn&& func) :
-            MySource( source ),
-            MyFunc( std::forward<FIn>(func) )
-        {}
-
-        auto operator()(const Signal<D,TDepValues>& ... deps)
-            -> Events<E>
-        {
-            return Events<E>(
-                std::make_shared<SyncedEventFilterNode<D,E,F,TDepValues ...>>(
-                     GetNodePtr(MySource), std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
-        }
-
-        const Events<E>&      MySource;
-        FIn                     MyFunc;
+        for (const auto& v : inRange)
+            *out++ = capturedPred(v, values ...);
     };
 
-    return REACT_IMPL::apply(
-        NodeBuilder_( source, std::forward<FIn>(func) ),
-        depPack.Data);
-}
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Transform - Synced
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename TIn,
-    typename FIn,
-    typename ... TDepValues,
-    typename TOut = typename std::result_of<FIn(TIn,TDepValues...)>::type
->
-auto Transform(const Events<TIn>& source, FIn&& func, const Signal<TDepValues>& ... deps) -> Events<TOut>
-{
-    using REACT_IMPL::SyncedEventTransformNode;
-
-    using F = typename std::decay<FIn>::type;
-
-    struct NodeBuilder_
-    {
-        NodeBuilder_(const Events<TIn>& source, FIn&& func) :
-            MySource( source ),
-            MyFunc( std::forward<FIn>(func) )
-        {}
-
-        auto operator()(const Signal<D,TDepValues>& ... deps)
-            -> Events<TOut>
-        {
-            return Events<TOut>(
-                std::make_shared<SyncedEventTransformNode<D,TIn,TOut,F,TDepValues ...>>(
-                     GetNodePtr(MySource), std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
-        }
-
-        const Events<TIn>&    MySource;
-        FIn                     MyFunc;
-    };
-
-    return REACT_IMPL::apply(
-        NodeBuilder_( source, std::forward<FIn>(func) ),
-        depPack.Data);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Process - Synced
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename TOut,
-    typename TIn,
-    typename FIn,
-    typename ... TDepValues
->
-auto Process(const Events<TIn>& source, const SignalPack<D,TDepValues...>& depPack, FIn&& func) -> Events<TOut>
-{
-    using REACT_IMPL::SyncedEventProcessingNode;
-
-    using F = typename std::decay<FIn>::type;
-
-    struct NodeBuilder_
-    {
-        NodeBuilder_(const Events<TIn>& source, FIn&& func) :
-            MySource( source ),
-            MyFunc( std::forward<FIn>(func) )
-        {}
-
-        auto operator()(const Signal<D,TDepValues>& ... deps)
-            -> Events<TOut>
-        {
-            return Events<TOut>(
-                std::make_shared<SyncedEventProcessingNode<D,TIn,TOut,F,TDepValues ...>>(
-                     GetNodePtr(MySource), std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
-        }
-
-        const Events<TIn>&    MySource;
-        FIn                     MyFunc;
-    };
-
-    return REACT_IMPL::apply(
-        NodeBuilder_( source, std::forward<FIn>(func) ),
-        depPack.Data);
+    return Event<E, unique>(std::move(transformFunc), dep, signals ...);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Flatten
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TInnerValue>
+/*template <typename TInnerValue>
 auto Flatten(const Signal<Events<TInnerValue>>& outer) -> Events<TInnerValue>
 {
     return Events<TInnerValue>(
         std::make_shared<REACT_IMPL::EventFlattenNode<Events<TInnerValue>, TInnerValue>>(
             GetNodePtr(outer), GetNodePtr(outer.Value())));
-}
+}*/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Join
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename ... TArgs>
-auto Join(const Events<TArgs>& ... args) -> Events<std::tuple<TArgs ...>>
+template <typename ... Ts>
+auto Join(const EventBase<Ts>& ... deps) -> Event<std::tuple<Ts ...>, unique>
 {
     using REACT_IMPL::EventJoinNode;
+    using REACT_IMPL::GetCheckedGraphPtr;
+    using REACT_IMPL::PrivateNodeInterface;
 
-    static_assert(sizeof...(TArgs) > 1, "Join: 2+ arguments are required.");
+    static_assert(sizeof...(Ts) > 1, "Join requires at least 2 inputs.");
 
-    return Events< std::tuple<TArgs ...>>(
-        std::make_shared<EventJoinNode<TArgs...>>(
-            GetNodePtr(args) ...));
+    // If supplied, use merge type, otherwise default to common type.
+    const auto& graphPtr = GetCheckedGraphPtr(deps ...);
+
+    return Event<std::tuple<Ts ...>, unique>(
+        std::make_shared<EventJoinNode<Ts ...>>(graphPtr, PrivateNodeInterface::NodePtr(deps) ...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -443,7 +369,7 @@ auto Join(const Events<TArgs>& ... args) -> Events<std::tuple<TArgs ...>>
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 enum class Token { value };
 
-struct Tokenizer
+/*struct Tokenizer
 {
     template <typename T>
     Token operator()(const T&) const { return Token::value; }
@@ -453,9 +379,7 @@ template <typename T>
 auto Tokenize(T&& source) -> decltype(auto)
 {
     return Transform(source, Tokenizer{ });
-}
-
-#endif
+}*/
 
 /******************************************/ REACT_END /******************************************/
 
