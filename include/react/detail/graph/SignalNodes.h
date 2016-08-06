@@ -27,7 +27,7 @@ bool Equals(const L& lhs, const R& rhs);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
+template <typename S>
 class SignalNode : public NodeBase
 {
 public:
@@ -37,29 +37,39 @@ public:
     SignalNode(const SignalNode&) = delete;
     SignalNode& operator=(const SignalNode&) = delete;
 
-    template <typename U>
-    SignalNode(const std::shared_ptr<IReactiveGraph>& graphPtr, U&& value) :
+    explicit SignalNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+        SignalNode::NodeBase( graphPtr ),
+        value_( )
+        { }
+
+    template <typename T>
+    SignalNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& value) :
         SignalNode::NodeBase( graphPtr ),
         value_( std::forward<T>(value) )
         { }
 
-    T& Value()
+    S& Value()
         { return value_; }
 
-    const T& Value() const
+    const S& Value() const
         { return value_; }
 
 private:
-    T value_;
+    S value_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// VarNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class VarSignalNode : public SignalNode<T>
+template <typename S>
+class VarSignalNode : public SignalNode<S>
 {
 public:
+    explicit VarSignalNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+        VarSignalNode::SignalNode( graphPtr ),
+        newValue_( )
+        { this->RegisterMe(); }
+
     template <typename T>
     VarSignalNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& value) :
         VarSignalNode::SignalNode( graphPtr, std::forward<T>(value) ),
@@ -84,7 +94,7 @@ public:
         {
             isInputAdded_ = false;
 
-            if (! Equals(this->Value(), newValue_))
+            if (! (this->Value() == newValue_))
             {
                 this->Value() = std::move(newValue_);
                 return UpdateResult::changed;
@@ -106,10 +116,10 @@ public:
         }
     }
 
-    template <typename U>
-    void SetValue(U&& newValue)
+    template <typename T>
+    void SetValue(T&& newValue)
     {
-        newValue_ = std::forward<U>(newValue);
+        newValue_ = std::forward<T>(newValue);
 
         isInputAdded_ = true;
 
@@ -139,7 +149,7 @@ public:
     }
 
 private:
-    T       newValue_;
+    S       newValue_;
     bool    isInputAdded_ = false;
     bool    isInputModified_ = false;
 };
@@ -147,14 +157,14 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalOpNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename F, typename ... TDeps>
-class SignalFuncNode : public SignalNode<T>
+template <typename S, typename F, typename ... TDeps>
+class SignalFuncNode : public SignalNode<S>
 {
 public:
-    template <typename U>
-    SignalFuncNode(const std::shared_ptr<IReactiveGraph>& graphPtr, U&& func, const std::shared_ptr<SignalNode<TDeps>>& ... deps) :
+    template <typename FIn>
+    SignalFuncNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<SignalNode<TDeps>>& ... deps) :
         SignalFuncNode::SignalNode( graphPtr, func(deps->Value() ...) ),
-        func_( std::forward<U>(func) ),
+        func_( std::forward<FIn>(func) ),
         depHolder_( deps ... )
     {
         this->RegisterMe();
@@ -167,13 +177,19 @@ public:
         this->UnregisterMe();
     }
 
+    virtual const char* GetNodeType() const override
+        { return "SignalFunc"; }
+
+    virtual int GetDependencyCount() const override
+        { return sizeof...(TDeps); }
+
     virtual UpdateResult Update(TurnId turnId) override
     {   
         bool changed = false;
 
-        T newValue = apply([this] (const auto& ... deps) { return this->func_(deps->Value() ...); }, depHolder_);
+        S newValue = apply([this] (const auto& ... deps) { return this->func_(deps->Value() ...); }, depHolder_);
 
-        if (! Equals(this->Value(), newValue))
+        if (! (this->Value() == newValue))
         {
             this->Value() = std::move(newValue);
             changed = true;
@@ -185,16 +201,10 @@ public:
             return UpdateResult::unchanged;
     }
 
-    virtual const char* GetNodeType() const override
-        { return "SignalFunc"; }
-
-    virtual int GetDependencyCount() const override
-        { return sizeof...(TDeps); }
-
 private:
-    std::tuple<std::shared_ptr<SignalNode<TDeps>> ...> depHolder_;
-
     F func_;
+
+    std::tuple<std::shared_ptr<SignalNode<TDeps>> ...> depHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -220,6 +230,15 @@ public:
         this->DetachFromMe(outer->GetNodeId());
         this->UnregisterMe();
     }
+
+    virtual const char* GetNodeType() const override
+        { return "SignalFlatten"; }
+
+    virtual bool IsDynamicNode() const override
+        { return true; }
+
+    virtual int GetDependencyCount() const override
+        { return 2; }
 
     virtual UpdateResult Update(TurnId turnId) override
     {
@@ -247,15 +266,6 @@ public:
             return UpdateResult::unchanged;
         }
     }
-
-    virtual const char* GetNodeType() const override
-        { return "SignalFlatten"; }
-
-    virtual bool IsDynamicNode() const override
-        { return true; }
-
-    virtual int GetDependencyCount() const override
-        { return 2; }
 
 private:
     std::shared_ptr<SignalNode<TOuter>> outer_;

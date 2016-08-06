@@ -54,9 +54,6 @@
     <ClInclude Include="..\..\include\react\detail\Defs.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\EngineBase.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h">
       <Filter>Header Files\detail\graph</Filter>
     </ClInclude>
@@ -64,9 +61,6 @@
       <Filter>Header Files\detail\graph</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\detail\ReactiveInput.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\ObserverBase.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\detail\graph\AlgorithmNodes.h">

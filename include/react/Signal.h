@@ -36,16 +36,6 @@ private:
     using NodeType = REACT_IMPL::SignalNode<S>;
 
 public:
-    SignalBase() = default;
-
-    SignalBase(const SignalBase&) = default;
-    SignalBase& operator=(const SignalBase&) = default;
-
-    SignalBase(SignalBase&&) = default;
-    SignalBase& operator=(SignalBase&&) = default;
-
-    ~SignalBase() = default;
-
     // Private node ctor
     explicit SignalBase(std::shared_ptr<NodeType>&& nodePtr) :
         nodePtr_( std::move(nodePtr) )
@@ -55,6 +45,14 @@ public:
         { return nodePtr_->Value(); }
 
 protected:
+    SignalBase() = default;
+
+    SignalBase(const SignalBase&) = default;
+    SignalBase& operator=(const SignalBase&) = default;
+
+    SignalBase(SignalBase&&) = default;
+    SignalBase& operator=(SignalBase&&) = default;
+
     auto NodePtr() -> std::shared_ptr<NodeType>&
         { return nodePtr_; }
 
@@ -66,7 +64,6 @@ protected:
     {
         using REACT_IMPL::GetCheckedGraphPtr;
         using REACT_IMPL::PrivateNodeInterface;
-
         using FuncNodeType = REACT_IMPL::SignalFuncNode<S, typename std::decay<F>::type, T1, Ts ...>;
 
         return std::make_shared<FuncNodeType>(
@@ -90,14 +87,6 @@ class VarSignalBase : public SignalBase<S>
 public:
     using SignalBase::SignalBase;
 
-    VarSignalBase() = default;
-
-    VarSignalBase(const VarSignalBase&) = default;
-    VarSignalBase& operator=(const VarSignalBase&) = default;
-
-    VarSignalBase(VarSignalBase&&) = default;
-    VarSignalBase& operator=(VarSignalBase&&) = default;
-
     void Set(const S& newValue)
         { SetValue(newValue); }
 
@@ -115,11 +104,27 @@ public:
         { ModifyValue(func); }
 
 protected:
+    VarSignalBase() = default;
+
+    VarSignalBase(const VarSignalBase&) = default;
+    VarSignalBase& operator=(const VarSignalBase&) = default;
+
+    VarSignalBase(VarSignalBase&&) = default;
+    VarSignalBase& operator=(VarSignalBase&&) = default;
+
+    template <typename TGroup>
+    auto CreateVarNode(const TGroup& group) -> decltype(auto)
+    {
+        using REACT_IMPL::PrivateReactiveGroupInterface;
+        using VarNodeType = REACT_IMPL::VarSignalNode<S>;
+
+        return std::make_shared<VarNodeType>(PrivateReactiveGroupInterface::GraphPtr(group));
+    }
+
     template <typename T, typename TGroup>
     auto CreateVarNode(T&& value, const TGroup& group) -> decltype(auto)
     {
         using REACT_IMPL::PrivateReactiveGroupInterface;
-
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
 
         return std::make_shared<VarNodeType>(PrivateReactiveGroupInterface::GraphPtr(group), std::forward<T>(value));
@@ -174,9 +179,10 @@ public:
     Signal(Signal&&) = default;
     Signal& operator=(Signal&&) = default;
 
-    template <typename F, typename ... Us>
-    Signal(F&& func, const SignalBase<Us>& ... deps) :
-        SignalBase( CreateFuncNode(std::forward<F>(func), deps ...) )
+    // Construct func signal
+    template <typename F, typename ... Ts>
+    Signal(F&& func, const SignalBase<Ts>& ... deps) :
+        Signal::SignalBase( CreateFuncNode(std::forward<F>(func), deps ...) )
         { }
 };
 
@@ -196,17 +202,20 @@ public:
     Signal(Signal&&) = default;
     Signal& operator=(Signal&&) = default;
 
-    Signal(Signal<S, unique>&& other) :
-        Signal::SignalBase( std::move(other) )
-        { }
-
-    Signal& operator=(Signal<S, unique>&& other)
-        { Signal::SignalBase::operator=(std::move(other)); return *this; }
-
+    // Construct func signal
     template <typename F, typename ... Ts>
     Signal(F&& func, const SignalBase<Ts>& ... deps) :
         Signal::SignalBase( CreateFuncNode(std::forward<F>(func), deps ...) )
         { }
+
+    // Construct from unique
+    Signal(Signal<S, unique>&& other) :
+        Signal::SignalBase( std::move(other) )
+        { }
+
+    // Assign from unique
+    Signal& operator=(Signal<S, unique>&& other)
+        { Signal::SignalBase::operator=(std::move(other)); return *this; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -228,6 +237,13 @@ public:
     VarSignal(VarSignal&&) = default;
     VarSignal& operator=(VarSignal&&) = default;
 
+    // Construct with default
+    template <typename TGroup>
+    explicit VarSignal(const TGroup& group) :
+        VarSignal::VarSignalBase( CreateVarNode( group) )
+        { }
+
+    // Construct with value
     template <typename T, typename TGroup>
     VarSignal(T&& value, const TGroup& group) :
         VarSignal::VarSignalBase( CreateVarNode(std::forward<T>(value), group) )
@@ -250,13 +266,22 @@ public:
     VarSignal(VarSignal&&) = default;
     VarSignal& operator=(VarSignal&&) = default;
 
+    // Construct from unique
     VarSignal(VarSignal<S, unique>&& other) :
         VarSignal::VarSignalBase( std::move(other) )
         { }
 
+    // Assign from unique
     VarSignal& operator=(VarSignal<S, unique>&& other)
         { VarSignal::SignalBase::operator=(std::move(other)); return *this; }
 
+    // Construct with default
+    template <typename TGroup>
+    explicit VarSignal(const TGroup& group) :
+        VarSignal::VarSignalBase( CreateVarNode( group) )
+        { }
+
+    // Construct with value
     template <typename T, typename TGroup>
     VarSignal(T&& value, const TGroup& group) :
         VarSignal::VarSignalBase( CreateVarNode(std::forward<T>(value), group) )

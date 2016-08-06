@@ -99,7 +99,8 @@ public:
         //});
     }
 
-    explicit EventStreamNode(const std::shared_ptr<IReactiveGraph>& graphPtr) : NodeBase( graphPtr )
+    explicit EventStreamNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+        NodeBase( graphPtr )
         { }
 
     StorageType&  Events()
@@ -122,7 +123,8 @@ template <typename T>
 class EventSourceNode : public EventStreamNode<T>
 {
 public:
-    EventSourceNode(const std::shared_ptr<IReactiveGraph>& graphPtr) : EventSourceNode::EventStreamNode( graphPtr )
+    EventSourceNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+        EventSourceNode::EventStreamNode( graphPtr )
         { this->RegisterMe(); }
 
     ~EventSourceNode()

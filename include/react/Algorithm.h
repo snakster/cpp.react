@@ -171,7 +171,7 @@ auto Iterate(const Events<E>& events, V&& init, const SignalPack<TDepValues...>&
 /// Snapshot - Sets signal value to value of other signal when event is received
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename E>
-auto Snapshot(const Signal<S>& signal, const Events<E>& trigger) -> Signal<S>
+auto Snapshot(const SignalBase<S>& signal, const EventBase<E>& trigger) -> Signal<S, unique>
 {
     using REACT_IMPL::SnapshotNode;
     using REACT_IMPL::GetCheckedGraphPtr;
@@ -185,38 +185,14 @@ auto Snapshot(const Signal<S>& signal, const Events<E>& trigger) -> Signal<S>
 /// Pulse - Emits value of target signal when event is received
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename E>
-auto Pulse(const Signal<S>& signal, const Events<E>& trigger) -> Events<S>
+auto Pulse(const SignalBase<S>& signal, const EventBase<E>& trigger) -> Event<S, unique>
 {
     using REACT_IMPL::PulseNode;
     using REACT_IMPL::GetCheckedGraphPtr;
     using REACT_IMPL::PrivateNodeInterface;
 
-    return Events<S, unique>( std::make_shared<PulseNode<S, E>>(
+    return Event<S, unique>( std::make_shared<PulseNode<S, E>>(
         GetCheckedGraphPtr(signal, trigger), PrivateNodeInterface::NodePtr(signal), PrivateNodeInterface::NodePtr(trigger)) );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Changed - Emits token when target signal was changed
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-auto Changed(const Signal<T>& target) -> Events<Token>
-{
-    return Monitor(target).Tokenize();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ChangedTo - Emits token when target signal was changed to value
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename T,
-    typename V,
->
-auto ChangedTo(const Signal<T>& target, V&& value) -> Events<Token>
-{
-    return Monitor(target)
-        .Filter([=] (const S& v) { return v == value; })
-        .Tokenize();
 }
 
 /******************************************/ REACT_END /******************************************/

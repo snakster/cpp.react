@@ -12,7 +12,8 @@
 #include <vector>
 
 #include "react/Signal.h"
-/*
+#include "react/Observer.h"
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Example 1 - Hello world
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -21,74 +22,37 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    // Defines a domain.
+    // The concat function
+    string ConcatFunc(string first, string second)
+        { return first + string(" ") + second; }
+
+    // Defines a group.
     // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
     // Reactives of different domains can not be combined.
-    ReactiveGroup
-
-    // Define type aliases for the given domain in this namespace.
-    // Now we can use VarSignalT instead of D::VarSignalT.
-    USING_REACTIVE_DOMAIN(D)
-
-    // The concat function
-    string concatFunc(string first, string second) {
-        return first + string(" ") + second;
-    }
+    ReactiveGroup<> group;
+    
+    // The two words
+    VarSignal<string> firstWord( string("Change"), group );
+    VarSignal<string> secondWord( string("me!"), group );
 
     // A signal that concatenates both words
-    namespace v1
+    Signal<string> bothWords(ConcatFunc, firstWord, secondWord);
+
+    void Run()
     {
-        // The two words
-        VarSignalT<string>  firstWord( string("Change") );
-        VarSignalT<string>  secondWord( string("me!") );
+        cout << "Example 1 - Hello world" << endl;
 
-        SignalT<string>  bothWords = MakeSignal(With(firstWord,secondWord), concatFunc);
+        cout  << bothWords.Value() << endl;
 
-        void Run()
-        {
-            cout << "Example 1 - Hello world (MakeSignal)" << endl;
+        firstWord <<= string("Hello");
 
-            // Imperative imperative value access
-            cout  << bothWords.Value() << endl;
+        cout << bothWords.Value() << endl;
 
-            // Imperative imperative change
-            firstWord  <<= string("Hello");
+        secondWord <<= string("World");
 
-            cout  << bothWords.Value() << endl;
+        cout << bothWords.Value() << endl;
 
-            secondWord <<= string("World");
-
-            cout  << bothWords.Value() << endl;
-
-            cout << endl;
-        }
-    }
-
-    // Using overloaded operator + instead of explicit MakeSignal
-    namespace v2
-    {
-        // The two words
-        VarSignalT<string>  firstWord   = MakeVar<D>(string("Change"));
-        VarSignalT<string>  secondWord  = MakeVar<D>(string("me!"));
-
-        SignalT<string> bothWords = firstWord + string(" ") + secondWord;
-
-        void Run()
-        {
-            cout << "Example 1 - Hello world (operators)" << endl;
-
-            cout  << bothWords.Value() << endl;
-
-            firstWord  <<= string("Hello");
-
-            cout  << bothWords.Value() << endl;
-
-            secondWord <<= string("World");
-
-            cout  << bothWords.Value() << endl;
-
-            cout << endl;
-        }
+        cout << endl;
     }
 }
 
@@ -100,19 +64,19 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
-    USING_REACTIVE_DOMAIN(D)
+    ReactiveGroup<> group;
 
-    VarSignalT<int> x    = MakeVar<D>(1);
-    SignalT<int>    xAbs = MakeSignal(x, [] (int x) { return abs(x); });
+    VarSignal<int> x( 1, group );
+
+    Signal<int> xAbs( [] (int v) { return abs(v); }, x);
 
     void Run()
     {
         cout << "Example 2 - Reacting to value changes" << endl;
 
-        Observe(xAbs, [] (int newValue) {
-            cout << "xAbs changed to " << newValue << endl;
-        });
+        Observer<> obs(
+            [] (int newValue) { cout << "xAbs changed to " << newValue << endl; },
+            xAbs );
 
                     // initially x is 1
         x <<=  2;   // output: xAbs changed to 2
@@ -131,28 +95,31 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
-    USING_REACTIVE_DOMAIN(D)
+    int sumFunc(int a, int b)
+        { return a + b; }
 
-    VarSignalT<int> a = MakeVar<D>(1);
-    VarSignalT<int> b = MakeVar<D>(1);
+    ReactiveGroup<> group;
 
-    SignalT<int>     x = a + b;
-    SignalT<int>     y = a + b;
-    SignalT<int>     z = x + y;
+    VarSignal<int> a( 1, group );
+    VarSignal<int> b( 1, group );
+
+    Signal<int> x( sumFunc, a, b );
+    Signal<int> y( sumFunc, a, b );
+    Signal<int> z( sumFunc, x, y );
 
     void Run()
     {
         cout << "Example 3 - Changing multiple inputs" << endl;
 
-        Observe(z, [] (int newValue) {
-            std::cout << "z changed to " << newValue << std::endl;
-        });
+        Observer<> obs(
+            [] (int newValue) { cout << "z changed to " << newValue << endl; },
+            z );
 
         a <<= 2; // output: z changed to 6
         b <<= 2; // output: z changed to 8
 
-        DoTransaction<D>([] {
+        group.DoTransaction([&]
+        {
             a <<= 4;
             b <<= 4; 
         }); // output: z changed to 16
@@ -169,27 +136,24 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
-    USING_REACTIVE_DOMAIN(D)
+    ReactiveGroup<> group;
 
-    VarSignalT<vector<string>> data = MakeVar<D>(vector<string>{ });
+    VarSignal<vector<string>> data( group );
 
     void Run()
     {
         cout << "Example 4 - Modifying signal values in place" << endl;
 
-        data.Modify([] (vector<string>& data) {
-            data.push_back("Hello");
-        });
+        data.Modify([] (vector<string>& data)
+            { data.push_back("Hello"); });
 
-        data.Modify([] (vector<string>& data) {
-            data.push_back("World");
-        });
+        data.Modify([] (vector<string>& data)
+            { data.push_back("World"); });
 
         for (const auto& s : data.Value())
             cout << s << " ";
         cout << endl;
-        // output: Hell World
+        // output: Hello World
 
         cout << endl;
     }
@@ -203,168 +167,49 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
-    USING_REACTIVE_DOMAIN(D)
+    ReactiveGroup<> group;
 
     // Helpers
-    using ExprPairT = pair<string,int>;
-    using ExprVectT = vector<ExprPairT>;
+    using ExprPairType = pair<string, int>;
+    using ExprVectType = vector<ExprPairType>;
 
-    string makeExprStr(int a, int b, const char* op)
+    string MakeExprStr(int a, int b, const char* op)
     {
         return to_string(a) + string(op) + to_string(b);
     }
 
-    ExprPairT makeExprPair(const string& s, int v)
-    {
-        return make_pair(s, v);
-    }
-
-    void printExpressions(const ExprVectT& expressions)
+    void PrintExpressions(const ExprVectType& expressions)
     {
         cout << "Expressions: " << endl;
         for (const auto& p : expressions)
             cout << "\t" << p.first << " is " << p.second << endl;
     }
 
-    // Version 1 - Intermediate signals
-    namespace v1
-    {
-        // Input operands
-        VarSignalT<int> a = MakeVar<D>(1);
-        VarSignalT<int> b = MakeVar<D>(2);
+    // Input operands
+    VarSignal<int> a( 1, group );
+    VarSignal<int> b( 2, group );
 
-        // Calculations
-        SignalT<int> sum  = a + b;
-        SignalT<int> diff = a - b;
-        SignalT<int> prod = a * b;
-
-        using std::placeholders::_1;
-        using std::placeholders::_2;
-
-        // Stringified expressions
-        SignalT<string> sumExpr =
-            MakeSignal(With(a,b), bind(makeExprStr, _1, _2, "+"));
-
-        SignalT<string> diffExpr =
-            MakeSignal(With(a,b), bind(makeExprStr, _1, _2, "-"));
-
-        SignalT<string> prodExpr =
-            MakeSignal(With(a,b), bind(makeExprStr, _1, _2, "*"));
-
-        // The expression vector
-        SignalT<ExprVectT> expressions = MakeSignal(
-            With(
-                MakeSignal(With(sumExpr, sum),   &makeExprPair),
-                MakeSignal(With(diffExpr, diff), &makeExprPair),
-                MakeSignal(With(prodExpr, prod), &makeExprPair)
-            ),
-            [] (const ExprPairT& sumP, const ExprPairT& diffP, const ExprPairT& prodP) {
-                return ExprVectT{ sumP, diffP, prodP};
-            });
-
-        void Run()
+    // The expression vector
+    Signal<ExprVectType> expressions(
+        [] (int a, int b)
         {
-            cout << "Example 5 - Complex signals (v1)" << endl;
-
-            Observe(expressions, printExpressions);
-
-            a <<= 10;
-            b <<= 20;
-
-            cout << endl;
-        }
-    }
-
-    // Version 2 - Intermediate signals in a function
-    namespace v2
-    {
-        SignalT<ExprVectT> createExpressionSignal(const SignalT<int>& a, const SignalT<int>& b)
-        {
-            using std::placeholders::_1;
-            using std::placeholders::_2;
-
-            // Inside a function, we can use auto
-            auto sumExpr =
-                MakeSignal(With(a,b), bind(makeExprStr, _1, _2, "+"));
-
-            auto diffExpr =
-                MakeSignal(With(a,b), bind(makeExprStr, _1, _2, "-"));
-
-            auto prodExpr =
-                MakeSignal(With(a,b), bind(makeExprStr, _1, _2, "*"));
-
-            return MakeSignal(
-                With(
-                    MakeSignal(With(sumExpr,  a + b), &makeExprPair),
-                    MakeSignal(With(diffExpr, a - b), &makeExprPair),
-                    MakeSignal(With(prodExpr, a * b), &makeExprPair)
-                ),
-                [] (const ExprPairT& sumP, const ExprPairT& diffP, const ExprPairT& prodP) {
-                    return ExprVectT{ sumP, diffP, prodP };
-                });
-        }
-
-        // Input operands
-        VarSignalT<int> a = MakeVar<D>(1);
-        VarSignalT<int> b = MakeVar<D>(2);
-
-        // The expression vector
-        SignalT<ExprVectT> expressions = createExpressionSignal(a, b);
-
-        void Run()
-        {
-            cout << "Example 5 - Complex signals (v2)" << endl;
-
-            Observe(expressions, printExpressions);
-
-            a <<= 30;
-            b <<= 40;
-
-            cout << endl;
-        }
-    }
-
-    // Version 3 - Imperative function
-    namespace v3
-    {
-        // Input operands
-        VarSignalT<int> a = MakeVar<D>(1);
-        VarSignalT<int> b = MakeVar<D>(2);
-
-        // The expression vector
-        SignalT<ExprVectT> expressions = MakeSignal(With(a,b), [] (int a, int b) {
-            ExprVectT result;
-
-            result.push_back(
-                make_pair(
-                    makeExprStr(a, b, "+"),
-                    a + b));
-
-            result.push_back(
-                make_pair(
-                    makeExprStr(a, b, "-"),
-                    a - b));
-
-            result.push_back(
-                make_pair(
-                    makeExprStr(a, b, "*"),
-                    a * b));
-
+            ExprVectType result;
+            result.push_back(make_pair(MakeExprStr(a, b, "+"), a + b));
+            result.push_back(make_pair(MakeExprStr(a, b, "-"), a - b));
+            result.push_back(make_pair(MakeExprStr(a, b, "*"), a * b));
             return result;
-        });
+        }, a, b );
 
-        void Run()
-        {
-            cout << "Example 5 - Complex signals (v3)" << endl;
+    void Run()
+    {
+        cout << "Example 5 - Complex signals (v3)" << endl;
 
-            Observe(expressions, printExpressions);
+        Observer<> obs(PrintExpressions, expressions);
 
-            a <<= 50;
-            b <<= 60;
+        a <<= 50;
+        b <<= 60;
 
-            cout << endl;
-        }
+        cout << endl;
     }
 }
 
@@ -373,45 +218,11 @@ namespace example5
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    example1::v1::Run();
-    example1::v2::Run();
-
+    example1::Run();
     example2::Run();
-
     example3::Run();
-
     example4::Run();
-
-    example5::v1::Run();
-    example5::v2::Run();
-    example5::v3::Run();
-
-    return 0;
-}
-
-*/
-
-using namespace react;
-
-int main()
-{
-    auto group = ReactiveGroup<shared>( );
-
-    auto sig1 = VarSignal<int, unique>( 1, group );
-    auto sig2 = VarSignal<int, shared>( 2, group );
-
-    sig1.Set(1);
-    sig1 <<= 1;
-
-    sig2.Modify([] (int& value) { value = 3; });
-
-    group.DoTransaction(
-        [&]
-        {
-            sig1 <<= 2;
-        });
-
-    auto sig3 = Signal<int, unique>( [] (auto a, auto b) { return a + b; }, sig1, sig2 );
+    example5::Run();
 
     return 0;
 }

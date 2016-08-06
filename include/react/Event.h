@@ -24,7 +24,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Events
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
 template <typename E = Token>
 class EventBase
 {
@@ -32,16 +31,6 @@ private:
     using NodeType = REACT_IMPL::EventStreamNode<E>;
 
 public:
-    EventBase() = default;
-
-    EventBase(const EventBase&) = default;
-    EventBase& operator=(const EventBase&) = default;
-
-    EventBase(EventBase&&) = default;
-    EventBase& operator=(EventBase&&) = default;
-
-    ~EventBase() = default;
-
     // Node ctor
     explicit EventBase(std::shared_ptr<NodeType>&& nodePtr) :
         nodePtr_( std::move(nodePtr) )
@@ -63,6 +52,14 @@ public:
         { return REACT::Transform(*this, std::forward<F>(f)); }*/
 
 protected:
+    EventBase() = default;
+
+    EventBase(const EventBase&) = default;
+    EventBase& operator=(const EventBase&) = default;
+
+    EventBase(EventBase&&) = default;
+    EventBase& operator=(EventBase&&) = default;
+
     auto NodePtr() -> std::shared_ptr<NodeType>&
         { return nodePtr_; }
 
@@ -72,23 +69,23 @@ protected:
     template <typename F, typename T>
     auto CreateProcessingNode(F&& func, const EventBase<T>& dep) -> decltype(auto)
     {
-        using ProcessingNodeType = REACT_IMPL::EventProcessingNode<E, T, typename std::decay<F>::type>;
+        using REACT_IMPL::PrivateNodeInterface;
+        using EventNodeType = REACT_IMPL::EventProcessingNode<E, T, typename std::decay<F>::type>;
 
-        return std::make_shared<ProcessingNodeType>(
-            REACT_IMPL::PrivateNodeInterface::GraphPtr(dep),
-            std::forward<F>(func),
-            REACT_IMPL::PrivateNodeInterface::NodePtr(dep));
+        return std::make_shared<EventNodeType>(PrivateNodeInterface::GraphPtr(dep), std::forward<F>(func), PrivateNodeInterface::NodePtr(dep));
     }
 
     template <typename F, typename T, typename ... Us>
-    auto CreateSyncedProcessingNode(F&& func, const EventBase<T>& dep, const SignalBase<Us> ... syncs) -> decltype(auto)
+    auto CreateSyncedProcessingNode(F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... syncs) -> decltype(auto)
     {
-        using SyncedProcessingNodeType = REACT_IMPL::SyncedEventProcessingNode<E, T, typename std::decay<F>::type, Us ...>;
+        using REACT_IMPL::GetCheckedGraphPtr;
+        using REACT_IMPL::PrivateNodeInterface;
+        using EventNodeType = REACT_IMPL::SyncedEventProcessingNode<E, T, typename std::decay<F>::type, Us ...>;
 
-        return std::make_shared<SyncedProcessingNodeType>(
-            REACT_IMPL::GetCheckedGraphPtr(dep, syncs ...),
+        return std::make_shared<EventNodeType>(
+            GetCheckedGraphPtr(dep, syncs ...),
             std::forward<F>(func),
-            REACT_IMPL::PrivateNodeInterface::NodePtr(dep), REACT_IMPL::PrivateNodeInterface::NodePtr(syncs) ...);
+            PrivateNodeInterface::NodePtr(dep), PrivateNodeInterface::NodePtr(syncs) ...);
     }
 
 private:
@@ -108,19 +105,6 @@ private:
 
 public:
     using EventBase::EventBase;
-
-    EventSourceBase() = default;
-
-    EventSourceBase(const EventSourceBase&) = default;
-    EventSourceBase& operator=(const EventSourceBase&) = default;
-
-    EventSourceBase(EventSourceBase&& other) = default;
-    EventSourceBase& operator=(EventSourceBase&& other) = default;
-
-    template <typename TGroup>
-    explicit EventSourceBase(const TGroup& group) :
-        EventSourceBase::EventBase( std::make_shared<NodeType>(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
-        { }
     
     void Emit(const E& value)
         { EmitValue(value); }
@@ -137,6 +121,24 @@ public:
 
     EventSourceBase& operator<<(E&& value)
         { EmitValue(std::move(value)); return *this; }
+
+protected:
+    EventSourceBase() = default;
+
+    EventSourceBase(const EventSourceBase&) = default;
+    EventSourceBase& operator=(const EventSourceBase&) = default;
+
+    EventSourceBase(EventSourceBase&& other) = default;
+    EventSourceBase& operator=(EventSourceBase&& other) = default;
+
+    template <typename TGroup>
+    auto CreateSourceNode(const TGroup& group) -> decltype(auto)
+    {
+        using REACT_IMPL::PrivateReactiveGroupInterface;
+        using SrcNodeType = REACT_IMPL::EventSourceNode<E>;
+
+        return std::make_shared<NodeType>(PrivateReactiveGroupInterface::GraphPtr(group));
+    }
 
 private:
     template <typename T>
@@ -178,7 +180,7 @@ public:
         { }
 
     template <typename F, typename T, typename ... Us>
-    Event(F&& func, const EventBase<T>& dep, const SignalBase<Us> ... signals) :
+    Event(F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... signals) :
         Event::EventBase( CreateSyncedProcessingNode(std::forward<F>(func), dep, signals ...) )
         { }
 };
@@ -212,7 +214,7 @@ public:
         { }
 
     template <typename F, typename T, typename ... Us>
-    Event(F&& func, const EventBase<T>& dep, const SignalBase<Us> ... signals) :
+    Event(F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... signals) :
         Event::EventBase( SyncedCreateProcessingNode(std::forward<F>(func), dep, signals ...) )
         { }
 };
@@ -235,6 +237,12 @@ public:
 
     EventSource(EventSource&&) = default;
     EventSource& operator=(EventSource&&) = default;
+
+    // Construct event source
+    template <typename TGroup>
+    explicit EventSource(const TGroup& group) :
+        EventSource::EventSourceBase( CreateSourceNode(group) )
+        { }
 };
 
 template <typename E>
@@ -253,10 +261,18 @@ public:
     EventSource(EventSource&&) = default;
     EventSource& operator=(EventSource&&) = default;
 
+    // Construct event source
+    template <typename TGroup>
+    explicit EventSource(const TGroup& group) :
+        EventSource::EventSourceBase( CreateSourceNode(group) )
+        { }
+
+    // Construct from unique
     EventSource(EventSource<E, unique>&& other) :
         EventSource::EventSourceBase( std::move(other) )
         { }
 
+    // Assign from unique
     EventSource& operator=(EventSource<E, unique>&& other)
         { EventSource::EventSourceBase::operator=(std::move(other)); return *this; }
 };

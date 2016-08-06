@@ -23,26 +23,21 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
+template <typename S>
 class SignalNode;
 
-template <typename T>
+template <typename E>
 class EventStreamNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ObserverNode
+/// SignalObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class ObserverNode : public NodeBase, public IObserver
+class ObserverNode : public NodeBase
 {
 public:
-    ObserverNode(IReactiveGraph* group) : NodeBase( group )
+    ObserverNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+        ObserverNode::NodeBase( graphPtr )
         { }
-
-    ObserverNode(ObserverNode&&) = default;
-    ObserverNode& operator=(ObserverNode&&) = default;
-
-    ObserverNode(const ObserverNode&) = delete;
-    ObserverNode& operator=(const ObserverNode&) = delete;
 
     virtual bool IsOutputNode() const
         { return true; }
@@ -51,56 +46,56 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SignalObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename F>
+template <typename F, typename ... TDeps>
 class SignalObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    SignalObserverNode(IReactiveGraph* group, const std::shared_ptr<SignalNode<T>>& subject, FIn&& func) :
-        SignalObserverNode::ObserverNode( group ),
-        subject_( subject ),
-        func_( std::forward<FIn>(func) )
+    SignalObserverNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<SignalNode<TDeps>>& ... deps) :
+        SignalObserverNode::ObserverNode( graphPtr ),
+        func_( std::forward<FIn>(func) ),
+        depHolder_( deps ... )
     {
         this->RegisterMe();
-        this->AttachToMe(subject->GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
     ~SignalObserverNode()
     {
-        this->DetachFromMe(subject->GetNodeId());
+        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(deps->GetNodeId())); }, depHolder_);
         this->UnregisterMe();
     }
 
     virtual const char* GetNodeType() const override
         { return "SignalObserver"; }
 
-    virtual int DependencyCount() const override
-        { return 1; }
+    virtual int GetDependencyCount() const override
+        { return sizeof...(TDeps); }
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        func_(subject_->Value());
+        apply([this] (const auto& ... deps) { this->func_(deps->Value() ...); }, depHolder_);
         return UpdateResult::unchanged;
     }
 
 private:
-    std::shared_ptr<SignalNode<T>> subject_;
-
     F func_;
+
+    std::tuple<std::shared_ptr<SignalNode<TDeps>> ...> depHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename F>
+template <typename F, typename E>
 class EventObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    EventObserverNode(IReactiveGraph* group, const std::shared_ptr<EventStreamNode<T>>& subject, FIn&& func) :
-        EventObserverNode::ObserverNode( group ),
-        subject_( subject ),
-        func_( std::forward<FIn>(func) )
+    EventObserverNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& subject) :
+        EventObserverNode::ObserverNode( graphPtr ),
+        func_( std::forward<FIn>(func) ),
+        subject_( subject )
     {
         this->RegisterMe();
         this->AttachToMe(subject->GetNodeId());
@@ -108,40 +103,40 @@ public:
 
     ~EventObserverNode()
     {
-        this->DetachFromMe(subject->GetNodeId());
+        this->DetachFromMe(subject_->GetNodeId());
         this->UnregisterMe();
     }
 
     virtual const char* GetNodeType() const override
-        { return "EventObserverNode"; }
+        { return "EventObserver"; }
 
-    virtual int DependencyCount() const override
+    virtual int GetDependencyCount() const override
         { return 1; }
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        func_(EventRange<T>( subject_->Events() ));
+        func_(EventRange<E>( subject_->Events() ));
         return UpdateResult::unchanged;
     }
 
 private:
-    std::shared_ptr<EventStreamNode<T>> subject_;
-
     F func_;
+
+    std::shared_ptr<EventStreamNode<E>> subject_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SyncedObserverNode
+/// SyncedEventObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename F, typename ... TSyncs>
-class SyncedObserverNode : public ObserverNode
+template <typename F, typename E, typename ... TSyncs>
+class SyncedEventObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    SyncedObserverNode(IReactiveGraph* group, const std::shared_ptr<EventStreamNode<T>>& subject, FIn&& func, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
-        SyncedObserverNode::ObserverNode( group ),
-        subject_( subject ),
+    SyncedEventObserverNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& subject, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+        SyncedEventObserverNode::ObserverNode( graphPtr ),
         func_( std::forward<FIn>(func) ),
+        subject_( subject ),
         syncHolder_( syncs ... )
     {
         this->RegisterMe();
@@ -149,7 +144,7 @@ public:
         REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
 
-    ~SyncedObserverNode()
+    ~SyncedEventObserverNode()
     {
         apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
         this->DetachFromMe(subject_->GetNodeId());
@@ -157,31 +152,25 @@ public:
     }
 
     virtual const char* GetNodeType() const override
-        { return "SyncedObserverNode"; }
+        { return "SyncedEventObserver"; }
 
-    virtual int DependencyCount() const override
+    virtual int GetDependencyCount() const override
         { return 1 + sizeof...(TSyncs); }
 
     virtual UpdateResult Update(TurnId turnId) override
     {   
         // Update of this node could be triggered from deps,
         // so make sure source doesnt contain events from last turn
-        p->SetCurrentTurn(turnId);
-            
-        shouldDetach = apply(
-            [this] (const auto& ... syncs)
-            {
-                func_(EventRange<E>( this->subject_->Events() ), syncs->Value() ...);
-            },
-            syncHolder_);
+        subject_->SetCurrentTurn(turnId);
 
+        apply([this] (const auto& ... syncs) { func_(EventRange<E>( this->subject_->Events() ), syncs->Value() ...); }, syncHolder_);
         return UpdateResult::unchanged;
     }
 
 private:
-    std::shared_ptr<EventStreamNode<T>> subject_;
-    
     F func_;
+
+    std::shared_ptr<EventStreamNode<E>> subject_;
 
     std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };

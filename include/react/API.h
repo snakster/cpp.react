@@ -23,6 +23,12 @@ enum OwnershipPolicy
     shared
 };
 
+enum ReferencePolicy
+{
+    strong,
+    weak
+};
+
 enum ThreadingPolicy
 {
     sequential,
@@ -81,6 +87,7 @@ class EventSource;
 enum class Token;
 
 // Observers
+template <OwnershipPolicy = unique>
 class Observer;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

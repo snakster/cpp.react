@@ -160,10 +160,8 @@
     <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\PropagationST.h" />
     <ClInclude Include="..\..\include\react\detail\graph\PropagationMT.h" />
-    <ClInclude Include="..\..\include\react\detail\ObserverBase.h" />
     <ClInclude Include="..\..\include\react\detail\ReactiveInput.h" />
     <ClInclude Include="..\..\include\react\detail\Defs.h" />
-    <ClInclude Include="..\..\include\react\detail\EngineBase.h" />
     <ClInclude Include="..\..\include\react\detail\graph\AlgorithmNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\EventNodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h" />

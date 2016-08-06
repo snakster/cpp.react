@@ -4,337 +4,176 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#if 0
-
 #ifndef REACT_OBSERVER_H_INCLUDED
 #define REACT_OBSERVER_H_INCLUDED
 
 #pragma once
 
 #include "react/detail/Defs.h"
+#include "react/API.h"
+#include "react/Group.h"
 
 #include <memory>
 #include <utility>
 
-#include "react/common/Util.h"
-#include "react/detail/IReactiveNode.h"
-#include "react/detail/ObserverBase.h"
 #include "react/detail/graph/ObserverNodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Forward declarations
+/// ObserverBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class Signal;
+class ObserverBase
+{
+private:
+    using NodeType = REACT_IMPL::ObserverNode;
 
-template <typename E>
-class Events;
+public:
+    // Private node ctor
+    explicit ObserverBase(std::shared_ptr<NodeType>&& nodePtr) :
+        nodePtr_( std::move(nodePtr) )
+        { }
 
-using REACT_IMPL::ObserverAction;
-using REACT_IMPL::WeightHint;
+    void Cancel()
+        { nodePtr_.reset(); }
+
+    bool IsCancelled() const
+        { return nodePtr_ != nullptr; }
+
+protected:
+    ObserverBase() = default;
+
+    ObserverBase(const ObserverBase&) = default;
+    ObserverBase& operator=(const ObserverBase&) = default;
+
+    ObserverBase(ObserverBase&&) = default;
+    ObserverBase& operator=(ObserverBase&&) = default;
+
+    auto NodePtr() -> std::shared_ptr<NodeType>&
+        { return nodePtr_; }
+
+    auto NodePtr() const -> const std::shared_ptr<NodeType>&
+        { return nodePtr_; }
+
+    template <typename F, typename T1, typename ... Ts>
+    auto CreateSignalObserverNode(F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) -> decltype(auto)
+    {
+        using REACT_IMPL::GetCheckedGraphPtr;
+        using REACT_IMPL::PrivateNodeInterface;
+        using ObsNodeType = REACT_IMPL::SignalObserverNode<typename std::decay<F>::type, T1, Ts ...>;
+
+        return std::make_shared<ObsNodeType>(
+            GetCheckedGraphPtr(dep1, deps ...),
+            std::forward<F>(func),
+            PrivateNodeInterface::NodePtr(dep1), PrivateNodeInterface::NodePtr(deps) ...);
+    }
+
+    template <typename F, typename T>
+    auto CreateEventObserverNode(F&& func, const EventBase<T>& dep) -> decltype(auto)
+    {
+        using REACT_IMPL::PrivateNodeInterface;
+        using ObsNodeType = REACT_IMPL::EventObserverNode<typename std::decay<F>::type, T>;
+
+        return std::make_shared<ObsNodeType>(PrivateNodeInterface::GraphPtr(dep), std::forward<F>(func), PrivateNodeInterface::NodePtr(dep));
+    }
+
+    template <typename F, typename T, typename ... Us>
+    auto CreateSyncedEventObserverNode(F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... syncs) -> decltype(auto)
+    {
+        using REACT_IMPL::GetCheckedGraphPtr;
+        using REACT_IMPL::PrivateNodeInterface;
+        using ObsNodeType = REACT_IMPL::SyncedEventObserverNode<typename std::decay<F>::type, T, Us ...>;
+
+        return std::make_shared<ObsNodeType>(
+            GetCheckedGraphPtr(dep, syncs ...),
+            std::forward<F>(func),
+            PrivateNodeInterface::NodePtr(dep), PrivateNodeInterface::NodePtr(syncs) ...);
+    }
+
+private:
+    std::shared_ptr<NodeType> nodePtr_;
+
+    friend struct REACT_IMPL::PrivateNodeInterface;
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Observer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class Observer
+template <>
+class Observer<unique> : public ObserverBase
 {
-private:
-    using SubjectPtrT   = std::shared_ptr<REACT_IMPL::ObservableNode<D>>;
-    using NodeT         = REACT_IMPL::ObserverNode<D>;
-
 public:
-    // Default ctor
-    Observer() :
-        nodePtr_( nullptr ),
-        subjectPtr_( nullptr )
-    {}
+    using ObserverBase::ObserverBase;
 
-    // Move ctor
-    Observer(Observer&& other) :
-        nodePtr_( other.nodePtr_ ),
-        subjectPtr_( std::move(other.subjectPtr_) )
-    {
-        other.nodePtr_ = nullptr;
-        other.subjectPtr_.reset();
-    }
+    Observer() = delete;
 
-    // Node ctor
-    Observer(NodeT* nodePtr, const SubjectPtrT& subjectPtr) :
-        nodePtr_( nodePtr ),
-        subjectPtr_( subjectPtr )
-    {}
-
-    // Move assignment
-    Observer& operator=(Observer&& other)
-    {
-        nodePtr_ = other.nodePtr_;
-        subjectPtr_ = std::move(other.subjectPtr_);
-
-        other.nodePtr_ = nullptr;
-        other.subjectPtr_.reset();
-
-        return *this;
-    }
-
-    // Deleted copy ctor and assignment
     Observer(const Observer&) = delete;
     Observer& operator=(const Observer&) = delete;
 
-    void Detach()
-    {
-        assert(IsValid());
-        subjectPtr_->UnregisterObserver(nodePtr_);
-    }
+    Observer(Observer&&) = default;
+    Observer& operator=(Observer&&) = default;
 
-    bool IsValid() const
-    {
-        return nodePtr_ != nullptr;
-    }
+    // Construct signal observer
+    template <typename F, typename ... Ts>
+    Observer(F&& func, const SignalBase<Ts>& ... subjects) :
+        Observer::ObserverBase( CreateSignalObserverNode(std::forward<F>(func), subjects ...) )
+        { }
 
-    void SetWeightHint(WeightHint weight)
-    {
-        assert(IsValid());
-        nodePtr_->SetWeightHint(weight);
-    }
+    // Construct event observer
+    template <typename F, typename T>
+    Observer(F&& func, const EventBase<T>& subject) :
+        Observer::ObserverBase( CreateEventObserverNode(std::forward<F>(func), subject ) )
+        { }
 
-private:
-    // Owned by subject
-    NodeT*          nodePtr_;
-
-    // While the observer handle exists, the subject is not destroyed
-    SubjectPtrT     subjectPtr_;
+    // Constructed synced event observer
+    template <typename F, typename T, typename ... Us>
+    Observer(F&& func, const EventBase<T>& subject, const SignalBase<Us>& ... signals) :
+        Observer::ObserverBase( CreateSyncedEventObserverNode(std::forward<F>(func), subject, signals ...) )
+        { }
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ScopedObserver
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D>
-class ScopedObserver
+template <>
+class Observer<shared> : public ObserverBase
 {
 public:
-    // Move ctor
-    ScopedObserver(ScopedObserver&& other) :
-        obs_( std::move(other.obs_) )
-    {}
+    using ObserverBase::ObserverBase;
 
-    // Construct from observer
-    ScopedObserver(Observer<D>&& obs) :
-        obs_( std::move(obs) )
-    {}
+    Observer() = delete;
 
-    // Move assignment
-    ScopedObserver& operator=(ScopedObserver&& other)
-    {
-        obs_ = std::move(other.obs_);
-    }
+    Observer(const Observer&) = default;
+    Observer& operator=(const Observer&) = default;
 
-    // Deleted default ctor, copy ctor and assignment
-    ScopedObserver() = delete;
-    ScopedObserver(const ScopedObserver&) = delete;
-    ScopedObserver& operator=(const ScopedObserver&) = delete;
+    Observer(Observer&&) = default;
+    Observer& operator=(Observer&&) = default;
 
-    ~ScopedObserver()
-    {
-        obs_.Detach();
-    }
+    // Construct from unique
+    Observer(Observer<unique>&& other) :
+        Observer::ObserverBase( std::move(other) )
+        { }
 
-    bool IsValid() const
-    {
-        return obs_.IsValid();
-    }
+    // Assign from unique
+    Observer& operator=(Observer<unique>&& other)
+        { Observer::ObserverBase::operator=(std::move(other)); return *this; }
 
-    void SetWeightHint(WeightHint weight)
-    {
-        obs_.SetWeightHint(weight);
-    }
+    // Construct signal observer
+    template <typename F, typename ... Ts>
+    Observer(F&& func, const SignalBase<Ts>& ... subjects) :
+        Observer::ObserverBase( CreateSignalObserverNode(std::forward<F>(func), subjects ...) )
+        { }
 
-private:
-    Observer<D>     obs_;    
+    // Construct event observer
+    template <typename F, typename T>
+    Observer(F&& func, const EventBase<T>& subject) :
+        Observer::ObserverBase( CreateEventObserverNode(std::forward<F>(func), subject ) )
+        { }
+
+    // Constructed synced event observer
+    template <typename F, typename T, typename ... Us>
+    Observer(F&& func, const EventBase<T>& subject, const SignalBase<Us>& ... signals) :
+        Observer::ObserverBase( CreateSyncedEventObserverNode(std::forward<F>(func), subject, signals ...) )
+        { }
 };
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Observe - Signals
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename FIn,
-    typename S
->
-auto Observe(const Signal<D,S>& subject, FIn&& func)
-    -> Observer<D>
-{
-    using REACT_IMPL::IObserver;
-    using REACT_IMPL::ObserverNode;
-    using REACT_IMPL::SignalObserverNode;
-    using REACT_IMPL::AddDefaultReturnValueWrapper;
-
-    using F = typename std::decay<FIn>::type;
-    using R = typename std::result_of<FIn(S)>::type;
-    using WrapperT = AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>;
-
-    // If return value of passed function is void, add ObserverAction::next as
-    // default return value.
-    using NodeT = typename std::conditional<
-        std::is_same<void,R>::value,
-        SignalObserverNode<D,S,WrapperT>,
-        SignalObserverNode<D,S,F>
-            >::type;
-
-    const auto& subjectPtr = GetNodePtr(subject);
-
-    std::unique_ptr<ObserverNode<D>> nodePtr( new NodeT(subjectPtr, std::forward<FIn>(func)) );
-    ObserverNode<D>* rawNodePtr = nodePtr.get();
-
-    subjectPtr->RegisterObserver(std::move(nodePtr));
-
-    return Observer<D>( rawNodePtr, subjectPtr );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Observe - Events
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename FIn,
-    typename E
->
-auto Observe(const Events<D,E>& subject, FIn&& func)
-    -> Observer<D>
-{
-    using REACT_IMPL::IObserver;
-    using REACT_IMPL::ObserverNode;
-    using REACT_IMPL::EventObserverNode;
-    using REACT_IMPL::AddDefaultReturnValueWrapper;
-    using REACT_IMPL::AddObserverRangeWrapper;
-    using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::EventRange;
-
-    using F = typename std::decay<FIn>::type;
-
-    using WrapperT =
-        typename std::conditional<
-            IsCallableWith<F, ObserverAction, EventRange<E>>::value,
-            F,
-            typename std::conditional<
-                IsCallableWith<F, ObserverAction, E>::value,
-                AddObserverRangeWrapper<E, F>,
-                typename std::conditional<
-                    IsCallableWith<F, void, EventRange<E>>::value,
-                    AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>,
-                    typename std::conditional<
-                        IsCallableWith<F, void, E>::value,
-                        AddObserverRangeWrapper<E,
-                            AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>>,
-                        void
-                    >::type
-                >::type
-            >::type
-        >::type;
-
-    static_assert(
-        ! std::is_same<WrapperT,void>::value,
-        "Observe: Passed function does not match any of the supported signatures.");
-    
-    using NodeT = EventObserverNode<D,E,WrapperT>;
-    
-    const auto& subjectPtr = GetNodePtr(subject);
-
-    std::unique_ptr<ObserverNode<D>> nodePtr( new NodeT(subjectPtr, std::forward<FIn>(func)) );
-    ObserverNode<D>* rawNodePtr = nodePtr.get();
-
-    subjectPtr->RegisterObserver(std::move(nodePtr));
-
-    return Observer<D>( rawNodePtr, subjectPtr );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Observe - Synced
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename FIn,
-    typename E,
-    typename ... TDepValues
->
-auto Observe(const Events<D,E>& subject,
-             const SignalPack<D,TDepValues...>& depPack, FIn&& func)
-    -> Observer<D>
-{
-    using REACT_IMPL::IObserver;
-    using REACT_IMPL::ObserverNode;
-    using REACT_IMPL::SyncedObserverNode;
-    using REACT_IMPL::AddDefaultReturnValueWrapper;
-    using REACT_IMPL::AddObserverRangeWrapper;
-    using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::EventRange;
-
-    using F = typename std::decay<FIn>::type;
-
-    using WrapperT =
-        typename std::conditional<
-            IsCallableWith<F, ObserverAction, EventRange<E>, TDepValues ...>::value,
-            F,
-            typename std::conditional<
-                IsCallableWith<F, ObserverAction, E, TDepValues ...>::value,
-                AddObserverRangeWrapper<E, F, TDepValues ...>,
-                typename std::conditional<
-                    IsCallableWith<F, void, EventRange<E>, TDepValues ...>::value,
-                    AddDefaultReturnValueWrapper<F, ObserverAction ,ObserverAction::next>,
-                    typename std::conditional<
-                        IsCallableWith<F, void, E, TDepValues ...>::value,
-                        AddObserverRangeWrapper<E,
-                            AddDefaultReturnValueWrapper<F,ObserverAction,ObserverAction::next>,
-                                TDepValues...>,
-                            void
-                        >::type
-                >::type
-            >::type
-        >::type;
-
-    static_assert(
-        ! std::is_same<WrapperT,void>::value,
-        "Observe: Passed function does not match any of the supported signatures.");
-
-    using NodeT = SyncedObserverNode<D,E,WrapperT,TDepValues ...>;
-
-    struct NodeBuilder_
-    {
-        NodeBuilder_(const Events<D,E>& subject, FIn&& func) :
-            MySubject( subject ),
-            MyFunc( std::forward<FIn>(func) )
-        {}
-
-        auto operator()(const Signal<D,TDepValues>& ... deps)
-            -> ObserverNode<D>*
-        {
-            return new NodeT(
-                GetNodePtr(MySubject), std::forward<FIn>(MyFunc), GetNodePtr(deps) ... );
-        }
-
-        const Events<D,E>& MySubject;
-        FIn MyFunc;
-    };
-
-    const auto& subjectPtr = GetNodePtr(subject);
-
-    std::unique_ptr<ObserverNode<D>> nodePtr( REACT_IMPL::apply(
-        NodeBuilder_( subject, std::forward<FIn>(func) ),
-        depPack.Data) );
-
-    ObserverNode<D>* rawNodePtr = nodePtr.get();
-
-    subjectPtr->RegisterObserver(std::move(nodePtr));
-
-    return Observer<D>( rawNodePtr, subjectPtr );
-}
 
 /******************************************/ REACT_END /******************************************/
 
 #endif // REACT_OBSERVER_H_INCLUDED
-
-#endif

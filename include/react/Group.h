@@ -87,23 +87,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-/// DoTransaction
-///////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename F>
-void DoTransaction(F&& func)
-{
-    using REACT_IMPL::DomainSpecificInputManager;
-    DomainSpecificInputManager<D>::Instance().DoTransaction(0, std::forward<F>(func));
-}
-
-template <typename D, typename F>
-void DoTransaction(TransactionFlags flags, F&& func)
-{
-    using REACT_IMPL::DomainSpecificInputManager;
-    DomainSpecificInputManager<D>::Instance().DoTransaction(flags, std::forward<F>(func));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
 /// AsyncTransaction
 ///////////////////////////////////////////////////////////////////////////////////////////////
 template <typename D, typename F>
@@ -221,6 +204,15 @@ public:
 
     ReactiveGroup(ReactiveGroup&& other) = default;
     ReactiveGroup& operator=(ReactiveGroup&& other) = default;
+
+    // Construct from unique
+    ReactiveGroup(ReactiveGroup<unique>&& other) :
+        ReactiveGroup::ReactiveGroupBase( std::move(other) )
+        { }
+
+    // Assign from unique
+    ReactiveGroup& operator=(ReactiveGroup<unique>&& other)
+        { ReactiveGroup::ReactiveGroupBase::operator=(std::move(other)); return *this; }
 };
 
 /******************************************/ REACT_END /******************************************/
@@ -260,7 +252,7 @@ static auto GetCheckedGraphPtr(const TBase1& dep1, const TBases& ... deps) -> co
 {
     const std::shared_ptr<IReactiveGraph>& graphPtr1 = PrivateNodeInterface::GraphPtr(dep1);
 
-    auto rawGraphPtrs = { PrivateNodeInterface::GraphPtr(deps).get() ... };
+    std::initializer_list<IReactiveGraph*> rawGraphPtrs = { PrivateNodeInterface::GraphPtr(deps).get() ... };
 
     bool isSameGraphForAllDeps = std::all_of(rawGraphPtrs.begin(), rawGraphPtrs.end(), [&] (IReactiveGraph* p) { return p == graphPtr1.get(); });
 

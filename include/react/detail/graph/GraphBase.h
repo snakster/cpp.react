@@ -18,7 +18,6 @@
 #include "react/common/Types.h"
 #include "react/common/Util.h"
 #include "react/detail/IReactiveGraph.h"
-#include "react/detail/ObserverBase.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -30,7 +29,8 @@ struct IReactiveGraph;
 class NodeBase : public IReactiveNode
 {
 public:
-    NodeBase(const std::shared_ptr<IReactiveGraph>& graphPtr) : graphPtr_( graphPtr )
+    NodeBase(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+        graphPtr_( graphPtr )
         { }
     
     NodeBase(const NodeBase&) = delete;
