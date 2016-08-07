@@ -137,9 +137,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\examples\src\BasicReactors.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="CppReact.vcxproj">
       <Project>{5e56aab9-4e33-4b9e-a315-e85cedb75cf1}</Project>
     </ProjectReference>

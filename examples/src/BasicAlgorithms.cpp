@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include "react/Domain.h"
 #include "react/Signal.h"
 #include "react/Event.h"
 #include "react/Observer.h"
@@ -23,15 +22,12 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
+    ReactiveGroup<> group;
 
-    class Sensor
+    struct Sensor
     {
-    public:
-        USING_REACTIVE_DOMAIN(D)
-
-        EventSourceT<int>   Samples     = MakeEventSource<D,int>();
-        SignalT<int>        LastSample  = Hold(Samples, 0);
+        EventSource<int>   samples      { group };
+        Signal<int>        lastSample   = Hold(0, samples);
     };
 
     void Run()
@@ -40,14 +36,18 @@ namespace example1
 
         Sensor mySensor;
 
-        Observe(mySensor.LastSample, [] (int v) {
-            std::cout << v << std::endl;
-        });
+        Observer<> obs(
+            [] (int v)
+            {
+                cout << v << endl;
+            },
+            mySensor.lastSample);
 
-        mySensor.Samples << 20 << 21 << 21 << 22; // output: 20, 21, 22
+        mySensor.samples << 20 << 21 << 21 << 22; // output: 20, 21, 22
 
-        DoTransaction<D>([&] {
-            mySensor.Samples << 30 << 31 << 31 << 32;
+        group.DoTransaction([&]
+        {
+            mySensor.samples << 30 << 31 << 31 << 32;
         }); // output: 32
 
         cout << endl;
@@ -62,17 +62,12 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
+    ReactiveGroup<> group;
 
-    class Employee
+    struct Employee
     {
-    public:
-        USING_REACTIVE_DOMAIN(D)
-
-        VarSignalT<string>   Name    = MakeVar<D>(string( "Bob" ));
-        VarSignalT<int>      Salary  = MakeVar<D>(3000);
-
-        EventsT<int>         SalaryChanged = Monitor(Salary);
+        VarSignal<string>   name    { string( "Bob" ), group };
+        VarSignal<int>      salary  { 3000, group };
     };
 
     void Run()
@@ -81,12 +76,13 @@ namespace example2
 
         Employee bob;
 
-        Observe(
-            bob.SalaryChanged,
-            With(bob.Name),
-            [] (int newSalary, const string& name) {
-                cout << name << " now earns " << newSalary << endl;
-            });
+        Observer<> obs(
+            [] (EventRange<int> in, const string& name)
+            {
+                for (int newSalary : in)
+                    cout << name << " now earns " << newSalary << endl;
+            },
+            Monitor(bob.salary), bob.name);
 
         cout << endl;
     }
@@ -100,21 +96,21 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
+    ReactiveGroup<> group;
 
-    class Counter
+    struct Counter
     {
-    public:
-        USING_REACTIVE_DOMAIN(D)
+        EventSource<> increment { group };
 
-        EventSourceT<>  Increment = MakeEventSource<D>();
-
-        SignalT<int> Count = Iterate(
-            Increment,
+        Signal<int> count = Iterate<int>(
             0,
-            [] (Token, int oldCount) {
-                return oldCount + 1;
-            });
+            [] (EventRange<> in, int count)
+            {
+                for (auto _ : in)
+                    ++count;
+                return count;
+            },
+            increment);
     };
 
     void Run()
@@ -123,12 +119,11 @@ namespace example3
 
         Counter myCounter;
 
-        // Note: Using function-style operator() instead of .Emit() and .Value()
-        myCounter.Increment();
-        myCounter.Increment();
-        myCounter.Increment();
+        myCounter.increment.Emit();
+        myCounter.increment.Emit();
+        myCounter.increment.Emit();
 
-        cout << myCounter.Count() << endl; // output: 3
+        cout << myCounter.count.Value() << endl; // output: 3
 
         cout << endl;
     }
@@ -142,34 +137,33 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
+    ReactiveGroup<> group;
 
-    class Sensor
+    struct Sensor
     {
-    public:
-        USING_REACTIVE_DOMAIN(D)
+        EventSource<float> input{ group };
 
-        EventSourceT<float> Input = MakeEventSource<D,float>();
-
-        SignalT<int> Count = Iterate(
-            Tokenize(Input),
+        Signal<int> count = Iterate<int>(
             0,
-            [] (Token, int oldCount) {
-                return oldCount + 1;
-            });
+            [] (EventRange<float> in, int count)
+            {
+                for (auto _ : in)
+                    count++;
+                return count;
+            },
+            input);
 
-        SignalT<float> Sum = Iterate(
-            Input,
+        Signal<float> sum = Iterate<float>(
             0.0f,
-            [] (float v, float sum) {
-                return v + sum;
-            });
+            [] (EventRange<float> in, float sum)
+            {
+                for (auto v : in)
+                    sum += v;
+                return sum;
+            },
+            input);
 
-        SignalT<float> Average = MakeSignal(
-            With(Sum,Count),
-            [] (float sum, int count) {
-                return count != 0 ? sum / count : 0.0f;
-            });
+        VarSignal<float> average{ group };
     };
 
     void Run()
@@ -178,9 +172,9 @@ namespace example4
 
         Sensor mySensor;
 
-        mySensor.Input << 10.0f << 5.0f << 10.0f << 8.0f;
+        mySensor.input << 10.0f << 5.0f << 10.0f << 8.0f;
 
-        cout << "Average: " << mySensor.Average() << endl; // output: 8.25
+        cout << "Average: " << mySensor.average.Value() << endl; // output: 8.25
 
         cout << endl;
     }
@@ -194,31 +188,35 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
+    ReactiveGroup<> group;
 
     enum ECmd { increment, decrement, reset };
 
     class Counter
     {
-    public:
-        USING_REACTIVE_DOMAIN(D)
-
-        EventSourceT<int>   Update  = MakeEventSource<D,int>();
-        VarSignalT<int>     Delta   = MakeVar<D>(1);
-        VarSignalT<int>     Start   = MakeVar<D>(0);
-
-        SignalT<int> Count = Iterate(
-            Update,
-            Start.Value(),
-            With(Delta, Start),
-            [] (int cmd, int oldCount, int delta, int start) {
+    private:
+        static int DoCounterLoop(EventRange<int> in, int count, int delta, int start)
+        {
+            for (int cmd : in)
+            {
                 if (cmd == increment)
-                    return oldCount + delta;
+                    count += delta;
                 else if (cmd == decrement)
-                    return oldCount - delta;
+                    count -= delta;
                 else
-                    return start;
-            });
+                    count = start;
+            }
+
+            return count;
+        }
+
+    public:
+        EventSource<int> update{ group };
+
+        VarSignal<int> delta{ 1, group };
+        VarSignal<int> start{ 0, group };
+
+        Signal<int> count{ Iterate<int>(start.Value(), DoCounterLoop, update, delta, start) };
     };
 
     void Run()
@@ -227,23 +225,23 @@ namespace example5
 
         Counter myCounter;
 
-        cout << "Start: " << myCounter.Count() << endl; // output: 0
+        cout << "Start: " << myCounter.count.Value() << endl; // output: 0
 
-        myCounter.Update(increment);
-        myCounter.Update(increment);
-        myCounter.Update(increment);
+        myCounter.update.Emit(increment);
+        myCounter.update.Emit(increment);
+        myCounter.update.Emit(increment);
 
-        cout << "3x increment by 1: " << myCounter.Count() << endl; // output: 3
+        cout << "3x increment by 1: " << myCounter.count.Value() << endl; // output: 3
 
-        myCounter.Delta <<= 5;
-        myCounter.Update(decrement);
+        myCounter.delta <<= 5;
+        myCounter.update.Emit(decrement);
 
-        cout << "1x decrement by 5: " << myCounter.Count() << endl; // output: -2
+        cout << "1x decrement by 5: " << myCounter.count.Value() << endl; // output: -2
 
-        myCounter.Start <<= 100;
-        myCounter.Update(reset);
+        myCounter.start <<= 100;
+        myCounter.update.Emit(reset);
 
-        cout << "reset to 100: " << myCounter.Count() << endl; // output: 100
+        cout << "reset to 100: " << myCounter.count.Value() << endl; // output: 100
 
         cout << endl;
     }
@@ -257,32 +255,32 @@ namespace example6
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
+    ReactiveGroup<> group;
 
     class Sensor
     {
-    public:
-        USING_REACTIVE_DOMAIN(D)
-
-        EventSourceT<int>   Input = MakeEventSource<D,int>();
-
-        VarSignalT<int>     Threshold = MakeVar<D>(42);
-
-        SignalT<vector<int>> AllSamples = Iterate(
-            Input,
-            vector<int>{},
-            [] (int input, vector<int>& all) {
+    private:
+        static void DoIterateAllSamples(EventRange<int> in, vector<int>& all)
+        {
+            for (int input : in)
                 all.push_back(input);
-            });
+        }
 
-        SignalT<vector<int>> CriticalSamples = Iterate(
-            Input,
-            vector<int>{},
-            With(Threshold),
-            [] (int input, vector<int>& critical, int threshold) {
+        static void DoIterateCritSamples(EventRange<int> in, vector<int>& critical, int threshold)
+        {
+            for (int input : in)
                 if (input > threshold)
                     critical.push_back(input);
-            });
+        }
+
+    public:
+        EventSource<int> input{ group };
+
+        VarSignal<int> threshold{ 42, group };
+
+        Signal<vector<int>> allSamples{ Iterate<vector<int>>(vector<int>{ }, DoIterateAllSamples, input) };
+
+        Signal<vector<int>> criticalSamples{ Iterate<vector<int>>(vector<int>{ }, DoIterateCritSamples, input, threshold) };
     };
 
     void Run()
@@ -291,15 +289,15 @@ namespace example6
 
         Sensor mySensor;
 
-        mySensor.Input << 40 << 29 << 43 << 50;
+        mySensor.input << 40 << 29 << 43 << 50;
 
         cout << "All samples: ";
-        for (auto const& v : mySensor.AllSamples())
+        for (auto const& v : mySensor.allSamples.Value())
             cout << v << " ";
         cout << endl;
 
         cout << "Critical samples: ";
-        for (auto const& v : mySensor.CriticalSamples())
+        for (auto const& v : mySensor.criticalSamples.Value())
             cout << v << " ";
         cout << endl;
 

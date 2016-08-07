@@ -37,7 +37,7 @@ private:
 
 public:
     // Private node ctor
-    explicit SignalBase(std::shared_ptr<NodeType>&& nodePtr) :
+    SignalBase(REACT_IMPL::NodeCtorTag, std::shared_ptr<NodeType>&& nodePtr) :
         nodePtr_( std::move(nodePtr) )
         { }
 
@@ -181,8 +181,8 @@ public:
 
     // Construct func signal
     template <typename F, typename ... Ts>
-    Signal(F&& func, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( CreateFuncNode(std::forward<F>(func), deps ...) )
+    explicit Signal(F&& func, const SignalBase<Ts>& ... deps) :
+        Signal::SignalBase( REACT_IMPL::NodeCtorTag{ }, CreateFuncNode(std::forward<F>(func), deps ...) )
         { }
 };
 
@@ -204,8 +204,8 @@ public:
 
     // Construct func signal
     template <typename F, typename ... Ts>
-    Signal(F&& func, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( CreateFuncNode(std::forward<F>(func), deps ...) )
+    explicit Signal(F&& func, const SignalBase<Ts>& ... deps) :
+        Signal::SignalBase( REACT_IMPL::NodeCtorTag{ }, CreateFuncNode(std::forward<F>(func), deps ...) )
         { }
 
     // Construct from unique
@@ -240,13 +240,13 @@ public:
     // Construct with default
     template <typename TGroup>
     explicit VarSignal(const TGroup& group) :
-        VarSignal::VarSignalBase( CreateVarNode( group) )
+        VarSignal::VarSignalBase( REACT_IMPL::NodeCtorTag{ }, CreateVarNode( group) )
         { }
 
     // Construct with value
     template <typename T, typename TGroup>
     VarSignal(T&& value, const TGroup& group) :
-        VarSignal::VarSignalBase( CreateVarNode(std::forward<T>(value), group) )
+        VarSignal::VarSignalBase( REACT_IMPL::NodeCtorTag{ }, CreateVarNode(std::forward<T>(value), group) )
         { }
 };
 
@@ -278,13 +278,13 @@ public:
     // Construct with default
     template <typename TGroup>
     explicit VarSignal(const TGroup& group) :
-        VarSignal::VarSignalBase( CreateVarNode( group) )
+        VarSignal::VarSignalBase( REACT_IMPL::NodeCtorTag{ }, CreateVarNode( group) )
         { }
 
     // Construct with value
     template <typename T, typename TGroup>
     VarSignal(T&& value, const TGroup& group) :
-        VarSignal::VarSignalBase( CreateVarNode(std::forward<T>(value), group) )
+        VarSignal::VarSignalBase( REACT_IMPL::NodeCtorTag{ }, CreateVarNode(std::forward<T>(value), group) )
         { }
 };
 

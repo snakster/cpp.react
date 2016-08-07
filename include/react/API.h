@@ -72,19 +72,21 @@ template <typename T, OwnershipPolicy = unique>
 class VarSignal;
 
 // Events
-template <typename T>
+enum class Token;
+
+template <typename E>
 class EventBase;
 
-template <typename T>
+template <typename E>
 class EventSourceBase;
 
-template <typename T, OwnershipPolicy = unique>
+template <typename E = Token, OwnershipPolicy = unique>
 class Event;
 
-template <typename T, OwnershipPolicy = unique>
+template <typename E = Token, OwnershipPolicy = unique>
 class EventSource;
 
-enum class Token;
+
 
 // Observers
 template <OwnershipPolicy = unique>

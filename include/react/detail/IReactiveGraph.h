@@ -37,6 +37,16 @@ enum class UpdateResult
     shifted
 };
 
+enum class NodeFlags
+{
+    none,
+    input,
+    output,
+    dynamic,
+    buffered
+};
+REACT_DEFINE_BITMASK_OPERATORS(NodeFlags)
+
 struct IReactiveGraph;
 struct IReactiveNode;
 
@@ -47,7 +57,7 @@ struct IReactiveGraph
 {
     virtual ~IReactiveGraph() = default;
 
-    virtual NodeId RegisterNode(IReactiveNode* nodePtr) = 0;
+    virtual NodeId RegisterNode(IReactiveNode* nodePtr, NodeFlags flags) = 0;
     virtual void UnregisterNode(NodeId node) = 0;
 
     virtual void OnNodeAttach(NodeId nodeId, NodeId parentId) = 0;
@@ -66,33 +76,13 @@ struct IReactiveNode
 {
     virtual ~IReactiveNode() = default;
 
-    /// Returns unique type identifier
     virtual const char* GetNodeType() const = 0;
 
-    // Note: Could get rid of this ugly ptr by adding a template parameter to the interface
-    // But that would mean all engine nodes need that template parameter too - so rather cast
     virtual UpdateResult Update(TurnId turnId) = 0;  
 
-    /// Input nodes can be manipulated externally.
-    virtual bool IsInputNode() const = 0;
-
-    /// Output nodes can't have any successors.
-    virtual bool IsOutputNode() const = 0;
-
-    /// Dynamic nodes may change in topology as a result of tick.
-    virtual bool IsDynamicNode() const = 0;
-
-    // Number of predecessors.
     virtual int GetDependencyCount() const = 0;
-};
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EPropagationMode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-enum EPropagationMode
-{
-    sequential_propagation,
-    parallel_propagation
+    virtual void ClearBuffer() = 0;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

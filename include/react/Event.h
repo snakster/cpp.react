@@ -31,8 +31,8 @@ private:
     using NodeType = REACT_IMPL::EventStreamNode<E>;
 
 public:
-    // Node ctor
-    explicit EventBase(std::shared_ptr<NodeType>&& nodePtr) :
+    // Private node ctor
+    EventBase(REACT_IMPL::NodeCtorTag, std::shared_ptr<NodeType>&& nodePtr) :
         nodePtr_( std::move(nodePtr) )
         { }
 
@@ -176,12 +176,12 @@ public:
 
     template <typename F, typename T>
     Event(F&& func, const EventBase<T>& dep) :
-        Event::EventBase( CreateProcessingNode(std::forward<F>(func), dep) )
+        Event::EventBase( REACT_IMPL::NodeCtorTag{ }, CreateProcessingNode(std::forward<F>(func), dep) )
         { }
 
     template <typename F, typename T, typename ... Us>
     Event(F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... signals) :
-        Event::EventBase( CreateSyncedProcessingNode(std::forward<F>(func), dep, signals ...) )
+        Event::EventBase( REACT_IMPL::NodeCtorTag{ }, CreateSyncedProcessingNode(std::forward<F>(func), dep, signals ...) )
         { }
 };
 
@@ -210,12 +210,12 @@ public:
 
     template <typename F, typename T>
     Event(F&& func, const EventBase<T>& dep) :
-        Event::EventBase( CreateProcessingNode(std::forward<F>(func), dep) )
+        Event::EventBase( REACT_IMPL::NodeCtorTag{ }, CreateProcessingNode(std::forward<F>(func), dep) )
         { }
 
     template <typename F, typename T, typename ... Us>
     Event(F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... signals) :
-        Event::EventBase( SyncedCreateProcessingNode(std::forward<F>(func), dep, signals ...) )
+        Event::EventBase( REACT_IMPL::NodeCtorTag{ }, CreateSyncedProcessingNode(std::forward<F>(func), dep, signals ...) )
         { }
 };
 
@@ -241,7 +241,7 @@ public:
     // Construct event source
     template <typename TGroup>
     explicit EventSource(const TGroup& group) :
-        EventSource::EventSourceBase( CreateSourceNode(group) )
+        EventSource::EventSourceBase( REACT_IMPL::NodeCtorTag{ }, CreateSourceNode(group) )
         { }
 };
 
@@ -264,7 +264,7 @@ public:
     // Construct event source
     template <typename TGroup>
     explicit EventSource(const TGroup& group) :
-        EventSource::EventSourceBase( CreateSourceNode(group) )
+        EventSource::EventSourceBase( REACT_IMPL::NodeCtorTag{ }, CreateSourceNode(group) )
         { }
 
     // Construct from unique
@@ -286,6 +286,7 @@ auto Merge(const EventBase<U1>& dep1, const EventBase<Us>& ... deps) -> decltype
     using REACT_IMPL::EventMergeNode;
     using REACT_IMPL::GetCheckedGraphPtr;
     using REACT_IMPL::PrivateNodeInterface;
+    using REACT_IMPL::NodeCtorTag;
 
     static_assert(sizeof...(Us) > 0, "Merge requires at least 2 inputs.");
 
@@ -297,8 +298,8 @@ auto Merge(const EventBase<U1>& dep1, const EventBase<Us>& ... deps) -> decltype
 
     const auto& graphPtr = GetCheckedGraphPtr(dep1, deps ...);
 
-    return Event<E, unique>(
-        std::make_shared<EventMergeNode<E, U1, Us ...>>(graphPtr, PrivateNodeInterface::NodePtr(dep1), PrivateNodeInterface::NodePtr(deps) ...));
+    return Event<E, unique>( NodeCtorTag{ }, std::make_shared<EventMergeNode<E, U1, Us ...>>(
+        graphPtr, PrivateNodeInterface::NodePtr(dep1), PrivateNodeInterface::NodePtr(deps) ...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -370,14 +371,15 @@ auto Join(const EventBase<Ts>& ... deps) -> Event<std::tuple<Ts ...>, unique>
     using REACT_IMPL::EventJoinNode;
     using REACT_IMPL::GetCheckedGraphPtr;
     using REACT_IMPL::PrivateNodeInterface;
+    using REACT_IMPL::NodeCtorTag;
 
     static_assert(sizeof...(Ts) > 1, "Join requires at least 2 inputs.");
 
     // If supplied, use merge type, otherwise default to common type.
     const auto& graphPtr = GetCheckedGraphPtr(deps ...);
 
-    return Event<std::tuple<Ts ...>, unique>(
-        std::make_shared<EventJoinNode<Ts ...>>(graphPtr, PrivateNodeInterface::NodePtr(deps) ...));
+    return Event<std::tuple<Ts ...>, unique>( NodeCtorTag{ }, std::make_shared<EventJoinNode<Ts ...>>(
+        graphPtr, PrivateNodeInterface::NodePtr(deps) ...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

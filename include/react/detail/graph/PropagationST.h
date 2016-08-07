@@ -26,7 +26,7 @@ class SingleThreadedGraph : public IReactiveGraph
 {
 public:
     // IReactiveGraph
-    virtual NodeId RegisterNode(IReactiveNode* nodePtr) override;
+    virtual NodeId RegisterNode(IReactiveNode* nodePtr, NodeFlags flags) override;
     virtual void UnregisterNode(NodeId node) override;
 
     virtual void OnNodeAttach(NodeId node, NodeId parentId) override;
@@ -49,15 +49,19 @@ private:
         NodeData(const NodeData&) = default;
         NodeData& operator=(const NodeData&) = default;
 
-        NodeData(IReactiveNode* nodePtrIn) :
-            nodePtr( nodePtrIn )
+        NodeData(IReactiveNode* nodePtrIn, NodeFlags flagsIn) :
+            nodePtr( nodePtrIn ),
+            flags( flagsIn )
         { }
+
+        NodeFlags flags = NodeFlags::none;
 
         int     level       = 0;
         int     newLevel    = 0 ;
         bool    queued      = false;
 
         IReactiveNode*  nodePtr = nullptr;
+        
 
         std::vector<NodeId> successors;
     };
@@ -89,6 +93,7 @@ private:
 
     void ScheduleSuccessors(NodeData & node);
     void InvalidateSuccessors(NodeData & node);
+    void ClearBufferedNodes();
 
 private:
     int refCount_ = 1;
@@ -97,12 +102,14 @@ private:
     IndexMap<NodeData>  nodeData_;
     std::vector<NodeId> changedInputs_;
 
+    std::vector<IReactiveNode*> pendingBufferedNodes_;
+
     bool isTransactionActive_ = false;
 };
 
-NodeId SingleThreadedGraph::RegisterNode(IReactiveNode* nodePtr)
+NodeId SingleThreadedGraph::RegisterNode(IReactiveNode* nodePtr, NodeFlags flags)
 {
-    return nodeData_.Insert(NodeData{ nodePtr });
+    return nodeData_.Insert(NodeData{ nodePtr, flags });
 }
 
 void SingleThreadedGraph::UnregisterNode(NodeId nodeId)
@@ -159,12 +166,17 @@ void SingleThreadedGraph::AddInput(NodeId nodeId, std::function<void()> inputCal
         // Update the node. This applies the input buffer to the node value and checks if it changed.
         if (nodePtr->Update(0) == UpdateResult::changed)
         {
+            if (IsBitmaskSet(node.flags, NodeFlags::buffered))
+                pendingBufferedNodes_.push_back(nodePtr);
+
             // Propagate changes through the graph
             ScheduleSuccessors(node);
 
             if (! scheduledNodes_.IsEmpty())
                 Propagate();
-        }       
+        }
+
+        ClearBufferedNodes();
     }
 }
 
@@ -180,9 +192,15 @@ void SingleThreadedGraph::DoTransaction(TransactionFlags flags, F&& transactionC
     for (NodeId nodeId : changedInputs_)
     {
         auto& node = nodeData_[nodeId];
+        auto* nodePtr = node.nodePtr;
 
-        if (node.nodePtr->Update(0) == UpdateResult::changed)
+        if (nodePtr->Update(0) == UpdateResult::changed)
+        {
+            if (IsBitmaskSet(node.flags, NodeFlags::buffered))
+                pendingBufferedNodes_.push_back(nodePtr);
+
             ScheduleSuccessors(node);
+        }
     }
 
     changedInputs_.clear();
@@ -199,6 +217,7 @@ void SingleThreadedGraph::Propagate()
         for (NodeId nodeId : scheduledNodes_.Next())
         {
             auto& node = nodeData_[nodeId];
+            auto* nodePtr = node.nodePtr;
 
             if (node.level < node.newLevel)
             {
@@ -209,10 +228,13 @@ void SingleThreadedGraph::Propagate()
                 continue;
             }
 
-            auto result = node.nodePtr->Update(0);
+            auto result = nodePtr->Update(0);
 
             if (result == UpdateResult::changed)
             {
+                if (IsBitmaskSet(node.flags, NodeFlags::buffered))
+                    pendingBufferedNodes_.push_back(nodePtr);
+
                 ScheduleSuccessors(node);
             }
             else if (result == UpdateResult::shifted)
@@ -251,6 +273,13 @@ void SingleThreadedGraph::InvalidateSuccessors(NodeData& node)
         if (succ.newLevel <= node.level)
             succ.newLevel = node.level + 1;
     }
+}
+
+void SingleThreadedGraph::ClearBufferedNodes()
+{
+    for (IReactiveNode* nodePtr : pendingBufferedNodes_)
+        nodePtr->ClearBuffer();
+    pendingBufferedNodes_.clear();
 }
 
 bool SingleThreadedGraph::TopoQueue::FetchNext()

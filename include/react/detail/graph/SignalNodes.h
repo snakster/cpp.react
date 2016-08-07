@@ -54,6 +54,9 @@ public:
     const S& Value() const
         { return value_; }
 
+    virtual void ClearBuffer() override
+        { };
+
 private:
     S value_;
 };
@@ -68,7 +71,7 @@ public:
     explicit VarSignalNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
         VarSignalNode::SignalNode( graphPtr ),
         newValue_( )
-        { this->RegisterMe(); }
+        { this->RegisterMe(NodeFlags::input); }
 
     template <typename T>
     VarSignalNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& value) :
@@ -81,9 +84,6 @@ public:
 
     virtual const char* GetNodeType() const override
         { return "VarSignal"; }
-
-    virtual bool IsInputNode() const override
-        { return true; }
 
     virtual int GetDependencyCount() const override
         { return 0; }
@@ -219,7 +219,7 @@ public:
         outer_( outer ),
         inner_( inner )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::dynamic);
         this->AttachToMe(outer->GetNodeId());
         this->AttachToMe(inner->GetNodeId());
     }
@@ -233,9 +233,6 @@ public:
 
     virtual const char* GetNodeType() const override
         { return "SignalFlatten"; }
-
-    virtual bool IsDynamicNode() const override
-        { return true; }
 
     virtual int GetDependencyCount() const override
         { return 2; }

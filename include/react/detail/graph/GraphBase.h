@@ -38,15 +38,6 @@ public:
 
     NodeBase(NodeBase&&) = delete;
     NodeBase& operator=(NodeBase&&) = delete;
-    
-    virtual bool IsInputNode() const override
-        { return false; }
-
-    virtual bool IsOutputNode() const override
-        { return false; }
-
-    virtual bool IsDynamicNode() const override
-        { return false; }
 
     /*void SetWeightHint(WeightHint weight)
     {
@@ -74,8 +65,8 @@ public:
         { return graphPtr_; }
 
 protected:
-    void RegisterMe()
-        { nodeId_ = graphPtr_->RegisterNode(this); }
+    void RegisterMe(NodeFlags flags = NodeFlags::none)
+        { nodeId_ = graphPtr_->RegisterNode(this, flags); }
     
     void UnregisterMe()
         { graphPtr_->UnregisterNode(nodeId_); }

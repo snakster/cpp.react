@@ -27,8 +27,8 @@ namespace example1
         { return first + string(" ") + second; }
 
     // Defines a group.
-    // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
-    // Reactives of different domains can not be combined.
+    // Each group represents a separate dependency graph.
+    // Reactives from different groups can not be mixed.
     ReactiveGroup<> group;
     
     // The two words

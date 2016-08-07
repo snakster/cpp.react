@@ -81,15 +81,15 @@ struct AddIterateByRefRangeWrapper
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IterateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S, typename E, typename F>
+template <typename S, typename F, typename E>
 class IterateNode : public SignalNode<S>
 {
 public:
-    template <typename U, typename V>
-    IterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, U&& init, const std::shared_ptr<EventStreamNode<E>>& events, FIn&& func) :
-        IterateNode::SignalNode( graphPtr, std::forward<U>(init) ),
-        events_( events ),
-        func_( std::forward<FIn>(func) )
+    template <typename T, typename FIn>
+    IterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events) :
+        IterateNode::SignalNode( graphPtr, std::forward<T>(init) ),
+        func_( std::forward<FIn>(func) ),
+        events_( events )
     {
         this->RegisterMe();
         this->AttachToMe(events->GetNodeId());
@@ -105,7 +105,7 @@ public:
     {
         S newValue = func_(EventRange<E>( events_->Events() ), this->Value());
 
-        if (! Equals(newValue, this->Value()))
+        if (! (newValue == this->Value()))
         {
             this->Value() = std::move(newValue);
             return UpdateResult::changed;
@@ -125,19 +125,19 @@ public:
 private:
     std::shared_ptr<EventStreamNode<E>> events_;
     
-    F   func_;
+    F func_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IterateByRefNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S, typename E, typename F>
+template <typename S, typename F, typename E>
 class IterateByRefNode : public SignalNode<S>
 {
 public:
-    template <typename SIn, typename FIn>
-    IterateByRefNode(const std::shared_ptr<IReactiveGraph>& graphPtr, SIn&& init, const std::shared_ptr<EventStreamNode<E>>& events, FIn&& func) :
-        IterateByRefNode::SignalNode( graphPtr, std::forward<SIn>(init) ),
+    template <typename T, typename FIn>
+    IterateByRefNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events) :
+        IterateByRefNode::SignalNode( graphPtr, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         events_( events )
     {
@@ -174,33 +174,31 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SyncedIterateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S, typename E, typename F, typename ... TSyncs>
+template <typename S, typename F, typename E, typename ... TSyncs>
 class SyncedIterateNode : public SignalNode<S>
 {
 public:
-    template <typename SIn, typename FIn>
-    SyncedIterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, SIn&& init, const std::shared_ptr<EventStreamNode<E>>& events, FIn&& func, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
-        SyncedIterateNode::SignalNode( graphPtr, std::forward<SIn>(init) ),
-        events_( events ),
+    template <typename T, typename FIn>
+    SyncedIterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+        SyncedIterateNode::SignalNode( graphPtr, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
+        events_( events ),
         syncHolder_( syncs ... )
     {
         this->RegisterMe();
-        this->AttachToMe(dep->GetNodeId());
+        this->AttachToMe(events->GetNodeId());
         REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
 
     ~SyncedIterateNode()
     {
         apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
-        this->DetachFromMe(dep_->GetNodeId());
+        this->DetachFromMe(events_->GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        events_->SetCurrentTurn(turn);
-
         S newValue = apply(
             [this] (const auto& ... syncs)
             {
@@ -208,7 +206,7 @@ public:
             },
             syncHolder_);
 
-        if (! Equals(newValue, this->Value()))
+        if (! (newValue == this->Value()))
         {
             this->Value() = std::move(newValue);
             return UpdateResult::changed;
@@ -226,9 +224,9 @@ public:
         { return 1 + sizeof...(TSyncs); }
 
 private:
-    std::shared_ptr<EventStreamNode<E>> events_;
-    
     F func_;
+
+    std::shared_ptr<EventStreamNode<E>> events_;
 
     std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
@@ -236,32 +234,32 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SyncedIterateByRefNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S, typename E, typename TFunc, typename ... TSyncs>
+template <typename S, typename F, typename E, typename ... TSyncs>
 class SyncedIterateByRefNode : public SignalNode<S>
 {
 public:
-    template <typename SIn, typename FIn>
-    SyncedIterateByRefNode(const std::shared_ptr<IReactiveGraph>& graphPtr, SIn&& init, const std::shared_ptr<EventStreamNode<E>>& events, FIn&& func, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+    template <typename T, typename FIn>
+    SyncedIterateByRefNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
         SyncedIterateByRefNode::SignalNode( graphPtr, std::forward<T>(init) ),
-        events_( events ),
         func_( std::forward<FIn>(func) ),
+        events_( events ),
         syncHolder_( syncs ... )
     {
         this->RegisterMe();
-        this->AttachToMe(dep->GetNodeId());
+        this->AttachToMe(events->GetNodeId());
         REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
 
     ~SyncedIterateByRefNode()
     {
         apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
-        this->DetachFromMe(dep_->GetNodeId());
+        this->DetachFromMe(events_->GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        events_->SetCurrentTurn(turn);
+        events_->SetCurrentTurn(turnId);
 
         bool changed = false;
 
@@ -272,7 +270,7 @@ public:
                 {
                     func_(EventRange<E>( events_->Events() ), this->Value(), args->Value() ...);
                 },
-                deps_);
+                syncHolder_);
 
             return UpdateResult::changed;
         }
@@ -289,9 +287,9 @@ public:
         { return 1 + sizeof...(TSyncs); }
 
 private:
-    std::shared_ptr<EventStreamNode<E>> events_;
-    
     F func_;
+
+    std::shared_ptr<EventStreamNode<E>> events_;
 
     std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
@@ -299,13 +297,13 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// HoldNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class HoldNode : public SignalNode<T>
+template <typename S>
+class HoldNode : public SignalNode<S>
 {
 public:
-    template <typename TIn>
-    HoldNode(const std::shared_ptr<IReactiveGraph>& graphPtr, TIn&& init, const std::shared_ptr<EventStreamNode<T>>& events) :
-        HoldNode::SignalNode( graphPtr, std::forward<TIn>(init) ),
+    template <typename T>
+    HoldNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, const std::shared_ptr<EventStreamNode<S>>& events) :
+        HoldNode::SignalNode( graphPtr, std::forward<T>(init) ),
         events_( events )
     {
         this->RegisterMe();
@@ -329,7 +327,7 @@ public:
         {
             const S& newValue = events_->Events().back();
 
-            if (! Equals(newValue, this->Value()))
+            if (! (newValue == this->Value()))
             {
                 changed = true;
                 this->Value() = newValue;
@@ -410,11 +408,11 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// MonitorNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class MonitorNode : public EventStreamNode<T>
+template <typename S>
+class MonitorNode : public EventStreamNode<S>
 {
 public:
-    MonitorNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<T>>& target) :
+    MonitorNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target) :
         MonitorNode::EventStreamNode( graphPtr ),
         target_( target )
     {
@@ -430,7 +428,7 @@ public:
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        this->SetCurrentTurn(turn, true);
+        this->SetCurrentTurn(turnId, true);
 
         this->Events().push_back(target_->Value());
 
@@ -444,7 +442,7 @@ public:
         { return 1; }
 
 private:
-    std::shared_ptr<SignalNode<E>>    target_;
+    std::shared_ptr<SignalNode<S>>    target_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -28,9 +28,10 @@ auto Hold(T&& initialValue, const EventBase<E>& events) -> Signal<E, unique>
 {
     using REACT_IMPL::HoldNode;
     using REACT_IMPL::PrivateNodeInterface;
+    using REACT_IMPL::NodeCtorTag;
 
-    return Signal<E, unique>( std::make_shared<HoldNode<T>>(
-        PrivateNodeInterface::GraphPtr(events), std::forward<U>(initialValue), PrivateNodeInterface::NodePtr(events)) );
+    return Signal<E, unique>( NodeCtorTag{ }, std::make_shared<HoldNode<E>>(
+        PrivateNodeInterface::GraphPtr(events), std::forward<T>(initialValue), PrivateNodeInterface::NodePtr(events)) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -41,8 +42,9 @@ auto Monitor(const SignalBase<S>& signal) -> Event<S, unique>
 {
     using REACT_IMPL::MonitorNode;
     using REACT_IMPL::PrivateNodeInterface;
+    using REACT_IMPL::NodeCtorTag;
 
-    return Event<S, unique>( std::make_shared<MonitorNode<T>>(
+    return Event<S, unique>( NodeCtorTag{ }, std::make_shared<MonitorNode<S>>(
         PrivateNodeInterface::GraphPtr(signal), PrivateNodeInterface::NodePtr(signal)) );
 }
 
@@ -50,121 +52,46 @@ auto Monitor(const SignalBase<S>& signal) -> Event<S, unique>
 /// Iterate - Iteratively combines signal value with values from event stream (aka Fold)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename T, typename F, typename E>
-auto Iterate(T&& init, F&& func, const Events<E>& events) -> Signal<S, unique>
+auto Iterate(T&& init, F&& func, const EventBase<E>& events) -> Signal<S, unique>
 {
     using REACT_IMPL::IterateNode;
     using REACT_IMPL::IterateByRefNode;
-    using REACT_IMPL::AddIterateRangeWrapper;
-    using REACT_IMPL::AddIterateByRefRangeWrapper;
     using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::EventRange;
+    using REACT_IMPL::PrivateNodeInterface;
+    using REACT_IMPL::NodeCtorTag;
 
-    using TFunc = typename std::decay<F>::type;
+    using FuncType = typename std::decay<F>::type;
+    using IterNodeType = typename std::conditional<
+        IsCallableWith<F,S,EventRange<E>,S>::value,
+        IterateNode<S, FuncType, E>,
+        IterateByRefNode<S, FuncType, E>>::type;
 
-    using NodeT =
-        typename std::conditional<
-            IsCallableWith<F,S,EventRange<E>,S>::value,
-            IterateNode<D,S,E,F>,
-            typename std::conditional<
-                IsCallableWith<F,S,E,S>::value,
-                IterateNode<D,S,E,AddIterateRangeWrapper<E,S,F>>,
-                typename std::conditional<
-                    IsCallableWith<F, void, EventRange<E>, S&>::value,
-                    IterateByRefNode<D,S,E,F>,
-                    typename std::conditional<
-                        IsCallableWith<F,void,E,S&>::value,
-                        IterateByRefNode<D,S,E,AddIterateByRefRangeWrapper<E,S,F>>,
-                        void
-                    >::type
-                >::type
-            >::type
-        >::type;
-
-    static_assert(
-        ! std::is_same<NodeT,void>::value,
-        "Iterate: Passed function does not match any of the supported signatures.");
-
-    return Signal<S>(
-        std::make_shared<NodeT>(
-            std::forward<V>(init), GetNodePtr(events), std::forward<FIn>(func)));
+    return Signal<S, unique>( NodeCtorTag{ }, std::make_shared<IterNodeType>(
+        PrivateNodeInterface::GraphPtr(events), std::forward<T>(init), std::forward<F>(func), PrivateNodeInterface::NodePtr(events) ));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterate - Synced
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename S,
-    typename E,
-    typename V,
-    typename FIn,
-    typename ... TDepValues
->
-auto Iterate(const Events<E>& events, V&& init, const SignalPack<TDepValues...>& depPack, FIn&& func) -> Signal<S>
+template <typename S, typename T, typename F, typename E, typename ... Us>
+auto Iterate(T&& init, F&& func, const EventBase<E>& events, const SignalBase<Us>& ... signals) -> Signal<S, unique>
 {
     using REACT_IMPL::SyncedIterateNode;
     using REACT_IMPL::SyncedIterateByRefNode;
-    using REACT_IMPL::AddIterateRangeWrapper;
-    using REACT_IMPL::AddIterateByRefRangeWrapper;
     using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::EventRange;
+    using REACT_IMPL::GetCheckedGraphPtr;
+    using REACT_IMPL::PrivateNodeInterface;
+    using REACT_IMPL::NodeCtorTag;
 
-    using F = typename std::decay<FIn>::type;
+    using FuncType = typename std::decay<F>::type;
+    using IterNodeType = typename std::conditional<
+        IsCallableWith<F, S, EventRange<E>, S, Us ...>::value,
+        SyncedIterateNode<S, FuncType, E, Us ...>,
+        SyncedIterateByRefNode<S, FuncType, E, Us ...>>::type;
 
-    using NodeT =
-        typename std::conditional<
-            IsCallableWith<F,S,EventRange<E>,S,TDepValues ...>::value,
-            SyncedIterateNode<D,S,E,F,TDepValues ...>,
-            typename std::conditional<
-                IsCallableWith<F,S,E,S,TDepValues ...>::value,
-                SyncedIterateNode<D,S,E,
-                    AddIterateRangeWrapper<E,S,F,TDepValues ...>,
-                    TDepValues ...>,
-                typename std::conditional<
-                    IsCallableWith<F,void,EventRange<E>,S&,TDepValues ...>::value,
-                    SyncedIterateByRefNode<D,S,E,F,TDepValues ...>,
-                    typename std::conditional<
-                        IsCallableWith<F,void,E,S&,TDepValues ...>::value,
-                        SyncedIterateByRefNode<D,S,E,
-                            AddIterateByRefRangeWrapper<E,S,F,TDepValues ...>,
-                            TDepValues ...>,
-                        void
-                    >::type
-                >::type
-            >::type
-        >::type;
-
-    static_assert(
-        ! std::is_same<NodeT,void>::value,
-        "Iterate: Passed function does not match any of the supported signatures.");
-
-    //static_assert(NodeT::dummy_error, "DUMP MY TYPE" );
-
-    struct NodeBuilder_
-    {
-        NodeBuilder_(const Events<D,E>& source, V&& init, FIn&& func) :
-            MySource( source ),
-            MyInit( std::forward<V>(init) ),
-            MyFunc( std::forward<FIn>(func) )
-        {}
-
-        auto operator()(const Signal<D,TDepValues>& ... deps)
-            -> Signal<D,S>
-        {
-            return Signal<D,S>(
-                std::make_shared<NodeT>(
-                    std::forward<V>(MyInit), GetNodePtr(MySource),
-                    std::forward<FIn>(MyFunc), GetNodePtr(deps) ...));
-        }
-
-        const Events<D,E>&  MySource;
-        V                   MyInit;
-        FIn                 MyFunc;
-    };
-
-    return REACT_IMPL::apply(
-        NodeBuilder_( events, std::forward<V>(init), std::forward<FIn>(func) ),
-        depPack.Data);
+    return Signal<S, unique>( NodeCtorTag{ }, std::make_shared<IterNodeType>(
+        GetCheckedGraphPtr(events, signals ...),
+        std::forward<T>(init), std::forward<F>(func), PrivateNodeInterface::NodePtr(events), PrivateNodeInterface::NodePtr(signals) ...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -176,8 +103,9 @@ auto Snapshot(const SignalBase<S>& signal, const EventBase<E>& trigger) -> Signa
     using REACT_IMPL::SnapshotNode;
     using REACT_IMPL::GetCheckedGraphPtr;
     using REACT_IMPL::PrivateNodeInterface;
+    using REACT_IMPL::NodeCtorTag;
 
-    return Events<S, unique>( std::make_shared<SnapshotNode<S, E>>(
+    return Events<S, unique>( NodeCtorTag{ }, std::make_shared<SnapshotNode<S, E>>(
         GetCheckedGraphPtr(signal, trigger), PrivateNodeInterface::NodePtr(signal), PrivateNodeInterface::NodePtr(trigger)) );
 }
 
@@ -191,7 +119,7 @@ auto Pulse(const SignalBase<S>& signal, const EventBase<E>& trigger) -> Event<S,
     using REACT_IMPL::GetCheckedGraphPtr;
     using REACT_IMPL::PrivateNodeInterface;
 
-    return Event<S, unique>( std::make_shared<PulseNode<S, E>>(
+    return Event<S, unique>( NodeCtorTag{ }, std::make_shared<PulseNode<S, E>>(
         GetCheckedGraphPtr(signal, trigger), PrivateNodeInterface::NodePtr(signal), PrivateNodeInterface::NodePtr(trigger)) );
 }
 

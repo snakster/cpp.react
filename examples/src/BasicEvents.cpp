@@ -8,7 +8,6 @@
 #include <string>
 #include <utility>
 
-#include "react/Domain.h"
 #include "react/Event.h"
 #include "react/Observer.h"
 
@@ -20,35 +19,32 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    // Defines a domain.
-    // Each domain represents a separate dependency graph, managed by a dedicated propagation engine.
-    // Reactives of different domains can not be combined.
-    REACTIVE_DOMAIN(D, sequential)
-
-    // Define type aliases for the given domain in this namespace.
-    // Now we can use EventSourceT instead of D::EventSourceT.
-    USING_REACTIVE_DOMAIN(D)
+    // Defines a group.
+    // Each group represents a separate dependency graph.
+    // Reactives from different groups can not be mixed.
+    ReactiveGroup<> group;
 
     // An event source that emits values of type string
     namespace v1
     {
-        EventSourceT<string> mySource = MakeEventSource<D,string>();
+        EventSource<string> mySource( group );
 
         void Run()
         {
             cout << "Example 1 - Hello world (string source)" << endl;
 
-            Observe(mySource, [] (const string& s) {
-                std::cout << s << std::endl;
-            });
+            Observer<> obs(
+                [] (EventRange<string> in)
+                {
+                    for (const auto& s : in)
+                        cout << s << std::endl;
+                },
+                mySource);
 
             mySource << string("Hello world #1");
 
             // Or without the operator:
             mySource.Emit(string("Hello world #2"));
-
-            // Or as a function call:
-            mySource(string("Hello world #3"));
 
             cout << endl;
         }
@@ -57,7 +53,7 @@ namespace example1
     // An event source without an explicit value type
     namespace v2
     {
-        EventSourceT<> helloWorldTrigger = MakeEventSource<D>();
+        EventSource<> helloWorldTrigger( group );
 
         void Run()
         {
@@ -65,17 +61,18 @@ namespace example1
 
             int count = 0;
 
-            Observe(helloWorldTrigger, [&] (Token) {
-                cout << "Hello world #" << ++count << endl;
-            });
+            Observer<> obs(
+                [&] (EventRange<> in)
+                {
+                    for (auto t : in)
+                        cout << "Hello world #" << ++count << endl;
+                },
+                helloWorldTrigger);
 
             helloWorldTrigger.Emit();
 
             // Or without the stream operator:
             helloWorldTrigger << Token::value;
-
-            // Or as a function call:
-            helloWorldTrigger();
 
             cout << endl;
         }
@@ -90,57 +87,32 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
-    USING_REACTIVE_DOMAIN(D)
+    ReactiveGroup<> group;
 
     // An event stream that merges both sources
-    namespace v1
+    EventSource<> leftClick( group );
+    EventSource<> rightClick( group );
+
+    Event<> anyClick = Merge(leftClick, rightClick);
+
+    void Run()
     {
-        EventSourceT<> leftClick  = MakeEventSource<D>();
-        EventSourceT<> rightClick = MakeEventSource<D>();
+        cout << "Example 2 - Merging event streams (Merge)" << endl;
 
-        EventsT<> anyClick = Merge(leftClick, rightClick);
+        int count = 0;
 
-        void Run()
-        {
-            cout << "Example 2 - Merging event streams (Merge)" << endl;
+        Observer<> obs(
+            [&] (EventRange<> in)
+            {
+                for (auto t : in)
+                    cout << "clicked #" << ++count << endl;
+            },
+            anyClick);
 
-            int count = 0;
+        leftClick.Emit();  // output: clicked #1 
+        rightClick.Emit(); // output: clicked #2
 
-            Observe(anyClick, [&] (Token) {
-                cout << "clicked #" << ++count << endl;
-            });
-
-            leftClick.Emit();  // output: clicked #1 
-            rightClick.Emit(); // output: clicked #2
-
-            cout << endl;
-        }
-    }
-
-    // Using overloaded operator | instead of explicit Merge
-    namespace v2
-    {
-        EventSourceT<> leftClick  = MakeEventSource<D>();
-        EventSourceT<> rightClick = MakeEventSource<D>();
-
-        EventsT<> anyClick = leftClick | rightClick;
-
-        void Run()
-        {
-            cout << "Example 2 - Merging event streams (operator)" << endl;
-
-            int count = 0;
-
-            Observe(anyClick, [&] (Token) {
-                cout << "clicked #" << ++count << endl;
-            });
-
-            leftClick.Emit();  // output: clicked #1
-            rightClick.Emit(); // output: clicked #2
-
-            cout << endl;
-        }
+        cout << endl;
     }
 }
 
@@ -152,22 +124,23 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
-    USING_REACTIVE_DOMAIN(D)
+    ReactiveGroup<> group;
 
-    EventSourceT<int> numbers = MakeEventSource<D,int>();
+    EventSource<int> numbers( group );
 
-    EventsT<int> greater10 = Filter(numbers, [] (int n) {
-        return n > 10;
-    });
+    Event<int> greater10 = Filter([] (int n) { return n > 10; }, numbers);
 
     void Run()
     {
         cout << "Example 3 - Filtering events" << endl;
 
-        Observe(greater10, [] (int n) {
-            cout << n << endl;
-        });
+        Observer<> obs(
+            [&] (EventRange<int> in)
+            {
+                for (auto n : in)
+                    cout << n << endl;
+            },
+            greater10);
 
         numbers << 5 << 11 << 7 << 100; // output: 11, 100
 
@@ -183,32 +156,40 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
-    USING_REACTIVE_DOMAIN(D)
+    ReactiveGroup<> group;
 
     // Data types
-    enum class ETag { normal, critical };
-    using TaggedNum = pair<ETag,int>;
+    enum class Tag { normal, critical };
+    using TaggedNum = pair<Tag, int>;
 
-    EventSourceT<int> numbers = MakeEventSource<D,int>();
+    EventSource<int> numbers( group );
 
-    EventsT<TaggedNum> tagged = Transform(numbers, [] (int n) {
-        if (n > 10)
-            return TaggedNum( ETag::critical, n );
-        else
-            return TaggedNum( ETag::normal, n );
-    });
+    Event<TaggedNum> tagged = Transform<TaggedNum>(
+        [] (int n)
+        {
+            if (n > 10)
+                return TaggedNum( Tag::critical, n );
+            else
+                return TaggedNum( Tag::normal, n );
+        },
+        numbers);
 
     void Run()
     {
         cout << "Example 4 - Transforming  events" << endl;
 
-        Observe(tagged, [] (const TaggedNum& t) {
-            if (t.first == ETag::critical)
-                cout << "(critical) " << t.second << endl;
-            else
-                cout << "(normal)  " << t.second << endl;
-        });
+        Observer<> obs(
+            [] (EventRange<TaggedNum> in)
+            {
+                for (TaggedNum e : in)
+                {
+                    if (e.first == Tag::critical)
+                        cout << "(critical) " << e.second << endl;
+                    else
+                        cout << "(normal)  " << e.second << endl;
+                }
+            },
+            tagged);
 
         numbers << 5;   // output: (normal) 5
         numbers << 20;  // output: (critical) 20
@@ -225,20 +206,24 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
-    USING_REACTIVE_DOMAIN(D)
+    ReactiveGroup<> group;
 
-    EventSourceT<int> src = MakeEventSource<D,int>();
+    EventSource<int> src( group );
 
     void Run()
     {
         cout << "Example 5 - Queuing multiple inputs" << endl;
 
-        Observe(src, [] (int v) {
-            cout << v << endl;
-        }); // output: 1, 2, 3, 4
+        Observer<> obs(
+            [] (EventRange<int> in)
+            {
+                for (int e : in)
+                    cout << e << endl;
+            }, src);
+        // output: 1, 2, 3, 4
 
-        DoTransaction<D>([] {
+        group.DoTransaction([]
+        {
             src << 1 << 2 << 3;
             src << 4;
         });
@@ -254,14 +239,9 @@ int main()
 {
     example1::v1::Run();
     example1::v2::Run();
-
-    example2::v1::Run();
-    example2::v2::Run();
-
+    example2::Run();
     example3::Run();
-
     example4::Run();
-
     example5::Run();
 
     return 0;

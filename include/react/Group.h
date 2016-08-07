@@ -15,8 +15,6 @@
 #include <utility>
 
 #include "react/API.h"
-#include "react/Signal.h"
-//#include "react/Event.h"
 
 #include "react/detail/IReactiveGraph.h"
 #include "react/detail/graph/PropagationST.h"
@@ -25,6 +23,7 @@
 
 struct PrivateReactiveGroupInterface;
 struct PrivateConcurrentReactiveGroupInterface;
+struct NodeCtorTag { };
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

@@ -216,6 +216,12 @@ public:
     static const bool value = sizeof(check<F>(nullptr)) == sizeof(YesT);
 };
 
+template <typename T>
+bool IsBitmaskSet(T flags, T mask)
+{
+    return (flags & mask) != (T)0;
+}
+
 /****************************************/ REACT_IMPL_END /***************************************/
 
 // Expand args by wrapping them in a dummy function

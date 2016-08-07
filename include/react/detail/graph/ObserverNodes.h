@@ -39,8 +39,8 @@ public:
         ObserverNode::NodeBase( graphPtr )
         { }
 
-    virtual bool IsOutputNode() const
-        { return true; }
+    virtual void ClearBuffer() override
+        { };
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,7 +56,7 @@ public:
         func_( std::forward<FIn>(func) ),
         depHolder_( deps ... )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::output);
         REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
@@ -97,7 +97,7 @@ public:
         func_( std::forward<FIn>(func) ),
         subject_( subject )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::output);
         this->AttachToMe(subject->GetNodeId());
     }
 
@@ -139,7 +139,7 @@ public:
         subject_( subject ),
         syncHolder_( syncs ... )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::output);
         this->AttachToMe(subject->GetNodeId());
         REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }

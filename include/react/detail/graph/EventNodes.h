@@ -27,7 +27,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterators for event processing
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
+template <typename T = Token>
 class EventRange
 {
 public:
@@ -87,33 +87,21 @@ public:
     EventStreamNode(const EventStreamNode&) = delete;
     EventStreamNode& operator=(const EventStreamNode&) = delete;
 
-    void SetCurrentTurn(TurnId turnId, bool forceUpdate = false, bool noClear = false)
-    {
-        //this->AccessBufferForClearing([&] {
-        //    if (curTurnId_ != turn.Id() || forceUpdate)
-        //    {
-        //        curTurnId_ =  turn.Id();
-        //        if (!noClear)
-        //            events_.clear();
-        //    }
-        //});
-    }
-
     explicit EventStreamNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
         NodeBase( graphPtr )
         { }
 
-    StorageType&  Events()
+    StorageType& Events()
         { return events_; }
 
-    const StorageType&  Events() const
+    const StorageType& Events() const
         { return events_; }
 
-protected:
-    StorageType events_;
+    virtual void ClearBuffer() override
+        { events_.clear(); };
 
 private:
-    uint curTurnId_ { (std::numeric_limits<uint>::max)() };
+    StorageType events_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +113,7 @@ class EventSourceNode : public EventStreamNode<T>
 public:
     EventSourceNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
         EventSourceNode::EventStreamNode( graphPtr )
-        { this->RegisterMe(); }
+        { this->RegisterMe(NodeFlags::buffered | NodeFlags::input); }
 
     ~EventSourceNode()
         { this->UnregisterMe(); }
@@ -133,19 +121,13 @@ public:
     virtual const char* GetNodeType() const override
         { return "EventSource"; }
 
-    virtual bool IsInputNode() const override
-        { return true; }
-
     virtual int GetDependencyCount() const override
         { return 0; }
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        if (this->Events().size() > 0 && !changedFlag_)
-        {
-            this->SetCurrentTurn(turnId, true, true);
-            changedFlag_ = true;
-            
+        if (this->Events().size() > 0)
+        {            
             return UpdateResult::changed;
         }
         else
@@ -157,18 +139,8 @@ public:
     template <typename U>
     void EmitValue(U&& value)
     {
-        // Clear input from previous turn
-        if (changedFlag_)
-        {
-            changedFlag_ = false;
-            this->Events().clear();
-        }
-
         this->Events().push_back(std::forward<U>(value));
     }
-
-private:
-    bool changedFlag_ = false;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -182,7 +154,7 @@ public:
         EventMergeNode::EventStreamNode( graphPtr ),
         depHolder_( deps ... )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::buffered);
         REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
@@ -194,8 +166,6 @@ public:
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        this->SetCurrentTurn(turnId, true);
-
         apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(MergeFromDep(deps)); }, depHolder_);
 
         if (! this->Events().empty())
@@ -214,7 +184,6 @@ private:
     template <typename U>
     void MergeFromDep(const std::shared_ptr<EventStreamNode<U>>& other)
     {
-        //arg->SetCurrentTurn(turn);
         this->Events().insert(this->Events().end(), other->Events().begin(), other->Events().end());
     }
 
@@ -233,7 +202,7 @@ public:
         outer_( outer ),
         inner_( inner )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::buffered | NodeFlags::dynamic);
         this->AttachToMe(outer->GetNodeId());
         this->AttachToMe(inner->GetNodeId());
     }
@@ -248,17 +217,11 @@ public:
     virtual const char* GetNodeType() const override
         { return "EventFlatten"; }
 
-    virtual bool IsDynamicNode() const override
-        { return true; }
-
     virtual int GetDependencyCount() const override
         { return 2; }
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        this->SetCurrentTurn(turnId, true);
-        inner_->SetCurrentTurn(turnId);
-
         auto newInner = GetNodePtr(outer_->Value());
 
         if (newInner != inner_)
@@ -301,7 +264,7 @@ public:
         func_( std::forward<FIn>(func) ),
         dep_( dep )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::buffered);
         this->AttachToMe(dep->GetNodeId());
     }
 
@@ -313,8 +276,6 @@ public:
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        this->SetCurrentTurn(turnId, true);
-
         func_(EventRange<TIn>( dep_->Events() ), std::back_inserter(this->Events()));
 
         if (! this->Events().empty())
@@ -349,7 +310,7 @@ public:
         dep_( dep ),
         syncHolder_( syncs ... )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::buffered);
         this->AttachToMe(dep->GetNodeId());
         REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
@@ -363,10 +324,9 @@ public:
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        this->SetCurrentTurn(turnId, true);
-        // Update of this node could be triggered from deps,
-        // so make sure source doesnt contain events from last turn
-        dep_->SetCurrentTurn(turnId);
+        // Updates might be triggered even if only sync nodes changed. Ignore those.
+        if (dep_->Events().empty())
+            return UpdateResult::unchanged;
 
         apply(
             [this] (const auto& ... syncs)
@@ -406,7 +366,7 @@ public:
         EventJoinNode::EventStreamNode( graphPtr ),
         slots_( deps ... )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::buffered);
         REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
@@ -418,8 +378,6 @@ public:
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        this->SetCurrentTurn(turnId, true);
-
         // Move events into buffers
         apply([this, turnId] (Slot<Ts>& ... slots) { REACT_EXPAND_PACK(FetchBuffer(turnId, slots)); }, slots_);
 
@@ -429,7 +387,7 @@ public:
 
             // All slots ready?
             apply(
-                [this,&isReady] (Slot<Ts>& ... slots) {
+                [this, &isReady] (Slot<Ts>& ... slots) {
                     // Todo: combine return values instead
                     REACT_EXPAND_PACK(CheckSlot(slots, isReady));
                 },
@@ -475,7 +433,6 @@ private:
     template <typename U>
     static void FetchBuffer(TurnId turnId, Slot<U>& slot)
     {
-        slot.source->SetCurrentTurn(turnId);
         slot.buffer.insert(slot.buffer.end(), slot.source->Events().begin(), slot.source->Events().end());
     }
 
