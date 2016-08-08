@@ -39,11 +39,11 @@ enum class UpdateResult
 
 enum class NodeFlags
 {
-    none,
-    input,
-    output,
-    dynamic,
-    buffered
+    none     = 0,
+    input    = 1 << 0,
+    output   = 1 << 1,
+    dynamic  = 1 << 2,
+    buffered = 1 << 3
 };
 REACT_DEFINE_BITMASK_OPERATORS(NodeFlags)
 

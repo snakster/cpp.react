@@ -416,7 +416,7 @@ public:
         MonitorNode::EventStreamNode( graphPtr ),
         target_( target )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::buffered);
         this->AttachToMe(target->GetNodeId());
     }
 
@@ -428,10 +428,7 @@ public:
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        this->SetCurrentTurn(turnId, true);
-
         this->Events().push_back(target_->Value());
-
         return UpdateResult::changed;
     }
 
@@ -457,7 +454,7 @@ public:
         target_( target ),
         trigger_( trigger )
     {
-        this->RegisterMe();
+        this->RegisterMe(NodeFlags::buffered);
         this->AttachToMe(target->GetNodeId());
         this->AttachToMe(trigger->GetNodeId());
     }
@@ -471,9 +468,6 @@ public:
 
     virtual UpdateResult Update(TurnId turnId) override
     {
-        this->SetCurrentTurn(turn, true);
-        trigger_->SetCurrentTurn(turn);
-
         for (size_t i=0; i<trigger_->Events().size(); i++)
             this->Events().push_back(target_->Value());
 

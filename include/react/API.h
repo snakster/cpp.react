@@ -44,7 +44,7 @@ enum class WeightHint
 
 enum class TransactionFlags
 {
-    none = 1 << 0,
+    none          = 0,
     allow_merging = 1 << 1
 };
 

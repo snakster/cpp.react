@@ -208,6 +208,8 @@ void SingleThreadedGraph::DoTransaction(TransactionFlags flags, F&& transactionC
     // Propagate changes through the graph.
     if (! scheduledNodes_.IsEmpty())
         Propagate();
+
+    ClearBufferedNodes();
 }
 
 void SingleThreadedGraph::Propagate()
