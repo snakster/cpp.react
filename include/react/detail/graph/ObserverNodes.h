@@ -35,12 +35,9 @@ class EventStreamNode;
 class ObserverNode : public NodeBase
 {
 public:
-    ObserverNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+    ObserverNode(const std::shared_ptr<ReactiveGraph>& graphPtr) :
         ObserverNode::NodeBase( graphPtr )
         { }
-
-    virtual void ClearBuffer() override
-        { };
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -51,12 +48,12 @@ class SignalObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    SignalObserverNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<SignalNode<TDeps>>& ... deps) :
+    SignalObserverNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<SignalNode<TDeps>>& ... deps) :
         SignalObserverNode::ObserverNode( graphPtr ),
         func_( std::forward<FIn>(func) ),
         depHolder_( deps ... )
     {
-        this->RegisterMe(NodeFlags::output);
+        this->RegisterMe(NodeCategory::output);
         REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
@@ -72,7 +69,7 @@ public:
     virtual int GetDependencyCount() const override
         { return sizeof...(TDeps); }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         apply([this] (const auto& ... deps) { this->func_(deps->Value() ...); }, depHolder_);
         return UpdateResult::unchanged;
@@ -92,12 +89,12 @@ class EventObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    EventObserverNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& subject) :
+    EventObserverNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& subject) :
         EventObserverNode::ObserverNode( graphPtr ),
         func_( std::forward<FIn>(func) ),
         subject_( subject )
     {
-        this->RegisterMe(NodeFlags::output);
+        this->RegisterMe(NodeCategory::output);
         this->AttachToMe(subject->GetNodeId());
     }
 
@@ -113,9 +110,10 @@ public:
     virtual int GetDependencyCount() const override
         { return 1; }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         func_(EventRange<E>( subject_->Events() ));
+        subject_->DecrementPendingSuccessorCount();
         return UpdateResult::unchanged;
     }
 
@@ -133,13 +131,13 @@ class SyncedEventObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    SyncedEventObserverNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& subject, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+    SyncedEventObserverNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& subject, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
         SyncedEventObserverNode::ObserverNode( graphPtr ),
         func_( std::forward<FIn>(func) ),
         subject_( subject ),
         syncHolder_( syncs ... )
     {
-        this->RegisterMe(NodeFlags::output);
+        this->RegisterMe(NodeCategory::output);
         this->AttachToMe(subject->GetNodeId());
         REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
@@ -157,13 +155,16 @@ public:
     virtual int GetDependencyCount() const override
         { return 1 + sizeof...(TSyncs); }
 
-    virtual UpdateResult Update(TurnId turnId) override
-    {   
-        // Update of this node could be triggered from deps,
-        // so make sure source doesnt contain events from last turn
-        subject_->SetCurrentTurn(turnId);
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    {
+        // Updates might be triggered even if only sync nodes changed. Ignore those.
+        if (events_->Events().empty())
+            return UpdateResult::unchanged;
 
         apply([this] (const auto& ... syncs) { func_(EventRange<E>( this->subject_->Events() ), syncs->Value() ...); }, syncHolder_);
+
+        subject_->DecrementPendingSuccessorCount();
+
         return UpdateResult::unchanged;
     }
 

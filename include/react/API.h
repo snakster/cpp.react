@@ -59,17 +59,23 @@ template <OwnershipPolicy = unique>
 class ReactiveGroup;
 
 // Signals
-template <typename T>
+template <typename S>
 class SignalBase;
 
-template <typename T>
+template <typename S>
 class VarSignalBase;
 
-template <typename T, OwnershipPolicy = unique>
+template <typename S>
+class SignalSlotBase;
+
+template <typename S, OwnershipPolicy = unique>
 class Signal;
 
-template <typename T, OwnershipPolicy = unique>
+template <typename S, OwnershipPolicy = unique>
 class VarSignal;
+
+template <typename S, OwnershipPolicy = unique>
+class SignalSlot;
 
 // Events
 enum class Token;
@@ -80,13 +86,17 @@ class EventBase;
 template <typename E>
 class EventSourceBase;
 
+template <typename E>
+class EventSlotBase;
+
 template <typename E = Token, OwnershipPolicy = unique>
 class Event;
 
 template <typename E = Token, OwnershipPolicy = unique>
 class EventSource;
 
-
+template <typename E, OwnershipPolicy = unique>
+class EventSlot;
 
 // Observers
 template <OwnershipPolicy = unique>

@@ -21,7 +21,7 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-struct IReactiveGraph;
+class ReactiveGraph;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeBase
@@ -29,7 +29,7 @@ struct IReactiveGraph;
 class NodeBase : public IReactiveNode
 {
 public:
-    NodeBase(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+    NodeBase(const std::shared_ptr<ReactiveGraph>& graphPtr) :
         graphPtr_( graphPtr )
         { }
     
@@ -58,15 +58,15 @@ public:
     NodeId GetNodeId() const
         { return nodeId_; }
 
-    auto GraphPtr() const -> const std::shared_ptr<IReactiveGraph>&
+    auto GraphPtr() const -> const std::shared_ptr<ReactiveGraph>&
         { return graphPtr_; }
 
-    auto GraphPtr() -> std::shared_ptr<IReactiveGraph>&
+    auto GraphPtr() -> std::shared_ptr<ReactiveGraph>&
         { return graphPtr_; }
 
 protected:
-    void RegisterMe(NodeFlags flags = NodeFlags::none)
-        { nodeId_ = graphPtr_->RegisterNode(this, flags); }
+    void RegisterMe(NodeCategory category = NodeCategory::normal)
+        { nodeId_ = graphPtr_->RegisterNode(this, category); }
     
     void UnregisterMe()
         { graphPtr_->UnregisterNode(nodeId_); }
@@ -84,9 +84,9 @@ protected:
         { graphPtr_->OnDynamicNodeDetach(nodeId_, otherNodeId, turnId); }
 
 private:
-    NodeId          nodeId_;
+    NodeId nodeId_;
 
-    std::shared_ptr<IReactiveGraph> graphPtr_;
+    std::shared_ptr<ReactiveGraph> graphPtr_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

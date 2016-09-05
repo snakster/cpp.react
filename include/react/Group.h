@@ -140,7 +140,7 @@ void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& fu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class ReactiveGroupBase
 {
-    using GraphType = REACT_IMPL::SingleThreadedGraph;
+    using GraphType = REACT_IMPL::ReactiveGraph;
 
 public:
     ReactiveGroupBase() :
@@ -157,11 +157,15 @@ public:
 
     template <typename F>
     void DoTransaction(F&& func)
-        { DoTransaction(TransactionFlags::none, std::forward<F>(func)); }
+        { graphPtr_->DoTransaction(std::forward<F>(func)); }
 
     template <typename F>
-    void DoTransaction(TransactionFlags flags, F&& func)
-        { graphPtr_->DoTransaction(flags, std::forward<F>(func)); }
+    void EnqueueTransaction(F&& func)
+        { EnqueueTransaction(TransactionFlags::none, std::forward<F>(func)); }
+
+    template <typename F>
+    void EnqueueTransaction(TransactionFlags flags, F&& func)
+        { graphPtr_->EnqueueTransaction(flags, std::forward<F>(func)); }
 
 protected:
     auto GraphPtr() -> std::shared_ptr<GraphType>&
@@ -229,31 +233,31 @@ struct PrivateNodeInterface
         { return base.NodePtr(); }
 
     template <typename TBase>
-    static auto GraphPtr(const TBase& base) -> const std::shared_ptr<IReactiveGraph>&
+    static auto GraphPtr(const TBase& base) -> const std::shared_ptr<ReactiveGraph>&
         { return base.NodePtr()->GraphPtr(); }
 
     template <typename TBase>
-    static auto GraphPtr(TBase& base) -> std::shared_ptr<IReactiveGraph>&
+    static auto GraphPtr(TBase& base) -> std::shared_ptr<ReactiveGraph>&
         { return base.NodePtr()->GraphPtr(); }
 };
 
 struct PrivateReactiveGroupInterface
 {
-    static auto GraphPtr(const ReactiveGroupBase& group) -> const std::shared_ptr<SingleThreadedGraph>&
+    static auto GraphPtr(const ReactiveGroupBase& group) -> const std::shared_ptr<ReactiveGraph>&
         { return group.GraphPtr(); }
 
-    static auto GraphPtr(ReactiveGroupBase& group) -> std::shared_ptr<SingleThreadedGraph>&
+    static auto GraphPtr(ReactiveGroupBase& group) -> std::shared_ptr<ReactiveGraph>&
         { return group.GraphPtr(); }
 };
 
 template <typename TBase1, typename ... TBases>
-static auto GetCheckedGraphPtr(const TBase1& dep1, const TBases& ... deps) -> const std::shared_ptr<IReactiveGraph>&
+static auto GetCheckedGraphPtr(const TBase1& dep1, const TBases& ... deps) -> const std::shared_ptr<ReactiveGraph>&
 {
-    const std::shared_ptr<IReactiveGraph>& graphPtr1 = PrivateNodeInterface::GraphPtr(dep1);
+    const std::shared_ptr<ReactiveGraph>& graphPtr1 = PrivateNodeInterface::GraphPtr(dep1);
 
-    std::initializer_list<IReactiveGraph*> rawGraphPtrs = { PrivateNodeInterface::GraphPtr(deps).get() ... };
+    std::initializer_list<ReactiveGraph*> rawGraphPtrs = { PrivateNodeInterface::GraphPtr(deps).get() ... };
 
-    bool isSameGraphForAllDeps = std::all_of(rawGraphPtrs.begin(), rawGraphPtrs.end(), [&] (IReactiveGraph* p) { return p == graphPtr1.get(); });
+    bool isSameGraphForAllDeps = std::all_of(rawGraphPtrs.begin(), rawGraphPtrs.end(), [&] (ReactiveGraph* p) { return p == graphPtr1.get(); });
 
     REACT_ASSERT(isSameGraphForAllDeps, "All dependencies must belong to the same group.");
 

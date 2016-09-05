@@ -13,6 +13,7 @@
 
 #include <functional>
 #include <memory>
+#include <unordered_set>
 #include <utility>
 
 #include "react/API.h"
@@ -26,48 +27,28 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 using NodeId = size_t;
 using TurnId = size_t;
+using LinkId = size_t;
 
 static NodeId invalid_node_id = (std::numeric_limits<size_t>::max)();
 static TurnId invalid_turn_id = (std::numeric_limits<size_t>::max)();
+static LinkId invalid_link_id = (std::numeric_limits<size_t>::max)();
 
 enum class UpdateResult
 {
     unchanged,
-    changed,
-    shifted
+    changed
 };
 
-enum class NodeFlags
+enum class NodeCategory
 {
-    none     = 0,
-    input    = 1 << 0,
-    output   = 1 << 1,
-    dynamic  = 1 << 2,
-    buffered = 1 << 3
+    normal,
+    input,
+    dyninput,
+    output,
+    link
 };
-REACT_DEFINE_BITMASK_OPERATORS(NodeFlags)
 
-struct IReactiveGraph;
-struct IReactiveNode;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// IReactiveGraph
-///////////////////////////////////////////////////////////////////////////////////////////////////
-struct IReactiveGraph
-{
-    virtual ~IReactiveGraph() = default;
-
-    virtual NodeId RegisterNode(IReactiveNode* nodePtr, NodeFlags flags) = 0;
-    virtual void UnregisterNode(NodeId node) = 0;
-
-    virtual void OnNodeAttach(NodeId nodeId, NodeId parentId) = 0;
-    virtual void OnNodeDetach(NodeId nodeId, NodeId parentId) = 0;
-
-    virtual void OnDynamicNodeAttach(NodeId nodeId, NodeId parentId, TurnId turn) = 0;
-    virtual void OnDynamicNodeDetach(NodeId nodeId, NodeId parentId, TurnId turn) = 0;
-
-    virtual void AddInput(NodeId nodeId, std::function<void()> inputCallback) = 0;
-};
+class ReactiveGraph;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IReactiveNode
@@ -78,11 +59,16 @@ struct IReactiveNode
 
     virtual const char* GetNodeType() const = 0;
 
-    virtual UpdateResult Update(TurnId turnId) = 0;  
+    virtual UpdateResult Update(TurnId turnId, int successorCount) = 0;
 
     virtual int GetDependencyCount() const = 0;
+};
 
-    virtual void ClearBuffer() = 0;
+using LinkOutputList = std::vector<std::pair<ReactiveGraph*, IReactiveNode*>>;
+
+struct ILinkOutputNode : public IReactiveNode
+{
+    virtual void CollectOutput(LinkOutputList& output) = 0;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

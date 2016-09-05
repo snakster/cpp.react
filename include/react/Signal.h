@@ -112,8 +112,7 @@ protected:
     VarSignalBase(VarSignalBase&&) = default;
     VarSignalBase& operator=(VarSignalBase&&) = default;
 
-    template <typename TGroup>
-    auto CreateVarNode(const TGroup& group) -> decltype(auto)
+    auto CreateVarNode(const ReactiveGroupBase& group) -> decltype(auto)
     {
         using REACT_IMPL::PrivateReactiveGroupInterface;
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
@@ -121,8 +120,8 @@ protected:
         return std::make_shared<VarNodeType>(PrivateReactiveGroupInterface::GraphPtr(group));
     }
 
-    template <typename T, typename TGroup>
-    auto CreateVarNode(T&& value, const TGroup& group) -> decltype(auto)
+    template <typename T>
+    auto CreateVarNode(T&& value, const ReactiveGroupBase& group) -> decltype(auto)
     {
         using REACT_IMPL::PrivateReactiveGroupInterface;
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
@@ -135,7 +134,7 @@ private:
     void SetValue(T&& newValue)
     {
         using REACT_IMPL::NodeId;
-        using REACT_IMPL::IReactiveGraph;
+        using REACT_IMPL::ReactiveGraph;
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
 
         VarNodeType* castedPtr = static_cast<VarNodeType*>(this->NodePtr().get());
@@ -149,7 +148,7 @@ private:
     void ModifyValue(const F& func)
     {
         using REACT_IMPL::NodeId;
-        using REACT_IMPL::IReactiveGraph;
+        using REACT_IMPL::ReactiveGraph;
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
 
         VarNodeType* castedPtr = static_cast<VarNodeType*>(this->NodePtr().get());
@@ -157,6 +156,55 @@ private:
         NodeId nodeId = castedPtr->GetNodeId();
         auto& graphPtr = castedPtr->GraphPtr();
         graphPtr->AddInput(nodeId, [castedPtr, &func] { castedPtr->ModifyValue(func); });
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SignalSlotBase
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename S>
+class SignalSlotBase : public SignalBase<S>
+{
+public:
+    using SignalBase::SignalBase;
+
+    void Set(const SignalBase<S>& newInput)
+        { SetInput(newInput); }
+
+    void operator<<=(const SignalBase<S>& newInput)
+        { SetInput(newInput); }
+
+protected:
+    SignalSlotBase() = default;
+
+    SignalSlotBase(const SignalSlotBase&) = default;
+    SignalSlotBase& operator=(const SignalSlotBase&) = default;
+
+    SignalSlotBase(SignalSlotBase&&) = default;
+    SignalSlotBase& operator=(SignalSlotBase&&) = default;
+
+    auto CreateSlotNode(const SignalBase<S>& input, const ReactiveGroupBase& group) -> decltype(auto)
+    {
+        using REACT_IMPL::PrivateNodeInterface;
+        using REACT_IMPL::PrivateReactiveGroupInterface;
+        using SlotNodeType = REACT_IMPL::SignalSlotNode<S>;
+
+        return std::make_shared<SlotNodeType>(PrivateReactiveGroupInterface::GraphPtr(group), PrivateNodeInterface::NodePtr(input));
+    }
+
+private:
+    void SetInput(const SignalBase<S>& newInput)
+    {
+        using REACT_IMPL::PrivateNodeInterface;
+        using REACT_IMPL::NodeId;
+        using REACT_IMPL::ReactiveGraph;
+        using SlotNodeType = REACT_IMPL::SignalSlotNode<S>;
+
+        SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->NodePtr().get());
+
+        NodeId nodeId = castedPtr->GetInputNodeId();
+        auto& graphPtr = NodePtr()->GraphPtr();
+        graphPtr->AddInput(nodeId, [castedPtr, &newInput] { castedPtr->SetInput(PrivateNodeInterface::NodePtr(newInput)); });
     }
 };
 
@@ -219,7 +267,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Signal
+/// VarSignal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
 class VarSignal<S, unique> : public VarSignalBase<S>
@@ -273,7 +321,7 @@ public:
 
     // Assign from unique
     VarSignal& operator=(VarSignal<S, unique>&& other)
-        { VarSignal::SignalBase::operator=(std::move(other)); return *this; }
+        { VarSignal::VarSignalBase::operator=(std::move(other)); return *this; }
 
     // Construct with default
     template <typename TGroup>
@@ -289,15 +337,70 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Flatten
+/// SignalSlot
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/*template <typename TInner, EOwnershipPolicy ownership_policy>
-auto Flatten(const SignalBase<SignalBase<TInner>>& outer) -> Signal<TInner, ownership_policy>
+template <typename S>
+class SignalSlot<S, unique> : public SignalSlotBase<S>
 {
-    return Signal<TInner>(
-        std::make_shared<REACT_IMPL::FlattenNode<Signal<TInner>, TInner>>(
-            GetNodePtr(outer), GetNodePtr(outer.Value())));
-}*/
+public:
+    using SignalSlotBase::SignalSlotBase;
+
+    using ValueType = S;
+
+    SignalSlot() = delete;
+
+    SignalSlot(const SignalSlot&) = delete;
+    SignalSlot& operator=(const SignalSlot&) = delete;
+
+    SignalSlot(SignalSlot&&) = default;
+    SignalSlot& operator=(SignalSlot&&) = default;
+
+    // Construct with default
+    explicit SignalSlot(const ReactiveGroupBase& group) :
+        SignalSlot::SignalSlotBase( REACT_IMPL::NodeCtorTag{ }, CreateSlotNode( group) )
+        { }
+
+    // Construct with value
+    SignalSlot(const SignalBase<S>& input, const ReactiveGroupBase& group) :
+        SignalSlot::SignalSlotBase( REACT_IMPL::NodeCtorTag{ }, CreateSlotNode(input, group) )
+        { }
+};
+
+template <typename S>
+class SignalSlot<S, shared> : public SignalSlotBase<S>
+{
+public:
+    using SignalSlotBase::SignalSlotBase;
+
+    using ValueType = S;
+
+    SignalSlot() = delete;
+
+    SignalSlot(const SignalSlot&) = default;
+    SignalSlot& operator=(const SignalSlot&) = default;
+
+    SignalSlot(SignalSlot&&) = default;
+    SignalSlot& operator=(SignalSlot&&) = default;
+
+    // Construct from unique
+    SignalSlot(SignalSlot<S, unique>&& other) :
+        SignalSlot::SignalSlotBase( std::move(other) )
+        { }
+
+    // Assign from unique
+    SignalSlot& operator=(SignalSlot<S, unique>&& other)
+        { SignalSlot::SignalSlotBase::operator=(std::move(other)); return *this; }
+
+    // Construct with default
+    explicit SignalSlot(const ReactiveGroupBase& group) :
+        SignalSlot::SignalSlotBase( REACT_IMPL::NodeCtorTag{ }, CreateSlotNode( group) )
+        { }
+
+    // Construct with value
+    SignalSlot(const SignalBase<S>& input, const ReactiveGroupBase& group) :
+        SignalSlot::SignalSlotBase( REACT_IMPL::NodeCtorTag{ }, CreateSlotNode(input, group) )
+        { }
+};
 
 /******************************************/ REACT_END /******************************************/
 

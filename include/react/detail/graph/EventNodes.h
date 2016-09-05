@@ -27,19 +27,19 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterators for event processing
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T = Token>
+template <typename E = Token>
 class EventRange
 {
 public:
-    using const_iterator = typename std::vector<T>::const_iterator;
-    using size_type = typename std::vector<T>::size_type;
+    using const_iterator = typename std::vector<E>::const_iterator;
+    using size_type = typename std::vector<E>::size_type;
 
     EventRange() = delete;
 
     EventRange(const EventRange&) = default;
     EventRange& operator=(const EventRange&) = default;
 
-    explicit EventRange(const std::vector<T>& data) :
+    explicit EventRange(const std::vector<E>& data) :
         data_( data )
         { }
 
@@ -56,11 +56,11 @@ public:
         { return data_.empty(); }
 
 private:
-    const std::vector<T>&    data_;
+    const std::vector<E>&    data_;
 };
 
-template <typename T>
-using EventSink = std::back_insert_iterator<std::vector<T>>;
+template <typename E>
+using EventSink = std::back_insert_iterator<std::vector<E>>;
 
 /******************************************/ REACT_END /******************************************/
 
@@ -69,17 +69,17 @@ using EventSink = std::back_insert_iterator<std::vector<T>>;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
+template <typename S>
 class SignalNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventStreamNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
+template <typename E>
 class EventStreamNode : public NodeBase
 {
 public:
-    using StorageType = std::vector<T>;
+    using StorageType = std::vector<E>;
 
     EventStreamNode(EventStreamNode&&) = default;
     EventStreamNode& operator=(EventStreamNode&&) = default;
@@ -87,7 +87,7 @@ public:
     EventStreamNode(const EventStreamNode&) = delete;
     EventStreamNode& operator=(const EventStreamNode&) = delete;
 
-    explicit EventStreamNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+    explicit EventStreamNode(const std::shared_ptr<ReactiveGraph>& graphPtr) :
         NodeBase( graphPtr )
         { }
 
@@ -97,11 +97,37 @@ public:
     const StorageType& Events() const
         { return events_; }
 
-    virtual void ClearBuffer() override
-        { events_.clear(); };
+
+    void SetPendingSuccessorCount(int count)
+    {
+        if (count == 0)
+        {
+            // If there are no successors, buffer is cleared immediately.
+            events_.clear();
+        }
+        else
+        {
+            // Otherwise, the last finished successor clears it.
+            pendingSuccessorCount_ = count;
+        }
+    }
+
+    void DecrementPendingSuccessorCount()
+    {
+        // Not all predecessors of a node might be visited during a turn.
+        // In this case, the count is zero and the call to this function should be ignored.
+        if (pendingSuccessorCount_ == 0)
+            return;
+
+        // Last successor to arrive clears the buffer.
+        if (pendingSuccessorCount_-- == 1)
+            events_.clear();
+    };
 
 private:
     StorageType events_;
+    
+    std::atomic<int> pendingSuccessorCount_ = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -111,9 +137,9 @@ template <typename T>
 class EventSourceNode : public EventStreamNode<T>
 {
 public:
-    EventSourceNode(const std::shared_ptr<IReactiveGraph>& graphPtr) :
+    EventSourceNode(const std::shared_ptr<ReactiveGraph>& graphPtr) :
         EventSourceNode::EventStreamNode( graphPtr )
-        { this->RegisterMe(NodeFlags::buffered | NodeFlags::input); }
+        { this->RegisterMe(NodeCategory::input); }
 
     ~EventSourceNode()
         { this->UnregisterMe(); }
@@ -124,10 +150,11 @@ public:
     virtual int GetDependencyCount() const override
         { return 0; }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
-        if (this->Events().size() > 0)
-        {            
+        if (! this->Events().empty())
+        {
+            this->SetPendingSuccessorCount(successorCount);
             return UpdateResult::changed;
         }
         else
@@ -138,9 +165,7 @@ public:
 
     template <typename U>
     void EmitValue(U&& value)
-    {
-        this->Events().push_back(std::forward<U>(value));
-    }
+        { this->Events().push_back(std::forward<U>(value)); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,11 +175,11 @@ template <typename TOut, typename ... TIns>
 class EventMergeNode : public EventStreamNode<TOut>
 {
 public:
-    EventMergeNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<TIns>>& ... deps) :
+    EventMergeNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<TIns>>& ... deps) :
         EventMergeNode::EventStreamNode( graphPtr ),
         depHolder_( deps ... )
     {
-        this->RegisterMe(NodeFlags::buffered);
+        this->RegisterMe();
         REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
@@ -164,14 +189,19 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(MergeFromDep(deps)); }, depHolder_);
 
         if (! this->Events().empty())
+        {
+            this->SetPendingSuccessorCount(successorCount);
             return UpdateResult::changed;
+        }
         else
+        {
             return UpdateResult::unchanged;
+        }
     }
 
     virtual const char* GetNodeType() const override
@@ -185,70 +215,108 @@ private:
     void MergeFromDep(const std::shared_ptr<EventStreamNode<U>>& other)
     {
         this->Events().insert(this->Events().end(), other->Events().begin(), other->Events().end());
+        other->DecrementPendingSuccessorCount();
     }
 
     std::tuple<std::shared_ptr<EventStreamNode<TIns>> ...> depHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventFlattenNode
+/// EventSlotNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TOuter, typename TInner>
-class EventFlattenNode : public EventStreamNode<TInner>
+template <typename E>
+class EventSlotNode : public EventStreamNode<E>
 {
 public:
-    EventFlattenNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<TOuter>>& outer, const std::shared_ptr<EventStreamNode<TInner>>& inner) :
-        EventFlattenNode::EventStreamNode( graphPtr ),
-        outer_( outer ),
-        inner_( inner )
+    EventSlotNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<E>>& dep) :
+        EventSlotNode::EventStreamNode( graphPtr ),
+        slotInput_( *this, dep )
     {
-        this->RegisterMe(NodeFlags::buffered | NodeFlags::dynamic);
-        this->AttachToMe(outer->GetNodeId());
-        this->AttachToMe(inner->GetNodeId());
+        slotInput_.nodeId = GraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
+        this->RegisterMe();
+
+        this->AttachToMe(slotInput_.nodeId);
+        this->AttachToMe(dep->GetNodeId());
     }
 
-    ~EventFlattenNode()
+    ~EventSlotNode()
     {
-        this->DetachFromMe(inner->GetNodeId());
-        this->DetachFromMe(outer->GetNodeId());
+        this->DetachFromMe(slotInput_.dep->GetNodeId());
+        this->DetachFromMe(slotInput_.nodeId);
+
         this->UnregisterMe();
+        GraphPtr()->UnregisterNode(slotInput_.nodeId);
     }
 
     virtual const char* GetNodeType() const override
-        { return "EventFlatten"; }
+        { return "EventSlot"; }
 
     virtual int GetDependencyCount() const override
         { return 2; }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
-        auto newInner = GetNodePtr(outer_->Value());
+        this->Events().insert(this->Events().end(), slotInput_.dep->Events().begin(), slotInput_.dep->Events().end());
 
-        if (newInner != inner_)
-        {
-            newInner->SetCurrentTurn(turnId);
-
-            // Topology has been changed
-            auto oldInner = inner_;
-            inner_ = newInner;
-
-            this->DynamicDetachFromMe(oldInner->GetNodeId(), 0);
-            this->DynamicAttachToMe(newInner->GetNodeId(), 0);
-
-            return UpdateResult::shifted;
-        }
-
-        this->Events().insert(this->Events().end(), inner_->Events().begin(), inner_->Events().end());
+        slotInput_.dep->DecrementPendingSuccessorCount();
 
         if (! this->Events().empty())
+        {
+            this->SetPendingSuccessorCount(successorCount);
             return UpdateResult::changed;
+        }
         else
+        {
             return UpdateResult::unchanged;
+        }
     }
 
-private:
-    std::shared_ptr<SignalNode<TOuter>>       outer_;
-    std::shared_ptr<EventStreamNode<TInner>>  inner_;
+    void SetInput(const std::shared_ptr<EventStreamNode<E>>& newInput)
+        { slotInput_.newDep = newInput; }
+
+    NodeId GetInputNodeId() const
+        { return slotInput_.nodeId; }
+
+private:        
+    struct VirtualInputNode : public IReactiveNode
+    {
+        VirtualInputNode(EventSlotNode& parentIn, const std::shared_ptr<EventStreamNode<E>>& depIn) :
+            parent( parentIn ),
+            dep( depIn )
+            { }
+
+        virtual const char* GetNodeType() const override
+            { return "EventSlotVirtualInput"; }
+
+        virtual int GetDependencyCount() const override
+            { return 0; }
+
+        virtual UpdateResult Update(TurnId turnId, int successorCount) override
+        {
+            if (dep != newDep)
+            {
+                parent.DynamicDetachFromMe(dep->GetNodeId(), 0);
+                parent.DynamicAttachToMe(newDep->GetNodeId(), 0);
+
+                dep = std::move(newDep);
+                return UpdateResult::changed;
+            }
+            else
+            {
+                newDep.reset();
+                return UpdateResult::unchanged;
+            }
+        }
+
+        EventSlotNode& parent;
+
+        NodeId nodeId;
+
+        std::shared_ptr<EventStreamNode<E>> dep;
+        std::shared_ptr<EventStreamNode<E>> newDep;
+    };
+
+    VirtualInputNode slotInput_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -259,12 +327,12 @@ class EventProcessingNode : public EventStreamNode<TOut>
 {
 public:
     template <typename FIn>
-    EventProcessingNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<TIn>>& dep) :
+    EventProcessingNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<TIn>>& dep) :
         EventProcessingNode::EventStreamNode( graphPtr ),
         func_( std::forward<FIn>(func) ),
         dep_( dep )
     {
-        this->RegisterMe(NodeFlags::buffered);
+        this->RegisterMe();
         this->AttachToMe(dep->GetNodeId());
     }
 
@@ -274,14 +342,21 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         func_(EventRange<TIn>( dep_->Events() ), std::back_inserter(this->Events()));
 
+        dep_->DecrementPendingSuccessorCount();
+
         if (! this->Events().empty())
+        {
+            this->SetPendingSuccessorCount(successorCount);
             return UpdateResult::changed;
+        }
         else
+        {
             return UpdateResult::unchanged;
+        }
     }
 
     virtual const char* GetNodeType() const override
@@ -304,13 +379,13 @@ class SyncedEventProcessingNode : public EventStreamNode<TOut>
 {
 public:
     template <typename FIn>
-    SyncedEventProcessingNode(const std::shared_ptr<IReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<TIn>>& dep, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+    SyncedEventProcessingNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<TIn>>& dep, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
         SyncedEventProcessingNode::EventStreamNode( graphPtr ),
         func_( std::forward<FIn>(func) ),
         dep_( dep ),
         syncHolder_( syncs ... )
     {
-        this->RegisterMe(NodeFlags::buffered);
+        this->RegisterMe();
         this->AttachToMe(dep->GetNodeId());
         REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
     }
@@ -322,7 +397,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
         if (dep_->Events().empty())
@@ -335,14 +410,21 @@ public:
             },
             syncHolder_);
 
+        dep_->DecrementPendingSuccessorCount();
+
         if (! this->Events().empty())
+        {
+            this->SetPendingSuccessorCount(successorCount);
             return UpdateResult::changed;
+        }
         else
+        {
             return UpdateResult::unchanged;
+        }
     }
 
     virtual const char* GetNodeType() const override
-        { return "SycnedEventProcessing"; }
+        { return "SyncedEventProcessing"; }
 
     virtual int GetDependencyCount() const override
         { return 1 + sizeof...(TSyncs); }
@@ -350,7 +432,7 @@ public:
 private:
     F func_;
 
-    std::shared_ptr<EventStreamNode<TIn>>   dep_;
+    std::shared_ptr<EventStreamNode<TIn>> dep_;
 
     std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
@@ -362,11 +444,11 @@ template <typename ... Ts>
 class EventJoinNode : public EventStreamNode<std::tuple<Ts ...>>
 {
 public:
-    EventJoinNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<Ts>>& ... deps) :
+    EventJoinNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<Ts>>& ... deps) :
         EventJoinNode::EventStreamNode( graphPtr ),
         slots_( deps ... )
     {
-        this->RegisterMe(NodeFlags::buffered);
+        this->RegisterMe();
         REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
     }
 
@@ -376,9 +458,9 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
-        // Move events into buffers
+        // Move events into buffers.
         apply([this, turnId] (Slot<Ts>& ... slots) { REACT_EXPAND_PACK(FetchBuffer(turnId, slots)); }, slots_);
 
         while (true)
@@ -396,7 +478,7 @@ public:
             if (!isReady)
                 break;
 
-            // Pop values from buffers and emit tuple
+            // Pop values from buffers and emit tuple.
             apply(
                 [this] (Slot<Ts>& ... slots)
                 {
@@ -407,9 +489,14 @@ public:
         }
 
         if (! this->Events().empty())
+        {
+            this->SetPendingSuccessorCount(successorCount);
             return UpdateResult::changed;
+        }
         else
+        {
             return UpdateResult::unchanged;
+        }
     }
 
     virtual const char* GetNodeType() const override
@@ -434,6 +521,7 @@ private:
     static void FetchBuffer(TurnId turnId, Slot<U>& slot)
     {
         slot.buffer.insert(slot.buffer.end(), slot.source->Events().begin(), slot.source->Events().end());
+        slot.source->DecrementPendingSuccessorCount();
     }
 
     template <typename T>

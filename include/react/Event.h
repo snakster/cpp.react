@@ -100,9 +100,6 @@ private:
 template <typename E = Token>
 class EventSourceBase : public EventBase<E>
 {
-private:
-    using NodeType = REACT_IMPL::EventSourceNode<E>;
-
 public:
     using EventBase::EventBase;
     
@@ -137,7 +134,7 @@ protected:
         using REACT_IMPL::PrivateReactiveGroupInterface;
         using SrcNodeType = REACT_IMPL::EventSourceNode<E>;
 
-        return std::make_shared<NodeType>(PrivateReactiveGroupInterface::GraphPtr(group));
+        return std::make_shared<SrcNodeType>(PrivateReactiveGroupInterface::GraphPtr(group));
     }
 
 private:
@@ -145,13 +142,63 @@ private:
     void EmitValue(T&& value)
     {
         using REACT_IMPL::NodeId;
-        using REACT_IMPL::IReactiveGraph;
+        using REACT_IMPL::ReactiveGraph;
+        using SrcNodeType = REACT_IMPL::EventSourceNode<E>;
 
-        NodeType* castedPtr = static_cast<NodeType*>(this->NodePtr().get());
+        SrcNodeType* castedPtr = static_cast<SrcNodeType*>(this->NodePtr().get());
 
         NodeId nodeId = castedPtr->GetNodeId();
         auto& graphPtr = NodePtr()->GraphPtr();
         graphPtr->AddInput(nodeId, [castedPtr, &value] { castedPtr->EmitValue(std::forward<T>(value)); });
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventSlotBase
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename E>
+class EventSlotBase : public EventBase<E>
+{
+public:
+    using EventBase::EventBase;
+
+    void Set(const EventBase<E>& newInput)
+        { SetInput(newInput); }
+
+    void operator<<=(const EventBase<E>& newInput)
+        { SetInput(newInput); }
+
+protected:
+    EventSlotBase() = default;
+
+    EventSlotBase(const EventSlotBase&) = default;
+    EventSlotBase& operator=(const EventSlotBase&) = default;
+
+    EventSlotBase(EventSlotBase&&) = default;
+    EventSlotBase& operator=(EventSlotBase&&) = default;
+
+    auto CreateSlotNode(const EventBase<E>& input, const ReactiveGroupBase& group) -> decltype(auto)
+    {
+        using REACT_IMPL::PrivateNodeInterface;
+        using REACT_IMPL::PrivateReactiveGroupInterface;
+        using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
+
+        return std::make_shared<SlotNodeType>(PrivateReactiveGroupInterface::GraphPtr(group), PrivateNodeInterface::NodePtr(input));
+    }
+
+private:
+    void SetInput(const EventBase<E>& newInput)
+    {
+        using REACT_IMPL::PrivateNodeInterface;
+        using REACT_IMPL::NodeId;
+        using REACT_IMPL::ReactiveGraph;
+        using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
+
+        SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->NodePtr().get());
+
+        NodeId nodeId = castedPtr->GetInputNodeId();
+        auto& graphPtr = NodePtr()->GraphPtr();
+        graphPtr->AddInput(nodeId, [castedPtr, &newInput] { castedPtr->SetInput(PrivateNodeInterface::NodePtr(newInput)); });
     }
 };
 
@@ -275,6 +322,62 @@ public:
     // Assign from unique
     EventSource& operator=(EventSource<E, unique>&& other)
         { EventSource::EventSourceBase::operator=(std::move(other)); return *this; }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventSlot
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename E>
+class EventSlot<E, unique> : public EventSlotBase<E>
+{
+public:
+    using EventSlotBase::EventSlotBase;
+
+    using ValueType = E;
+
+    EventSlot() = delete;
+
+    EventSlot(const EventSlot&) = delete;
+    EventSlot& operator=(const EventSlot&) = delete;
+
+    EventSlot(EventSlot&&) = default;
+    EventSlot& operator=(EventSlot&&) = default;
+
+    // Construct with value
+    EventSlot(const EventBase<E>& input, const ReactiveGroupBase& group) :
+        EventSlot::EventSlotBase( REACT_IMPL::NodeCtorTag{ }, CreateSlotNode(input, group) )
+        { }
+};
+
+template <typename E>
+class EventSlot<E, shared> : public EventSlotBase<E>
+{
+public:
+    using EventSlotBase::EventSlotBase;
+
+    using ValueType = E;
+
+    EventSlot() = delete;
+
+    EventSlot(const EventSlot&) = default;
+    EventSlot& operator=(const EventSlot&) = default;
+
+    EventSlot(EventSlot&&) = default;
+    EventSlot& operator=(EventSlot&&) = default;
+
+    // Construct from unique
+    EventSlot(EventSlot<E, unique>&& other) :
+        EventSlot::EventSlotBase( std::move(other) )
+        { }
+
+    // Assign from unique
+    EventSlot& operator=(EventSlot<E, unique>&& other)
+        { EventSlot::EventSlotBase::operator=(std::move(other)); return *this; }
+
+    // Construct with value
+    EventSlot(const SignalBase<E>& input, const ReactiveGroupBase& group) :
+        EventSlot::EventSlotBase( REACT_IMPL::NodeCtorTag{ }, CreateSlotNode(input, group) )
+        { }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

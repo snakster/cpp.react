@@ -12,9 +12,13 @@
 #include "react/detail/Defs.h"
 
 #include <algorithm>
+#include <atomic>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#include <tbb/concurrent_queue.h>
+#include <tbb/task.h>
 
 #include "react/common/Containers.h"
 #include "react/common/Types.h"
@@ -22,24 +26,86 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-class SingleThreadedGraph : public IReactiveGraph
+class ReactiveGraph;
+
+class TransactionQueue
 {
 public:
-    // IReactiveGraph
-    virtual NodeId RegisterNode(IReactiveNode* nodePtr, NodeFlags flags) override;
-    virtual void UnregisterNode(NodeId node) override;
+    TransactionQueue(ReactiveGraph& graph) :
+        graph_( graph )
+        { }
 
-    virtual void OnNodeAttach(NodeId node, NodeId parentId) override;
-    virtual void OnNodeDetach(NodeId node, NodeId parentId) override;
+    TransactionQueue(const TransactionQueue&) = delete;
+    TransactionQueue& operator=(const TransactionQueue&) = delete;
 
-    virtual void OnDynamicNodeAttach(NodeId node, NodeId parentId, TurnId turnId) override;
-    virtual void OnDynamicNodeDetach(NodeId node, NodeId parentId, TurnId turnId) override;
-
-    virtual void AddInput(NodeId nodeId, std::function<void()> inputCallback) override;
-    // ~IReactiveGraph
+    TransactionQueue(TransactionQueue&&) = default;
+    TransactionQueue& operator =(TransactionQueue&&) = default;
 
     template <typename F>
-    void DoTransaction(TransactionFlags flags, F&& transactionCallback);
+    void Push(TransactionFlags flags, F&& transaction)
+    {
+        if (count_.fetch_add(1, std::memory_order_relaxed) == 0)
+            tbb::task::enqueue(*new(tbb::task::allocate_root()) WorkerTask(*this));
+    }
+
+private:
+    struct StoredTransaction
+    {
+        TransactionFlags        flags;
+        std::function<void()>   callback;
+    };
+
+    class WorkerTask : public tbb::task
+    {
+    public:
+        WorkerTask(TransactionQueue& parent) :
+            parent_( parent )
+            { }
+
+        tbb::task* execute()
+        {
+            parent_.ProcessQueue();
+            return nullptr;
+        }
+
+    private:
+        TransactionQueue& parent_;
+    };
+
+    void ProcessQueue();
+
+    size_t ProcessNextBatch();
+
+    tbb::concurrent_queue<StoredTransaction> transactions_;
+
+    std::atomic<size_t> count_{ 0 };
+
+    ReactiveGraph& graph_;
+};
+
+class ReactiveGraph
+{
+public:
+    NodeId RegisterNode(IReactiveNode* nodePtr, NodeCategory category);
+    void UnregisterNode(NodeId nodeId);
+
+    void OnNodeAttach(NodeId node, NodeId parentId);
+    void OnNodeDetach(NodeId node, NodeId parentId);
+
+    void OnDynamicNodeAttach(NodeId node, NodeId parentId, TurnId turnId);
+    void OnDynamicNodeDetach(NodeId node, NodeId parentId, TurnId turnId);
+
+    LinkId AddGroupLink(ILinkNodeOutput* nodePtr, NodeCategory category);
+    void RemoveGroupLink(LinkId nodeId);
+
+    template <typename F>
+    void AddInput(NodeId nodeId, F&& inputCallback);
+
+    template <typename F>
+    void DoTransaction(F&& transactionCallback);
+
+    template <typename F>
+    void EnqueueTransaction(TransactionFlags flags, F&& transactionCallback);
 
 private:
     struct NodeData
@@ -49,12 +115,12 @@ private:
         NodeData(const NodeData&) = default;
         NodeData& operator=(const NodeData&) = default;
 
-        NodeData(IReactiveNode* nodePtrIn, NodeFlags flagsIn) :
+        NodeData(IReactiveNode* nodePtrIn, NodeCategory categoryIn) :
             nodePtr( nodePtrIn ),
-            flags( flagsIn )
+            category(categoryIn)
         { }
 
-        NodeFlags flags = NodeFlags::none;
+        NodeCategory category = NodeCategory::normal;
 
         int     level       = 0;
         int     newLevel    = 0 ;
@@ -90,35 +156,34 @@ private:
     };
 
     void Propagate();
+    void UpdateLinkNodes();
 
     void ScheduleSuccessors(NodeData & node);
     void InvalidateSuccessors(NodeData & node);
-    void ClearBufferedNodes();
 
 private:
-    int refCount_ = 1;
+    TransactionQueue    transactionQueue_{ *this };
 
     TopoQueue           scheduledNodes_;
     IndexMap<NodeData>  nodeData_;
     std::vector<NodeId> changedInputs_;
-
-    std::vector<IReactiveNode*> pendingBufferedNodes_;
+    std::vector<NodeId> scheduledLinkNodes_;
 
     bool isTransactionActive_ = false;
 };
 
-NodeId SingleThreadedGraph::RegisterNode(IReactiveNode* nodePtr, NodeFlags flags)
+NodeId ReactiveGraph::RegisterNode(IReactiveNode* nodePtr, NodeCategory category)
 {
-    return nodeData_.Insert(NodeData{ nodePtr, flags });
+    return nodeData_.Insert(NodeData{ nodePtr, category });
 }
 
-void SingleThreadedGraph::UnregisterNode(NodeId nodeId)
+void ReactiveGraph::UnregisterNode(NodeId nodeId)
 {
     nodeData_.Remove(nodeId);
 
 }
 
-void SingleThreadedGraph::OnNodeAttach(NodeId nodeId, NodeId parentId)
+void ReactiveGraph::OnNodeAttach(NodeId nodeId, NodeId parentId)
 {
     auto& node = nodeData_[nodeId];
     auto& parent = nodeData_[parentId];
@@ -129,7 +194,7 @@ void SingleThreadedGraph::OnNodeAttach(NodeId nodeId, NodeId parentId)
         node.level = parent.level + 1;
 }
 
-void SingleThreadedGraph::OnNodeDetach(NodeId nodeId, NodeId parentId)
+void ReactiveGraph::OnNodeDetach(NodeId nodeId, NodeId parentId)
 {
     auto& parent = nodeData_[parentId];
     auto& successors = parent.successors;
@@ -137,17 +202,18 @@ void SingleThreadedGraph::OnNodeDetach(NodeId nodeId, NodeId parentId)
     successors.erase(std::find(successors.begin(), successors.end(), nodeId));
 }
 
-void SingleThreadedGraph::OnDynamicNodeAttach(NodeId nodeId, NodeId parentId, TurnId turnId)
+void ReactiveGraph::OnDynamicNodeAttach(NodeId nodeId, NodeId parentId, TurnId turnId)
 {
     OnNodeAttach(nodeId, parentId);
 }
 
-void SingleThreadedGraph::OnDynamicNodeDetach(NodeId nodeId, NodeId parentId, TurnId turnId)
+void ReactiveGraph::OnDynamicNodeDetach(NodeId nodeId, NodeId parentId, TurnId turnId)
 {
     OnNodeDetach(nodeId, parentId);
 }
 
-void SingleThreadedGraph::AddInput(NodeId nodeId, std::function<void()> inputCallback)
+template <typename F>
+void ReactiveGraph::AddInput(NodeId nodeId, F&& inputCallback)
 {
     auto& node = nodeData_[nodeId];
     auto* nodePtr = node.nodePtr;
@@ -163,25 +229,22 @@ void SingleThreadedGraph::AddInput(NodeId nodeId, std::function<void()> inputCal
     }
     else
     {
-        // Update the node. This applies the input buffer to the node value and checks if it changed.
-        if (nodePtr->Update(0) == UpdateResult::changed)
-        {
-            if (IsBitmaskSet(node.flags, NodeFlags::buffered))
-                pendingBufferedNodes_.push_back(nodePtr);
+        int successorCount = node.successors.size();
 
+        // Update the node. This applies the input buffer to the node value and checks if it changed.
+        if (nodePtr->Update(0, successorCount) == UpdateResult::changed)
+        {
             // Propagate changes through the graph
             ScheduleSuccessors(node);
 
             if (! scheduledNodes_.IsEmpty())
                 Propagate();
         }
-
-        ClearBufferedNodes();
     }
 }
 
 template <typename F>
-void SingleThreadedGraph::DoTransaction(TransactionFlags flags, F&& transactionCallback)
+void ReactiveGraph::DoTransaction(F&& transactionCallback)
 {
     // Transaction callback may add multiple inputs.
     isTransactionActive_ = true;
@@ -194,10 +257,12 @@ void SingleThreadedGraph::DoTransaction(TransactionFlags flags, F&& transactionC
         auto& node = nodeData_[nodeId];
         auto* nodePtr = node.nodePtr;
 
-        if (nodePtr->Update(0) == UpdateResult::changed)
+        int successorCount = node.successors.size();
+
+        if (nodePtr->Update(0, successorCount) == UpdateResult::changed)
         {
-            if (IsBitmaskSet(node.flags, NodeFlags::buffered))
-                pendingBufferedNodes_.push_back(nodePtr);
+            if (node.category == NodeCategory::dyninput)
+                InvalidateSuccessors(node);
 
             ScheduleSuccessors(node);
         }
@@ -209,10 +274,17 @@ void SingleThreadedGraph::DoTransaction(TransactionFlags flags, F&& transactionC
     if (! scheduledNodes_.IsEmpty())
         Propagate();
 
-    ClearBufferedNodes();
+    if (!scheduledLinkNodes_.empty())
+        UpdateLinkNodes();
 }
 
-void SingleThreadedGraph::Propagate()
+template <typename F>
+void ReactiveGraph::EnqueueTransaction(TransactionFlags flags, F&& transactionCallback)
+{
+    transactionQueue_.Push(flags, std::forward<F>(transactionCallback));
+}
+
+void ReactiveGraph::Propagate()
 {
     while (scheduledNodes_.FetchNext())
     {
@@ -230,21 +302,11 @@ void SingleThreadedGraph::Propagate()
                 continue;
             }
 
-            auto result = nodePtr->Update(0);
+            int successorCount = node.successors.size();
 
-            if (result == UpdateResult::changed)
+            if (nodePtr->Update(0, successorCount) == UpdateResult::changed)
             {
-                if (IsBitmaskSet(node.flags, NodeFlags::buffered))
-                    pendingBufferedNodes_.push_back(nodePtr);
-
                 ScheduleSuccessors(node);
-            }
-            else if (result == UpdateResult::shifted)
-            {
-                // Re-schedule this node
-                InvalidateSuccessors(node);
-                scheduledNodes_.Push(nodeId, node.level);
-                continue;
             }
 
             node.queued = false;
@@ -252,7 +314,15 @@ void SingleThreadedGraph::Propagate()
     }
 }
 
-void SingleThreadedGraph::ScheduleSuccessors(NodeData& node)
+void ReactiveGraph::UpdateLinkNodes()
+{
+    for (const auto& x : scheduledLinkNodes_)
+    {
+
+    }
+}
+
+void ReactiveGraph::ScheduleSuccessors(NodeData& node)
 {
     for (NodeId succId : node.successors)
     {
@@ -261,12 +331,16 @@ void SingleThreadedGraph::ScheduleSuccessors(NodeData& node)
         if (!succ.queued)
         {
             succ.queued = true;
-            scheduledNodes_.Push(succId, succ.level);
+
+            if (node.category != NodeCategory::link)
+                scheduledNodes_.Push(succId, succ.level);
+            else
+                scheduledLinkNodes_.push_back(succId);
         }
     }
 }
 
-void SingleThreadedGraph::InvalidateSuccessors(NodeData& node)
+void ReactiveGraph::InvalidateSuccessors(NodeData& node)
 {
     for (NodeId succId : node.successors)
     {
@@ -277,14 +351,7 @@ void SingleThreadedGraph::InvalidateSuccessors(NodeData& node)
     }
 }
 
-void SingleThreadedGraph::ClearBufferedNodes()
-{
-    for (IReactiveNode* nodePtr : pendingBufferedNodes_)
-        nodePtr->ClearBuffer();
-    pendingBufferedNodes_.clear();
-}
-
-bool SingleThreadedGraph::TopoQueue::FetchNext()
+bool ReactiveGraph::TopoQueue::FetchNext()
 {
     // Throw away previous values
     nextData_.clear();
@@ -308,6 +375,68 @@ bool SingleThreadedGraph::TopoQueue::FetchNext()
     queueData_.resize(std::distance(queueData_.begin(), p));
 
     return !nextData_.empty();
+}
+
+void TransactionQueue::ProcessQueue()
+{
+    for (;;)
+    {
+        size_t popCount = ProcessNextBatch();
+        if (count_.fetch_sub(popCount) == popCount)
+            return;
+    }
+}
+
+size_t TransactionQueue::ProcessNextBatch()
+{
+    StoredTransaction curTransaction;
+    size_t popCount = 0;
+    bool canMerge = false;
+    bool skipPop = false;
+    bool isDone = false;
+
+    // Outer loop. One transaction per iteration.
+    for (;;)
+    {
+        if (!skipPop)
+        {
+            if (transactions_.try_pop(curTransaction))
+                return popCount;
+
+            canMerge = IsBitmaskSet(curTransaction.flags, TransactionFlags::allow_merging);
+            ++popCount;
+        }
+        else
+        {
+            skipPop = false;
+        }
+
+        graph_.DoTransaction([&]
+        {
+            curTransaction.callback();
+
+            if (canMerge)
+            {
+                // Inner loop. Mergeable transactions are merged
+                for (;;)
+                {
+                    if (transactions_.try_pop(curTransaction))
+                        return;
+
+                    canMerge = IsBitmaskSet(curTransaction.flags, TransactionFlags::allow_merging);
+                    ++popCount;
+
+                    if (!canMerge)
+                    {
+                        skipPop = true;
+                        return;
+                    }
+
+                    curTransaction.callback();
+                }
+            }
+        });
+    }
 }
 
 /****************************************/ REACT_IMPL_END /***************************************/

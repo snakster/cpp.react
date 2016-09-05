@@ -86,7 +86,7 @@ class IterateNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    IterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events) :
+    IterateNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events) :
         IterateNode::SignalNode( graphPtr, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         events_( events )
@@ -101,9 +101,11 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         S newValue = func_(EventRange<E>( events_->Events() ), this->Value());
+
+        events_->DecrementPendingSuccessorCount();
 
         if (! (newValue == this->Value()))
         {
@@ -136,7 +138,7 @@ class IterateByRefNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    IterateByRefNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events) :
+    IterateByRefNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events) :
         IterateByRefNode::SignalNode( graphPtr, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         events_( events )
@@ -151,9 +153,11 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         func_(EventRange<E>( events_->Events() ), this->Value());
+
+        events_->DecrementPendingSuccessorCount();
 
         // Always assume change
         return UpdateResult::changed;
@@ -179,7 +183,7 @@ class SyncedIterateNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    SyncedIterateNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+    SyncedIterateNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
         SyncedIterateNode::SignalNode( graphPtr, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         events_( events ),
@@ -197,14 +201,20 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
+        // Updates might be triggered even if only sync nodes changed. Ignore those.
+        if (events_->Events().empty())
+            return UpdateResult::unchanged;
+
         S newValue = apply(
             [this] (const auto& ... syncs)
             {
                 return func_(EventRange<E>( events_->Events() ), this->Value(), syncs->Value() ...);
             },
             syncHolder_);
+
+        events_->DecrementPendingSuccessorCount();
 
         if (! (newValue == this->Value()))
         {
@@ -239,7 +249,7 @@ class SyncedIterateByRefNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    SyncedIterateByRefNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
+    SyncedIterateByRefNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
         SyncedIterateByRefNode::SignalNode( graphPtr, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         events_( events ),
@@ -257,27 +267,23 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
-        events_->SetCurrentTurn(turnId);
-
-        bool changed = false;
-
-        if (! events_->Events().empty())
-        {
-            apply(
-                [this] (const auto& ... args)
-                {
-                    func_(EventRange<E>( events_->Events() ), this->Value(), args->Value() ...);
-                },
-                syncHolder_);
-
-            return UpdateResult::changed;
-        }
-        else
-        {
+        // Updates might be triggered even if only sync nodes changed. Ignore those.
+        if (events_->Events().empty())
             return UpdateResult::unchanged;
-        }
+
+        apply(
+            [this] (const auto& ... args)
+            {
+                func_(EventRange<E>( events_->Events() ), this->Value(), args->Value() ...);
+            },
+            syncHolder_);
+
+        events_->DecrementPendingSuccessorCount();
+        this->SetPendingSuccessorCount(successorCount);
+
+        return UpdateResult::changed;
     }
 
     virtual const char* GetNodeType() const override
@@ -302,7 +308,7 @@ class HoldNode : public SignalNode<S>
 {
 public:
     template <typename T>
-    HoldNode(const std::shared_ptr<IReactiveGraph>& graphPtr, T&& init, const std::shared_ptr<EventStreamNode<S>>& events) :
+    HoldNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, const std::shared_ptr<EventStreamNode<S>>& events) :
         HoldNode::SignalNode( graphPtr, std::forward<T>(init) ),
         events_( events )
     {
@@ -319,7 +325,7 @@ public:
     virtual const char* GetNodeType() const override
         { return "HoldNode"; }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         bool changed = false;
 
@@ -332,6 +338,8 @@ public:
                 changed = true;
                 this->Value() = newValue;
             }
+
+            events_->DecrementPendingSuccessorCount();
         }
 
         if (changed)
@@ -354,7 +362,7 @@ template <typename S, typename E>
 class SnapshotNode : public SignalNode<S>
 {
 public:
-    SnapshotNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target, const std::shared_ptr<EventStreamNode<E>>& trigger) :
+    SnapshotNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target, const std::shared_ptr<EventStreamNode<E>>& trigger) :
         SnapshotNode::SignalNode( graphPtr, target->Value() ),
         target_( target ),
         trigger_( trigger )
@@ -371,21 +379,21 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
-        trigger_->SetCurrentTurn(turnId);
-
         bool changed = false;
         
         if (! trigger_->Events().empty())
         {
             const S& newValue = target_->Value();
 
-            if (! Equals(newValue, this->Value()))
+            if (! (newValue == this->Value()))
             {
                 changed = true;
                 this->Value() = newValue;
             }
+
+            trigger_->DecrementPendingSuccessorCount();
         }
 
         if (changed)
@@ -412,11 +420,11 @@ template <typename S>
 class MonitorNode : public EventStreamNode<S>
 {
 public:
-    MonitorNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target) :
+    MonitorNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target) :
         MonitorNode::EventStreamNode( graphPtr ),
         target_( target )
     {
-        this->RegisterMe(NodeFlags::buffered);
+        this->RegisterMe();
         this->AttachToMe(target->GetNodeId());
     }
 
@@ -426,9 +434,12 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         this->Events().push_back(target_->Value());
+
+        this->SetPendingSuccessorCount(successorCount);
+
         return UpdateResult::changed;
     }
 
@@ -449,12 +460,12 @@ template <typename S, typename E>
 class PulseNode : public EventStreamNode<S>
 {
 public:
-    PulseNode(const std::shared_ptr<IReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target, const std::shared_ptr<EventStreamNode<E>>& trigger) :
+    PulseNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target, const std::shared_ptr<EventStreamNode<E>>& trigger) :
         PulseNode::EventStreamNode( graphPtr ),
         target_( target ),
         trigger_( trigger )
     {
-        this->RegisterMe(NodeFlags::buffered);
+        this->RegisterMe();
         this->AttachToMe(target->GetNodeId());
         this->AttachToMe(trigger->GetNodeId());
     }
@@ -466,19 +477,26 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId) override
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         for (size_t i=0; i<trigger_->Events().size(); i++)
             this->Events().push_back(target_->Value());
 
+        trigger_->DecrementPendingSuccessorCount();
+
         if (! this->Events().empty())
+        {
+            this->SetPendingSuccessorCount(successorCount);
             return UpdateResult::changed;
+        }
         else
+        {
             return UpdateResult::unchanged;
+        }
     }
 
     virtual const char* GetNodeType() const override
-        { return "PulseNode"; }
+        { return "Pulse"; }
 
     virtual int GetDependencyCount() const override
         { return 2; }
