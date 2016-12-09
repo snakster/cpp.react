@@ -56,38 +56,51 @@ protected:
         { return nodePtr_; }
 
     template <typename F, typename T1, typename ... Ts>
-    auto CreateSignalObserverNode(F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) -> decltype(auto)
+    auto CreateSignalObserverNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) -> decltype(auto)
     {
-        using REACT_IMPL::GetCheckedGraphPtr;
-        using REACT_IMPL::PrivateNodeInterface;
+				using REACT_IMPL::PrivateSignalLinkNodeInterface;
         using ObsNodeType = REACT_IMPL::SignalObserverNode<typename std::decay<F>::type, T1, Ts ...>;
 
         return std::make_shared<ObsNodeType>(
-            GetCheckedGraphPtr(dep1, deps ...),
+            graphPtr,
             std::forward<F>(func),
-            PrivateNodeInterface::NodePtr(dep1), PrivateNodeInterface::NodePtr(deps) ...);
+            PrivateSignalLinkNodeInterface::GetLocalSignalNodePtr(graphPtr, dep1), PrivateSignalLinkNodeInterface::GetLocalSignalNodePtr(graphPtr, deps) ...);
+    }
+
+    template <typename F, typename T1, typename ... Ts>
+    auto CreateSignalObserverNode(F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) -> decltype(auto)
+    {
+        using REACT_IMPL::PrivateNodeInterface;
+        return CreateSignalObserverNode(PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...);
+    }
+
+    template <typename F, typename T>
+    auto CreateEventObserverNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const EventBase<T>& dep) -> decltype(auto)
+    {
+				using REACT_IMPL::PrivateEventLinkNodeInterface;
+        using ObsNodeType = REACT_IMPL::EventObserverNode<typename std::decay<F>::type, T>;
+
+        return std::make_shared<ObsNodeType>(graphPtr, std::forward<F>(func), PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, dep));
     }
 
     template <typename F, typename T>
     auto CreateEventObserverNode(F&& func, const EventBase<T>& dep) -> decltype(auto)
     {
         using REACT_IMPL::PrivateNodeInterface;
-        using ObsNodeType = REACT_IMPL::EventObserverNode<typename std::decay<F>::type, T>;
-
-        return std::make_shared<ObsNodeType>(PrivateNodeInterface::GraphPtr(dep), std::forward<F>(func), PrivateNodeInterface::NodePtr(dep));
+        return CreateSignalObserverNode(PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...);
     }
 
     template <typename F, typename T, typename ... Us>
     auto CreateSyncedEventObserverNode(F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... syncs) -> decltype(auto)
     {
-        using REACT_IMPL::GetCheckedGraphPtr;
         using REACT_IMPL::PrivateNodeInterface;
+				using REACT_IMPL::PrivateSignalLinkNodeInterface;
         using ObsNodeType = REACT_IMPL::SyncedEventObserverNode<typename std::decay<F>::type, T, Us ...>;
 
+				const auto& graphPtr = PrivateNodeInterface::GraphPtr(dep);
+
         return std::make_shared<ObsNodeType>(
-            GetCheckedGraphPtr(dep, syncs ...),
-            std::forward<F>(func),
-            PrivateNodeInterface::NodePtr(dep), PrivateNodeInterface::NodePtr(syncs) ...);
+            graphPtr, std::forward<F>(func), PrivateSignalLinkNodeInterface::GetLocalSignalNodePtr(graphPtr, dep), PrivateSignalLinkNodeInterface::GetLocalSignalNodePtr(graphPtr, syncs) ...);
     }
 
 private:
@@ -113,22 +126,40 @@ public:
     Observer(Observer&&) = default;
     Observer& operator=(Observer&&) = default;
 
-    // Construct signal observer
+    // Construct signal observer with implicit group
     template <typename F, typename ... Ts>
     Observer(F&& func, const SignalBase<Ts>& ... subjects) :
         Observer::ObserverBase( CreateSignalObserverNode(std::forward<F>(func), subjects ...) )
         { }
 
-    // Construct event observer
-    template <typename F, typename T>
-    Observer(F&& func, const EventBase<T>& subject) :
-        Observer::ObserverBase( CreateEventObserverNode(std::forward<F>(func), subject ) )
+    // Construct signal observer with explicit group
+    template <typename F, typename ... Ts>
+    Observer(const ReactiveGroupBase& group, F&& func, const SignalBase<Ts>& ... subjects) :
+        Observer::ObserverBase( CreateSignalObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subjects ...) )
         { }
 
-    // Constructed synced event observer
+    // Construct event observer with implicit group
+    template <typename F, typename T>
+    Observer(F&& func, const EventBase<T>& subject) :
+        Observer::ObserverBase( CreateEventObserverNode(std::forward<F>(func), subject) )
+        { }
+
+    // Construct event observer with explicit group
+    template <typename F, typename T>
+    Observer(const ReactiveGroupBase& group, F&& func, const EventBase<T>& subject) :
+        Observer::ObserverBase( CreateEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject) )
+        { }
+
+    // Constructed synced event observer with implicit group
     template <typename F, typename T, typename ... Us>
     Observer(F&& func, const EventBase<T>& subject, const SignalBase<Us>& ... signals) :
         Observer::ObserverBase( CreateSyncedEventObserverNode(std::forward<F>(func), subject, signals ...) )
+        { }
+
+    // Constructed synced event observer with explicit group
+    template <typename F, typename T, typename ... Us>
+    Observer(const ReactiveGroupBase& group, F&& func, const EventBase<T>& subject, const SignalBase<Us>& ... signals) :
+        Observer::ObserverBase( CreateSyncedEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject, signals ...) )
         { }
 };
 
@@ -155,22 +186,40 @@ public:
     Observer& operator=(Observer<unique>&& other)
         { Observer::ObserverBase::operator=(std::move(other)); return *this; }
 
-    // Construct signal observer
+    // Construct signal observer with implicit group
     template <typename F, typename ... Ts>
     Observer(F&& func, const SignalBase<Ts>& ... subjects) :
         Observer::ObserverBase( CreateSignalObserverNode(std::forward<F>(func), subjects ...) )
         { }
 
-    // Construct event observer
-    template <typename F, typename T>
-    Observer(F&& func, const EventBase<T>& subject) :
-        Observer::ObserverBase( CreateEventObserverNode(std::forward<F>(func), subject ) )
+    // Construct signal observer with explicit group
+    template <typename F, typename ... Ts>
+    Observer(const ReactiveGroupBase& group, F&& func, const SignalBase<Ts>& ... subjects) :
+        Observer::ObserverBase( CreateSignalObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subjects ...) )
         { }
 
-    // Constructed synced event observer
+    // Construct event observer with implicit group
+    template <typename F, typename T>
+    Observer(F&& func, const EventBase<T>& subject) :
+        Observer::ObserverBase( CreateEventObserverNode(std::forward<F>(func), subject) )
+        { }
+
+    // Construct event observer with explicit group
+    template <typename F, typename T>
+    Observer(const ReactiveGroupBase& group, F&& func, const EventBase<T>& subject) :
+        Observer::ObserverBase( CreateEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject) )
+        { }
+
+    // Constructed synced event observer with implicit group
     template <typename F, typename T, typename ... Us>
     Observer(F&& func, const EventBase<T>& subject, const SignalBase<Us>& ... signals) :
         Observer::ObserverBase( CreateSyncedEventObserverNode(std::forward<F>(func), subject, signals ...) )
+        { }
+
+    // Constructed synced event observer with explicit group
+    template <typename F, typename T, typename ... Us>
+    Observer(const ReactiveGroupBase& group, F&& func, const EventBase<T>& subject, const SignalBase<Us>& ... signals) :
+        Observer::ObserverBase( CreateSyncedEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject, signals ...) )
         { }
 };
 

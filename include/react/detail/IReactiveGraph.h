@@ -13,7 +13,7 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_set>
+#include <unordered_map>
 #include <utility>
 
 #include "react/API.h"
@@ -45,7 +45,7 @@ enum class NodeCategory
     input,
     dyninput,
     output,
-    link
+    linkoutput
 };
 
 class ReactiveGraph;
@@ -64,11 +64,11 @@ struct IReactiveNode
     virtual int GetDependencyCount() const = 0;
 };
 
-using LinkOutputList = std::vector<std::pair<ReactiveGraph*, IReactiveNode*>>;
+using LinkOutputMap = std::unordered_map<ReactiveGraph*, std::vector<std::function<void()>>>;
 
 struct ILinkOutputNode : public IReactiveNode
 {
-    virtual void CollectOutput(LinkOutputList& output) = 0;
+    virtual void CollectOutput(LinkOutputMap& output) = 0;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

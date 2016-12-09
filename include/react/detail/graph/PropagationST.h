@@ -44,6 +44,8 @@ public:
     template <typename F>
     void Push(TransactionFlags flags, F&& transaction)
     {
+				transactions_.push(StoredTransaction{ flags, std::forward<F>(transaction) });
+
         if (count_.fetch_add(1, std::memory_order_relaxed) == 0)
             tbb::task::enqueue(*new(tbb::task::allocate_root()) WorkerTask(*this));
     }
@@ -95,9 +97,6 @@ public:
     void OnDynamicNodeAttach(NodeId node, NodeId parentId, TurnId turnId);
     void OnDynamicNodeDetach(NodeId node, NodeId parentId, TurnId turnId);
 
-    LinkId AddGroupLink(ILinkNodeOutput* nodePtr, NodeCategory category);
-    void RemoveGroupLink(LinkId nodeId);
-
     template <typename F>
     void AddInput(NodeId nodeId, F&& inputCallback);
 
@@ -118,7 +117,7 @@ private:
         NodeData(IReactiveNode* nodePtrIn, NodeCategory categoryIn) :
             nodePtr( nodePtrIn ),
             category(categoryIn)
-        { }
+						{ }
 
         NodeCategory category = NodeCategory::normal;
 
@@ -127,7 +126,6 @@ private:
         bool    queued      = false;
 
         IReactiveNode*  nodePtr = nullptr;
-        
 
         std::vector<NodeId> successors;
     };
@@ -167,7 +165,7 @@ private:
     TopoQueue           scheduledNodes_;
     IndexMap<NodeData>  nodeData_;
     std::vector<NodeId> changedInputs_;
-    std::vector<NodeId> scheduledLinkNodes_;
+    LinkOutputMap				scheduledLinkOutputs_;
 
     bool isTransactionActive_ = false;
 };
@@ -239,6 +237,9 @@ void ReactiveGraph::AddInput(NodeId nodeId, F&& inputCallback)
 
             if (! scheduledNodes_.IsEmpty())
                 Propagate();
+
+						if (! scheduledLinkOutputs_.empty())
+								UpdateLinkNodes();
         }
     }
 }
@@ -274,7 +275,7 @@ void ReactiveGraph::DoTransaction(F&& transactionCallback)
     if (! scheduledNodes_.IsEmpty())
         Propagate();
 
-    if (!scheduledLinkNodes_.empty())
+    if (! scheduledLinkOutputs_.empty())
         UpdateLinkNodes();
 }
 
@@ -302,6 +303,13 @@ void ReactiveGraph::Propagate()
                 continue;
             }
 
+						// Special handling for link output nodes. They have no successors and they don't have to be updated.
+						if (node.category == NodeCategory::linkoutput)
+						{
+							static_cast<ILinkOutputNode*>(node.nodePtr)->CollectOutput(scheduledLinkOutputs_);
+							continue;
+						}
+
             int successorCount = node.successors.size();
 
             if (nodePtr->Update(0, successorCount) == UpdateResult::changed)
@@ -316,10 +324,35 @@ void ReactiveGraph::Propagate()
 
 void ReactiveGraph::UpdateLinkNodes()
 {
-    for (const auto& x : scheduledLinkNodes_)
-    {
+	for (auto& e : scheduledLinkOutputs_)
+	{
+		e.first->EnqueueTransaction(TransactionFlags::none,
+			[inputs = std::move(e.second)]
+			{
+				for (auto& callback : inputs)
+					callback();
+			});
+	}
 
-    }
+	scheduledLinkOutputs_.clear();
+
+	/*using ElementType = std::pair<ReactiveGraph*, IReactiveNode*>;
+
+	auto from = scheduledLinkOutputs_.begin();
+	auto to = scheduledLinkOutputs_.end();
+
+	for (auto it = from; it != to; ++it)
+	{
+		ReactiveGraph* graphPtr = it->first;
+		auto p = std::partition(it, to, [=] (ReactiveGraph* e) { return e == graphPtr });
+
+		for (auto it2 = p; it2 != to; ++it2)
+		{
+			graphPtr->EnqueueLinkTransaction();
+		}
+	}
+
+	scheduledLinkOutputs_.clear();*/
 }
 
 void ReactiveGraph::ScheduleSuccessors(NodeData& node)
@@ -331,11 +364,7 @@ void ReactiveGraph::ScheduleSuccessors(NodeData& node)
         if (!succ.queued)
         {
             succ.queued = true;
-
-            if (node.category != NodeCategory::link)
-                scheduledNodes_.Push(succId, succ.level);
-            else
-                scheduledLinkNodes_.push_back(succId);
+						scheduledNodes_.Push(succId, succ.level);
         }
     }
 }
@@ -400,7 +429,7 @@ size_t TransactionQueue::ProcessNextBatch()
     {
         if (!skipPop)
         {
-            if (transactions_.try_pop(curTransaction))
+            if (!transactions_.try_pop(curTransaction))
                 return popCount;
 
             canMerge = IsBitmaskSet(curTransaction.flags, TransactionFlags::allow_merging);

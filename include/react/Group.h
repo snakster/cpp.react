@@ -23,7 +23,7 @@
 
 struct PrivateReactiveGroupInterface;
 struct PrivateConcurrentReactiveGroupInterface;
-struct NodeCtorTag { };
+struct CtorTag { };
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

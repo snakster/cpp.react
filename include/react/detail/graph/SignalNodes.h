@@ -267,7 +267,7 @@ private:
             { }
 
         virtual const char* GetNodeType() const override
-            { return "SignalSlotVirtualInput"; }
+            { return "SignalSlotInput"; }
 
         virtual int GetDependencyCount() const override
             { return 0; }
@@ -301,7 +301,7 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalBridgeNode
+/// SignalLinkNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
 class SignalLinkNode : public SignalNode<S>
@@ -309,85 +309,95 @@ class SignalLinkNode : public SignalNode<S>
 public:
     SignalLinkNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<ReactiveGraph>& srcGraphPtr, const std::shared_ptr<SignalNode<S>>& dep) :
         SignalLinkNode::SignalNode( graphPtr, dep->Value() ),
-        linkOutput_( *this, srcGraphPtr, dep )
+        linkOutput_( srcGraphPtr, dep )
     {
-        slotInput_.nodeId = GraphPtr()->RegisterNode(&linkOutput_, NodeCategory::dyninput);
-        this->RegisterMe();
-
-        this->AttachToMe(slotInput_.nodeId);
-        this->AttachToMe(dep->GetNodeId());
+        this->RegisterMe(NodeCategory::input);
     }
 
     ~SignalLinkNode()
     {
-        this->DetachFromMe(slotInput_.dep->GetNodeId());
-        this->DetachFromMe(slotInput_.nodeId);
-
         this->UnregisterMe();
-        GraphPtr()->UnregisterNode(slotInput_.nodeId);
     }
+
+		void SetWeakSelfPtr(const std::weak_ptr<SignalLinkNode>& self)
+				{	linkOutput_.parent = self; }
 
     virtual const char* GetNodeType() const override
         { return "SignalLink"; }
 
     virtual int GetDependencyCount() const override
-        { return 2; }
+        { return 1; }
 
     virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
-        {// outputDataMutex
-            std::lock_guard lock(linkOutput_.outputDataMutex);
-            this->Value() = std::move(linkOutput_.outputData.front());
-            linkOutput_.outputData.pop();
-        }// ~outputDataMutex
-
         return UpdateResult::changed;
+    }
+
+    template <typename T>
+    void SetValue(T&& newValue)
+    {
+        this->Value() = std::forward<T>(newValue);
     }
 
 private:
     struct VirtualOutputNode : public ILinkOutputNode
     {
-        VirtualOutputNode(SignalSlotNode& parentIn, const std::shared_ptr<ReactiveGraph>& srcGraphPtrIn, const std::shared_ptr<SignalNode<S>>& depIn) :
-            parent( parentIn ),
-            srcGraphPtr(srcGraphPtrIn),
+        VirtualOutputNode(const std::shared_ptr<ReactiveGraph>& srcGraphPtrIn, const std::shared_ptr<SignalNode<S>>& depIn) :
+						parent( ),
+            srcGraphPtr( srcGraphPtrIn ),
             dep( depIn )
-            { }
+        {
+					nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
+					srcGraphPtr->OnNodeAttach(nodeId, dep->GetNodeId());
+				}
+
+				~VirtualOutputNode()
+				{
+						srcGraphPtr->OnNodeDetach(nodeId, dep->GetNodeId());
+						srcGraphPtr->UnregisterNode(nodeId);
+				}
 
         virtual const char* GetNodeType() const override
-            { return "SignalLinkVirtualOutput"; }
+            { return "SignalLinkOutput"; }
 
         virtual int GetDependencyCount() const override
             { return 1; }
 
         virtual UpdateResult Update(TurnId turnId, int successorCount) override
-        {
-            {// outputDataMutex
-                std::lock_guard lock(outputDataMutex);
-                outputData.push(dep->Value());
-            }// ~outputDataMutex
-            
+        {   
             return UpdateResult::changed;
         }
 
-        virtual void CollectOutput(LinkOutputList& output) override
-            { output.emplace_back(srcGraphPtr.get(), &parent); }
+        virtual void CollectOutput(LinkOutputMap& output) override
+        {
+					if (auto p = parent.lock())
+					{
+						auto* rawPtr = p->GraphPtr().get();
+						output[rawPtr].push_back(
+							[storedParent = std::move(p), storedValue = dep->Value()]
+							{
+								NodeId nodeId = storedParent->GetNodeId();
+								auto& graphPtr = storedParent->GraphPtr();
 
-        SignalSlotNode& parent;
+								graphPtr->AddInput(nodeId,
+									[&storedParent, &storedValue]
+									{
+										storedParent->SetValue(std::move(storedValue));
+									});
+							});
+					}
+				}
+
+				std::weak_ptr<SignalLinkNode> parent;
 
         NodeId nodeId;
 
         std::shared_ptr<SignalNode<S>> dep;
 
-        std::mutex outputDataMutex;
-
-        std::queue<S, std::vector<S>> outputData;
-
         std::shared_ptr<ReactiveGraph> srcGraphPtr;
     };
 
     VirtualOutputNode linkOutput_;
-
-    
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

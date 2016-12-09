@@ -29,12 +29,6 @@ enum ReferencePolicy
     weak
 };
 
-enum ThreadingPolicy
-{
-    sequential,
-    concurrent
-};
-
 enum class WeightHint
 {
     automatic,
@@ -68,6 +62,9 @@ class VarSignalBase;
 template <typename S>
 class SignalSlotBase;
 
+template <typename S>
+class SignalLinkBase;
+
 template <typename S, OwnershipPolicy = unique>
 class Signal;
 
@@ -76,6 +73,9 @@ class VarSignal;
 
 template <typename S, OwnershipPolicy = unique>
 class SignalSlot;
+
+template <typename S, OwnershipPolicy = unique>
+class SignalLink;
 
 // Events
 enum class Token;

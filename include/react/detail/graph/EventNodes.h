@@ -469,7 +469,8 @@ public:
 
             // All slots ready?
             apply(
-                [this, &isReady] (Slot<Ts>& ... slots) {
+                [this, &isReady] (Slot<Ts>& ... slots)
+								{
                     // Todo: combine return values instead
                     REACT_EXPAND_PACK(CheckSlot(slots, isReady));
                 },
@@ -532,6 +533,104 @@ private:
     }
 
     std::tuple<Slot<Ts>...> slots_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// EventLinkNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename E>
+class EventLinkNode : public EventStreamNode<E>
+{
+public:
+    EventLinkNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<ReactiveGraph>& srcGraphPtr, const std::shared_ptr<EventStreamNode<E>>& dep) :
+        EventLinkNode::EventStreamNode( graphPtr ),
+        linkOutput_( srcGraphPtr, dep )
+    {
+        this->RegisterMe(NodeCategory::input);
+    }
+
+    ~EventLinkNode()
+    {
+        this->UnregisterMe();
+    }
+
+		void SetWeakSelfPtr(const std::weak_ptr<EventLinkNode>& self)
+				{	linkOutput_.parent = self; }
+
+    virtual const char* GetNodeType() const override
+        { return "EventLink"; }
+
+    virtual int GetDependencyCount() const override
+        { return 1; }
+
+    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+		{
+				this->SetPendingSuccessorCount(successorCount);
+				return UpdateResult::changed;
+		}
+
+    void SetEvents(EventLinkNode::EventStreamNode::StorageType&& events)
+        { this->Events() = std::move(events); }
+
+private:
+    struct VirtualOutputNode : public ILinkOutputNode
+    {
+        VirtualOutputNode(const std::shared_ptr<ReactiveGraph>& srcGraphPtrIn, const std::shared_ptr<EventStreamNode<E>>& depIn) :
+						parent( ),
+            srcGraphPtr( srcGraphPtrIn ),
+            dep( depIn )
+        {
+					nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
+					srcGraphPtr->OnNodeAttach(nodeId, dep->GetNodeId());
+				}
+
+				~VirtualOutputNode()
+				{
+						srcGraphPtr->OnNodeDetach(nodeId, dep->GetNodeId());
+						srcGraphPtr->UnregisterNode(nodeId);
+				}
+
+        virtual const char* GetNodeType() const override
+            { return "EventLinkOutput"; }
+
+        virtual int GetDependencyCount() const override
+            { return 1; }
+
+        virtual UpdateResult Update(TurnId turnId, int successorCount) override
+        {            
+						return UpdateResult::changed;
+        }
+
+        virtual void CollectOutput(LinkOutputMap& output) override
+        {
+					if (auto p = parent.lock())
+					{
+						auto* rawPtr = p->GraphPtr().get();
+						output[rawPtr].push_back(
+							[storedParent = std::move(p), storedEvents = dep->Events()] () mutable
+							{
+								NodeId nodeId = storedParent->GetNodeId();
+								auto& graphPtr = storedParent->GraphPtr();
+
+								graphPtr->AddInput(nodeId,
+									[&storedParent, &storedEvents]
+									{
+										storedParent->SetEvents(std::move(storedEvents));
+									});
+							});
+					}
+				}
+
+				std::weak_ptr<EventLinkNode> parent;
+
+        NodeId nodeId;
+
+        std::shared_ptr<EventStreamNode<E>> dep;
+
+        std::shared_ptr<ReactiveGraph> srcGraphPtr;
+    };
+
+    VirtualOutputNode linkOutput_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
