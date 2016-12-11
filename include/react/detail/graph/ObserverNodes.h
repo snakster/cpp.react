@@ -158,7 +158,7 @@ public:
     virtual UpdateResult Update(TurnId turnId, int successorCount) override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
-        if (events_->Events().empty())
+        if (subject_->Events().empty())
             return UpdateResult::unchanged;
 
         apply([this] (const auto& ... syncs) { func_(EventRange<E>( this->subject_->Events() ), syncs->Value() ...); }, syncHolder_);

@@ -654,8 +654,7 @@ public:
     }
 
     template <typename F>
-    void AsyncTransaction(TransactionFlagsT flags, const WaitingStatePtrT& waitingStatePtr,
-                          F&& func)
+    void AsyncTransaction(TransactionFlagsT flags, const WaitingStatePtrT& waitingStatePtr, F&& func)
     {
         if (waitingStatePtr != nullptr)
             waitingStatePtr->IncWaitCount();
@@ -693,9 +692,7 @@ public:
     }
 
     //IContinuationTarget        
-    virtual void AsyncContinuation(TransactionFlagsT flags,
-                                   const WaitingStatePtrT& waitingStatePtr,
-                                   TransactionFuncT&& cont) override
+    virtual void AsyncContinuation(TransactionFlagsT flags, const WaitingStatePtrT& waitingStatePtr, TransactionFuncT&& cont) override
     {
         AsyncTransaction(flags, waitingStatePtr, std::move(cont));
     }

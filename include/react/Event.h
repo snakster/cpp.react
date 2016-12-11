@@ -230,11 +230,11 @@ protected:
         using EventNodeType = REACT_IMPL::EventLinkNode<E>;
 
         auto node = std::make_shared<EventNodeType>(graphPtr, PrivateNodeInterface::GraphPtr(input), PrivateNodeInterface::NodePtr(input));
-				node->SetWeakSelfPtr(std::weak_ptr<EventNodeType>{ node });
-				return node;
+        node->SetWeakSelfPtr(std::weak_ptr<EventNodeType>{ node });
+        return node;
     }
 
-		friend struct REACT_IMPL::PrivateEventLinkNodeInterface;
+    friend struct REACT_IMPL::PrivateEventLinkNodeInterface;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -315,7 +315,7 @@ public:
         Event::EventBase( REACT_IMPL::CtorTag{ }, CreateSyncedProcessingNode(std::forward<F>(func), dep, signals ...) )
         { }
 
-		template <typename F, typename T, typename ... Us>
+    template <typename F, typename T, typename ... Us>
     Event(const ReactiveGroupBase& group, F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... signals) :
         Event::EventBase( REACT_IMPL::CtorTag{ }, CreateSyncedProcessingNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), dep, signals ...) )
         { }
@@ -452,10 +452,10 @@ auto Merge(const ReactiveGroupBase& group, const EventBase<U1>& dep1, const Even
         typename std::common_type<U1, Us ...>::type,
         T>::type;
 
-		const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
+    const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
 
     return Event<E, unique>( CtorTag{ }, std::make_shared<EventMergeNode<E, U1, Us ...>>(
-        graphPtr, PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, deps) ...));
+        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
 }
 
 template <typename T = void, typename U1, typename ... Us>
@@ -477,7 +477,7 @@ auto Merge(const EventBase<U1>& dep1, const EventBase<Us>& ... deps) -> decltype
     const auto& graphPtr = PrivateNodeInterface::GraphPtr(dep1);
 
     return Event<E, unique>( CtorTag{ }, std::make_shared<EventMergeNode<E, U1, Us ...>>(
-        graphPtr, PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, deps) ...));
+        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -591,7 +591,7 @@ auto Join(const ReactiveGroupBase& group, const EventBase<U1>& dep1, const Event
 {
     using REACT_IMPL::EventJoinNode;
     using REACT_IMPL::PrivateReactiveGroupInterface;
-		using REACT_IMPL::PrivateEventLinkNodeInterface;
+    using REACT_IMPL::PrivateEventLinkNodeInterface;
     using REACT_IMPL::CtorTag;
 
     static_assert(sizeof...(Us) > 0, "Join requires at least 2 inputs.");
@@ -600,7 +600,7 @@ auto Join(const ReactiveGroupBase& group, const EventBase<U1>& dep1, const Event
     const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
 
     return Event<std::tuple<U1, Us ...>, unique>( CtorTag{ }, std::make_shared<EventJoinNode<U1, Us ...>>(
-        graphPtr, PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, deps) ...));
+        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
 }
 
 template <typename U1, typename ... Us>
@@ -608,7 +608,7 @@ auto Join(const EventBase<U1>& dep1, const EventBase<Us>& ... deps) -> Event<std
 {
     using REACT_IMPL::EventJoinNode;
     using REACT_IMPL::PrivateNodeInterface;
-		using REACT_IMPL::PrivateEventLinkNodeInterface;
+    using REACT_IMPL::PrivateEventLinkNodeInterface;
     using REACT_IMPL::CtorTag;
 
     static_assert(sizeof...(Us) > 0, "Join requires at least 2 inputs.");
@@ -617,7 +617,7 @@ auto Join(const EventBase<U1>& dep1, const EventBase<Us>& ... deps) -> Event<std
     const auto& graphPtr = PrivateNodeInterface::GraphPtr(dep1);
 
     return Event<std::tuple<U1, Us ...>, unique>( CtorTag{ }, std::make_shared<EventJoinNode<U1, Us ...>>(
-        graphPtr, PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, deps) ...));
+        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -649,20 +649,20 @@ bool Equals(const EventBase<L>& lhs, const EventBase<R>& rhs)
 
 struct PrivateEventLinkNodeInterface
 {
-	template <typename E>
-	static auto GetLocalEventNodePtr(const std::shared_ptr<ReactiveGraph>& targetGraph, const EventBase<E>& dep) -> std::shared_ptr<EventStreamNode<E>>
-	{
-		const std::shared_ptr<ReactiveGraph>& sourceGraph = PrivateNodeInterface::GraphPtr(dep);
+    template <typename E>
+    static auto GetLocalNodePtr(const std::shared_ptr<ReactiveGraph>& targetGraph, const EventBase<E>& dep) -> std::shared_ptr<EventStreamNode<E>>
+    {
+        const std::shared_ptr<ReactiveGraph>& sourceGraph = PrivateNodeInterface::GraphPtr(dep);
 
-		if (sourceGraph == targetGraph)
-		{
-			return PrivateNodeInterface::NodePtr(dep);
-		}
-		else
-		{
-			return EventLinkBase<E>::CreateLinkNode(targetGraph, dep);
-		}
-	}
+        if (sourceGraph == targetGraph)
+        {
+            return PrivateNodeInterface::NodePtr(dep);
+        }
+        else
+        {
+            return EventLinkBase<E>::CreateLinkNode(targetGraph, dep);
+        }
+    }
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

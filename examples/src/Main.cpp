@@ -45,12 +45,20 @@ template <typename T> void PrintEvents(EventRange<T> evts)
 		printf("  Event: %d\n", e);
 }
 
+template <typename T> void PrintSyncedEvents(EventRange<T> evts, int a, int b)
+{
+	printf("Processing events...\n");
+
+	for (const auto& e : evts)
+		printf("  Event: %d, %d, %d\n", e, a, b);
+}
+
 template <typename T> bool FilterFunc(T v)
 {
 	return v > 10;
 }
 
-int main2()
+int main()
 {
 	ReactiveGroup<> group;
 
@@ -60,7 +68,7 @@ int main2()
 		VarSignal<int> y{ group, 0 };
 		VarSignal<int> z{ group, 0 };
 
-		Signal<int> area{ Multiply<int>, x, y };
+		Signal<int> area{ group, Multiply<int>, x, y };
 		Signal<int> volume{ Multiply<int>, area, z };
 
 		Observer<> areaObs{ PrintArea<int>, area };
@@ -136,8 +144,13 @@ int main2()
 		ReactiveGroup<> group1;
 		ReactiveGroup<> group2;
 
+        VarSignal<int> s1{ group1, 10 };
+		VarSignal<int> s2{ group2, 11 };
+
 		EventSource<int> e1{ group1 };
 		EventSource<int> e2{ group2 };
+
+        auto hold = Hold(group1, 0, e1);
 
 		auto merged = Merge(group2, e1, e2);
 
@@ -145,6 +158,7 @@ int main2()
 		auto joined2 = Join(group1, e1, e2);
 
 		Observer<> eventObs{ PrintEvents<int>, merged };
+        Observer<> eventObs2{ group2, PrintSyncedEvents<int>, merged, s1, s2 };
 
 		e1.Emit(222);
 
@@ -153,16 +167,6 @@ int main2()
 
 	return 0;
 }
-
-int main()
-{
-	ReactiveGroup<> group;
-
-	VarSignal<int> a{  };
-	VarSignal<int> b{  };
-
-}
-
 
 
 

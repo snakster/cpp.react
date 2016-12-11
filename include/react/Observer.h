@@ -58,13 +58,13 @@ protected:
     template <typename F, typename T1, typename ... Ts>
     auto CreateSignalObserverNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) -> decltype(auto)
     {
-				using REACT_IMPL::PrivateSignalLinkNodeInterface;
+        using REACT_IMPL::PrivateSignalLinkNodeInterface;
         using ObsNodeType = REACT_IMPL::SignalObserverNode<typename std::decay<F>::type, T1, Ts ...>;
 
         return std::make_shared<ObsNodeType>(
             graphPtr,
             std::forward<F>(func),
-            PrivateSignalLinkNodeInterface::GetLocalSignalNodePtr(graphPtr, dep1), PrivateSignalLinkNodeInterface::GetLocalSignalNodePtr(graphPtr, deps) ...);
+            PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);
     }
 
     template <typename F, typename T1, typename ... Ts>
@@ -77,30 +77,35 @@ protected:
     template <typename F, typename T>
     auto CreateEventObserverNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const EventBase<T>& dep) -> decltype(auto)
     {
-				using REACT_IMPL::PrivateEventLinkNodeInterface;
+        using REACT_IMPL::PrivateEventLinkNodeInterface;
         using ObsNodeType = REACT_IMPL::EventObserverNode<typename std::decay<F>::type, T>;
 
-        return std::make_shared<ObsNodeType>(graphPtr, std::forward<F>(func), PrivateEventLinkNodeInterface::GetLocalEventNodePtr(graphPtr, dep));
+        return std::make_shared<ObsNodeType>(graphPtr, std::forward<F>(func), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep));
     }
 
     template <typename F, typename T>
     auto CreateEventObserverNode(F&& func, const EventBase<T>& dep) -> decltype(auto)
     {
         using REACT_IMPL::PrivateNodeInterface;
-        return CreateSignalObserverNode(PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...);
+        return CreateEventObserverNode(PrivateNodeInterface::GraphPtr(dep), std::forward<F>(func), dep);
+    }
+
+    template <typename F, typename T, typename ... Us>
+    auto CreateSyncedEventObserverNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... syncs) -> decltype(auto)
+    {
+        using REACT_IMPL::PrivateEventLinkNodeInterface;
+        using REACT_IMPL::PrivateSignalLinkNodeInterface;
+        using ObsNodeType = REACT_IMPL::SyncedEventObserverNode<typename std::decay<F>::type, T, Us ...>;
+
+        return std::make_shared<ObsNodeType>(
+            graphPtr, std::forward<F>(func), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep), PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, syncs) ...);
     }
 
     template <typename F, typename T, typename ... Us>
     auto CreateSyncedEventObserverNode(F&& func, const EventBase<T>& dep, const SignalBase<Us>& ... syncs) -> decltype(auto)
     {
         using REACT_IMPL::PrivateNodeInterface;
-				using REACT_IMPL::PrivateSignalLinkNodeInterface;
-        using ObsNodeType = REACT_IMPL::SyncedEventObserverNode<typename std::decay<F>::type, T, Us ...>;
-
-				const auto& graphPtr = PrivateNodeInterface::GraphPtr(dep);
-
-        return std::make_shared<ObsNodeType>(
-            graphPtr, std::forward<F>(func), PrivateSignalLinkNodeInterface::GetLocalSignalNodePtr(graphPtr, dep), PrivateSignalLinkNodeInterface::GetLocalSignalNodePtr(graphPtr, syncs) ...);
+        return CreateSyncedEventObserverNode(PrivateNodeInterface::GraphPtr(dep), std::forward<F>(func), dep, syncs ...);
     }
 
 private:

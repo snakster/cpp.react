@@ -319,8 +319,8 @@ public:
         this->UnregisterMe();
     }
 
-		void SetWeakSelfPtr(const std::weak_ptr<SignalLinkNode>& self)
-				{	linkOutput_.parent = self; }
+    void SetWeakSelfPtr(const std::weak_ptr<SignalLinkNode>& self)
+        { linkOutput_.parent = self; }
 
     virtual const char* GetNodeType() const override
         { return "SignalLink"; }
@@ -343,19 +343,19 @@ private:
     struct VirtualOutputNode : public ILinkOutputNode
     {
         VirtualOutputNode(const std::shared_ptr<ReactiveGraph>& srcGraphPtrIn, const std::shared_ptr<SignalNode<S>>& depIn) :
-						parent( ),
+            parent( ),
             srcGraphPtr( srcGraphPtrIn ),
             dep( depIn )
         {
-					nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
-					srcGraphPtr->OnNodeAttach(nodeId, dep->GetNodeId());
-				}
+            nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
+            srcGraphPtr->OnNodeAttach(nodeId, dep->GetNodeId());
+        }
 
-				~VirtualOutputNode()
-				{
-						srcGraphPtr->OnNodeDetach(nodeId, dep->GetNodeId());
-						srcGraphPtr->UnregisterNode(nodeId);
-				}
+        ~VirtualOutputNode()
+        {
+            srcGraphPtr->OnNodeDetach(nodeId, dep->GetNodeId());
+            srcGraphPtr->UnregisterNode(nodeId);
+        }
 
         virtual const char* GetNodeType() const override
             { return "SignalLinkOutput"; }
@@ -370,25 +370,25 @@ private:
 
         virtual void CollectOutput(LinkOutputMap& output) override
         {
-					if (auto p = parent.lock())
-					{
-						auto* rawPtr = p->GraphPtr().get();
-						output[rawPtr].push_back(
-							[storedParent = std::move(p), storedValue = dep->Value()]
-							{
-								NodeId nodeId = storedParent->GetNodeId();
-								auto& graphPtr = storedParent->GraphPtr();
+            if (auto p = parent.lock())
+            {
+                auto* rawPtr = p->GraphPtr().get();
+                output[rawPtr].push_back(
+                    [storedParent = std::move(p), storedValue = dep->Value()]
+                    {
+                        NodeId nodeId = storedParent->GetNodeId();
+                        auto& graphPtr = storedParent->GraphPtr();
 
-								graphPtr->AddInput(nodeId,
-									[&storedParent, &storedValue]
-									{
-										storedParent->SetValue(std::move(storedValue));
-									});
-							});
-					}
-				}
+                        graphPtr->AddInput(nodeId,
+                            [&storedParent, &storedValue]
+                            {
+                                storedParent->SetValue(std::move(storedValue));
+                            });
+                    });
+            }
+        }
 
-				std::weak_ptr<SignalLinkNode> parent;
+        std::weak_ptr<SignalLinkNode> parent;
 
         NodeId nodeId;
 

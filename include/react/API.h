@@ -23,12 +23,6 @@ enum OwnershipPolicy
     shared
 };
 
-enum ReferencePolicy
-{
-    strong,
-    weak
-};
-
 enum class WeightHint
 {
     automatic,

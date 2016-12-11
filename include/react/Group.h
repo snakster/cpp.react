@@ -22,7 +22,6 @@
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 struct PrivateReactiveGroupInterface;
-struct PrivateConcurrentReactiveGroupInterface;
 struct CtorTag { };
 
 /****************************************/ REACT_IMPL_END /***************************************/
