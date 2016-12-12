@@ -22,7 +22,7 @@ namespace example1
 
     ReactiveGroup<> group;
 
-    VarSignal<int> x( 1, group );
+    VarSignal<int> x( group, 1 );
 
     void Run()
     {

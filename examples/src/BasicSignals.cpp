@@ -32,8 +32,8 @@ namespace example1
     ReactiveGroup<> group;
     
     // The two words
-    VarSignal<string> firstWord( string("Change"), group );
-    VarSignal<string> secondWord( string("me!"), group );
+    VarSignal<string> firstWord( group, string("Change") );
+    VarSignal<string> secondWord( group, string("me!") );
 
     // A signal that concatenates both words
     Signal<string> bothWords(ConcatFunc, firstWord, secondWord);
@@ -66,7 +66,7 @@ namespace example2
 
     ReactiveGroup<> group;
 
-    VarSignal<int> x( 1, group );
+    VarSignal<int> x( group, 1 );
 
     Signal<int> xAbs( [] (int v) { return abs(v); }, x);
 
@@ -100,8 +100,8 @@ namespace example3
 
     ReactiveGroup<> group;
 
-    VarSignal<int> a( 1, group );
-    VarSignal<int> b( 1, group );
+    VarSignal<int> a( group, 1 );
+    VarSignal<int> b( group, 1 );
 
     Signal<int> x( sumFunc, a, b );
     Signal<int> y( sumFunc, a, b );
@@ -186,8 +186,8 @@ namespace example5
     }
 
     // Input operands
-    VarSignal<int> a( 1, group );
-    VarSignal<int> b( 2, group );
+    VarSignal<int> a( group, 1 );
+    VarSignal<int> b( group, 2 );
 
     // The expression vector
     Signal<ExprVectType> expressions(
@@ -218,43 +218,11 @@ namespace example5
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    using namespace std;
-    using namespace react;
-
-    ReactiveGroup<> group;
-
-    auto sig1 = VarSignal<int>( 10, group );
-    auto sig2 = VarSignal<int>( 22, group );
-
-    auto slot1 = SignalSlot<int>( sig1, group );
-    auto slot2 = SignalSlot<int>( sig1, group );
-
-    printf("%d\n", slot1.Value());
-    printf("%d\n", slot2.Value());
-
-    slot1.Set(sig2);
-    slot2.Set(sig2);
-
-    printf("%d\n", slot1.Value());
-    printf("%d\n", slot2.Value());
-
-    group.DoTransaction([&]
-    {
-        slot1.Set(sig2);
-        slot2.Set(sig2);
-    });
-
-    group.EnqueueTransaction([&]
-    {
-        slot1.Set(sig2);
-        slot2.Set(sig2);
-    });
-
-    /*example1::Run();
+    example1::Run();
     example2::Run();
     example3::Run();
     example4::Run();
-    example5::Run();*/
+    example5::Run();
 
     return 0;
 }

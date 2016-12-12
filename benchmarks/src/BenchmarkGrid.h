@@ -21,47 +21,42 @@ using namespace react;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// GridGraphGenerator
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template
-<
-    typename D,
-    typename TValue
->
+template <typename T>
 class GridGraphGenerator
 {
 public:
-    using MySignal = Signal<D,TValue>;
+    using SignalType = Signal<T, shared>;
 
-    using Func1T = std::function<TValue(TValue)>;
-    using Func2T = std::function<TValue(TValue,TValue)>;
+    using Func1T = std::function<T(T)>;
+    using Func2T = std::function<T(T, T)>;
 
-    using SignalVectT   = std::vector<MySignal>;
-    using WidthVectT    = std::vector<size_t>;
+    using SignalVectType = std::vector<SignalType>;
 
-    SignalVectT InputSignals;
-    SignalVectT OutputSignals;
+    SignalVectType inputSignals;
+    SignalVectType outputSignals;
 
-    Func1T  Function1;
-    Func2T  Function2;
+    Func1T  function1;
+    Func2T  function2;
 
-    WidthVectT  Widths;
+    std::vector<size_t>  widths;
 
     void Generate()
     {
-        assert(InputSignals.size() >= 1);
-        assert(Widths.size() >= 1);
+        assert(inputSignals.size() >= 1);
+        assert(widths.size() >= 1);
 
-        SignalVectT buf1 = InputSignals;
-        SignalVectT buf2;
+        SignalVectType buf1 = std::move(inputSignals);
+        SignalVectType buf2;
 
         SignalVectT* curBuf = &buf1;
         SignalVectT* nextBuf = &buf2;
 
-        size_t curWidth = InputSignals.size();
+        size_t curWidth = inputSignals.size();
 
         size_t nodeCount = 1;
         nodeCount += curWidth;
 
-        for (auto targetWidth : Widths)
+        for (auto targetWidth : widths)
         {
             while (curWidth != targetWidth)
             {
@@ -110,8 +105,8 @@ public:
 
         //printf ("NODE COUNT %d\n", nodeCount);
 
-        OutputSignals.clear();
-        OutputSignals.insert(OutputSignals.begin(), curBuf->begin(), curBuf->end());
+        outputSignals.clear();
+        outputSignals.insert(outputSignals.begin(), curBuf->begin(), curBuf->end());
     }
 };
 
@@ -135,22 +130,21 @@ struct BenchmarkParams_Grid
     const int K;
 };
 
-template <typename D>
-struct Benchmark_Grid : public BenchmarkBase<D>
+struct Benchmark_Grid
 {
-    double Run(const BenchmarkParams_Grid& params)
+    double Run(const BenchmarkParams_Grid& params, const ReactiveGroupBase& group)
     {
-        auto in = MakeVar<D>(1);
+        VarSignal<int, shared> in{ group, 1 };
 
-        GridGraphGenerator<D,int> generator;
+        GridGraphGenerator<int> generator;
 
-        generator.InputSignals.push_back(in);
+        generator.inputSignals.push_back(in);
 
-        generator.Widths.push_back(params.N);
-        generator.Widths.push_back(1);
+        generator.widths.push_back(params.N);
+        generator.widths.push_back(1);
 
-        generator.Function1 = [] (int a) { return a; };
-        generator.Function2 = [] (int a, int b) { return a + b; };
+        generator.function1 = [] (int a) { return a; };
+        generator.function2 = [] (int a, int b) { return a + b; };
 
         generator.Generate();
 

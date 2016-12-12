@@ -59,7 +59,7 @@ struct IReactiveNode
 
     virtual const char* GetNodeType() const = 0;
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) = 0;
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) = 0;
 
     virtual int GetDependencyCount() const = 0;
 };

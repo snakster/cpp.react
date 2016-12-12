@@ -28,8 +28,6 @@ struct CtorTag { };
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
-
-
 #if 0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -84,54 +82,6 @@ private:
     friend void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& func);
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////
-/// AsyncTransaction
-///////////////////////////////////////////////////////////////////////////////////////////////
-template <typename D, typename F>
-void AsyncTransaction(F&& func)
-{
-    static_assert(D::is_concurrent,
-        "AsyncTransaction: Domain does not support concurrent input.");
-
-    using REACT_IMPL::DomainSpecificInputManager;
-    DomainSpecificInputManager<D>::Instance()
-        .AsyncTransaction(0, nullptr, std::forward<F>(func));
-}
-
-template <typename D, typename F>
-void AsyncTransaction(TransactionFlags flags, F&& func)
-{
-    static_assert(D::is_concurrent,
-        "AsyncTransaction: Domain does not support concurrent input.");
-
-    using REACT_IMPL::DomainSpecificInputManager;
-    DomainSpecificInputManager<D>::Instance()
-        .AsyncTransaction(flags, nullptr, std::forward<F>(func));
-}
-
-template <typename D, typename F>
-void AsyncTransaction(TransactionStatus& status, F&& func)
-{
-    static_assert(D::is_concurrent,
-        "AsyncTransaction: Domain does not support concurrent input.");
-
-    using REACT_IMPL::DomainSpecificInputManager;
-
-    DomainSpecificInputManager<D>::Instance()
-        .AsyncTransaction(0, status.statePtr_, std::forward<F>(func));
-}
-
-template <typename D, typename F>
-void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& func)
-{
-    static_assert(D::is_concurrent,
-        "AsyncTransaction: Domain does not support concurrent input.");
-
-    using REACT_IMPL::DomainSpecificInputManager;
-    DomainSpecificInputManager<D>::Instance()
-        .AsyncTransaction(flags, status.statePtr_, std::forward<F>(func));
-}
-
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -145,12 +95,6 @@ public:
     ReactiveGroupBase() :
         graphPtr_( std::make_shared<GraphType>() )
         {  }
-
-    ReactiveGroupBase(const ReactiveGroupBase&) = default;
-    ReactiveGroupBase& operator=(const ReactiveGroupBase&) = default;
-
-    ReactiveGroupBase(ReactiveGroupBase&& other) = default;
-    ReactiveGroupBase& operator=(ReactiveGroupBase&& other) = default;
 
     ~ReactiveGroupBase() = default;
 
@@ -167,6 +111,12 @@ public:
         { graphPtr_->EnqueueTransaction(flags, std::forward<F>(func)); }
 
 protected:
+    ReactiveGroupBase(const ReactiveGroupBase&) = default;
+    ReactiveGroupBase& operator=(const ReactiveGroupBase&) = default;
+
+    ReactiveGroupBase(ReactiveGroupBase&& other) = default;
+    ReactiveGroupBase& operator=(ReactiveGroupBase&& other) = default;
+
     auto GraphPtr() -> std::shared_ptr<GraphType>&
         { return graphPtr_; }
 

@@ -227,7 +227,7 @@ void ReactiveGraph::AddInput(NodeId nodeId, F&& inputCallback)
     }
     else
     {
-        int successorCount = node.successors.size();
+        size_t successorCount = node.successors.size();
 
         // Update the node. This applies the input buffer to the node value and checks if it changed.
         if (nodePtr->Update(0, successorCount) == UpdateResult::changed)
@@ -258,7 +258,7 @@ void ReactiveGraph::DoTransaction(F&& transactionCallback)
         auto& node = nodeData_[nodeId];
         auto* nodePtr = node.nodePtr;
 
-        int successorCount = node.successors.size();
+        size_t successorCount = node.successors.size();
 
         if (nodePtr->Update(0, successorCount) == UpdateResult::changed)
         {
@@ -310,9 +310,9 @@ void ReactiveGraph::Propagate()
                 continue;
             }
 
-            int successorCount = node.successors.size();
+            size_t successorCount = node.successors.size();
 
-            if (nodePtr->Update(0, successorCount) == UpdateResult::changed)
+            if (nodePtr->Update(0u, successorCount) == UpdateResult::changed)
             {
                 ScheduleSuccessors(node);
             }

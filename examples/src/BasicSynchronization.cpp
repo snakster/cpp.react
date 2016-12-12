@@ -21,25 +21,36 @@ namespace example1
     using namespace react;
     using namespace std;
 
-    REACTIVE_DOMAIN(D, sequential_concurrent)
+    ReactiveGroup<> group;
 
     class Sensor
     {
     public:
-        USING_REACTIVE_DOMAIN(D)
+        Sensor(const Sensor&) = default;
+        Sensor& operator=(const Sensor&) = default;
+        Sensor(Sensor&&) = default;
+        Sensor& operator=(Sensor&&) = default;
 
-        EventSourceT<int>   Samples     = MakeEventSource<D,int>();
+        explicit Sensor(const ReactiveGroup<>& group) :
+            Samples( group )
+            { }
+
+        EventSource<int>    Samples;
     };
 
     void Run()
     {
         cout << "Example 1 - Asynchronous transactions" << endl;
 
-        Sensor mySensor;
+        Sensor mySensor( group );
 
-        Observe(mySensor.Samples, [] (int v) {
-            cout << v << endl;
-        });
+        Observer<> obs(
+            [&] (EventRange<> in)
+            {
+                for (auto t : in)
+                    cout << v << endl;
+            },
+            mySensor.Samples);
 
         TransactionStatus status;
 

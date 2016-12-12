@@ -98,7 +98,7 @@ public:
         { return events_; }
 
 
-    void SetPendingSuccessorCount(int count)
+    void SetPendingSuccessorCount(size_t count)
     {
         if (count == 0)
         {
@@ -127,7 +127,7 @@ public:
 private:
     StorageType events_;
     
-    std::atomic<int> pendingSuccessorCount_ = 0;
+    std::atomic<size_t> pendingSuccessorCount_ = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,7 +150,7 @@ public:
     virtual int GetDependencyCount() const override
         { return 0; }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         if (! this->Events().empty())
         {
@@ -189,7 +189,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(MergeFromDep(deps)); }, depHolder_);
 
@@ -254,7 +254,7 @@ public:
     virtual int GetDependencyCount() const override
         { return 2; }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         this->Events().insert(this->Events().end(), slotInput_.dep->Events().begin(), slotInput_.dep->Events().end());
 
@@ -291,7 +291,7 @@ private:
         virtual int GetDependencyCount() const override
             { return 0; }
 
-        virtual UpdateResult Update(TurnId turnId, int successorCount) override
+        virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
         {
             if (dep != newDep)
             {
@@ -342,7 +342,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         func_(EventRange<TIn>( dep_->Events() ), std::back_inserter(this->Events()));
 
@@ -397,7 +397,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
         if (dep_->Events().empty())
@@ -458,7 +458,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         // Move events into buffers.
         apply([this, turnId] (Slot<Ts>& ... slots) { REACT_EXPAND_PACK(FetchBuffer(turnId, slots)); }, slots_);
@@ -563,7 +563,7 @@ public:
     virtual int GetDependencyCount() const override
         { return 1; }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         this->SetPendingSuccessorCount(successorCount);
         return UpdateResult::changed;
@@ -596,7 +596,7 @@ private:
         virtual int GetDependencyCount() const override
             { return 1; }
 
-        virtual UpdateResult Update(TurnId turnId, int successorCount) override
+        virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
         {            
             return UpdateResult::changed;
         }

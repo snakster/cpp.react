@@ -237,46 +237,12 @@ namespace example5
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    using namespace std;
-    using namespace react;
-
-    ReactiveGroup<> group;
-
-    auto ev1 = EventSource<int>( group );
-    auto ev2 = EventSource<int>( group );
-
-    auto slot1 = EventSlot<int>( ev1, group );
-    auto slot2 = EventSlot<int>( ev1, group );
-
-    Observer<> obs1(
-        [] (EventRange<int> in)
-        {
-            for (int e : in)
-                cout << e << endl;
-        }, slot1);
-
-    Observer<> obs2(
-        [] (EventRange<int> in)
-        {
-            for (int e : in)
-                cout << e << endl;
-        }, slot2);
-
-    ev1 << 10 << 20 << 30;
-    ev2 << 11 << 22 << 33;
-
-    slot1.Set(ev2);
-    slot2.Set(ev2);
-
-    ev1 << 10 << 20 << 30;
-    ev2 << 11 << 22 << 33;
-
-    /*example1::v1::Run();
+    example1::v1::Run();
     example1::v2::Run();
     example2::Run();
     example3::Run();
     example4::Run();
-    example5::Run();*/
+    example5::Run();
 
     return 0;
 }

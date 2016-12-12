@@ -69,7 +69,7 @@ public:
     virtual int GetDependencyCount() const override
         { return sizeof...(TDeps); }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         apply([this] (const auto& ... deps) { this->func_(deps->Value() ...); }, depHolder_);
         return UpdateResult::unchanged;
@@ -110,7 +110,7 @@ public:
     virtual int GetDependencyCount() const override
         { return 1; }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         func_(EventRange<E>( subject_->Events() ));
         subject_->DecrementPendingSuccessorCount();
@@ -155,7 +155,7 @@ public:
     virtual int GetDependencyCount() const override
         { return 1 + sizeof...(TSyncs); }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
         if (subject_->Events().empty())

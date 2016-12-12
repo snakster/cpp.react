@@ -87,7 +87,7 @@ public:
     virtual int GetDependencyCount() const override
         { return 0; }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         if (isInputAdded_)
         {
@@ -182,7 +182,7 @@ public:
     virtual int GetDependencyCount() const override
         { return sizeof...(TDeps); }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {   
         bool changed = false;
 
@@ -239,7 +239,7 @@ public:
     virtual int GetDependencyCount() const override
         { return 2; }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         if (! (this->Value() == slotInput_.dep->Value()))
         {
@@ -272,7 +272,7 @@ private:
         virtual int GetDependencyCount() const override
             { return 0; }
 
-        virtual UpdateResult Update(TurnId turnId, int successorCount) override
+        virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
         {
             if (dep != newDep)
             {
@@ -328,7 +328,7 @@ public:
     virtual int GetDependencyCount() const override
         { return 1; }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         return UpdateResult::changed;
     }
@@ -363,7 +363,7 @@ private:
         virtual int GetDependencyCount() const override
             { return 1; }
 
-        virtual UpdateResult Update(TurnId turnId, int successorCount) override
+        virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
         {   
             return UpdateResult::changed;
         }

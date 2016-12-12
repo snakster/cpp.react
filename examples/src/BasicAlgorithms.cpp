@@ -66,8 +66,8 @@ namespace example2
 
     struct Employee
     {
-        VarSignal<string>   name    { string( "Bob" ), group };
-        VarSignal<int>      salary  { 3000, group };
+        VarSignal<string>   name    { group, string( "Bob" ) };
+        VarSignal<int>      salary  { group, 3000 };
     };
 
     void Run()
@@ -213,8 +213,8 @@ namespace example5
     public:
         EventSource<int> update{ group };
 
-        VarSignal<int> delta{ 1, group };
-        VarSignal<int> start{ 0, group };
+        VarSignal<int> delta{ group, 1 };
+        VarSignal<int> start{ group, 0 };
 
         Signal<int> count{ Iterate<int>(start.Value(), DoCounterLoop, update, delta, start) };
     };
@@ -276,7 +276,7 @@ namespace example6
     public:
         EventSource<int> input{ group };
 
-        VarSignal<int> threshold{ 42, group };
+        VarSignal<int> threshold{ group, 42 };
 
         Signal<vector<int>> allSamples{ Iterate<vector<int>>(vector<int>{ }, DoIterateAllSamples, input) };
 

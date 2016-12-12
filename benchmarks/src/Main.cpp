@@ -17,30 +17,15 @@
 #include "BenchmarkSequence.h"
 #include "BenchmarkLifeSim.h"
 
-#include "react/Domain.h"
+#include "react/Group.h"
 #include "react/Signal.h"
 #include "react/Algorithm.h"
 #include "react/common/Util.h"
-#include "react/logging/EventLog.h"
-
-#include "react/engine/ToposortEngine.h"
-#include "react/engine/PulsecountEngine.h"
-#include "react/engine/SubtreeEngine.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace {
 
 using namespace react;
-
-REACTIVE_DOMAIN(ToposortSTDomain, sequential, ToposortEngine)
-REACTIVE_DOMAIN(ToposortDomain, parallel, ToposortEngine)
-REACTIVE_DOMAIN(PulsecountDomain, parallel, PulsecountEngine)
-REACTIVE_DOMAIN(SubtreeDomain, parallel, SubtreeEngine)
-
-REACTIVE_DOMAIN(ToposortSTDomainConc, sequential_concurrent, ToposortEngine)
-REACTIVE_DOMAIN(ToposortDomainConc, parallel_concurrent, ToposortEngine)
-REACTIVE_DOMAIN(PulsecountDomainConc, parallel_concurrent, PulsecountEngine)
-REACTIVE_DOMAIN(SubtreeDomainConc, parallel_concurrent, SubtreeEngine)
 
 void runBenchmarkGrid(std::ostream& out)
 {

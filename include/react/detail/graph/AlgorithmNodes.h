@@ -101,7 +101,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         S newValue = func_(EventRange<E>( events_->Events() ), this->Value());
 
@@ -153,7 +153,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         func_(EventRange<E>( events_->Events() ), this->Value());
 
@@ -201,7 +201,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
         if (events_->Events().empty())
@@ -267,7 +267,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
         if (events_->Events().empty())
@@ -281,7 +281,6 @@ public:
             syncHolder_);
 
         events_->DecrementPendingSuccessorCount();
-        this->SetPendingSuccessorCount(successorCount);
 
         return UpdateResult::changed;
     }
@@ -325,7 +324,7 @@ public:
     virtual const char* GetNodeType() const override
         { return "HoldNode"; }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         bool changed = false;
 
@@ -379,7 +378,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         bool changed = false;
         
@@ -434,7 +433,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         this->Events().push_back(target_->Value());
 
@@ -477,7 +476,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual UpdateResult Update(TurnId turnId, int successorCount) override
+    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         for (size_t i=0; i<trigger_->Events().size(); i++)
             this->Events().push_back(target_->Value());
