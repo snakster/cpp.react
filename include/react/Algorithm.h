@@ -79,7 +79,7 @@ auto Monitor(const SignalBase<S>& signal) -> Event<S, unique>
     using REACT_IMPL::PrivateNodeInterface;
     using REACT_IMPL::CtorTag;
 
-    const auto& graphPtr = PrivateNodeInterface::GraphPtr(evnt);
+    const auto& graphPtr = PrivateNodeInterface::GraphPtr(signal);
 
     return Event<S, unique>( CtorTag{ }, std::make_shared<MonitorNode<S>>(
         graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal)) );
@@ -197,8 +197,8 @@ auto Snapshot(const ReactiveGroupBase& group, const SignalBase<S>& signal, const
 
     const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
 
-    return Event<S, unique>( CtorTag{ }, std::make_shared<SnapshotNode<S, E>>(
-        graphPtr, PrivateNodeInterface::NodePtr(signal), PrivateNodeInterface::NodePtr(evnt)) );
+    return Signal<S, unique>( CtorTag{ }, std::make_shared<SnapshotNode<S, E>>(
+        graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt)) );
 }
 
 template <typename S, typename E>
@@ -212,7 +212,7 @@ auto Snapshot(const SignalBase<S>& signal, const EventBase<E>& evnt) -> Signal<S
 
     const auto& graphPtr = PrivateNodeInterface::GraphPtr(signal);
 
-    return Event<S, unique>( CtorTag{ }, std::make_shared<SnapshotNode<S, E>>(
+    return Signal<S, unique>( CtorTag{ }, std::make_shared<SnapshotNode<S, E>>(
         graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt)) );
 }
 
@@ -231,7 +231,7 @@ auto Pulse(const ReactiveGroupBase& group, const SignalBase<S>& signal, const Ev
     const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
 
     return Event<S, unique>( CtorTag{ }, std::make_shared<PulseNode<S, E>>(
-        graphPtr, PrivateSignalLinkNodeInterface::NodePtr(graphPtr, signal), PrivateEventLinkNodeInterface::NodePtr(graphPtr, evnt)) );
+        graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt)) );
 }
 
 template <typename S, typename E>

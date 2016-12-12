@@ -44,7 +44,7 @@ public:
     template <typename F>
     void Push(TransactionFlags flags, F&& transaction)
     {
-				transactions_.push(StoredTransaction{ flags, std::forward<F>(transaction) });
+        transactions_.push(StoredTransaction{ flags, std::forward<F>(transaction) });
 
         if (count_.fetch_add(1, std::memory_order_relaxed) == 0)
             tbb::task::enqueue(*new(tbb::task::allocate_root()) WorkerTask(*this));
@@ -117,7 +117,7 @@ private:
         NodeData(IReactiveNode* nodePtrIn, NodeCategory categoryIn) :
             nodePtr( nodePtrIn ),
             category(categoryIn)
-						{ }
+            { }
 
         NodeCategory category = NodeCategory::normal;
 
@@ -238,8 +238,8 @@ void ReactiveGraph::AddInput(NodeId nodeId, F&& inputCallback)
             if (! scheduledNodes_.IsEmpty())
                 Propagate();
 
-						if (! scheduledLinkOutputs_.empty())
-								UpdateLinkNodes();
+            if (! scheduledLinkOutputs_.empty())
+                UpdateLinkNodes();
         }
     }
 }
@@ -303,12 +303,12 @@ void ReactiveGraph::Propagate()
                 continue;
             }
 
-						// Special handling for link output nodes. They have no successors and they don't have to be updated.
-						if (node.category == NodeCategory::linkoutput)
-						{
-							static_cast<ILinkOutputNode*>(node.nodePtr)->CollectOutput(scheduledLinkOutputs_);
-							continue;
-						}
+            // Special handling for link output nodes. They have no successors and they don't have to be updated.
+            if (node.category == NodeCategory::linkoutput)
+            {
+                static_cast<ILinkOutputNode*>(node.nodePtr)->CollectOutput(scheduledLinkOutputs_);
+                continue;
+            }
 
             int successorCount = node.successors.size();
 
@@ -324,35 +324,17 @@ void ReactiveGraph::Propagate()
 
 void ReactiveGraph::UpdateLinkNodes()
 {
-	for (auto& e : scheduledLinkOutputs_)
-	{
-		e.first->EnqueueTransaction(TransactionFlags::none,
-			[inputs = std::move(e.second)]
-			{
-				for (auto& callback : inputs)
-					callback();
-			});
-	}
+    for (auto& e : scheduledLinkOutputs_)
+    {
+        e.first->EnqueueTransaction(TransactionFlags::none,
+            [inputs = std::move(e.second)]
+            {
+                for (auto& callback : inputs)
+                    callback();
+            });
+    }
 
-	scheduledLinkOutputs_.clear();
-
-	/*using ElementType = std::pair<ReactiveGraph*, IReactiveNode*>;
-
-	auto from = scheduledLinkOutputs_.begin();
-	auto to = scheduledLinkOutputs_.end();
-
-	for (auto it = from; it != to; ++it)
-	{
-		ReactiveGraph* graphPtr = it->first;
-		auto p = std::partition(it, to, [=] (ReactiveGraph* e) { return e == graphPtr });
-
-		for (auto it2 = p; it2 != to; ++it2)
-		{
-			graphPtr->EnqueueLinkTransaction();
-		}
-	}
-
-	scheduledLinkOutputs_.clear();*/
+    scheduledLinkOutputs_.clear();
 }
 
 void ReactiveGraph::ScheduleSuccessors(NodeData& node)
@@ -364,7 +346,7 @@ void ReactiveGraph::ScheduleSuccessors(NodeData& node)
         if (!succ.queued)
         {
             succ.queued = true;
-						scheduledNodes_.Push(succId, succ.level);
+            scheduledNodes_.Push(succId, succ.level);
         }
     }
 }
