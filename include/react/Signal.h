@@ -77,13 +77,6 @@ protected:
             PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);
     }
 
-    template <typename F, typename T1, typename ... Ts>
-    auto CreateFuncNode(F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) -> decltype(auto)
-    {
-        using REACT_IMPL::PrivateNodeInterface;
-        return CreateFuncNode(PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...);
-    }
-
 private:
     std::shared_ptr<NodeType> nodePtr_;
 
@@ -266,16 +259,21 @@ public:
     Signal(Signal&&) = default;
     Signal& operator=(Signal&&) = default;
 
+    // Construct from VarSignal
+    Signal(const VarSignalBase<S>& other) :
+        Signal::SignalBase( other )
+        { }
+
     // Construct func signal with explicit group
-    template <typename F, typename ... Ts>
-    explicit Signal(const ReactiveGroupBase& group, F&& func, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), deps ...) )
+    template <typename F, typename T1, typename ... Ts>
+    explicit Signal(const ReactiveGroupBase& group, F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) :
+        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), dep1, deps ...) )
         { }
 
     // Construct func signal with implicit group
-    template <typename F, typename ... Ts>
-    explicit Signal(F&& func, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(std::forward<F>(func), deps ...) )
+    template <typename F, typename T1, typename ... Ts>
+    explicit Signal(F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) :
+        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...) )
         { }
 };
 
@@ -295,6 +293,11 @@ public:
     Signal(Signal&&) = default;
     Signal& operator=(Signal&&) = default;
 
+    // Construct from VarSignal
+    Signal(const VarSignalBase<S>& other) :
+        Signal::SignalBase( other )
+        { }
+
     // Construct from unique
     Signal(Signal<S, unique>&& other) :
         Signal::SignalBase( std::move(other) )
@@ -305,15 +308,15 @@ public:
         { Signal::SignalBase::operator=(std::move(other)); return *this; }
 
     // Construct func signal with explicit group
-    template <typename F, typename ... Ts>
-    explicit Signal(const ReactiveGroupBase& group, F&& func, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(std::forward<F>(func), deps ...) )
+    template <typename F, typename T1, typename ... Ts>
+    explicit Signal(const ReactiveGroupBase& group, F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) :
+        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), dep1, deps ...) )
         { }
 
     // Construct func signal with implicit group
-    template <typename F, typename ... Ts>
-    explicit Signal(F&& func, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), deps ...) )
+    template <typename F, typename T1, typename ... Ts>
+    explicit Signal(F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) :
+        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...) )
         { }
 };
 

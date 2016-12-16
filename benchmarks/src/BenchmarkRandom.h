@@ -14,11 +14,11 @@
 #include "BenchmarkBase.h"
 #include "react/common/Types.h"
 
-#include "react/Domain.h"
+#include "react/Group.h"
 #include "react/Signal.h"
 
 using namespace react;
-
+/*
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// DiamondGraphGenerator
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -215,8 +215,7 @@ struct BenchmarkParams_Random
     const int SlowSeed;
 };
 
-template <typename D>
-struct Benchmark_Random : public BenchmarkBase<D>
+struct Benchmark_Random
 {
     double Run(const BenchmarkParams_Random& params)
     {
@@ -321,4 +320,4 @@ struct Benchmark_Random : public BenchmarkBase<D>
 
         return d;
     }
-};
+};*/

@@ -5,7 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #pragma once
-
+/*
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -318,8 +318,10 @@ struct Benchmark_LifeSim : public BenchmarkBase<D>
         logfile.open("log.txt");
 
         D::Log().Write(logfile);
-        logfile.close()*/;
+        logfile.close()*//*;
 
-        return d;
+        //return d;
     }
 };
+
+*/

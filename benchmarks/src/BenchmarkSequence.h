@@ -14,6 +14,8 @@
 
 #include "react/Signal.h"
 
+/*
+
 using namespace react;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -39,8 +41,7 @@ struct BenchmarkParams_Sequence
     const int Delay;
 };
 
-template <typename D>
-struct Benchmark_Sequence : public BenchmarkBase<D>
+struct Benchmark_Sequence
 {
     double Run(const BenchmarkParams_Sequence& params)
     {
@@ -76,4 +77,4 @@ struct Benchmark_Sequence : public BenchmarkBase<D>
 
         return d;
     }
-};
+};*/

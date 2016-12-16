@@ -40,7 +40,7 @@ public:
 
     std::vector<size_t>  widths;
 
-    void Generate()
+    void Generate(const ReactiveGroupBase& group)
     {
         assert(inputSignals.size() >= 1);
         assert(widths.size() >= 1);
@@ -48,8 +48,8 @@ public:
         SignalVectType buf1 = std::move(inputSignals);
         SignalVectType buf2;
 
-        SignalVectT* curBuf = &buf1;
-        SignalVectT* nextBuf = &buf2;
+        SignalVectType* curBuf = &buf1;
+        SignalVectType* nextBuf = &buf2;
 
         size_t curWidth = inputSignals.size();
 
@@ -70,36 +70,36 @@ public:
 
                 if (shouldGrow)
                 {
-                    auto s = (*l) ->* Function1;
-                    nextBuf->push_back(s);
+										auto s = SignalType{ group, function1, *l };
+                    nextBuf->push_back(std::move(s));
                 }
 
                 while (r != curBuf->end())
                 {
-                    auto s = (*l,*r) ->* Function2;
-                    nextBuf->push_back(s);
-                    nodeCount++;
+										auto s = SignalType{ group, function2, *l, *r };
+                    nextBuf->push_back(std::move(s));
+                    ++nodeCount;
                     ++l; ++r;
                 }
 
                 if (shouldGrow)
                 {
-                    auto s = (*l) ->* Function1;
-                    nextBuf->push_back(s);
-                    nodeCount++;
+                    auto s = SignalType{ group, function1, *l };
+                    nextBuf->push_back(std::move(s));
+                    ++nodeCount;
                 }
 
                 curBuf->clear();
 
                 // Swap buffer pointers
-                SignalVectT* t = curBuf;
+                SignalVectType* t = curBuf;
                 curBuf = nextBuf;
                 nextBuf = t;
 
                 if (shouldGrow)
-                    curWidth++;
+                    ++curWidth;
                 else
-                    curWidth--;
+                    --curWidth;
             }
         }
 
@@ -135,10 +135,11 @@ struct Benchmark_Grid
     double Run(const BenchmarkParams_Grid& params, const ReactiveGroupBase& group)
     {
         VarSignal<int, shared> in{ group, 1 };
+				Signal<int, shared> in2 = in;
 
         GridGraphGenerator<int> generator;
 
-        generator.inputSignals.push_back(in);
+        generator.inputSignals.push_back(in2);
 
         generator.widths.push_back(params.N);
         generator.widths.push_back(1);
@@ -146,7 +147,7 @@ struct Benchmark_Grid
         generator.function1 = [] (int a) { return a; };
         generator.function2 = [] (int a, int b) { return a + b; };
 
-        generator.Generate();
+        generator.Generate(group);
 
         auto t0 = tbb::tick_count::now();
         for (int i=0; i<params.K; i++)

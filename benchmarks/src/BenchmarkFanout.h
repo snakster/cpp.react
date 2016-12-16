@@ -16,7 +16,7 @@
 #include "BenchmarkBase.h"
 
 #include "react/Signal.h"
-
+/*
 using namespace react;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -42,8 +42,7 @@ struct BenchmarkParams_Fanout
     const int Delay;
 };
 
-template <typename D>
-struct Benchmark_Fanout : public BenchmarkBase<D>
+struct Benchmark_Fanout
 {
     double Run(const BenchmarkParams_Fanout& params)
     {
@@ -82,5 +81,7 @@ struct Benchmark_Fanout : public BenchmarkBase<D>
         return d;
     }
 };
+
+*/
 
 #endif // CPP_REACT_BENCHMARK_FANOUT_H

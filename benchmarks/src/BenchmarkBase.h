@@ -66,9 +66,6 @@ template
 >
 void RunBenchmark(std::ostream& logfile, TBenchmark b, const TParams& params)
 {
-    std::cout   << "Engine: " << typeid(typename TBenchmark::Domain::Policy::Engine).name() << std::endl << std::endl;
-    logfile     << "Engine: " << typeid(typename TBenchmark::Domain::Policy::Engine).name() << std::endl << std::endl;
-
     double sum = 0;
     double min = DBL_MAX;
     double max = DBL_MIN;
@@ -77,7 +74,7 @@ void RunBenchmark(std::ostream& logfile, TBenchmark b, const TParams& params)
     {
         double r = b.Run(params);
         std::cout    << "\tRun " << i << ": " <<  r << std::endl;
-        logfile        << "\tRun " << i << ": " <<  r << std::endl;
+        logfile       << "\tRun " << i << ": " <<  r << std::endl;
         
         sum += r;
 
@@ -105,7 +102,7 @@ void RunBenchmark(std::ostream& logfile, TBenchmark b, const TParams& params)
 template
 <
     int RUN_COUNT,
-    template <typename> class TBenchmark,
+    typename TBenchmark,
     typename TParams
 >
 void RunBenchmarkClass(const char* name, std::ostream& out, const TParams& params)
@@ -118,8 +115,8 @@ void RunBenchmarkClass(const char* name, std::ostream& out, const TParams& param
     params.Print(out);
     out    << ") =====" << std::endl << std::endl;
 
-    REACT_EXPAND_PACK(RunBenchmark<RUN_COUNT>(out, TBenchmark<Ds>(), params));
+    RunBenchmark<RUN_COUNT>(out, TBenchmark(), params);
 }
 
-#define RUN_BENCHMARK(out, runCount, benchmarkClass, params, ...) \
-    RunBenchmarkClass<runCount, benchmarkClass, decltype(params), __VA_ARGS__>(#benchmarkClass, out, params)
+#define RUN_BENCHMARK(out, runCount, benchmarkClass, params) \
+    RunBenchmarkClass<runCount, benchmarkClass, decltype(params)>(#benchmarkClass, out, params)

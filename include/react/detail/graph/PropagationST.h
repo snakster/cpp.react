@@ -216,7 +216,7 @@ void ReactiveGraph::AddInput(NodeId nodeId, F&& inputCallback)
     auto& node = nodeData_[nodeId];
     auto* nodePtr = node.nodePtr;
 
-    // This write to the input buffer of the respective node.
+    // This writes to the input buffer of the respective node.
     inputCallback();
     
     if (isTransactionActive_)
