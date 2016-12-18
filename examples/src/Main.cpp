@@ -22,7 +22,7 @@ template <typename T>
 class GridGraphGenerator
 {
 public:
-    using SignalType = Signal<T, shared>;
+    using SignalType = Signal<T>;
 
     using Func1T = std::function<T(T)>;
     using Func2T = std::function<T(T, T)>;
@@ -37,7 +37,7 @@ public:
 
     std::vector<size_t>  widths;
 
-    void Generate(const ReactiveGroupBase& group)
+    void Generate(const ReactiveGroup& group)
     {
         assert(inputSignals.size() >= 1);
         assert(widths.size() >= 1);
@@ -160,9 +160,9 @@ template <typename T> T IterFunc2(EventRange<T> evts, T v, T a1, T a2)
 	return v + 1;
 }
 
-int main()
+int main2()
 {
-	ReactiveGroup<> group;
+	ReactiveGroup group;
 
 	{
 		// Signals
@@ -173,8 +173,8 @@ int main()
 		Signal<int> area{ Multiply<int>, x, y };
 		Signal<int> volume{ Multiply<int>, area, z };
 
-		Observer<> areaObs{ PrintArea<int>, area };
-		Observer<> volumeObs{ PrintVolume<int>, volume };
+		Observer areaObs{ PrintArea<int>, area };
+		Observer volumeObs{ PrintVolume<int>, volume };
 
 		x.Set(2); // a: 0, v: 0
 		y.Set(2); // a: 4, v: 0
@@ -198,7 +198,7 @@ int main()
 		Event<int> anyButton = Merge(button1, button2);
 		Event<int> filtered  = Filter(FilterFunc<int>, anyButton);
 
-		Observer<> eventObs{ PrintEvents<int>, anyButton };
+		Observer eventObs{ PrintEvents<int>, anyButton };
 
 		button1.Emit(1);
 		button2.Emit(2);
@@ -217,7 +217,7 @@ int main()
 
 		SignalSlot<int> slot{ s1 };
 
-		Observer<> areaObs{ PrintValue<int>, slot };
+		Observer areaObs{ PrintValue<int>, slot };
 
 		s1.Set(42);
 
@@ -228,15 +228,15 @@ int main()
 
 	// Links
 	{
-		ReactiveGroup<> group1;
-		ReactiveGroup<> group2;
+		ReactiveGroup group1;
+		ReactiveGroup group2;
 
 		VarSignal<int> s1{ group1, 10 };
 		VarSignal<int> s2{ group2, 11 };
 
 		Signal<int> v{ Multiply<int>, s1, s2 };
 
-		Observer<> obs{ PrintValue<int>, v };
+		Observer obs{ PrintValue<int>, v };
 
 		s1.Set(555);
 
@@ -244,8 +244,8 @@ int main()
 	}
 
 	{
-		ReactiveGroup<> group1;
-		ReactiveGroup<> group2;
+		ReactiveGroup group1;
+		ReactiveGroup group2;
 
 		VarSignal<int> s1{ group1, 10 };
 		VarSignal<int> s2{ group2, 11 };
@@ -260,8 +260,8 @@ int main()
 		auto joined1 = Join(e1, e2);
 		auto joined2 = Join(group1, e1, e2);
 
-		Observer<> eventObs1{ PrintEvents<int>, merged };
-		Observer<> eventObs2{ group2, PrintSyncedEvents<int>, merged, s1, s2 };
+		Observer eventObs1{ PrintEvents<int>, merged };
+		Observer eventObs2{ group2, PrintSyncedEvents<int>, merged, s1, s2 };
 
 		e1.Emit(222);
 
@@ -269,8 +269,8 @@ int main()
 	}
 
 	{
-		ReactiveGroup<> group1;
-		ReactiveGroup<> group2;
+		ReactiveGroup group1;
+		ReactiveGroup group2;
 
 		VarSignal<int> s1{ group1, 10 };
 		VarSignal<int> s2{ group2, 11 };
@@ -301,8 +301,8 @@ int main()
 		auto iter3 = Iterate<int>(group, 0, IterFunc2<int>, e1, s1, s2);
 		auto iter4 = Iterate<int>(0, IterFunc2<int>, e1, s1, s2);
 
-		Observer<> eventObs{ PrintEvents<int>, merged };
-		Observer<> eventObs2{ group2, PrintSyncedEvents<int>, merged, s1, s2 };
+		Observer eventObs{ PrintEvents<int>, merged };
+		Observer eventObs2{ group2, PrintSyncedEvents<int>, merged, s1, s2 };
 
 		e1.Emit(222);
 
@@ -326,10 +326,10 @@ int main()
 
 int main()
 {
-	ReactiveGroup<> group;
+	ReactiveGroup group;
 
-	VarSignal<int, shared> in{ group, 1 };
-	Signal<int, shared> in2 = in;
+	VarSignal<int> in{ group, 1 };
+	Signal<int> in2 = in;
 
 	GridGraphGenerator<int> generator;
 
@@ -376,9 +376,9 @@ int main()
 
 /*int main2()
 {
-	ReactiveGroup<> group1;
-	ReactiveGroup<> group2;
-	ReactiveGroup<> group3;
+	ReactiveGroup group1;
+	ReactiveGroup group2;
+	ReactiveGroup group3;
 
 	VarSignal<int> x{ 0, group1 };
 	VarSignal<int> y{ 0, group2 };
@@ -387,7 +387,7 @@ int main()
 	Signal<int> area{ Multiply<int>, x, y };
 	Signal<int> volume{ Multiply<int>, area, z };
 
-	Observer<> obs{ PrintAreaAndVolume, area, volume };
+	Observer obs{ PrintAreaAndVolume, area, volume };
 
 	Signal<vector<int>> volumeHistory = Iterate<vector<int>>( vector<int>{ }, PushToVector, Monitor(volume));
 
@@ -420,8 +420,8 @@ int main3()
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group1;
-		ReactiveGroup<> group2;
+    ReactiveGroup group1;
+		ReactiveGroup group2;
 
     auto sig1 = VarSignal<int>( 10, group1 );
 

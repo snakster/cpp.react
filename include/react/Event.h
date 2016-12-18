@@ -294,7 +294,7 @@ auto Merge(const ReactiveGroup& group, const Event<U1>& dep1, const Event<Us>& .
 
     const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
 
-    return Event<E, unique>( CtorTag{ }, std::make_shared<EventMergeNode<E, U1, Us ...>>(
+    return Event<E>( CtorTag{ }, std::make_shared<EventMergeNode<E, U1, Us ...>>(
         graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
 }
 
@@ -316,7 +316,7 @@ auto Merge(const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
 
     const auto& graphPtr = PrivateNodeInterface::GraphPtr(dep1);
 
-    return Event<E, unique>( CtorTag{ }, std::make_shared<EventMergeNode<E, U1, Us ...>>(
+    return Event<E>( CtorTag{ }, std::make_shared<EventMergeNode<E, U1, Us ...>>(
         graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
 }
 
