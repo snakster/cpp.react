@@ -282,6 +282,7 @@ auto Merge(const ReactiveGroup& group, const Event<U1>& dep1, const Event<Us>& .
     using REACT_IMPL::EventMergeNode;
     using REACT_IMPL::PrivateEventLinkNodeInterface;
     using REACT_IMPL::PrivateReactiveGroupInterface;
+    using REACT_IMPL::PrivateNodeInterface;
     using REACT_IMPL::CtorTag;
 
     static_assert(sizeof...(Us) > 0, "Merge requires at least 2 inputs.");
@@ -293,9 +294,9 @@ auto Merge(const ReactiveGroup& group, const Event<U1>& dep1, const Event<Us>& .
         T>::type;
 
     const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
-
-    return Event<E>( CtorTag{ }, std::make_shared<EventMergeNode<E, U1, Us ...>>(
-        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
+    
+    return PrivateNodeInterface::CreateNodeHelper<Event<E>, EventMergeNode<E, U1, Us ...>>(
+        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);
 }
 
 template <typename T = void, typename U1, typename ... Us>
@@ -316,8 +317,8 @@ auto Merge(const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
 
     const auto& graphPtr = PrivateNodeInterface::GraphPtr(dep1);
 
-    return Event<E>( CtorTag{ }, std::make_shared<EventMergeNode<E, U1, Us ...>>(
-        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
+    return PrivateNodeInterface::CreateNodeHelper<Event<E>, EventMergeNode<E, U1, Us ...>>(
+        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -329,7 +330,7 @@ auto Filter(const ReactiveGroup& group, F&& pred, const Event<E>& dep) -> Event<
     auto filterFunc = [capturedPred = std::forward<F>(pred)] (EventRange<E> inRange, EventSink<E> out)
         { std::copy_if(inRange.begin(), inRange.end(), out, capturedPred); };
 
-    return Event<E, unique>(group, std::move(filterFunc), dep);
+    return Event<E>(group, std::move(filterFunc), dep);
 }
 
 template <typename F, typename E>
@@ -338,7 +339,7 @@ auto Filter(F&& pred, const Event<E>& dep) -> Event<E>
     auto filterFunc = [capturedPred = std::forward<F>(pred)] (EventRange<E> inRange, EventSink<E> out)
         { std::copy_if(inRange.begin(), inRange.end(), out, capturedPred); };
 
-    return Event<E, unique>(std::move(filterFunc), dep);
+    return Event<E>(std::move(filterFunc), dep);
 }
 
 template <typename F, typename E, typename ... Ts>
@@ -351,7 +352,7 @@ auto Filter(const ReactiveGroup& group, F&& pred, const Event<E>& dep, const Sig
                 *out++ = v;
     };
 
-    return Event<E, unique>(group, std::move(filterFunc), dep, signals ...);
+    return Event<E>(group, std::move(filterFunc), dep, signals ...);
 }
 
 template <typename F, typename E, typename ... Ts>
@@ -364,7 +365,7 @@ auto Filter(F&& pred, const Event<E>& dep, const Signal<Ts>& ... signals) -> Eve
                 *out++ = v;
     };
 
-    return Event<E, unique>(std::move(filterFunc), dep, signals ...);
+    return Event<E>(std::move(filterFunc), dep, signals ...);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -376,7 +377,7 @@ auto Transform(const ReactiveGroup& group, F&& op, const Event<T>& dep) -> Event
     auto transformFunc = [capturedOp = std::forward<F>(op)] (EventRange<T> inRange, EventSink<E> out)
         { std::transform(inRange.begin(), inRange.end(), out, capturedOp); };
 
-    return Event<E, unique>(group, std::move(transformFunc), dep);
+    return Event<E>(group, std::move(transformFunc), dep);
 }
 
 template <typename E, typename F, typename T>
@@ -385,7 +386,7 @@ auto Transform(F&& op, const Event<T>& dep) -> Event<E>
     auto transformFunc = [capturedOp = std::forward<F>(op)] (EventRange<T> inRange, EventSink<E> out)
         { std::transform(inRange.begin(), inRange.end(), out, capturedOp); };
 
-    return Event<E, unique>(std::move(transformFunc), dep);
+    return Event<E>(std::move(transformFunc), dep);
 }
 
 template <typename E, typename F, typename T, typename ... Us>
@@ -397,7 +398,7 @@ auto Transform(const ReactiveGroup& group, F&& op, const Event<T>& dep, const Si
             *out++ = capturedPred(v, values ...);
     };
 
-    return Event<E, unique>(group, std::move(transformFunc), dep, signals ...);
+    return Event<E>(group, std::move(transformFunc), dep, signals ...);
 }
 
 template <typename E, typename F, typename T, typename ... Us>
@@ -409,7 +410,7 @@ auto Transform(F&& op, const Event<T>& dep, const Signal<Us>& ... signals) -> Ev
             *out++ = capturedPred(v, values ...);
     };
 
-    return Event<E, unique>(std::move(transformFunc), dep, signals ...);
+    return Event<E>(std::move(transformFunc), dep, signals ...);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -432,32 +433,31 @@ auto Join(const ReactiveGroup& group, const Event<U1>& dep1, const Event<Us>& ..
     using REACT_IMPL::EventJoinNode;
     using REACT_IMPL::PrivateReactiveGroupInterface;
     using REACT_IMPL::PrivateEventLinkNodeInterface;
-    using REACT_IMPL::CtorTag;
+    using REACT_IMPL::PrivateNodeInterface;
 
     static_assert(sizeof...(Us) > 0, "Join requires at least 2 inputs.");
 
     // If supplied, use merge type, otherwise default to common type.
     const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
 
-    return Event<std::tuple<U1, Us ...>, unique>( CtorTag{ }, std::make_shared<EventJoinNode<U1, Us ...>>(
-        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
+    return PrivateNodeInterface::CreateNodeHelper<Event<std::tuple<U1, Us ...>>, EventJoinNode<U1, Us ...>>(
+        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);
 }
 
 template <typename U1, typename ... Us>
 auto Join(const Event<U1>& dep1, const Event<Us>& ... deps) -> Event<std::tuple<U1, Us ...>>
 {
     using REACT_IMPL::EventJoinNode;
-    using REACT_IMPL::PrivateNodeInterface;
     using REACT_IMPL::PrivateEventLinkNodeInterface;
-    using REACT_IMPL::CtorTag;
+    using REACT_IMPL::PrivateNodeInterface;
 
     static_assert(sizeof...(Us) > 0, "Join requires at least 2 inputs.");
 
     // If supplied, use merge type, otherwise default to common type.
     const auto& graphPtr = PrivateNodeInterface::GraphPtr(dep1);
 
-    return Event<std::tuple<U1, Us ...>, unique>( CtorTag{ }, std::make_shared<EventJoinNode<U1, Us ...>>(
-        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...));
+    return PrivateNodeInterface::CreateNodeHelper<Event<std::tuple<U1, Us ...>>, EventJoinNode<U1, Us ...>>(
+        graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -500,7 +500,7 @@ struct PrivateEventLinkNodeInterface
         }
         else
         {
-            return EventLinkBase<E>::CreateLinkNode(targetGraph, dep);
+            return EventLink<E>::CreateLinkNode(targetGraph, dep);
         }
     }
 };

@@ -20,7 +20,7 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     VarSignal<int> x( group, 1 );
 
@@ -31,7 +31,7 @@ namespace example1
         {
             Signal<int> mySignal( [] (int x) { return x; }, x );
 
-            Observer<> obs( [] (int mySignal) { cout << mySignal << endl; }, mySignal );
+            Observer obs( [] (int mySignal) { cout << mySignal << endl; }, mySignal );
 
             x <<= 2; // output: 2
         }
@@ -50,7 +50,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     EventSource<> trigger( group );
 
@@ -58,7 +58,7 @@ namespace example2
     {
         cout << "Example 2 - Detaching observers manually" << endl;
 
-        Observer<> obs(
+        Observer obs(
             [] (EventRange<> in)
             {
                 for (auto _ : in)

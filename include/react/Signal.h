@@ -202,17 +202,17 @@ public:
 
     // Construct with group + default
     explicit SignalSlot(const ReactiveGroup& group) :
-        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
+        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
         { }
 
     // Construct with group + value
     SignalSlot(const ReactiveGroup& group, const Signal<S>& input) :
-        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
+        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
         { }
 
     // Construct with value
     explicit SignalSlot(const Signal<S>& input) :
-        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(input), input) )
+        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(input), input) )
         { }
 
     void Set(const Signal<S>& newInput)
@@ -308,7 +308,7 @@ struct PrivateSignalLinkNodeInterface
         }
         else
         {
-            return SignalLinkBase<S>::CreateLinkNode(targetGraph, sig);
+            return SignalLink<S>::CreateLinkNode(targetGraph, sig);
         }
     }
 };

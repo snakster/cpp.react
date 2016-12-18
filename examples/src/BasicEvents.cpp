@@ -22,7 +22,7 @@ namespace example1
     // Defines a group.
     // Each group represents a separate dependency graph.
     // Reactives from different groups can not be mixed.
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     // An event source that emits values of type string
     namespace v1
@@ -33,7 +33,7 @@ namespace example1
         {
             cout << "Example 1 - Hello world (string source)" << endl;
 
-            Observer<> obs(
+            Observer obs(
                 [] (EventRange<string> in)
                 {
                     for (const auto& s : in)
@@ -61,7 +61,7 @@ namespace example1
 
             int count = 0;
 
-            Observer<> obs(
+            Observer obs(
                 [&] (EventRange<> in)
                 {
                     for (auto t : in)
@@ -87,7 +87,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     // An event stream that merges both sources
     EventSource<> leftClick( group );
@@ -101,7 +101,7 @@ namespace example2
 
         int count = 0;
 
-        Observer<> obs(
+        Observer obs(
             [&] (EventRange<> in)
             {
                 for (auto t : in)
@@ -124,7 +124,7 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     EventSource<int> numbers( group );
 
@@ -134,7 +134,7 @@ namespace example3
     {
         cout << "Example 3 - Filtering events" << endl;
 
-        Observer<> obs(
+        Observer obs(
             [&] (EventRange<int> in)
             {
                 for (auto n : in)
@@ -156,7 +156,7 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     // Data types
     enum class Tag { normal, critical };
@@ -178,7 +178,7 @@ namespace example4
     {
         cout << "Example 4 - Transforming  events" << endl;
 
-        Observer<> obs(
+        Observer obs(
             [] (EventRange<TaggedNum> in)
             {
                 for (TaggedNum e : in)
@@ -206,7 +206,7 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     EventSource<int> src( group );
 
@@ -214,7 +214,7 @@ namespace example5
     {
         cout << "Example 5 - Queuing multiple inputs" << endl;
 
-        Observer<> obs(
+        Observer obs(
             [] (EventRange<int> in)
             {
                 for (int e : in)

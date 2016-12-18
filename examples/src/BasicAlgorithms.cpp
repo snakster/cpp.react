@@ -22,7 +22,7 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     struct Sensor
     {
@@ -36,7 +36,7 @@ namespace example1
 
         Sensor mySensor;
 
-        Observer<> obs(
+        Observer obs(
             [] (int v)
             {
                 cout << v << endl;
@@ -62,7 +62,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     struct Employee
     {
@@ -76,7 +76,7 @@ namespace example2
 
         Employee bob;
 
-        Observer<> obs(
+        Observer obs(
             [] (EventRange<int> in, const string& name)
             {
                 for (int newSalary : in)
@@ -96,7 +96,7 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     struct Counter
     {
@@ -137,7 +137,7 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     struct Sensor
     {
@@ -188,7 +188,7 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     enum ECmd { increment, decrement, reset };
 
@@ -255,7 +255,7 @@ namespace example6
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     class Sensor
     {

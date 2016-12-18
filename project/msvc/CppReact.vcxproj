@@ -183,7 +183,6 @@
     <ClInclude Include="..\..\include\react\Signal.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\debug.cpp" />
     <ClCompile Include="..\..\src\engine\PulsecountEngine.cpp" />
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp" />
     <ClCompile Include="..\..\src\engine\ToposortEngine.cpp" />

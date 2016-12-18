@@ -133,6 +133,12 @@ private:
 
 struct PrivateNodeInterface
 {
+    // Free functions may have to access the private node constructor (i.e. Merge).
+    // Instead of making all of them friends, this helper function is used.
+    template <typename TResult, typename TNode, typename ... TArgs>
+    static auto CreateNodeHelper(TArgs&& ... args) -> decltype(auto)
+        { return TResult( CtorTag{ }, std::make_shared<TNode>(std::forward<TArgs>(args) ...)); }
+
     template <typename TBase>
     static auto NodePtr(const TBase& base) -> const std::shared_ptr<typename TBase::NodeType>&
         { return base.NodePtr(); }

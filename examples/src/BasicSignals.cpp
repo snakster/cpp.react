@@ -29,7 +29,7 @@ namespace example1
     // Defines a group.
     // Each group represents a separate dependency graph.
     // Reactives from different groups can not be mixed.
-    ReactiveGroup<> group;
+    ReactiveGroup group;
     
     // The two words
     VarSignal<string> firstWord( group, string("Change") );
@@ -64,7 +64,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     VarSignal<int> x( group, 1 );
 
@@ -74,7 +74,7 @@ namespace example2
     {
         cout << "Example 2 - Reacting to value changes" << endl;
 
-        Observer<> obs(
+        Observer obs(
             [] (int newValue) { cout << "xAbs changed to " << newValue << endl; },
             xAbs );
 
@@ -98,7 +98,7 @@ namespace example3
     int sumFunc(int a, int b)
         { return a + b; }
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     VarSignal<int> a( group, 1 );
     VarSignal<int> b( group, 1 );
@@ -111,7 +111,7 @@ namespace example3
     {
         cout << "Example 3 - Changing multiple inputs" << endl;
 
-        Observer<> obs(
+        Observer obs(
             [] (int newValue) { cout << "z changed to " << newValue << endl; },
             z );
 
@@ -136,7 +136,7 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     VarSignal<vector<string>> data( group );
 
@@ -167,7 +167,7 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    ReactiveGroup<> group;
+    ReactiveGroup group;
 
     // Helpers
     using ExprPairType = pair<string, int>;
@@ -204,7 +204,7 @@ namespace example5
     {
         cout << "Example 5 - Complex signals (v3)" << endl;
 
-        Observer<> obs(PrintExpressions, expressions);
+        Observer obs(PrintExpressions, expressions);
 
         a <<= 50;
         b <<= 60;

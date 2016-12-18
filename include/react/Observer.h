@@ -40,37 +40,37 @@ public:
     // Construct signal observer with implicit group
     template <typename F, typename ... Ts>
     Observer(F&& func, const Signal<Ts>& ... subjects) :
-        Observer::Observer(CreateSignalObserverNode(std::forward<F>(func), subjects ...))
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSignalObserverNode(std::forward<F>(func), subjects ...))
     { }
 
     // Construct signal observer with explicit group
     template <typename F, typename ... Ts>
     Observer(const ReactiveGroup& group, F&& func, const Signal<Ts>& ... subjects) :
-        Observer::Observer(CreateSignalObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subjects ...))
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSignalObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subjects ...))
     { }
 
     // Construct event observer with implicit group
     template <typename F, typename T>
     Observer(F&& func, const Event<T>& subject) :
-        Observer::Observer(CreateEventObserverNode(std::forward<F>(func), subject))
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateEventObserverNode(std::forward<F>(func), subject))
     { }
 
     // Construct event observer with explicit group
     template <typename F, typename T>
     Observer(const ReactiveGroup& group, F&& func, const Event<T>& subject) :
-        Observer::Observer(CreateEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject))
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject))
     { }
 
     // Constructed synced event observer with implicit group
     template <typename F, typename T, typename ... Us>
     Observer(F&& func, const Event<T>& subject, const Signal<Us>& ... signals) :
-        Observer::Observer(CreateSyncedEventObserverNode(std::forward<F>(func), subject, signals ...))
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSyncedEventObserverNode(std::forward<F>(func), subject, signals ...))
     { }
 
     // Constructed synced event observer with explicit group
     template <typename F, typename T, typename ... Us>
     Observer(const ReactiveGroup& group, F&& func, const Event<T>& subject, const Signal<Us>& ... signals) :
-        Observer::Observer(CreateSyncedEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject, signals ...))
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSyncedEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject, signals ...))
     { }
 
     void Cancel()
@@ -81,7 +81,7 @@ public:
 
 protected:
     // Private node ctor
-    explicit Observer(std::shared_ptr<NodeType>&& nodePtr) :
+    Observer(REACT_IMPL::CtorTag, std::shared_ptr<NodeType>&& nodePtr) :
         nodePtr_(std::move(nodePtr))
         { }
 
