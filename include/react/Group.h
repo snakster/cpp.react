@@ -87,16 +87,20 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ReactiveGroupBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class ReactiveGroupBase
+class ReactiveGroup
 {
     using GraphType = REACT_IMPL::ReactiveGraph;
 
 public:
-    ReactiveGroupBase() :
+    ReactiveGroup() :
         graphPtr_( std::make_shared<GraphType>() )
         {  }
 
-    ~ReactiveGroupBase() = default;
+    ReactiveGroup(const ReactiveGroup&) = default;
+    ReactiveGroup& operator=(const ReactiveGroup&) = default;
+
+    ReactiveGroup(ReactiveGroup&& other) = default;
+    ReactiveGroup& operator=(ReactiveGroup&& other) = default;
 
     template <typename F>
     void DoTransaction(F&& func)
@@ -111,12 +115,6 @@ public:
         { graphPtr_->EnqueueTransaction(flags, std::forward<F>(func)); }
 
 protected:
-    ReactiveGroupBase(const ReactiveGroupBase&) = default;
-    ReactiveGroupBase& operator=(const ReactiveGroupBase&) = default;
-
-    ReactiveGroupBase(ReactiveGroupBase&& other) = default;
-    ReactiveGroupBase& operator=(ReactiveGroupBase&& other) = default;
-
     auto GraphPtr() -> std::shared_ptr<GraphType>&
         { return graphPtr_; }
 
@@ -127,44 +125,6 @@ private:
     std::shared_ptr<GraphType> graphPtr_;
 
     friend struct REACT_IMPL::PrivateReactiveGroupInterface;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Signal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <>
-class ReactiveGroup<unique> : public ReactiveGroupBase
-{
-public:
-    ReactiveGroup() = default;
-
-    ReactiveGroup(const ReactiveGroup&) = delete;
-    ReactiveGroup& operator=(const ReactiveGroup&) = delete;
-
-    ReactiveGroup(ReactiveGroup&& other) = default;
-    ReactiveGroup& operator=(ReactiveGroup&& other) = default;
-};
-
-template <>
-class ReactiveGroup<shared> : public ReactiveGroupBase
-{
-public:
-    ReactiveGroup() = default;
-
-    ReactiveGroup(const ReactiveGroup&) = default;
-    ReactiveGroup& operator=(const ReactiveGroup&) = default;
-
-    ReactiveGroup(ReactiveGroup&& other) = default;
-    ReactiveGroup& operator=(ReactiveGroup&& other) = default;
-
-    // Construct from unique
-    ReactiveGroup(ReactiveGroup<unique>&& other) :
-        ReactiveGroup::ReactiveGroupBase( std::move(other) )
-        { }
-
-    // Assign from unique
-    ReactiveGroup& operator=(ReactiveGroup<unique>&& other)
-        { ReactiveGroup::ReactiveGroupBase::operator=(std::move(other)); return *this; }
 };
 
 /******************************************/ REACT_END /******************************************/
@@ -192,10 +152,10 @@ struct PrivateNodeInterface
 
 struct PrivateReactiveGroupInterface
 {
-    static auto GraphPtr(const ReactiveGroupBase& group) -> const std::shared_ptr<ReactiveGraph>&
+    static auto GraphPtr(const ReactiveGroup& group) -> const std::shared_ptr<ReactiveGraph>&
         { return group.GraphPtr(); }
 
-    static auto GraphPtr(ReactiveGroupBase& group) -> std::shared_ptr<ReactiveGraph>&
+    static auto GraphPtr(ReactiveGroup& group) -> std::shared_ptr<ReactiveGraph>&
         { return group.GraphPtr(); }
 };
 

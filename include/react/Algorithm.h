@@ -27,7 +27,7 @@
 /// Hold - Hold the most recent event in a signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T, typename E>
-auto Hold(const ReactiveGroupBase& group, T&& initialValue, const EventBase<E>& evnt) -> Signal<E, unique>
+auto Hold(const ReactiveGroup& group, T&& initialValue, const Event<E>& evnt) -> Signal<E>
 {
     using REACT_IMPL::HoldNode;
     using REACT_IMPL::PrivateEventLinkNodeInterface;
@@ -41,7 +41,7 @@ auto Hold(const ReactiveGroupBase& group, T&& initialValue, const EventBase<E>& 
 }
 
 template <typename T, typename E>
-auto Hold(T&& initialValue, const EventBase<E>& evnt) -> Signal<E, unique>
+auto Hold(T&& initialValue, const Event<E>& evnt) -> Signal<E>
 {
     using REACT_IMPL::HoldNode;
     using REACT_IMPL::PrivateEventLinkNodeInterface;
@@ -58,7 +58,7 @@ auto Hold(T&& initialValue, const EventBase<E>& evnt) -> Signal<E, unique>
 /// Monitor - Emits value changes of target signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-auto Monitor(const ReactiveGroupBase& group, const SignalBase<S>& signal) -> Event<S, unique>
+auto Monitor(const ReactiveGroup& group, const Signal<S>& signal) -> Event<S>
 {
     using REACT_IMPL::MonitorNode;
     using REACT_IMPL::PrivateSignalLinkNodeInterface;
@@ -72,7 +72,7 @@ auto Monitor(const ReactiveGroupBase& group, const SignalBase<S>& signal) -> Eve
 }
 
 template <typename S>
-auto Monitor(const SignalBase<S>& signal) -> Event<S, unique>
+auto Monitor(const Signal<S>& signal) -> Event<S>
 {
     using REACT_IMPL::MonitorNode;
     using REACT_IMPL::PrivateSignalLinkNodeInterface;
@@ -89,7 +89,7 @@ auto Monitor(const SignalBase<S>& signal) -> Event<S, unique>
 /// Iterate - Iteratively combines signal value with values from event stream (aka Fold)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename T, typename F, typename E>
-auto Iterate(const ReactiveGroupBase& group, T&& initialValue, F&& func, const EventBase<E>& evnt) -> Signal<S, unique>
+auto Iterate(const ReactiveGroup& group, T&& initialValue, F&& func, const Event<E>& evnt) -> Signal<S>
 {
     using REACT_IMPL::IterateNode;
     using REACT_IMPL::IterateByRefNode;
@@ -111,7 +111,7 @@ auto Iterate(const ReactiveGroupBase& group, T&& initialValue, F&& func, const E
 }
 
 template <typename S, typename T, typename F, typename E>
-auto Iterate(T&& initialValue, F&& func, const EventBase<E>& evnt) -> Signal<S, unique>
+auto Iterate(T&& initialValue, F&& func, const Event<E>& evnt) -> Signal<S>
 {
     using REACT_IMPL::IterateNode;
     using REACT_IMPL::IterateByRefNode;
@@ -136,7 +136,7 @@ auto Iterate(T&& initialValue, F&& func, const EventBase<E>& evnt) -> Signal<S, 
 /// Iterate - Synced
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename T, typename F, typename E, typename ... Us>
-auto Iterate(const ReactiveGroupBase& group, T&& initialValue, F&& func, const EventBase<E>& evnt, const SignalBase<Us>& ... signals) -> Signal<S, unique>
+auto Iterate(const ReactiveGroup& group, T&& initialValue, F&& func, const Event<E>& evnt, const Signal<Us>& ... signals) -> Signal<S>
 {
     using REACT_IMPL::SyncedIterateNode;
     using REACT_IMPL::SyncedIterateByRefNode;
@@ -160,7 +160,7 @@ auto Iterate(const ReactiveGroupBase& group, T&& initialValue, F&& func, const E
 }
 
 template <typename S, typename T, typename F, typename E, typename ... Us>
-auto Iterate(T&& initialValue, F&& func, const EventBase<E>& evnt, const SignalBase<Us>& ... signals) -> Signal<S, unique>
+auto Iterate(T&& initialValue, F&& func, const Event<E>& evnt, const Signal<Us>& ... signals) -> Signal<S>
 {
     using REACT_IMPL::SyncedIterateNode;
     using REACT_IMPL::SyncedIterateByRefNode;
@@ -187,7 +187,7 @@ auto Iterate(T&& initialValue, F&& func, const EventBase<E>& evnt, const SignalB
 /// Snapshot - Sets signal value to value of other signal when event is received
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename E>
-auto Snapshot(const ReactiveGroupBase& group, const SignalBase<S>& signal, const EventBase<E>& evnt) -> Signal<S, unique>
+auto Snapshot(const ReactiveGroup& group, const Signal<S>& signal, const Event<E>& evnt) -> Signal<S>
 {
     using REACT_IMPL::SnapshotNode;
     using REACT_IMPL::PrivateSignalLinkNodeInterface;
@@ -202,7 +202,7 @@ auto Snapshot(const ReactiveGroupBase& group, const SignalBase<S>& signal, const
 }
 
 template <typename S, typename E>
-auto Snapshot(const SignalBase<S>& signal, const EventBase<E>& evnt) -> Signal<S, unique>
+auto Snapshot(const Signal<S>& signal, const Event<E>& evnt) -> Signal<S>
 {
     using REACT_IMPL::SnapshotNode;
     using REACT_IMPL::PrivateSignalLinkNodeInterface;
@@ -220,7 +220,7 @@ auto Snapshot(const SignalBase<S>& signal, const EventBase<E>& evnt) -> Signal<S
 /// Pulse - Emits value of target signal when event is received
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename E>
-auto Pulse(const ReactiveGroupBase& group, const SignalBase<S>& signal, const EventBase<E>& evnt) -> Event<S, unique>
+auto Pulse(const ReactiveGroup& group, const Signal<S>& signal, const Event<E>& evnt) -> Event<S>
 {
     using REACT_IMPL::PulseNode;
     using REACT_IMPL::PrivateSignalLinkNodeInterface;
@@ -235,7 +235,7 @@ auto Pulse(const ReactiveGroupBase& group, const SignalBase<S>& signal, const Ev
 }
 
 template <typename S, typename E>
-auto Pulse(const SignalBase<S>& signal, const EventBase<E>& evnt) -> Event<S, unique>
+auto Pulse(const Signal<S>& signal, const Event<E>& evnt) -> Event<S>
 {
     using REACT_IMPL::PulseNode;
     using REACT_IMPL::PrivateSignalLinkNodeInterface;

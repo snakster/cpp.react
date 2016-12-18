@@ -33,31 +33,46 @@ struct PrivateSignalLinkNodeInterface;
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalBase
+/// Signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class SignalBase
+class Signal
 {
 private:
     using NodeType = REACT_IMPL::SignalNode<S>;
 
 public:
-    // Private node ctor
-    SignalBase(REACT_IMPL::CtorTag, std::shared_ptr<NodeType>&& nodePtr) :
-        nodePtr_( std::move(nodePtr) )
-        { }
-
     const S& Value() const
         { return nodePtr_->Value(); }
 
+    // Empty signal
+    Signal() = default;
+
+    // Copy ctor & assignment
+    Signal(const Signal&) = default;
+    Signal& operator=(const Signal&) = default;
+
+    // Move ctor & assignment
+    Signal(Signal&&) = default;
+    Signal& operator=(Signal&&) = default;
+
+    // Construct func signal with explicit group
+    template <typename F, typename T1, typename ... Ts>
+    explicit Signal(const ReactiveGroup& group, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) :
+        Signal::Signal( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), dep1, deps ...) )
+        { }
+
+    // Construct func signal with implicit group
+    template <typename F, typename T1, typename ... Ts>
+    explicit Signal(F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) :
+        Signal::Signal( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...) )
+        { }
+
 protected:
-    SignalBase() = default;
-
-    SignalBase(const SignalBase&) = default;
-    SignalBase& operator=(const SignalBase&) = default;
-
-    SignalBase(SignalBase&&) = default;
-    SignalBase& operator=(SignalBase&&) = default;
+    // Private node ctor
+    Signal(REACT_IMPL::CtorTag, std::shared_ptr<NodeType>&& nodePtr) :
+        nodePtr_( std::move(nodePtr) )
+        { }
 
     auto NodePtr() -> std::shared_ptr<NodeType>&
         { return nodePtr_; }
@@ -66,7 +81,7 @@ protected:
         { return nodePtr_; }
 
     template <typename F, typename T1, typename ... Ts>
-    auto CreateFuncNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) -> decltype(auto)
+    auto CreateFuncNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) -> decltype(auto)
     {
         using REACT_IMPL::PrivateSignalLinkNodeInterface;
         using FuncNodeType = REACT_IMPL::SignalFuncNode<S, typename std::decay<F>::type, T1, Ts ...>;
@@ -85,13 +100,32 @@ private:
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// VarSignalBase
+/// VarSignal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class VarSignalBase : public SignalBase<S>
+class VarSignal : public Signal<S>
 {
 public:
-    using SignalBase::SignalBase;
+    using Signal::Signal;
+
+    VarSignal() = default;
+
+    VarSignal(const VarSignal&) = default;
+    VarSignal& operator=(const VarSignal&) = default;
+
+    VarSignal(VarSignal&&) = default;
+    VarSignal& operator=(VarSignal&&) = default;
+
+    // Construct with group + default
+    explicit VarSignal(const ReactiveGroup& group) :
+        VarSignal::Signal( REACT_IMPL::CtorTag{ }, CreateVarNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
+        { }
+
+    // Construct with group + value
+    template <typename T>
+    VarSignal(const ReactiveGroup& group, T&& value) :
+        VarSignal::Signal( REACT_IMPL::CtorTag{ }, CreateVarNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<T>(value)) )
+        { }
 
     void Set(const S& newValue)
         { SetValue(newValue); }
@@ -110,14 +144,6 @@ public:
         { ModifyValue(func); }
 
 protected:
-    VarSignalBase() = default;
-
-    VarSignalBase(const VarSignalBase&) = default;
-    VarSignalBase& operator=(const VarSignalBase&) = default;
-
-    VarSignalBase(VarSignalBase&&) = default;
-    VarSignalBase& operator=(VarSignalBase&&) = default;
-
     static auto CreateVarNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr) -> decltype(auto)
     {
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
@@ -165,27 +191,38 @@ private:
 /// SignalSlotBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class SignalSlotBase : public SignalBase<S>
+class SignalSlot : public Signal<S>
 {
 public:
-    using SignalBase::SignalBase;
+    SignalSlot(const SignalSlot&) = default;
+    SignalSlot& operator=(const SignalSlot&) = default;
 
-    void Set(const SignalBase<S>& newInput)
+    SignalSlot(SignalSlot&&) = default;
+    SignalSlot& operator=(SignalSlot&&) = default;
+
+    // Construct with group + default
+    explicit SignalSlot(const ReactiveGroup& group) :
+        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
+        { }
+
+    // Construct with group + value
+    SignalSlot(const ReactiveGroup& group, const Signal<S>& input) :
+        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
+        { }
+
+    // Construct with value
+    explicit SignalSlot(const Signal<S>& input) :
+        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(input), input) )
+        { }
+
+    void Set(const Signal<S>& newInput)
         { SetInput(newInput); }
 
-    void operator<<=(const SignalBase<S>& newInput)
+    void operator<<=(const Signal<S>& newInput)
         { SetInput(newInput); }
 
 protected:
-    SignalSlotBase() = default;
-
-    SignalSlotBase(const SignalSlotBase&) = default;
-    SignalSlotBase& operator=(const SignalSlotBase&) = default;
-
-    SignalSlotBase(SignalSlotBase&&) = default;
-    SignalSlotBase& operator=(SignalSlotBase&&) = default;
-
-    static auto CreateSlotNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, const SignalBase<S>& input) -> decltype(auto)
+    static auto CreateSlotNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, const Signal<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::PrivateNodeInterface;
         using SlotNodeType = REACT_IMPL::SignalSlotNode<S>;
@@ -194,7 +231,7 @@ protected:
     }
 
 private:
-    void SetInput(const SignalBase<S>& newInput)
+    void SetInput(const Signal<S>& newInput)
     {
         using REACT_IMPL::PrivateNodeInterface;
         using REACT_IMPL::NodeId;
@@ -209,24 +246,32 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalLinkBase
+/// SignalLink
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class SignalLinkBase : public SignalBase<S>
+class SignalLink : public Signal<S>
 {
 public:
-    using SignalBase::SignalBase;
+    SignalLink() = default;
+
+    SignalLink(const SignalLink&) = default;
+    SignalLink& operator=(const SignalLink&) = default;
+
+    SignalLink(SignalLink&&) = default;
+    SignalLink& operator=(SignalLink&&) = default;
+
+    // Construct with explicit group
+    SignalLink(const ReactiveGroup& group, const Signal<S>& input) :
+        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
+        { }
+
+    // Construct with implicit group
+    explicit SignalLink(const Signal<S>& input) :
+        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(input), input) )
+        { }
 
 protected:
-    SignalLinkBase() = default;
-
-    SignalLinkBase(const SignalLinkBase&) = default;
-    SignalLinkBase& operator=(const SignalLinkBase&) = default;
-
-    SignalLinkBase(SignalLinkBase&&) = default;
-    SignalLinkBase& operator=(SignalLinkBase&&) = default;
-
-    static auto CreateLinkNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, const SignalBase<S>& input) -> decltype(auto)
+    static auto CreateLinkNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, const Signal<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::PrivateNodeInterface;
         using REACT_IMPL::PrivateReactiveGroupInterface;
@@ -240,307 +285,12 @@ protected:
     friend struct REACT_IMPL::PrivateSignalLinkNodeInterface;
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Signal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class Signal<S, unique> : public SignalBase<S>
-{
-public:
-    using SignalBase::SignalBase;
-
-    using ValueType = S;
-
-    Signal() = delete;
-
-    Signal(const Signal&) = delete;
-    Signal& operator=(const Signal&) = delete;
-
-    Signal(Signal&&) = default;
-    Signal& operator=(Signal&&) = default;
-
-    // Construct from VarSignal
-    Signal(const VarSignalBase<S>& other) :
-        Signal::SignalBase( other )
-        { }
-
-    // Construct func signal with explicit group
-    template <typename F, typename T1, typename ... Ts>
-    explicit Signal(const ReactiveGroupBase& group, F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), dep1, deps ...) )
-        { }
-
-    // Construct func signal with implicit group
-    template <typename F, typename T1, typename ... Ts>
-    explicit Signal(F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...) )
-        { }
-};
-
-template <typename S>
-class Signal<S, shared> : public SignalBase<S>
-{
-public:
-    using SignalBase::SignalBase;
-
-    using ValueType = S;
-
-    Signal() = delete;
-
-    Signal(const Signal&) = default;
-    Signal& operator=(const Signal&) = default;
-
-    Signal(Signal&&) = default;
-    Signal& operator=(Signal&&) = default;
-
-    // Construct from VarSignal
-    Signal(const VarSignalBase<S>& other) :
-        Signal::SignalBase( other )
-        { }
-
-    // Construct from unique
-    Signal(Signal<S, unique>&& other) :
-        Signal::SignalBase( std::move(other) )
-        { }
-
-    // Assign from unique
-    Signal& operator=(Signal<S, unique>&& other)
-        { Signal::SignalBase::operator=(std::move(other)); return *this; }
-
-    // Construct func signal with explicit group
-    template <typename F, typename T1, typename ... Ts>
-    explicit Signal(const ReactiveGroupBase& group, F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), dep1, deps ...) )
-        { }
-
-    // Construct func signal with implicit group
-    template <typename F, typename T1, typename ... Ts>
-    explicit Signal(F&& func, const SignalBase<T1>& dep1, const SignalBase<Ts>& ... deps) :
-        Signal::SignalBase( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...) )
-        { }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// VarSignal
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class VarSignal<S, unique> : public VarSignalBase<S>
-{
-public:
-    using VarSignalBase::VarSignalBase;
-
-    using ValueType = S;
-
-    VarSignal() = delete;
-
-    VarSignal(const VarSignal&) = delete;
-    VarSignal& operator=(const VarSignal&) = delete;
-
-    VarSignal(VarSignal&&) = default;
-    VarSignal& operator=(VarSignal&&) = default;
-
-    // Construct with group + default
-    explicit VarSignal(const ReactiveGroupBase& group) :
-        VarSignal::VarSignalBase( REACT_IMPL::CtorTag{ }, CreateVarNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
-        { }
-
-    // Construct with group + value
-    template <typename T>
-    VarSignal(const ReactiveGroupBase& group, T&& value) :
-        VarSignal::VarSignalBase( REACT_IMPL::CtorTag{ }, CreateVarNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<T>(value)) )
-        { }
-};
-
-template <typename S>
-class VarSignal<S, shared> : public VarSignalBase<S>
-{
-public:
-    using VarSignalBase::VarSignalBase;
-
-    using ValueType = S;
-
-    VarSignal() = delete;
-
-    VarSignal(const VarSignal&) = default;
-    VarSignal& operator=(const VarSignal&) = default;
-
-    VarSignal(VarSignal&&) = default;
-    VarSignal& operator=(VarSignal&&) = default;
-
-    // Construct from unique
-    VarSignal(VarSignal<S, unique>&& other) :
-        VarSignal::VarSignalBase( std::move(other) )
-        { }
-
-    // Assign from unique
-    VarSignal& operator=(VarSignal<S, unique>&& other)
-        { VarSignal::VarSignalBase::operator=(std::move(other)); return *this; }
-
-    // Construct with default
-    explicit VarSignal(const ReactiveGroupBase& group) :
-        VarSignal::VarSignalBase( REACT_IMPL::CtorTag{ }, CreateVarNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
-        { }
-
-    // Construct with value
-    template <typename T>
-    VarSignal(const ReactiveGroupBase& group, T&& value) :
-        VarSignal::VarSignalBase( REACT_IMPL::CtorTag{ }, CreateVarNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<T>(value)) )
-        { }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalSlot
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class SignalSlot<S, unique> : public SignalSlotBase<S>
-{
-public:
-    using SignalSlotBase::SignalSlotBase;
-
-    using ValueType = S;
-
-    SignalSlot() = delete;
-
-    SignalSlot(const SignalSlot&) = delete;
-    SignalSlot& operator=(const SignalSlot&) = delete;
-
-    SignalSlot(SignalSlot&&) = default;
-    SignalSlot& operator=(SignalSlot&&) = default;
-
-    // Construct with group + default
-    explicit SignalSlot(const ReactiveGroupBase& group) :
-        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
-        { }
-
-    // Construct with group + value
-    SignalSlot(const ReactiveGroupBase& group, const SignalBase<S>& input) :
-        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
-        { }
-
-    // Construct with value
-    explicit SignalSlot(const SignalBase<S>& input) :
-        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(input), input) )
-        { }
-};
-
-template <typename S>
-class SignalSlot<S, shared> : public SignalSlotBase<S>
-{
-public:
-    using SignalSlotBase::SignalSlotBase;
-
-    using ValueType = S;
-
-    SignalSlot() = delete;
-
-    SignalSlot(const SignalSlot&) = default;
-    SignalSlot& operator=(const SignalSlot&) = default;
-
-    SignalSlot(SignalSlot&&) = default;
-    SignalSlot& operator=(SignalSlot&&) = default;
-
-    // Construct from unique
-    SignalSlot(SignalSlot<S, unique>&& other) :
-        SignalSlot::SignalSlotBase( std::move(other) )
-        { }
-
-    // Assign from unique
-    SignalSlot& operator=(SignalSlot<S, unique>&& other)
-        { SignalSlot::SignalSlotBase::operator=(std::move(other)); return *this; }
-
-    // Construct with group + default
-    explicit SignalSlot(const ReactiveGroupBase& group) :
-        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
-        { }
-
-    // Construct with group + value
-    SignalSlot(const ReactiveGroupBase& group, const SignalBase<S>& input) :
-        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
-        { }
-
-    // Construct with value
-    explicit SignalSlot(const SignalBase<S>& input) :
-        SignalSlot::SignalSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(input), input) )
-        { }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalLink
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class SignalLink<S, unique> : public SignalLinkBase<S>
-{
-public:
-    using SignalLinkBase::SignalLinkBase;
-
-    using ValueType = S;
-
-    SignalLink() = delete;
-
-    SignalLink(const SignalLink&) = delete;
-    SignalLink& operator=(const SignalLink&) = delete;
-
-    SignalLink(SignalLink&&) = default;
-    SignalLink& operator=(SignalLink&&) = default;
-
-    // Construct with default
-    explicit SignalLink(const ReactiveGroupBase& group) :
-        SignalLink::SignalLinkBase( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
-        { }
-
-    // Construct with group + value
-    SignalLink(const ReactiveGroupBase& group, const SignalBase<S>& input) :
-        SignalLink::SignalLinkBase( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
-        { }
-
-    // Construct with value
-    explicit SignalLink(const SignalBase<S>& input) :
-        SignalLink::SignalLinkBase( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(input), input) )
-        { }
-};
-
-template <typename S>
-class SignalLink<S, shared> : public SignalLinkBase<S>
-{
-public:
-    using SignalLinkBase::SignalLinkBase;
-
-    using ValueType = S;
-
-    SignalLink() = delete;
-
-    SignalLink(const SignalLink&) = default;
-    SignalLink& operator=(const SignalLink&) = default;
-
-    SignalLink(SignalLink&&) = default;
-    SignalLink& operator=(SignalLink&&) = default;
-
-    // Construct from unique
-    SignalLink(SignalLink<S, unique>&& other) :
-        SignalLink::SignalLinkBase( std::move(other) )
-        { }
-
-    // Assign from unique
-    SignalLink& operator=(SignalSlot<S, unique>&& other)
-        { SignalLink::SignalLinkBase::operator=(std::move(other)); return *this; }
-
-    // Construct with default
-    explicit SignalLink(const ReactiveGroupBase& group) :
-        SignalLink::SignalLinkBase( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
-        { }
-
-    // Construct with value
-    SignalLink(const ReactiveGroupBase& group, const SignalBase<S>& input) :
-        SignalLink::SignalLinkBase( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
-        { }
-};
-
 /******************************************/ REACT_END /******************************************/
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 template <typename L, typename R>
-bool Equals(const SignalBase<L>& lhs, const SignalBase<R>& rhs)
+bool Equals(const Signal<L>& lhs, const Signal<R>& rhs)
 {
     return lhs.Equals(rhs);
 }
@@ -548,7 +298,7 @@ bool Equals(const SignalBase<L>& lhs, const SignalBase<R>& rhs)
 struct PrivateSignalLinkNodeInterface
 {
     template <typename S>
-    static auto GetLocalNodePtr(const std::shared_ptr<ReactiveGraph>& targetGraph, const SignalBase<S>& sig) -> std::shared_ptr<SignalNode<S>>
+    static auto GetLocalNodePtr(const std::shared_ptr<ReactiveGraph>& targetGraph, const Signal<S>& sig) -> std::shared_ptr<SignalNode<S>>
     {
         const std::shared_ptr<ReactiveGraph>& sourceGraph = PrivateNodeInterface::GraphPtr(sig);
 
