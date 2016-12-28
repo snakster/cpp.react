@@ -29,8 +29,8 @@ class ReactiveGraph;
 class NodeBase : public IReactiveNode
 {
 public:
-    NodeBase(const std::shared_ptr<ReactiveGraph>& graphPtr) :
-        graphPtr_( graphPtr )
+    NodeBase(const Group& group) :
+        group_( group )
         { }
     
     NodeBase(const NodeBase&) = delete;
@@ -58,35 +58,38 @@ public:
     NodeId GetNodeId() const
         { return nodeId_; }
 
+    const Group& GetGroup() const
+        { return group_; }
+
     auto GraphPtr() const -> const std::shared_ptr<ReactiveGraph>&
-        { return graphPtr_; }
+        { return GroupInternals::GraphPtr(group_); }
 
     auto GraphPtr() -> std::shared_ptr<ReactiveGraph>&
-        { return graphPtr_; }
+        { return GroupInternals::GraphPtr(group_); }
 
 protected:
     void RegisterMe(NodeCategory category = NodeCategory::normal)
-        { nodeId_ = graphPtr_->RegisterNode(this, category); }
+        { nodeId_ = GraphPtr()->RegisterNode(this, category); }
     
     void UnregisterMe()
-        { graphPtr_->UnregisterNode(nodeId_); }
+        { GraphPtr()->UnregisterNode(nodeId_); }
 
     void AttachToMe(NodeId otherNodeId)
-        { graphPtr_->OnNodeAttach(nodeId_, otherNodeId); }
+        { GraphPtr()->OnNodeAttach(nodeId_, otherNodeId); }
 
     void DetachFromMe(NodeId otherNodeId)
-        { graphPtr_->OnNodeDetach(nodeId_, otherNodeId); }
+        { GraphPtr()->OnNodeDetach(nodeId_, otherNodeId); }
 
     void DynamicAttachToMe(NodeId otherNodeId, TurnId turnId)
-        { graphPtr_->OnDynamicNodeAttach(nodeId_, otherNodeId, turnId); }
+        { GraphPtr()->OnDynamicNodeAttach(nodeId_, otherNodeId, turnId); }
 
     void DynamicDetachFromMe(NodeId otherNodeId, TurnId turnId)
-        { graphPtr_->OnDynamicNodeDetach(nodeId_, otherNodeId, turnId); }
+        { GraphPtr()->OnDynamicNodeDetach(nodeId_, otherNodeId, turnId); }
 
 private:
     NodeId nodeId_;
 
-    std::shared_ptr<ReactiveGraph> graphPtr_;
+    Group group_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

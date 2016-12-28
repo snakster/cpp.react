@@ -22,7 +22,7 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     struct Sensor
     {
@@ -62,7 +62,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     struct Employee
     {
@@ -96,7 +96,7 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     struct Counter
     {
@@ -137,7 +137,7 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     struct Sensor
     {
@@ -188,7 +188,7 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     enum ECmd { increment, decrement, reset };
 
@@ -255,7 +255,7 @@ namespace example6
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     class Sensor
     {

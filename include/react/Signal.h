@@ -42,24 +42,16 @@ private:
     using NodeType = REACT_IMPL::SignalNode<S>;
 
 public:
-    const S& Value() const
-        { return nodePtr_->Value(); }
-
-    // Empty signal
-    Signal() = default;
-
-    // Copy ctor & assignment
     Signal(const Signal&) = default;
     Signal& operator=(const Signal&) = default;
 
-    // Move ctor & assignment
     Signal(Signal&&) = default;
     Signal& operator=(Signal&&) = default;
 
     // Construct func signal with explicit group
     template <typename F, typename T1, typename ... Ts>
-    explicit Signal(const ReactiveGroup& group, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) :
-        Signal::Signal( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), dep1, deps ...) )
+    explicit Signal(const Group& group, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) :
+        Signal::Signal( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), dep1, deps ...) )
         { }
 
     // Construct func signal with implicit group
@@ -68,7 +60,10 @@ public:
         Signal::Signal( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...) )
         { }
 
-protected:
+    const Group& GetGroup() const
+        { return nodePtr_->GetGroup(); }
+
+public: // Internal
     // Private node ctor
     Signal(REACT_IMPL::CtorTag, std::shared_ptr<NodeType>&& nodePtr) :
         nodePtr_( std::move(nodePtr) )
@@ -80,6 +75,7 @@ protected:
     auto NodePtr() const -> const std::shared_ptr<NodeType>&
         { return nodePtr_; }
 
+protected:
     template <typename F, typename T1, typename ... Ts>
     auto CreateFuncNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) -> decltype(auto)
     {
@@ -94,10 +90,7 @@ protected:
 
 private:
     std::shared_ptr<NodeType> nodePtr_;
-
-    friend struct REACT_IMPL::PrivateNodeInterface;
 };
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// VarSignal
@@ -106,10 +99,6 @@ template <typename S>
 class VarSignal : public Signal<S>
 {
 public:
-    using Signal::Signal;
-
-    VarSignal() = default;
-
     VarSignal(const VarSignal&) = default;
     VarSignal& operator=(const VarSignal&) = default;
 
@@ -117,14 +106,14 @@ public:
     VarSignal& operator=(VarSignal&&) = default;
 
     // Construct with group + default
-    explicit VarSignal(const ReactiveGroup& group) :
-        VarSignal::Signal( REACT_IMPL::CtorTag{ }, CreateVarNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
+    explicit VarSignal(const Group& group) :
+        VarSignal::Signal( REACT_IMPL::CtorTag{ }, CreateVarNode(group) )
         { }
 
     // Construct with group + value
     template <typename T>
-    VarSignal(const ReactiveGroup& group, T&& value) :
-        VarSignal::Signal( REACT_IMPL::CtorTag{ }, CreateVarNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<T>(value)) )
+    VarSignal(const Group& group, T&& value) :
+        VarSignal::Signal( REACT_IMPL::CtorTag{ }, CreateVarNode(group, std::forward<T>(value)) )
         { }
 
     void Set(const S& newValue)
@@ -144,14 +133,14 @@ public:
         { ModifyValue(func); }
 
 protected:
-    static auto CreateVarNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr) -> decltype(auto)
+    static auto CreateVarNode(const Group& group) -> decltype(auto)
     {
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
         return std::make_shared<VarNodeType>(graphPtr);
     }
 
     template <typename T>
-    static auto CreateVarNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, T&& value) -> decltype(auto)
+    static auto CreateVarNode(const Group& group, T&& value) -> decltype(auto)
     {
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
         return std::make_shared<VarNodeType>(graphPtr, std::forward<T>(value));
@@ -162,7 +151,6 @@ private:
     void SetValue(T&& newValue)
     {
         using REACT_IMPL::NodeId;
-        using REACT_IMPL::ReactiveGraph;
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
 
         VarNodeType* castedPtr = static_cast<VarNodeType*>(this->NodePtr().get());
@@ -176,7 +164,6 @@ private:
     void ModifyValue(const F& func)
     {
         using REACT_IMPL::NodeId;
-        using REACT_IMPL::ReactiveGraph;
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
 
         VarNodeType* castedPtr = static_cast<VarNodeType*>(this->NodePtr().get());
@@ -201,13 +188,13 @@ public:
     SignalSlot& operator=(SignalSlot&&) = default;
 
     // Construct with group + default
-    explicit SignalSlot(const ReactiveGroup& group) :
-        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
+    explicit SignalSlot(const Group& group) :
+        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group)) )
         { }
 
     // Construct with group + value
-    SignalSlot(const ReactiveGroup& group, const Signal<S>& input) :
-        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
+    SignalSlot(const Group& group, const Signal<S>& input) :
+        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), input) )
         { }
 
     // Construct with value
@@ -222,7 +209,7 @@ public:
         { SetInput(newInput); }
 
 protected:
-    static auto CreateSlotNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, const Signal<S>& input) -> decltype(auto)
+    static auto CreateSlotNode(const Group& group, const Signal<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::PrivateNodeInterface;
         using SlotNodeType = REACT_IMPL::SignalSlotNode<S>;
@@ -252,8 +239,6 @@ template <typename S>
 class SignalLink : public Signal<S>
 {
 public:
-    SignalLink() = default;
-
     SignalLink(const SignalLink&) = default;
     SignalLink& operator=(const SignalLink&) = default;
 
@@ -261,20 +246,20 @@ public:
     SignalLink& operator=(SignalLink&&) = default;
 
     // Construct with explicit group
-    SignalLink(const ReactiveGroup& group, const Signal<S>& input) :
-        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
+    SignalLink(const Group& group, const Signal<S>& input) :
+        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(group, input) )
         { }
 
     // Construct with implicit group
     explicit SignalLink(const Signal<S>& input) :
-        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(input), input) )
+        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(input.GetGroup(), input) )
         { }
 
 protected:
-    static auto CreateLinkNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, const Signal<S>& input) -> decltype(auto)
+    static auto CreateLinkNode(const Group& group, const Signal<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::PrivateNodeInterface;
-        using REACT_IMPL::PrivateReactiveGroupInterface;
+        using REACT_IMPL::PrivateGroupInterface;
         using LinkNodeType = REACT_IMPL::SignalLinkNode<S>;
 
         auto node = std::make_shared<LinkNodeType>(graphPtr, PrivateNodeInterface::GraphPtr(input), PrivateNodeInterface::NodePtr(input));

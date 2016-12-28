@@ -40,7 +40,7 @@ public:
 
     std::vector<size_t>  widths;
 
-    void Generate(const ReactiveGroupBase& group)
+    void Generate(const GroupBase& group)
     {
         assert(inputSignals.size() >= 1);
         assert(widths.size() >= 1);
@@ -132,7 +132,7 @@ struct BenchmarkParams_Grid
 
 struct Benchmark_Grid
 {
-    double Run(const BenchmarkParams_Grid& params, const ReactiveGroupBase& group)
+    double Run(const BenchmarkParams_Grid& params, const GroupBase& group)
     {
         VarSignal<int, shared> in{ group, 1 };
 				Signal<int, shared> in2 = in;

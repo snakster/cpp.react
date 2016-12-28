@@ -20,7 +20,7 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     VarSignal<int> x( group, 1 );
 
@@ -50,7 +50,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     EventSource<> trigger( group );
 

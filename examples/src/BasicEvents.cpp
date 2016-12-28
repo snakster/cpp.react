@@ -22,7 +22,7 @@ namespace example1
     // Defines a group.
     // Each group represents a separate dependency graph.
     // Reactives from different groups can not be mixed.
-    ReactiveGroup group;
+    Group group;
 
     // An event source that emits values of type string
     namespace v1
@@ -87,7 +87,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     // An event stream that merges both sources
     EventSource<> leftClick( group );
@@ -124,7 +124,7 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     EventSource<int> numbers( group );
 
@@ -156,7 +156,7 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     // Data types
     enum class Tag { normal, critical };
@@ -206,7 +206,7 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     EventSource<int> src( group );
 

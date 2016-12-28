@@ -51,8 +51,8 @@ public:
         { }
 
     template <typename F, typename T>
-    Event(const ReactiveGroup& group, F&& func, const Event<T>& dep) :
-        Event::Event( REACT_IMPL::CtorTag{ }, CreateProcessingNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), dep) )
+    Event(const Group& group, F&& func, const Event<T>& dep) :
+        Event::Event( REACT_IMPL::CtorTag{ }, CreateProcessingNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), dep) )
         { }
 
     template <typename F, typename T, typename ... Us>
@@ -61,8 +61,8 @@ public:
         { }
 
     template <typename F, typename T, typename ... Us>
-    Event(const ReactiveGroup& group, F&& func, const Event<T>& dep, const Signal<Us>& ... signals) :
-        Event::Event( REACT_IMPL::CtorTag{ }, CreateSyncedProcessingNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), dep, signals ...) )
+    Event(const Group& group, F&& func, const Event<T>& dep, const Signal<Us>& ... signals) :
+        Event::Event( REACT_IMPL::CtorTag{ }, CreateSyncedProcessingNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), dep, signals ...) )
         { }
 
     auto Tokenize() const -> decltype(auto)
@@ -136,8 +136,8 @@ public:
     EventSource& operator=(EventSource&& other) = default;
 
     // Construct event source
-    explicit EventSource(const ReactiveGroup& group) :
-        EventSource::Event( REACT_IMPL::CtorTag{ }, CreateSourceNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group)) )
+    explicit EventSource(const Group& group) :
+        EventSource::Event( REACT_IMPL::CtorTag{ }, CreateSourceNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group)) )
         { }
     
     void Emit(const E& value)
@@ -159,7 +159,7 @@ public:
 protected:
 
 
-    auto CreateSourceNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr) -> decltype(auto)
+    auto CreateSourceNode(const Group& group) -> decltype(auto)
     {
         using SrcNodeType = REACT_IMPL::EventSourceNode<E>;
         return std::make_shared<SrcNodeType>(graphPtr);
@@ -197,8 +197,8 @@ public:
     EventSlot& operator=(EventSlot&&) = default;
 
     // Construct with value
-    EventSlot(const ReactiveGroup& group, const Event<E>& input) :
-        EventSlot::EventSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
+    EventSlot(const Group& group, const Event<E>& input) :
+        EventSlot::EventSlotBase( REACT_IMPL::CtorTag{ }, CreateSlotNode(group, input) )
         { }
 
     void Set(const Event<E>& newInput)
@@ -208,13 +208,13 @@ public:
         { SetInput(newInput); }
 
 protected:
-    auto CreateSlotNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, const Event<E>& input) -> decltype(auto)
+    auto CreateSlotNode(const Group& group, const Event<E>& input) -> decltype(auto)
     {
         using REACT_IMPL::PrivateNodeInterface;
-        using REACT_IMPL::PrivateReactiveGroupInterface;
+        using REACT_IMPL::PrivateGroupInterface;
         using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
 
-        return std::make_shared<SlotNodeType>(PrivateReactiveGroupInterface::GraphPtr(group), PrivateNodeInterface::NodePtr(input));
+        return std::make_shared<SlotNodeType>(group, input);
     }
 
 private:
@@ -249,8 +249,8 @@ public:
     EventLink& operator=(EventLink&&) = default;
 
     // Construct with explicit group
-    EventLink(const ReactiveGroup& group, const Event<E>& input) :
-        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), input) )
+    EventLink(const Group& group, const Event<E>& input) :
+        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(group, input) )
         { }
 
     // Construct with implicit group
@@ -259,13 +259,13 @@ public:
         { }
 
 protected:
-    static auto CreateLinkNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, const Event<E>& input) -> decltype(auto)
+    static auto CreateLinkNode(const Group& group, const Event<E>& input) -> decltype(auto)
     {
         using REACT_IMPL::PrivateNodeInterface;
-        using REACT_IMPL::PrivateReactiveGroupInterface;
+        using REACT_IMPL::PrivateGroupInterface;
         using EventNodeType = REACT_IMPL::EventLinkNode<E>;
 
-        auto node = std::make_shared<EventNodeType>(graphPtr, PrivateNodeInterface::GraphPtr(input), PrivateNodeInterface::NodePtr(input));
+        auto node = std::make_shared<EventNodeType>(group, PrivateNodeInterface::GraphPtr(input), PrivateNodeInterface::NodePtr(input));
         node->SetWeakSelfPtr(std::weak_ptr<EventNodeType>{ node });
         return node;
     }
@@ -277,11 +277,11 @@ protected:
 /// Merge
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T = void, typename U1, typename ... Us>
-auto Merge(const ReactiveGroup& group, const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
+auto Merge(const Group& group, const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
 {
     using REACT_IMPL::EventMergeNode;
     using REACT_IMPL::PrivateEventLinkNodeInterface;
-    using REACT_IMPL::PrivateReactiveGroupInterface;
+    using REACT_IMPL::PrivateGroupInterface;
     using REACT_IMPL::PrivateNodeInterface;
     using REACT_IMPL::CtorTag;
 
@@ -293,7 +293,7 @@ auto Merge(const ReactiveGroup& group, const Event<U1>& dep1, const Event<Us>& .
         typename std::common_type<U1, Us ...>::type,
         T>::type;
 
-    const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
+    const auto& graphPtr = PrivateGroupInterface::GraphPtr(group);
     
     return PrivateNodeInterface::CreateNodeHelper<Event<E>, EventMergeNode<E, U1, Us ...>>(
         graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);
@@ -325,7 +325,7 @@ auto Merge(const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
 /// Filter
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename F, typename E>
-auto Filter(const ReactiveGroup& group, F&& pred, const Event<E>& dep) -> Event<E>
+auto Filter(const Group& group, F&& pred, const Event<E>& dep) -> Event<E>
 {
     auto filterFunc = [capturedPred = std::forward<F>(pred)] (EventRange<E> inRange, EventSink<E> out)
         { std::copy_if(inRange.begin(), inRange.end(), out, capturedPred); };
@@ -343,7 +343,7 @@ auto Filter(F&& pred, const Event<E>& dep) -> Event<E>
 }
 
 template <typename F, typename E, typename ... Ts>
-auto Filter(const ReactiveGroup& group, F&& pred, const Event<E>& dep, const Signal<Ts>& ... signals) -> Event<E>
+auto Filter(const Group& group, F&& pred, const Event<E>& dep, const Signal<Ts>& ... signals) -> Event<E>
 {
     auto filterFunc = [capturedPred = std::forward<F>(pred)] (EventRange<E> inRange, EventSink<E> out, const Us& ... values)
     {
@@ -372,7 +372,7 @@ auto Filter(F&& pred, const Event<E>& dep, const Signal<Ts>& ... signals) -> Eve
 /// Transform
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename E, typename F, typename T>
-auto Transform(const ReactiveGroup& group, F&& op, const Event<T>& dep) -> Event<E>
+auto Transform(const Group& group, F&& op, const Event<T>& dep) -> Event<E>
 {
     auto transformFunc = [capturedOp = std::forward<F>(op)] (EventRange<T> inRange, EventSink<E> out)
         { std::transform(inRange.begin(), inRange.end(), out, capturedOp); };
@@ -390,7 +390,7 @@ auto Transform(F&& op, const Event<T>& dep) -> Event<E>
 }
 
 template <typename E, typename F, typename T, typename ... Us>
-auto Transform(const ReactiveGroup& group, F&& op, const Event<T>& dep, const Signal<Us>& ... signals) -> Event<E>
+auto Transform(const Group& group, F&& op, const Event<T>& dep, const Signal<Us>& ... signals) -> Event<E>
 {
     auto transformFunc = [capturedOp = std::forward<F>(pred)] (EventRange<T> inRange, EventSink<E> out, const Vs& ... values)
     {
@@ -428,17 +428,17 @@ auto Flatten(const Signal<Events<TInnerValue>>& outer) -> Events<TInnerValue>
 /// Join
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename U1, typename ... Us>
-auto Join(const ReactiveGroup& group, const Event<U1>& dep1, const Event<Us>& ... deps) -> Event<std::tuple<U1, Us ...>>
+auto Join(const Group& group, const Event<U1>& dep1, const Event<Us>& ... deps) -> Event<std::tuple<U1, Us ...>>
 {
     using REACT_IMPL::EventJoinNode;
-    using REACT_IMPL::PrivateReactiveGroupInterface;
+    using REACT_IMPL::PrivateGroupInterface;
     using REACT_IMPL::PrivateEventLinkNodeInterface;
     using REACT_IMPL::PrivateNodeInterface;
 
     static_assert(sizeof...(Us) > 0, "Join requires at least 2 inputs.");
 
     // If supplied, use merge type, otherwise default to common type.
-    const auto& graphPtr = PrivateReactiveGroupInterface::GraphPtr(group);
+    const auto& graphPtr = PrivateGroupInterface::GraphPtr(group);
 
     return PrivateNodeInterface::CreateNodeHelper<Event<std::tuple<U1, Us ...>>, EventJoinNode<U1, Us ...>>(
         graphPtr, PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);

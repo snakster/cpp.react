@@ -21,7 +21,7 @@ namespace example1
     using namespace react;
     using namespace std;
 
-    ReactiveGroup<> group;
+    Group<> group;
 
     class Sensor
     {
@@ -31,7 +31,7 @@ namespace example1
         Sensor(Sensor&&) = default;
         Sensor& operator=(Sensor&&) = default;
 
-        explicit Sensor(const ReactiveGroup<>& group) :
+        explicit Sensor(const Group<>& group) :
             Samples( group )
             { }
 

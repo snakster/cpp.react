@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef REACT_DOMAIN_H_INCLUDED
-#define REACT_DOMAIN_H_INCLUDED
+#ifndef REACT_GROUP_H_INCLUDED
+#define REACT_GROUP_H_INCLUDED
 
 #pragma once
 
@@ -21,7 +21,7 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-struct PrivateReactiveGroupInterface;
+struct PrivateGroupInterface;
 struct CtorTag { };
 
 /****************************************/ REACT_IMPL_END /***************************************/
@@ -85,22 +85,22 @@ private:
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ReactiveGroupBase
+/// GroupBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class ReactiveGroup
+class Group
 {
     using GraphType = REACT_IMPL::ReactiveGraph;
 
 public:
-    ReactiveGroup() :
+    Group() :
         graphPtr_( std::make_shared<GraphType>() )
         {  }
 
-    ReactiveGroup(const ReactiveGroup&) = default;
-    ReactiveGroup& operator=(const ReactiveGroup&) = default;
+    Group(const Group&) = default;
+    Group& operator=(const Group&) = default;
 
-    ReactiveGroup(ReactiveGroup&& other) = default;
-    ReactiveGroup& operator=(ReactiveGroup&& other) = default;
+    Group(Group&& other) = default;
+    Group& operator=(Group&& other) = default;
 
     template <typename F>
     void DoTransaction(F&& func)
@@ -114,7 +114,8 @@ public:
     void EnqueueTransaction(TransactionFlags flags, F&& func)
         { graphPtr_->EnqueueTransaction(flags, std::forward<F>(func)); }
 
-protected:
+
+public: // Internal
     auto GraphPtr() -> std::shared_ptr<GraphType>&
         { return graphPtr_; }
 
@@ -123,62 +124,8 @@ protected:
 
 private:
     std::shared_ptr<GraphType> graphPtr_;
-
-    friend struct REACT_IMPL::PrivateReactiveGroupInterface;
 };
 
 /******************************************/ REACT_END /******************************************/
 
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-struct PrivateNodeInterface
-{
-    // Free functions may have to access the private node constructor (i.e. Merge).
-    // Instead of making all of them friends, this helper function is used.
-    template <typename TResult, typename TNode, typename ... TArgs>
-    static auto CreateNodeHelper(TArgs&& ... args) -> decltype(auto)
-        { return TResult( CtorTag{ }, std::make_shared<TNode>(std::forward<TArgs>(args) ...)); }
-
-    template <typename TBase>
-    static auto NodePtr(const TBase& base) -> const std::shared_ptr<typename TBase::NodeType>&
-        { return base.NodePtr(); }
-
-    template <typename TBase>
-    static auto NodePtr(TBase& base) -> std::shared_ptr<typename TBase::NodeType>&
-        { return base.NodePtr(); }
-
-    template <typename TBase>
-    static auto GraphPtr(const TBase& base) -> const std::shared_ptr<ReactiveGraph>&
-        { return base.NodePtr()->GraphPtr(); }
-
-    template <typename TBase>
-    static auto GraphPtr(TBase& base) -> std::shared_ptr<ReactiveGraph>&
-        { return base.NodePtr()->GraphPtr(); }
-};
-
-struct PrivateReactiveGroupInterface
-{
-    static auto GraphPtr(const ReactiveGroup& group) -> const std::shared_ptr<ReactiveGraph>&
-        { return group.GraphPtr(); }
-
-    static auto GraphPtr(ReactiveGroup& group) -> std::shared_ptr<ReactiveGraph>&
-        { return group.GraphPtr(); }
-};
-
-template <typename TBase1, typename ... TBases>
-static auto GetCheckedGraphPtr(const TBase1& dep1, const TBases& ... deps) -> const std::shared_ptr<ReactiveGraph>&
-{
-    const std::shared_ptr<ReactiveGraph>& graphPtr1 = PrivateNodeInterface::GraphPtr(dep1);
-
-    std::initializer_list<ReactiveGraph*> rawGraphPtrs = { PrivateNodeInterface::GraphPtr(deps).get() ... };
-
-    bool isSameGraphForAllDeps = std::all_of(rawGraphPtrs.begin(), rawGraphPtrs.end(), [&] (ReactiveGraph* p) { return p == graphPtr1.get(); });
-
-    REACT_ASSERT(isSameGraphForAllDeps, "All dependencies must belong to the same group.");
-
-    return graphPtr1;
-}
-
-/****************************************/ REACT_IMPL_END /***************************************/
-
-#endif // REACT_DOMAIN_H_INCLUDED
+#endif // REACT_GROUP_H_INCLUDED

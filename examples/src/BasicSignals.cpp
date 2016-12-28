@@ -29,7 +29,7 @@ namespace example1
     // Defines a group.
     // Each group represents a separate dependency graph.
     // Reactives from different groups can not be mixed.
-    ReactiveGroup group;
+    Group group;
     
     // The two words
     VarSignal<string> firstWord( group, string("Change") );
@@ -64,7 +64,7 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     VarSignal<int> x( group, 1 );
 
@@ -98,7 +98,7 @@ namespace example3
     int sumFunc(int a, int b)
         { return a + b; }
 
-    ReactiveGroup group;
+    Group group;
 
     VarSignal<int> a( group, 1 );
     VarSignal<int> b( group, 1 );
@@ -136,7 +136,7 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     VarSignal<vector<string>> data( group );
 
@@ -167,7 +167,7 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group;
+    Group group;
 
     // Helpers
     using ExprPairType = pair<string, int>;

@@ -37,7 +37,7 @@ public:
 
     std::vector<size_t>  widths;
 
-    void Generate(const ReactiveGroup& group)
+    void Generate(const Group& group)
     {
         assert(inputSignals.size() >= 1);
         assert(widths.size() >= 1);
@@ -162,7 +162,7 @@ template <typename T> T IterFunc2(EventRange<T> evts, T v, T a1, T a2)
 
 int main2()
 {
-	ReactiveGroup group;
+	Group group;
 
 	{
 		// Signals
@@ -228,8 +228,8 @@ int main2()
 
 	// Links
 	{
-		ReactiveGroup group1;
-		ReactiveGroup group2;
+		Group group1;
+		Group group2;
 
 		VarSignal<int> s1{ group1, 10 };
 		VarSignal<int> s2{ group2, 11 };
@@ -244,8 +244,8 @@ int main2()
 	}
 
 	{
-		ReactiveGroup group1;
-		ReactiveGroup group2;
+		Group group1;
+		Group group2;
 
 		VarSignal<int> s1{ group1, 10 };
 		VarSignal<int> s2{ group2, 11 };
@@ -269,8 +269,8 @@ int main2()
 	}
 
 	{
-		ReactiveGroup group1;
-		ReactiveGroup group2;
+		Group group1;
+		Group group2;
 
 		VarSignal<int> s1{ group1, 10 };
 		VarSignal<int> s2{ group2, 11 };
@@ -326,7 +326,7 @@ int main2()
 
 int main()
 {
-	ReactiveGroup group;
+	Group group;
 
 	VarSignal<int> in{ group, 1 };
 	Signal<int> in2 = in;
@@ -376,9 +376,9 @@ int main()
 
 /*int main2()
 {
-	ReactiveGroup group1;
-	ReactiveGroup group2;
-	ReactiveGroup group3;
+	Group group1;
+	Group group2;
+	Group group3;
 
 	VarSignal<int> x{ 0, group1 };
 	VarSignal<int> y{ 0, group2 };
@@ -420,8 +420,8 @@ int main3()
     using namespace std;
     using namespace react;
 
-    ReactiveGroup group1;
-		ReactiveGroup group2;
+    Group group1;
+		Group group2;
 
     auto sig1 = VarSignal<int>( 10, group1 );
 

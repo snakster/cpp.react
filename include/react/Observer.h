@@ -45,8 +45,8 @@ public:
 
     // Construct signal observer with explicit group
     template <typename F, typename ... Ts>
-    Observer(const ReactiveGroup& group, F&& func, const Signal<Ts>& ... subjects) :
-        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSignalObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subjects ...))
+    Observer(const Group& group, F&& func, const Signal<Ts>& ... subjects) :
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSignalObserverNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), subjects ...))
     { }
 
     // Construct event observer with implicit group
@@ -57,8 +57,8 @@ public:
 
     // Construct event observer with explicit group
     template <typename F, typename T>
-    Observer(const ReactiveGroup& group, F&& func, const Event<T>& subject) :
-        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject))
+    Observer(const Group& group, F&& func, const Event<T>& subject) :
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateEventObserverNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), subject))
     { }
 
     // Constructed synced event observer with implicit group
@@ -69,8 +69,8 @@ public:
 
     // Constructed synced event observer with explicit group
     template <typename F, typename T, typename ... Us>
-    Observer(const ReactiveGroup& group, F&& func, const Event<T>& subject, const Signal<Us>& ... signals) :
-        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSyncedEventObserverNode(REACT_IMPL::PrivateReactiveGroupInterface::GraphPtr(group), std::forward<F>(func), subject, signals ...))
+    Observer(const Group& group, F&& func, const Event<T>& subject, const Signal<Us>& ... signals) :
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSyncedEventObserverNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), subject, signals ...))
     { }
 
     void Cancel()
