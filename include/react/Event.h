@@ -37,8 +37,6 @@ private:
     using NodeType = REACT_IMPL::EventStreamNode<E>;
 
 public:
-    Event() = default;
-
     Event(const Event&) = default;
     Event& operator=(const Event&) = default;
 
@@ -52,7 +50,7 @@ public:
 
     template <typename F, typename T>
     Event(const Group& group, F&& func, const Event<T>& dep) :
-        Event::Event( REACT_IMPL::CtorTag{ }, CreateProcessingNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), dep) )
+        Event::Event( REACT_IMPL::CtorTag{ }, CreateProcessingNode(group, std::forward<F>(func), dep) )
         { }
 
     template <typename F, typename T, typename ... Us>
@@ -62,7 +60,7 @@ public:
 
     template <typename F, typename T, typename ... Us>
     Event(const Group& group, F&& func, const Event<T>& dep, const Signal<Us>& ... signals) :
-        Event::Event( REACT_IMPL::CtorTag{ }, CreateSyncedProcessingNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), dep, signals ...) )
+        Event::Event( REACT_IMPL::CtorTag{ }, CreateSyncedProcessingNode(group, std::forward<F>(func), dep, signals ...) )
         { }
 
     auto Tokenize() const -> decltype(auto)
@@ -127,8 +125,6 @@ template <typename E>
 class EventSource : public Event<E>
 {
 public:
-    EventSource() = default;
-
     EventSource(const EventSource&) = default;
     EventSource& operator=(const EventSource&) = default;
 
@@ -137,7 +133,7 @@ public:
 
     // Construct event source
     explicit EventSource(const Group& group) :
-        EventSource::Event( REACT_IMPL::CtorTag{ }, CreateSourceNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group)) )
+        EventSource::Event( REACT_IMPL::CtorTag{ }, CreateSourceNode(group) )
         { }
     
     void Emit(const E& value)
@@ -157,12 +153,10 @@ public:
         { EmitValue(std::move(value)); return *this; }
 
 protected:
-
-
     auto CreateSourceNode(const Group& group) -> decltype(auto)
     {
         using SrcNodeType = REACT_IMPL::EventSourceNode<E>;
-        return std::make_shared<SrcNodeType>(graphPtr);
+        return std::make_shared<SrcNodeType>(group);
     }
 
 private:
@@ -188,8 +182,6 @@ template <typename E>
 class EventSlot : public Event<E>
 {
 public:
-    EventSlot() = default;
-
     EventSlot(const EventSlot&) = default;
     EventSlot& operator=(const EventSlot&) = default;
 
@@ -210,8 +202,6 @@ public:
 protected:
     auto CreateSlotNode(const Group& group, const Event<E>& input) -> decltype(auto)
     {
-        using REACT_IMPL::PrivateNodeInterface;
-        using REACT_IMPL::PrivateGroupInterface;
         using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
 
         return std::make_shared<SlotNodeType>(group, input);
@@ -220,7 +210,6 @@ protected:
 private:
     void SetInput(const Event<E>& newInput)
     {
-        using REACT_IMPL::PrivateNodeInterface;
         using REACT_IMPL::NodeId;
         using REACT_IMPL::ReactiveGraph;
         using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
@@ -240,8 +229,6 @@ template <typename E>
 class EventLink : public Event<E>
 {
 public:
-    EventLink() = default;
-
     EventLink(const EventLink&) = default;
     EventLink& operator=(const EventLink&) = default;
 

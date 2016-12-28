@@ -29,8 +29,6 @@ private:
     using NodeType = REACT_IMPL::ObserverNode;
 
 public:
-    Observer() = default;
-
     Observer(const Observer&) = default;
     Observer& operator=(const Observer&) = default;
 
@@ -41,45 +39,39 @@ public:
     template <typename F, typename ... Ts>
     Observer(F&& func, const Signal<Ts>& ... subjects) :
         Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSignalObserverNode(std::forward<F>(func), subjects ...))
-    { }
+        { }
 
     // Construct signal observer with explicit group
     template <typename F, typename ... Ts>
     Observer(const Group& group, F&& func, const Signal<Ts>& ... subjects) :
-        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSignalObserverNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), subjects ...))
-    { }
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSignalObserverNode(group, std::forward<F>(func), subjects ...))
+        { }
 
     // Construct event observer with implicit group
     template <typename F, typename T>
     Observer(F&& func, const Event<T>& subject) :
         Observer::Observer(REACT_IMPL::CtorTag{ }, CreateEventObserverNode(std::forward<F>(func), subject))
-    { }
+        { }
 
     // Construct event observer with explicit group
     template <typename F, typename T>
     Observer(const Group& group, F&& func, const Event<T>& subject) :
-        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateEventObserverNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), subject))
-    { }
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateEventObserverNode(group, std::forward<F>(func), subject))
+        { }
 
     // Constructed synced event observer with implicit group
     template <typename F, typename T, typename ... Us>
     Observer(F&& func, const Event<T>& subject, const Signal<Us>& ... signals) :
         Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSyncedEventObserverNode(std::forward<F>(func), subject, signals ...))
-    { }
+        { }
 
     // Constructed synced event observer with explicit group
     template <typename F, typename T, typename ... Us>
     Observer(const Group& group, F&& func, const Event<T>& subject, const Signal<Us>& ... signals) :
-        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSyncedEventObserverNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), subject, signals ...))
-    { }
+        Observer::Observer(REACT_IMPL::CtorTag{ }, CreateSyncedEventObserverNode(group, std::forward<F>(func), subject, signals ...))
+        { }
 
-    void Cancel()
-        { nodePtr_.reset(); }
-
-    bool IsCancelled() const
-        { return nodePtr_ != nullptr; }
-
-protected:
+public: //Internal
     // Private node ctor
     Observer(REACT_IMPL::CtorTag, std::shared_ptr<NodeType>&& nodePtr) :
         nodePtr_(std::move(nodePtr))
@@ -91,14 +83,15 @@ protected:
     auto NodePtr() const -> const std::shared_ptr<NodeType>&
         { return nodePtr_; }
 
+protected:
     template <typename F, typename T1, typename ... Ts>
-    auto CreateSignalObserverNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) -> decltype(auto)
+    auto CreateSignalObserverNode(const Group& group, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) -> decltype(auto)
     {
         using REACT_IMPL::PrivateSignalLinkNodeInterface;
         using ObsNodeType = REACT_IMPL::SignalObserverNode<typename std::decay<F>::type, T1, Ts ...>;
 
         return std::make_shared<ObsNodeType>(
-            graphPtr,
+            group,
             std::forward<F>(func),
             PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);
     }
@@ -106,28 +99,26 @@ protected:
     template <typename F, typename T1, typename ... Ts>
     auto CreateSignalObserverNode(F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) -> decltype(auto)
     {
-        using REACT_IMPL::PrivateNodeInterface;
         return CreateSignalObserverNode(PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...);
     }
 
     template <typename F, typename T>
-    auto CreateEventObserverNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const Event<T>& dep) -> decltype(auto)
+    auto CreateEventObserverNode(const Group& group, F&& func, const Event<T>& dep) -> decltype(auto)
     {
         using REACT_IMPL::PrivateEventLinkNodeInterface;
         using ObsNodeType = REACT_IMPL::EventObserverNode<typename std::decay<F>::type, T>;
 
-        return std::make_shared<ObsNodeType>(graphPtr, std::forward<F>(func), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep));
+        return std::make_shared<ObsNodeType>(group, std::forward<F>(func), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, dep));
     }
 
     template <typename F, typename T>
     auto CreateEventObserverNode(F&& func, const Event<T>& dep) -> decltype(auto)
     {
-        using REACT_IMPL::PrivateNodeInterface;
         return CreateEventObserverNode(PrivateNodeInterface::GraphPtr(dep), std::forward<F>(func), dep);
     }
 
     template <typename F, typename T, typename ... Us>
-    auto CreateSyncedEventObserverNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const Event<T>& dep, const Signal<Us>& ... syncs) -> decltype(auto)
+    auto CreateSyncedEventObserverNode(const Group& group, F&& func, const Event<T>& dep, const Signal<Us>& ... syncs) -> decltype(auto)
     {
         using REACT_IMPL::PrivateEventLinkNodeInterface;
         using REACT_IMPL::PrivateSignalLinkNodeInterface;
@@ -140,14 +131,11 @@ protected:
     template <typename F, typename T, typename ... Us>
     auto CreateSyncedEventObserverNode(F&& func, const Event<T>& dep, const Signal<Us>& ... syncs) -> decltype(auto)
     {
-        using REACT_IMPL::PrivateNodeInterface;
         return CreateSyncedEventObserverNode(PrivateNodeInterface::GraphPtr(dep), std::forward<F>(func), dep, syncs ...);
     }
 
 private:
-    std::shared_ptr<NodeType> nodePtr_;
-
-    friend struct REACT_IMPL::PrivateNodeInterface;
+    std::shared_ptr<NodeType> nodePtr_;s
 };
 
 /******************************************/ REACT_END /******************************************/
