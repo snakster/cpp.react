@@ -87,8 +87,8 @@ public:
     EventStreamNode(const EventStreamNode&) = delete;
     EventStreamNode& operator=(const EventStreamNode&) = delete;
 
-    explicit EventStreamNode(const std::shared_ptr<ReactiveGraph>& graphPtr) :
-        NodeBase( graphPtr )
+    explicit EventStreamNode(const Group& group) :
+        NodeBase( group )
         { }
 
     StorageType& Events()
@@ -122,7 +122,7 @@ public:
         // Last successor to arrive clears the buffer.
         if (pendingSuccessorCount_-- == 1)
             events_.clear();
-    };
+    }
 
 private:
     StorageType events_;
@@ -137,12 +137,16 @@ template <typename T>
 class EventSourceNode : public EventStreamNode<T>
 {
 public:
-    EventSourceNode(const std::shared_ptr<ReactiveGraph>& graphPtr) :
-        EventSourceNode::EventStreamNode( graphPtr )
-        { this->RegisterMe(NodeCategory::input); }
+    EventSourceNode(const Group& group) :
+        EventSourceNode::EventStreamNode( group )
+    {
+        this->RegisterMe(NodeCategory::input);
+    }
 
     ~EventSourceNode()
-        { this->UnregisterMe(); }
+    {
+        this->UnregisterMe();
+    }
 
     virtual const char* GetNodeType() const override
         { return "EventSource"; }
@@ -175,8 +179,8 @@ template <typename TOut, typename ... TIns>
 class EventMergeNode : public EventStreamNode<TOut>
 {
 public:
-    EventMergeNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<TIns>>& ... deps) :
-        EventMergeNode::EventStreamNode( graphPtr ),
+    EventMergeNode(const Group& group, const Event<TIns>& ... deps) :
+        EventMergeNode::EventStreamNode( group ),
         depHolder_( deps ... )
     {
         this->RegisterMe();
@@ -185,7 +189,7 @@ public:
 
     ~EventMergeNode()
     {
-        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(deps->GetNodeId())); }, depHolder_);
+        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodeId())); }, depHolder_);
         this->UnregisterMe();
     }
 
@@ -212,13 +216,15 @@ public:
 
 private:
     template <typename U>
-    void MergeFromDep(const std::shared_ptr<EventStreamNode<U>>& other)
+    void MergeFromDep(const Event<U>& dep)
     {
-        this->Events().insert(this->Events().end(), other->Events().begin(), other->Events().end());
-        other->DecrementPendingSuccessorCount();
+        auto& depNodePtr = BaseCast(dep).GetNodePtr();
+
+        this->Events().insert(this->Events().end(), depNodePtr->Events().begin(), depNodePtr->Events().end());
+        depNodePtr->DecrementPendingSuccessorCount();
     }
 
-    std::tuple<std::shared_ptr<EventStreamNode<TIns>> ...> depHolder_;
+    std::tuple<Event<TIns> ...> depHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -228,8 +234,8 @@ template <typename E>
 class EventSlotNode : public EventStreamNode<E>
 {
 public:
-    EventSlotNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<E>>& dep) :
-        EventSlotNode::EventStreamNode( graphPtr ),
+    EventSlotNode(const Group& group, const Event<E>& dep) :
+        EventSlotNode::EventStreamNode( group ),
         slotInput_( *this, dep )
     {
         slotInput_.nodeId = GraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
@@ -280,7 +286,7 @@ public:
 private:        
     struct VirtualInputNode : public IReactiveNode
     {
-        VirtualInputNode(EventSlotNode& parentIn, const std::shared_ptr<EventStreamNode<E>>& depIn) :
+        VirtualInputNode(EventSlotNode& parentIn, const Event<E>& depIn) :
             parent( parentIn ),
             dep( depIn )
             { }
@@ -312,8 +318,8 @@ private:
 
         NodeId nodeId;
 
-        std::shared_ptr<EventStreamNode<E>> dep;
-        std::shared_ptr<EventStreamNode<E>> newDep;
+        Event<E> dep;
+        Event<E> newDep;
     };
 
     VirtualInputNode slotInput_;
@@ -327,8 +333,8 @@ class EventProcessingNode : public EventStreamNode<TOut>
 {
 public:
     template <typename FIn>
-    EventProcessingNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<TIn>>& dep) :
-        EventProcessingNode::EventStreamNode( graphPtr ),
+    EventProcessingNode(const Group& group, FIn&& func, const Event<TIn>& dep) :
+        EventProcessingNode::EventStreamNode( group ),
         func_( std::forward<FIn>(func) ),
         dep_( dep )
     {
@@ -368,7 +374,7 @@ public:
 private:
     F func_;
 
-    std::shared_ptr<EventStreamNode<TIn>> dep_;
+    Event<TIn> dep_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -379,8 +385,8 @@ class SyncedEventProcessingNode : public EventStreamNode<TOut>
 {
 public:
     template <typename FIn>
-    SyncedEventProcessingNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<TIn>>& dep, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
-        SyncedEventProcessingNode::EventStreamNode( graphPtr ),
+    SyncedEventProcessingNode(const Group& group, FIn&& func, const Event<TIn>& dep, const Signal<TSyncs>& ... syncs) :
+        SyncedEventProcessingNode::EventStreamNode( group ),
         func_( std::forward<FIn>(func) ),
         dep_( dep ),
         syncHolder_( syncs ... )
@@ -432,9 +438,9 @@ public:
 private:
     F func_;
 
-    std::shared_ptr<EventStreamNode<TIn>> dep_;
+    Event<TIn> dep_;
 
-    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
+    std::tuple<Signal<TSyncs> ...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -444,8 +450,8 @@ template <typename ... Ts>
 class EventJoinNode : public EventStreamNode<std::tuple<Ts ...>>
 {
 public:
-    EventJoinNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<EventStreamNode<Ts>>& ... deps) :
-        EventJoinNode::EventStreamNode( graphPtr ),
+    EventJoinNode(const Group& group, const Event<Ts>& ... deps) :
+        EventJoinNode::EventStreamNode( group ),
         slots_( deps ... )
     {
         this->RegisterMe();
@@ -510,12 +516,12 @@ private:
     template <typename U>
     struct Slot
     {
-        Slot(const std::shared_ptr<EventStreamNode<U>>& src) :
+        Slot(const Event<U>& src) :
             source( src )
             { }
 
-        std::shared_ptr<EventStreamNode<U>>     source;
-        std::deque<U>                           buffer;
+        Event<U>        source;
+        std::deque<U>   buffer;
     };
 
     template <typename U>
@@ -542,9 +548,9 @@ template <typename E>
 class EventLinkNode : public EventStreamNode<E>
 {
 public:
-    EventLinkNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<ReactiveGraph>& srcGraphPtr, const std::shared_ptr<EventStreamNode<E>>& dep) :
-        EventLinkNode::EventStreamNode( graphPtr ),
-        linkOutput_( srcGraphPtr, dep )
+    EventLinkNode(const Group& group, const Event<E>& dep) :
+        EventLinkNode::EventStreamNode( group ),
+        linkOutput_( dep )
     {
         this->RegisterMe(NodeCategory::input);
     }
@@ -575,10 +581,10 @@ public:
 private:
     struct VirtualOutputNode : public ILinkOutputNode
     {
-        VirtualOutputNode(const std::shared_ptr<ReactiveGraph>& srcGraphPtrIn, const std::shared_ptr<EventStreamNode<E>>& depIn) :
+        VirtualOutputNode(const Event<E>& depIn) :
             parent( ),
-            srcGraphPtr( srcGraphPtrIn ),
-            dep( depIn )
+            dep( depIn ),
+            srcGroup( depIn.GetGroup() )
         {
             nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
             srcGraphPtr->OnNodeAttach(nodeId, dep->GetNodeId());
@@ -597,9 +603,7 @@ private:
             { return 1; }
 
         virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
-        {            
-            return UpdateResult::changed;
-        }
+            { return UpdateResult::changed; }
 
         virtual void CollectOutput(LinkOutputMap& output) override
         {
@@ -623,11 +627,9 @@ private:
 
         std::weak_ptr<EventLinkNode> parent;
 
-        NodeId nodeId;
-
-        std::shared_ptr<EventStreamNode<E>> dep;
-
-        std::shared_ptr<ReactiveGraph> srcGraphPtr;
+        NodeId      nodeId;
+        Event<E>    dep;
+        Group       srcGroup;
     };
 
     VirtualOutputNode linkOutput_;

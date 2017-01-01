@@ -21,8 +21,33 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-struct PrivateGroupInterface;
-struct CtorTag { };
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// GroupInternals
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class GroupInternals
+{
+    using GraphType = REACT_IMPL::ReactiveGraph;
+
+public:
+    GroupInternals() :
+        graphPtr_( std::make_shared<GraphType>() )
+        {  }
+
+    GroupInternals(const GroupInternals&) = default;
+    GroupInternals& operator=(const GroupInternals&) = default;
+
+    GroupInternals(GroupInternals&&) = default;
+    GroupInternals& operator=(GroupInternals&&) = default;
+
+    auto GetGraphPtr() -> std::shared_ptr<GraphType>&
+        { return graphPtr_; }
+
+    auto GetGraphPtr() const -> const std::shared_ptr<GraphType>&
+        { return graphPtr_; }
+
+private:
+    std::shared_ptr<GraphType> graphPtr_;
+};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
@@ -85,26 +110,22 @@ private:
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// GroupBase
+/// Group
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class Group
+class Group : protected REACT_IMPL::GroupInternals
 {
-    using GraphType = REACT_IMPL::ReactiveGraph;
-
 public:
-    Group() :
-        graphPtr_( std::make_shared<GraphType>() )
-        {  }
+    Group() = default;
 
     Group(const Group&) = default;
     Group& operator=(const Group&) = default;
 
-    Group(Group&& other) = default;
-    Group& operator=(Group&& other) = default;
+    Group(Group&&) = default;
+    Group& operator=(Group&&) = default;
 
     template <typename F>
     void DoTransaction(F&& func)
-        { graphPtr_->DoTransaction(std::forward<F>(func)); }
+        { GetGraphPtr()->DoTransaction(std::forward<F>(func)); }
 
     template <typename F>
     void EnqueueTransaction(F&& func)
@@ -112,18 +133,19 @@ public:
 
     template <typename F>
     void EnqueueTransaction(TransactionFlags flags, F&& func)
-        { graphPtr_->EnqueueTransaction(flags, std::forward<F>(func)); }
+        { GetGraphPtr()->EnqueueTransaction(flags, std::forward<F>(func)); }
 
+    friend bool operator==(const Group& a, const Group& b)
+        { return a.GetGraphPtr() == b.GetGraphPtr(); }
 
-public: // Internal
-    auto GraphPtr() -> std::shared_ptr<GraphType>&
-        { return graphPtr_; }
+    friend bool operator!=(const Group& a, const Group& b)
+        { return !(a == b); }
 
-    auto GraphPtr() const -> const std::shared_ptr<GraphType>&
-        { return graphPtr_; }
+    friend auto GetInternals(Group& g) -> REACT_IMPL::GroupInternals&
+        { return g; }
 
-private:
-    std::shared_ptr<GraphType> graphPtr_;
+    friend auto GetInternals(const Group& g) -> const REACT_IMPL::GroupInternals&
+        { return g; }
 };
 
 /******************************************/ REACT_END /******************************************/

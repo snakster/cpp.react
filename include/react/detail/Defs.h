@@ -21,28 +21,14 @@
 #define REACT_IMPL_END      REACT_END       }
 #define REACT_IMPL          REACT           ::impl
 
-// Assert with message
-#define REACT_ASSERT(condition, ...) for (; !(condition); assert(condition)) printf(__VA_ARGS__)
-#define REACT_ERROR(...)    REACT_ASSERT(false, __VA_ARGS__)
-
-// Thread local storage
-#if _WIN32 || _WIN64
-    // MSVC
-    #define REACT_TLS   __declspec(thread)
-#elif __GNUC__
-    // GCC
-    #define REACT_TLS   __thread    
-#else
-    // Standard C++11
-    #define REACT_TLS   thread_local
-#endif
-
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 // Type aliases
 using uint = unsigned int;
 using uchar = unsigned char;
 using std::size_t;
+
+struct CtorTag { };
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

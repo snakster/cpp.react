@@ -30,30 +30,12 @@ template <typename T, typename E>
 auto Hold(const Group& group, T&& initialValue, const Event<E>& evnt) -> Signal<E>
 {
     using REACT_IMPL::HoldNode;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;
-    using REACT_IMPL::PrivateGroupInterface;
-    using REACT_IMPL::PrivateNodeInterface;
-    using REACT_IMPL::CtorTag;
-
-    const auto& graphPtr = PrivateGroupInterface::GraphPtr(group);
-
-    return PrivateNodeInterface::CreateNodeHelper<Signal<E>, HoldNode<E>>(
-        graphPtr, std::forward<T>(initialValue), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt));
+    return Signal<E>::CreateWithNode<HoldNode<E>>(group, std::forward<T>(initialValue), SameGroupOrLink(group, evnt));
 }
 
 template <typename T, typename E>
 auto Hold(T&& initialValue, const Event<E>& evnt) -> Signal<E>
-{
-    using REACT_IMPL::HoldNode;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;
-    using REACT_IMPL::PrivateNodeInterface;
-    using REACT_IMPL::CtorTag;
-
-    const auto& graphPtr = PrivateNodeInterface::GraphPtr(evnt);
-
-    return PrivateNodeInterface::CreateNodeHelper<Signal<E>, HoldNode<E>>(
-        graphPtr, std::forward<T>(initialValue), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt));
-}
+    { return Hold(evnt.GetGroup(), std::forward<T>(initialValue), evnt); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Monitor - Emits value changes of target signal
@@ -62,28 +44,12 @@ template <typename S>
 auto Monitor(const Group& group, const Signal<S>& signal) -> Event<S>
 {
     using REACT_IMPL::MonitorNode;
-    using REACT_IMPL::PrivateSignalLinkNodeInterface;
-    using REACT_IMPL::PrivateGroupInterface;
-    using REACT_IMPL::PrivateNodeInterface;
-
-    const auto& graphPtr = PrivateGroupInterface::GraphPtr(group);
-
-    return PrivateNodeInterface::CreateNodeHelper<Event<S>, MonitorNode<S>>(
-        graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal));
+    return Event<S>::CreateWithNode<MonitorNode<S>>(group, SameGroupOrLink(group, signal));
 }
 
 template <typename S>
 auto Monitor(const Signal<S>& signal) -> Event<S>
-{
-    using REACT_IMPL::MonitorNode;
-    using REACT_IMPL::PrivateSignalLinkNodeInterface;
-    using REACT_IMPL::PrivateNodeInterface;
-
-    const auto& graphPtr = PrivateNodeInterface::GraphPtr(signal);
-
-    return PrivateNodeInterface::CreateNodeHelper<Event<S>, MonitorNode<S>>(
-        graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal));
-}
+    { return Monitor(signal.GetGroup(), signal); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterate - Iteratively combines signal value with values from event stream (aka Fold)
@@ -94,9 +60,6 @@ auto Iterate(const Group& group, T&& initialValue, F&& func, const Event<E>& evn
     using REACT_IMPL::IterateNode;
     using REACT_IMPL::IterateByRefNode;
     using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;
-    using REACT_IMPL::PrivateGroupInterface;
-    using REACT_IMPL::PrivateNodeInterface;
 
     using FuncType = typename std::decay<F>::type;
     using IterNodeType = typename std::conditional<
@@ -104,33 +67,12 @@ auto Iterate(const Group& group, T&& initialValue, F&& func, const Event<E>& evn
         IterateNode<S, FuncType, E>,
         IterateByRefNode<S, FuncType, E>>::type;
 
-    const auto& graphPtr = PrivateGroupInterface::GraphPtr(group);
-
-    return PrivateNodeInterface::CreateNodeHelper<Signal<S>, IterNodeType>(
-        graphPtr, std::forward<T>(initialValue), std::forward<F>(func), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt));
+    return Signal<S>::CreateWithNode<IterNodeType>(group, std::forward<T>(initialValue), std::forward<F>(func), SameGroupOrLink(group, evnt));
 }
 
 template <typename S, typename T, typename F, typename E>
 auto Iterate(T&& initialValue, F&& func, const Event<E>& evnt) -> Signal<S>
-{
-    using REACT_IMPL::IterateNode;
-    using REACT_IMPL::IterateByRefNode;
-    using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;
-    using REACT_IMPL::PrivateNodeInterface;
-    using REACT_IMPL::CtorTag;
-
-    using FuncType = typename std::decay<F>::type;
-    using IterNodeType = typename std::conditional<
-        IsCallableWith<F,S,EventRange<E>,S>::value,
-        IterateNode<S, FuncType, E>,
-        IterateByRefNode<S, FuncType, E>>::type;
-
-    const auto& graphPtr = PrivateNodeInterface::GraphPtr(evnt);
-
-    return PrivateNodeInterface::CreateNodeHelper<Signal<S>, IterNodeType>(
-        graphPtr, std::forward<T>(initialValue), std::forward<F>(func), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt));
-}
+    { return Iterate<S>(evnt.GetGroup(), std::forward<T>(initialValue), std::forward<F>(func), evnt); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterate - Synced
@@ -141,10 +83,6 @@ auto Iterate(const Group& group, T&& initialValue, F&& func, const Event<E>& evn
     using REACT_IMPL::SyncedIterateNode;
     using REACT_IMPL::SyncedIterateByRefNode;
     using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::PrivateSignalLinkNodeInterface;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;
-    using REACT_IMPL::PrivateGroupInterface;
-    using REACT_IMPL::PrivateNodeInterface;
 
     using FuncType = typename std::decay<F>::type;
     using IterNodeType = typename std::conditional<
@@ -152,35 +90,13 @@ auto Iterate(const Group& group, T&& initialValue, F&& func, const Event<E>& evn
         SyncedIterateNode<S, FuncType, E, Us ...>,
         SyncedIterateByRefNode<S, FuncType, E, Us ...>>::type;
 
-    const auto& graphPtr = PrivateGroupInterface::GraphPtr(group);
-
-    return PrivateNodeInterface::CreateNodeHelper<Signal<S>, IterNodeType>(
-        graphPtr, std::forward<T>(initialValue), std::forward<F>(func),
-        PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt), PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signals) ...);
+    return Signal<S>::CreateWithNode<IterNodeType>(
+        group, std::forward<T>(initialValue), std::forward<F>(func), SameGroupOrLink(group, evnt), SameGroupOrLink(group, signals) ...);
 }
 
 template <typename S, typename T, typename F, typename E, typename ... Us>
 auto Iterate(T&& initialValue, F&& func, const Event<E>& evnt, const Signal<Us>& ... signals) -> Signal<S>
-{
-    using REACT_IMPL::SyncedIterateNode;
-    using REACT_IMPL::SyncedIterateByRefNode;
-    using REACT_IMPL::IsCallableWith;
-    using REACT_IMPL::PrivateSignalLinkNodeInterface;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;;
-    using REACT_IMPL::PrivateNodeInterface;
-
-    using FuncType = typename std::decay<F>::type;
-    using IterNodeType = typename std::conditional<
-        IsCallableWith<F, S, EventRange<E>, S, Us ...>::value,
-        SyncedIterateNode<S, FuncType, E, Us ...>,
-        SyncedIterateByRefNode<S, FuncType, E, Us ...>>::type;
-
-    const auto& graphPtr = PrivateNodeInterface::GraphPtr(evnt);
-
-    return PrivateNodeInterface::CreateNodeHelper<Signal<S>, IterNodeType>(
-        graphPtr, std::forward<T>(initialValue), std::forward<F>(func),
-        PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt), PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signals) ...);
-}
+    { return Iterate<S>(evnt.GetGroup(), std::forward<T>(initialValue), std::forward<F>(func), evnt, signals ...); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Snapshot - Sets signal value to value of other signal when event is received
@@ -189,30 +105,12 @@ template <typename S, typename E>
 auto Snapshot(const Group& group, const Signal<S>& signal, const Event<E>& evnt) -> Signal<S>
 {
     using REACT_IMPL::SnapshotNode;
-    using REACT_IMPL::PrivateSignalLinkNodeInterface;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;;
-    using REACT_IMPL::PrivateGroupInterface;
-    using REACT_IMPL::PrivateNodeInterface;
-
-    const auto& graphPtr = PrivateGroupInterface::GraphPtr(group);
-
-    return PrivateNodeInterface::CreateNodeHelper<Signal<S>, SnapshotNode<S, E>>(
-        graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt));
+    return Signal<S>::CreateWithNode<SnapshotNode<S, E>>(group, SameGroupOrLink(group, signal), SameGroupOrLink(group, evnt));
 }
 
 template <typename S, typename E>
 auto Snapshot(const Signal<S>& signal, const Event<E>& evnt) -> Signal<S>
-{
-    using REACT_IMPL::SnapshotNode;
-    using REACT_IMPL::PrivateSignalLinkNodeInterface;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;;
-    using REACT_IMPL::PrivateNodeInterface;
-
-    const auto& graphPtr = PrivateNodeInterface::GraphPtr(signal);
-
-    return PrivateNodeInterface::CreateNodeHelper<Signal<S>, SnapshotNode<S, E>>(
-        graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt));
-}
+    { return Snapshot(signal.GetGroup(), signal, evnt); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Pulse - Emits value of target signal when event is received
@@ -221,31 +119,12 @@ template <typename S, typename E>
 auto Pulse(const Group& group, const Signal<S>& signal, const Event<E>& evnt) -> Event<S>
 {
     using REACT_IMPL::PulseNode;
-    using REACT_IMPL::PrivateSignalLinkNodeInterface;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;;
-    using REACT_IMPL::PrivateGroupInterface;
-    using REACT_IMPL::PrivateNodeInterface;
-
-    const auto& graphPtr = PrivateGroupInterface::GraphPtr(group);
-
-    return PrivateNodeInterface::CreateNodeHelper<Event<S>, PulseNode<S, E>>(
-        graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt));
+    return Event<S>::CreateWithNode<PulseNode<S, E>>(group, SameGroupOrLink(group, signal), SameGroupOrLink(group, evnt));
 }
 
 template <typename S, typename E>
 auto Pulse(const Signal<S>& signal, const Event<E>& evnt) -> Event<S>
-{
-    using REACT_IMPL::PulseNode;
-    using REACT_IMPL::PrivateSignalLinkNodeInterface;
-    using REACT_IMPL::PrivateEventLinkNodeInterface;;
-    using REACT_IMPL::PrivateNodeInterface;
-    using REACT_IMPL::CtorTag;
-
-    const auto& graphPtr = PrivateNodeInterface::GraphPtr(signal);
-
-    return PrivateNodeInterface::CreateNodeHelper<Event<S>, PulseNode<S, E>>(
-        graphPtr, PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, signal), PrivateEventLinkNodeInterface::GetLocalNodePtr(graphPtr, evnt));
-}
+    { return Pulse(signal.GetGroup(), signal, evnt); }
 
 /******************************************/ REACT_END /******************************************/
 

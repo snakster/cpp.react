@@ -10,6 +10,7 @@
 #pragma once
 
 #include "react/detail/Defs.h"
+#include "react/API.h"
 
 #include <memory>
 #include <utility>
@@ -35,8 +36,8 @@ class EventStreamNode;
 class ObserverNode : public NodeBase
 {
 public:
-    ObserverNode(const std::shared_ptr<ReactiveGraph>& graphPtr) :
-        ObserverNode::NodeBase( graphPtr )
+    ObserverNode(const Group& group) :
+        ObserverNode::NodeBase( group )
         { }
 };
 
@@ -48,18 +49,18 @@ class SignalObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    SignalObserverNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<SignalNode<TDeps>>& ... deps) :
-        SignalObserverNode::ObserverNode( graphPtr ),
+    SignalObserverNode(const Group& group, FIn&& func, const Signal<TDeps>& ... deps) :
+        SignalObserverNode::ObserverNode( group ),
         func_( std::forward<FIn>(func) ),
         depHolder_( deps ... )
     {
         this->RegisterMe(NodeCategory::output);
-        REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
+        REACT_EXPAND_PACK(this->AttachToMe(GetInternals(deps).GetNodeId()));
     }
 
     ~SignalObserverNode()
     {
-        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(deps->GetNodeId())); }, depHolder_);
+        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodeId())); }, depHolder_);
         this->UnregisterMe();
     }
 
@@ -71,14 +72,14 @@ public:
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        apply([this] (const auto& ... deps) { this->func_(deps->Value() ...); }, depHolder_);
+        apply([this] (const auto& ... deps) { this->func_(GetInternals(deps).Value() ...); }, depHolder_);
         return UpdateResult::unchanged;
     }
 
 private:
     F func_;
 
-    std::tuple<std::shared_ptr<SignalNode<TDeps>> ...> depHolder_;
+    std::tuple<Signal<TDeps> ...> depHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,18 +90,18 @@ class EventObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    EventObserverNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& subject) :
-        EventObserverNode::ObserverNode( graphPtr ),
+    EventObserverNode(const Group& group, FIn&& func, const Event<E>& subject) :
+        EventObserverNode::ObserverNode( group ),
         func_( std::forward<FIn>(func) ),
         subject_( subject )
     {
         this->RegisterMe(NodeCategory::output);
-        this->AttachToMe(subject->GetNodeId());
+        this->AttachToMe(GetInternals(subject).GetNodeId());
     }
 
     ~EventObserverNode()
     {
-        this->DetachFromMe(subject_->GetNodeId());
+        this->DetachFromMe(GetInternals(subject_).GetNodeId());
         this->UnregisterMe();
     }
 
@@ -112,15 +113,15 @@ public:
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        func_(EventRange<E>( subject_->Events() ));
-        subject_->DecrementPendingSuccessorCount();
+        func_(EventRange<E>( GetInternals(subject_).Events() ));
+        GetInternals(subject_).DecrementPendingSuccessorCount();
         return UpdateResult::unchanged;
     }
 
 private:
     F func_;
 
-    std::shared_ptr<EventStreamNode<E>> subject_;
+    Event<E> subject_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,21 +132,21 @@ class SyncedEventObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    SyncedEventObserverNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& subject, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
-        SyncedEventObserverNode::ObserverNode( graphPtr ),
+    SyncedEventObserverNode(const Group& group, FIn&& func, const Event<E>& subject, const Signal<TSyncs>& ... syncs) :
+        SyncedEventObserverNode::ObserverNode( group ),
         func_( std::forward<FIn>(func) ),
         subject_( subject ),
         syncHolder_( syncs ... )
     {
         this->RegisterMe(NodeCategory::output);
         this->AttachToMe(subject->GetNodeId());
-        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
+        REACT_EXPAND_PACK(this->AttachToMe(GetInternals(syncs).GetNodeId()));
     }
 
     ~SyncedEventObserverNode()
     {
-        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
-        this->DetachFromMe(subject_->GetNodeId());
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(GetInternals(subject_).GetNodeId());
         this->UnregisterMe();
     }
 
@@ -158,12 +159,12 @@ public:
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
-        if (subject_->Events().empty())
+        if (GetInternals(this->subject_).Events().empty())
             return UpdateResult::unchanged;
 
-        apply([this] (const auto& ... syncs) { func_(EventRange<E>( this->subject_->Events() ), syncs->Value() ...); }, syncHolder_);
+        apply([this] (const auto& ... syncs) { func_(EventRange<E>( GetInternals(this->subject_).Events() ), GetInternals(syncs).Value() ...); }, syncHolder_);
 
-        subject_->DecrementPendingSuccessorCount();
+        GetInternals(subject_).DecrementPendingSuccessorCount();
 
         return UpdateResult::unchanged;
     }
@@ -171,9 +172,9 @@ public:
 private:
     F func_;
 
-    std::shared_ptr<EventStreamNode<E>> subject_;
+    Event<E> subject_;
 
-    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
+    std::tuple<Signal<TSyncs> ...> syncHolder_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

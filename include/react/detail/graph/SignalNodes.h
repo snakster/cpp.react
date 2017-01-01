@@ -39,14 +39,14 @@ public:
     SignalNode(const SignalNode&) = delete;
     SignalNode& operator=(const SignalNode&) = delete;
 
-    explicit SignalNode(const std::shared_ptr<ReactiveGraph>& graphPtr) :
-        SignalNode::NodeBase( graphPtr ),
+    explicit SignalNode(const Group& group) :
+        SignalNode::NodeBase( group ),
         value_( )
         { }
 
     template <typename T>
-    SignalNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& value) :
-        SignalNode::NodeBase( graphPtr ),
+    SignalNode(const Group& group, T&& value) :
+        SignalNode::NodeBase( group ),
         value_( std::forward<T>(value) )
         { }
 
@@ -67,19 +67,25 @@ template <typename S>
 class VarSignalNode : public SignalNode<S>
 {
 public:
-    explicit VarSignalNode(const std::shared_ptr<ReactiveGraph>& graphPtr) :
-        VarSignalNode::SignalNode( graphPtr ),
+    explicit VarSignalNode(const Group& group) :
+        VarSignalNode::SignalNode( group ),
         newValue_( )
-        { this->RegisterMe(NodeCategory::input); }
+    {
+        this->RegisterMe(NodeCategory::input);
+    }
 
     template <typename T>
-    VarSignalNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& value) :
-        VarSignalNode::SignalNode( graphPtr, std::forward<T>(value) ),
+    VarSignalNode(const Group& group, T&& value) :
+        VarSignalNode::SignalNode( group, std::forward<T>(value) ),
         newValue_( value )
-        { this->RegisterMe(); }
+    {
+        this->RegisterMe();
+    }
 
     ~VarSignalNode()
-        { this->UnregisterMe(); }
+    {
+        this->UnregisterMe();
+    }
 
     virtual const char* GetNodeType() const override
         { return "VarSignal"; }
@@ -161,8 +167,8 @@ class SignalFuncNode : public SignalNode<S>
 {
 public:
     template <typename FIn>
-    SignalFuncNode(const std::shared_ptr<ReactiveGraph>& graphPtr, FIn&& func, const std::shared_ptr<SignalNode<TDeps>>& ... deps) :
-        SignalFuncNode::SignalNode( graphPtr, func(deps->Value() ...) ),
+    SignalFuncNode(const Group& group, FIn&& func, const Signal<TDeps>& ... deps) :
+        SignalFuncNode::SignalNode( group, func(deps->Value() ...) ),
         func_( std::forward<FIn>(func) ),
         depHolder_( deps ... )
     {
@@ -172,7 +178,7 @@ public:
 
     ~SignalFuncNode()
     {
-        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(deps->GetNodeId())); }, depHolder_);
+        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodePtr()->GetNodeId())); }, depHolder_);
         this->UnregisterMe();
     }
 
@@ -186,7 +192,7 @@ public:
     {   
         bool changed = false;
 
-        S newValue = apply([this] (const auto& ... deps) { return this->func_(deps->Value() ...); }, depHolder_);
+        S newValue = apply([this] (const auto& ... deps) { return this->func_(GetInternals(deps).Value() ...); }, depHolder_);
 
         if (! (this->Value() == newValue))
         {
@@ -203,7 +209,7 @@ public:
 private:
     F func_;
 
-    std::tuple<std::shared_ptr<SignalNode<TDeps>> ...> depHolder_;
+    std::tuple<Signal<TDeps> ...> depHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -213,8 +219,8 @@ template <typename S>
 class SignalSlotNode : public SignalNode<S>
 {
 public:
-    SignalSlotNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& dep) :
-        SignalSlotNode::SignalNode( graphPtr, dep->Value() ),
+    SignalSlotNode(const Group& group, const Signal<S>& dep) :
+        SignalSlotNode::SignalNode( group, dep->Value() ),
         slotInput_( *this, dep )
     {
         slotInput_.nodeId = GraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
@@ -226,11 +232,13 @@ public:
 
     ~SignalSlotNode()
     {
-        this->DetachFromMe(slotInput_.dep->GetNodeId());
+        const auto& depNodePtr = GetInternals(slotInput_.dep).GetNodePtr();
+
+        this->DetachFromMe(depNodePtr->GetNodeId());
         this->DetachFromMe(slotInput_.nodeId);
 
         this->UnregisterMe();
-        GraphPtr()->UnregisterNode(slotInput_.nodeId);
+        GetGraphPtr()->UnregisterNode(slotInput_.nodeId);
     }
 
     virtual const char* GetNodeType() const override
@@ -241,9 +249,11 @@ public:
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        if (! (this->Value() == slotInput_.dep->Value()))
+        const auto& depNodePtr = GetInternals(slotInput_.dep).GetNodePtr();
+
+        if (! (this->Value() == depNodePtr->Value()))
         {
-            this->Value() = slotInput_.dep->Value();
+            this->Value() = depNodePtr->Value();
             return UpdateResult::changed;
         }
         else
@@ -252,7 +262,7 @@ public:
         }
     }
 
-    void SetInput(const std::shared_ptr<SignalNode<S>>& newInput)
+    void SetInput(const Signal<S>& newInput)
         { slotInput_.newDep = newInput; }
 
     NodeId GetInputNodeId() const
@@ -261,9 +271,10 @@ public:
 private:        
     struct VirtualInputNode : public IReactiveNode
     {
-        VirtualInputNode(SignalSlotNode& parentIn, const std::shared_ptr<SignalNode<S>>& depIn) :
+        VirtualInputNode(SignalSlotNode& parentIn, const Signal<S>& depIn) :
             parent( parentIn ),
-            dep( depIn )
+            dep( depIn ),
+            newDep( depIn ),
             { }
 
         virtual const char* GetNodeType() const override
@@ -276,15 +287,17 @@ private:
         {
             if (dep != newDep)
             {
-                parent.DynamicDetachFromMe(dep->GetNodeId(), 0);
-                parent.DynamicAttachToMe(newDep->GetNodeId(), 0);
+                const auto& depNodePtr = GetInternals(dep).GetNodePtr();
+                const auto& newDepNodePtr = GetInternals(newDep).GetNodePtr();
+
+                parent.DynamicDetachFromMe(depNodePtr->GetNodeId(), 0);
+                parent.DynamicAttachToMe(newDepNodePtr->GetNodeId(), 0);
 
                 dep = std::move(newDep);
                 return UpdateResult::changed;
             }
             else
             {
-                newDep.reset();
                 return UpdateResult::unchanged;
             }
         }
@@ -293,8 +306,8 @@ private:
 
         NodeId nodeId;
 
-        std::shared_ptr<SignalNode<S>> dep;
-        std::shared_ptr<SignalNode<S>> newDep;
+        Signal<S> dep;
+        Signal<S> newDep;
     };
 
     VirtualInputNode slotInput_;
@@ -307,9 +320,9 @@ template <typename S>
 class SignalLinkNode : public SignalNode<S>
 {
 public:
-    SignalLinkNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<ReactiveGraph>& srcGraphPtr, const std::shared_ptr<SignalNode<S>>& dep) :
-        SignalLinkNode::SignalNode( graphPtr, dep->Value() ),
-        linkOutput_( srcGraphPtr, dep )
+    SignalLinkNode(const Group& group, const Group& srcGroup, const Signal<S>& dep) :
+        SignalLinkNode::SignalNode( group, dep->Value() ),
+        linkOutput_( srcGroup, dep )
     {
         this->RegisterMe(NodeCategory::input);
     }
@@ -329,22 +342,18 @@ public:
         { return 1; }
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
-    {
-        return UpdateResult::changed;
-    }
+        { return UpdateResult::changed; }
 
     template <typename T>
     void SetValue(T&& newValue)
-    {
-        this->Value() = std::forward<T>(newValue);
-    }
+        { this->Value() = std::forward<T>(newValue); }
 
 private:
     struct VirtualOutputNode : public ILinkOutputNode
     {
-        VirtualOutputNode(const std::shared_ptr<ReactiveGraph>& srcGraphPtrIn, const std::shared_ptr<SignalNode<S>>& depIn) :
+        VirtualOutputNode(const Group& srcGroupIn, const Signal<S>& depIn) :
             parent( ),
-            srcGraphPtr( srcGraphPtrIn ),
+            srcGroup( srcGroupIn ),
             dep( depIn )
         {
             nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
@@ -364,9 +373,7 @@ private:
             { return 1; }
 
         virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
-        {   
-            return UpdateResult::changed;
-        }
+            { return UpdateResult::changed; }
 
         virtual void CollectOutput(LinkOutputMap& output) override
         {
@@ -392,9 +399,9 @@ private:
 
         NodeId nodeId;
 
-        std::shared_ptr<SignalNode<S>> dep;
+        Signal<S> dep;
 
-        std::shared_ptr<ReactiveGraph> srcGraphPtr;
+        Group srcGroup;
     };
 
     VirtualOutputNode linkOutput_;

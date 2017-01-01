@@ -58,33 +58,36 @@ public:
     NodeId GetNodeId() const
         { return nodeId_; }
 
-    const Group& GetGroup() const
+    auto GetGroup() const -> const Group&
         { return group_; }
 
-    auto GraphPtr() const -> const std::shared_ptr<ReactiveGraph>&
-        { return GroupInternals::GraphPtr(group_); }
-
-    auto GraphPtr() -> std::shared_ptr<ReactiveGraph>&
-        { return GroupInternals::GraphPtr(group_); }
+    auto GetGroup() -> Group&
+        { return group_; }
 
 protected:
+    auto GetGraphPtr() const -> const std::shared_ptr<ReactiveGraph>&
+        { GetInternals(group_).GetGraphPtr(); }
+
+    auto GetGraphPtr() -> std::shared_ptr<ReactiveGraph>&
+        { GetInternals(group_).GetGraphPtr(); }
+
     void RegisterMe(NodeCategory category = NodeCategory::normal)
-        { nodeId_ = GraphPtr()->RegisterNode(this, category); }
+        { nodeId_ = GetGraphPtr()->RegisterNode(this, category); }
     
     void UnregisterMe()
-        { GraphPtr()->UnregisterNode(nodeId_); }
+        { GetGraphPtr()->UnregisterNode(nodeId_); }
 
     void AttachToMe(NodeId otherNodeId)
-        { GraphPtr()->OnNodeAttach(nodeId_, otherNodeId); }
+        { GetGraphPtr()->OnNodeAttach(nodeId_, otherNodeId); }
 
     void DetachFromMe(NodeId otherNodeId)
-        { GraphPtr()->OnNodeDetach(nodeId_, otherNodeId); }
+        { GetGraphPtr()->OnNodeDetach(nodeId_, otherNodeId); }
 
     void DynamicAttachToMe(NodeId otherNodeId, TurnId turnId)
-        { GraphPtr()->OnDynamicNodeAttach(nodeId_, otherNodeId, turnId); }
+        { GetGraphPtr()->OnDynamicNodeAttach(nodeId_, otherNodeId, turnId); }
 
     void DynamicDetachFromMe(NodeId otherNodeId, TurnId turnId)
-        { GraphPtr()->OnDynamicNodeDetach(nodeId_, otherNodeId, turnId); }
+        { GetGraphPtr()->OnDynamicNodeDetach(nodeId_, otherNodeId, turnId); }
 
 private:
     NodeId nodeId_;

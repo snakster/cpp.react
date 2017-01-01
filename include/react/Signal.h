@@ -9,10 +9,6 @@
 
 #pragma once
 
-#if _MSC_VER && !__INTEL_COMPILER
-    #pragma warning(disable : 4503)
-#endif
-
 #include "react/detail/Defs.h"
 #include "react/API.h"
 #include "react/Group.h"
@@ -26,7 +22,38 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-struct PrivateSignalLinkNodeInterface;
+template <typename S>
+class SignalInternals
+{
+public:
+    SignalInternals(const SignalInternals&) = default;
+    SignalInternals& operator=(const SignalInternals&) = default;
+
+    SignalInternals(SignalInternals&&) = default;
+    SignalInternals& operator=(SignalInternals&&) = default;
+
+    SignalInternals(std::shared_ptr<SignalNode<S>>&& nodePtr) :
+        nodePtr_( std::move(nodePtr) )
+        { }
+
+    auto GetNodePtr() -> std::shared_ptr<SignalNode<S>>&
+        { return nodePtr_; }
+
+    auto GetNodePtr() const -> const std::shared_ptr<SignalNode<S>>&
+        { return nodePtr_; }
+
+    NodeId GetNodeId() const
+        { return nodePtr_->GetNodeId(); }
+
+    S& Value()
+        { return nodePtr_->Value(); }
+
+    const S& Value() const
+        { return nodePtr_->Value(); }
+
+private:
+    std::shared_ptr<SignalNode<S>> nodePtr_;
+};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
@@ -36,11 +63,8 @@ struct PrivateSignalLinkNodeInterface;
 /// Signal
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class Signal
+class Signal : protected REACT_IMPL::SignalInternals<S>
 {
-private:
-    using NodeType = REACT_IMPL::SignalNode<S>;
-
 public:
     Signal(const Signal&) = default;
     Signal& operator=(const Signal&) = default;
@@ -48,48 +72,53 @@ public:
     Signal(Signal&&) = default;
     Signal& operator=(Signal&&) = default;
 
-    // Construct func signal with explicit group
+    // Construct with explicit group
     template <typename F, typename T1, typename ... Ts>
     explicit Signal(const Group& group, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) :
-        Signal::Signal( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), std::forward<F>(func), dep1, deps ...) )
+        Signal::SignalInternals( CreateFuncNode(group, std::forward<F>(func), dep1, deps ...) )
         { }
 
-    // Construct func signal with implicit group
+    // Construct with implicit group
     template <typename F, typename T1, typename ... Ts>
     explicit Signal(F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) :
-        Signal::Signal( REACT_IMPL::CtorTag{ }, CreateFuncNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(dep1), std::forward<F>(func), dep1, deps ...) )
+        Signal::SignalInternals( CreateFuncNode(dep1.GetGroup(), std::forward<F>(func), dep1, deps ...) )
         { }
 
-    const Group& GetGroup() const
-        { return nodePtr_->GetGroup(); }
+    auto GetGroup() const -> const Group&
+        { return this->GetNodePtr()->GetGroup(); }
 
-public: // Internal
-    // Private node ctor
-    Signal(REACT_IMPL::CtorTag, std::shared_ptr<NodeType>&& nodePtr) :
-        nodePtr_( std::move(nodePtr) )
-        { }
+    auto GetGroup() -> Group&
+        { return this->GetNodePtr()->GetGroup(); }
 
-    auto NodePtr() -> std::shared_ptr<NodeType>&
-        { return nodePtr_; }
+    friend bool operator==(const Signal<S>& a, const Signal<S>& b)
+        { return a.GetNodePtr() == b.GetNodePtr(); }
 
-    auto NodePtr() const -> const std::shared_ptr<NodeType>&
-        { return nodePtr_; }
+    friend bool operator!=(const Signal<S>& a, const Signal<S>& b)
+        { return !(a == b); }
+
+    friend auto GetInternals(Signal<S>& s) -> REACT_IMPL::SignalInternals<S>&
+        { return s; }
+
+    friend auto GetInternals(const Signal<S>& s) -> const REACT_IMPL::SignalInternals<S>&
+        { return s; }
+
+    template <typename TNode, typename ... TArgs>
+    static Signal<S> CreateWithNode(TArgs&& ... args)
+        { return Signal<S>( REACT_IMPL::CtorTag{ }, std::make_shared<TNode>(std::forward<TArgs>(args) ...) ); }
 
 protected:
+    Signal(REACT_IMPL::CtorTag, std::shared_ptr<REACT_IMPL::SignalNode<S>>&& nodePtr) :
+        Signal::SignalInternals( std::move(nodePtr) )
+        { }
+
     template <typename F, typename T1, typename ... Ts>
-    auto CreateFuncNode(const std::shared_ptr<REACT_IMPL::ReactiveGraph>& graphPtr, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) -> decltype(auto)
+    auto CreateFuncNode(const Group& group, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) -> decltype(auto)
     {
-        using REACT_IMPL::PrivateSignalLinkNodeInterface;
-        using FuncNodeType = REACT_IMPL::SignalFuncNode<S, typename std::decay<F>::type, T1, Ts ...>;
+        using REACT_IMPL::SignalFuncNode;
 
-        return std::make_shared<FuncNodeType>(
-            graphPtr,
-            std::forward<F>(func),
-            PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, dep1), PrivateSignalLinkNodeInterface::GetLocalNodePtr(graphPtr, deps) ...);
+        return std::make_shared<SignalFuncNode<S, typename std::decay<F>::type, T1, Ts ...>>(
+            group, std::forward<F>(func), SameGroupOrLink(group, dep1), SameGroupOrLink(group, deps) ...);
     }
-
-private:
-    std::shared_ptr<NodeType> nodePtr_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -132,18 +161,24 @@ public:
     void Modify(const F& func)
         { ModifyValue(func); }
 
+    friend bool operator==(const VarSignal<S>& a, VarSignal<S>& b)
+        { return a.GetNodePtr() == b.GetNodePtr(); }
+
+    friend bool operator!=(const VarSignal<S>& a, VarSignal<S>& b)
+        { return !(a == b); }
+
 protected:
     static auto CreateVarNode(const Group& group) -> decltype(auto)
     {
-        using VarNodeType = REACT_IMPL::VarSignalNode<S>;
-        return std::make_shared<VarNodeType>(graphPtr);
+        using REACT_IMPL::VarSignalNode;
+        return std::make_shared<VarSignalNode<S>>(group);
     }
 
     template <typename T>
     static auto CreateVarNode(const Group& group, T&& value) -> decltype(auto)
     {
-        using VarNodeType = REACT_IMPL::VarSignalNode<S>;
-        return std::make_shared<VarNodeType>(graphPtr, std::forward<T>(value));
+        using REACT_IMPL::VarSignalNode;
+        return std::make_shared<VarSignalNode<S>>(group, std::forward<T>(value));
     }
 
 private:
@@ -153,10 +188,11 @@ private:
         using REACT_IMPL::NodeId;
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
 
-        VarNodeType* castedPtr = static_cast<VarNodeType*>(this->NodePtr().get());
+        VarNodeType* castedPtr = static_cast<VarNodeType*>(this->GetNodePtr().get());
 
         NodeId nodeId = castedPtr->GetNodeId();
-        auto& graphPtr = NodePtr()->GraphPtr();
+        auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
+
         graphPtr->AddInput(nodeId, [castedPtr, &newValue] { castedPtr->SetValue(std::forward<T>(newValue)); });
     }
 
@@ -166,10 +202,11 @@ private:
         using REACT_IMPL::NodeId;
         using VarNodeType = REACT_IMPL::VarSignalNode<S>;
 
-        VarNodeType* castedPtr = static_cast<VarNodeType*>(this->NodePtr().get());
+        VarNodeType* castedPtr = static_cast<VarNodeType*>(this->GetNodePtr().get());
         
         NodeId nodeId = castedPtr->GetNodeId();
-        auto& graphPtr = castedPtr->GraphPtr();
+        auto& graphPtr = BaseCast(this->GetGroup()).GetGraphPtr();
+
         graphPtr->AddInput(nodeId, [castedPtr, &func] { castedPtr->ModifyValue(func); });
     }
 };
@@ -189,17 +226,17 @@ public:
 
     // Construct with group + default
     explicit SignalSlot(const Group& group) :
-        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group)) )
+        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(group) )
         { }
 
     // Construct with group + value
     SignalSlot(const Group& group, const Signal<S>& input) :
-        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateGroupInterface::GraphPtr(group), input) )
+        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(group, input) )
         { }
 
     // Construct with value
     explicit SignalSlot(const Signal<S>& input) :
-        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(REACT_IMPL::PrivateNodeInterface::GraphPtr(input), input) )
+        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(input.GetGroup(), input) )
         { }
 
     void Set(const Signal<S>& newInput)
@@ -209,26 +246,30 @@ public:
         { SetInput(newInput); }
 
 protected:
+    static auto CreateSlotNode(const Group& group) -> decltype(auto)
+    {
+        using REACT_IMPL::SignalSlotNode;
+        return std::make_shared<SignalSlotNode<S>>(group);
+    }
+
     static auto CreateSlotNode(const Group& group, const Signal<S>& input) -> decltype(auto)
     {
-        using REACT_IMPL::PrivateNodeInterface;
-        using SlotNodeType = REACT_IMPL::SignalSlotNode<S>;
-
-        return std::make_shared<SlotNodeType>(graphPtr, PrivateNodeInterface::NodePtr(input));
+        using REACT_IMPL::SignalSlotNode;
+        return std::make_shared<SignalSlotNode<S>>(group, input);
     }
 
 private:
     void SetInput(const Signal<S>& newInput)
     {
-        using REACT_IMPL::PrivateNodeInterface;
         using REACT_IMPL::NodeId;
         using SlotNodeType = REACT_IMPL::SignalSlotNode<S>;
 
-        SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->NodePtr().get());
+        SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->GetNodePtr().get());
 
         NodeId nodeId = castedPtr->GetInputNodeId();
-        auto& graphPtr = NodePtr()->GraphPtr();
-        graphPtr->AddInput(nodeId, [castedPtr, &newInput] { castedPtr->SetInput(PrivateNodeInterface::NodePtr(newInput)); });
+        auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
+
+        graphPtr->AddInput(nodeId, [castedPtr, &newInput] { castedPtr->SetInput(newInput); });
     }
 };
 
@@ -258,16 +299,12 @@ public:
 protected:
     static auto CreateLinkNode(const Group& group, const Signal<S>& input) -> decltype(auto)
     {
-        using REACT_IMPL::PrivateNodeInterface;
-        using REACT_IMPL::PrivateGroupInterface;
-        using LinkNodeType = REACT_IMPL::SignalLinkNode<S>;
+        using REACT_IMPL::SignalLinkNode;
 
-        auto node = std::make_shared<LinkNodeType>(graphPtr, PrivateNodeInterface::GraphPtr(input), PrivateNodeInterface::NodePtr(input));
-        node->SetWeakSelfPtr(std::weak_ptr<LinkNodeType>{ node });
+        auto node = std::make_shared<SignalLinkNode<S>>(group, PrivateNodeInterface::GraphPtr(input), PrivateNodeInterface::NodePtr(input));
+        node->SetWeakSelfPtr(std::weak_ptr<SignalLinkNode<S>>{ node });
         return node;
     }
-
-    friend struct REACT_IMPL::PrivateSignalLinkNodeInterface;
 };
 
 /******************************************/ REACT_END /******************************************/
@@ -280,61 +317,15 @@ bool Equals(const Signal<L>& lhs, const Signal<R>& rhs)
     return lhs.Equals(rhs);
 }
 
-struct PrivateSignalLinkNodeInterface
+template <typename S>
+static Signal<S> SameGroupOrLink(const Group& targetGroup, const Signal<S>& dep)
 {
-    template <typename S>
-    static auto GetLocalNodePtr(const std::shared_ptr<ReactiveGraph>& targetGraph, const Signal<S>& sig) -> std::shared_ptr<SignalNode<S>>
-    {
-        const std::shared_ptr<ReactiveGraph>& sourceGraph = PrivateNodeInterface::GraphPtr(sig);
-
-        if (sourceGraph == targetGraph)
-        {
-            return PrivateNodeInterface::NodePtr(sig);
-        }
-        else
-        {
-            return SignalLink<S>::CreateLinkNode(targetGraph, sig);
-        }
-    }
-};
+    if (dep.GetGroup() == targetGroup)
+        return dep;
+    else
+        return SignalLink<S>( group, dep );
+}
 
 /****************************************/ REACT_IMPL_END /***************************************/
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Flatten macros
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Note: Using static_cast rather than -> return type, because when using lambda for inline
-// class initialization, decltype did not recognize the parameter r
-// Note2: MSVC doesn't like typename in the lambda
-#if _MSC_VER && !__INTEL_COMPILER
-    #define REACT_MSVC_NO_TYPENAME
-#else
-    #define REACT_MSVC_NO_TYPENAME typename
-#endif
-
-#define REACTIVE_REF(obj, name)                                                             \
-    Flatten(                                                                                \
-        MakeSignal(                                                                         \
-            obj,                                                                            \
-            [] (const REACT_MSVC_NO_TYPENAME                                                \
-                REACT_IMPL::Identity<decltype(obj)>::Type::ValueT& r)                       \
-            {                                                                               \
-                using T = decltype(r.name);                                                 \
-                using S = REACT_MSVC_NO_TYPENAME REACT::DecayInput<T>::Type;                \
-                return static_cast<S>(r.name);                                              \
-            }))
-
-#define REACTIVE_PTR(obj, name)                                                             \
-    Flatten(                                                                                \
-        MakeSignal(                                                                         \
-            obj,                                                                            \
-            [] (REACT_MSVC_NO_TYPENAME                                                      \
-                REACT_IMPL::Identity<decltype(obj)>::Type::ValueT r)                        \
-            {                                                                               \
-                assert(r != nullptr);                                                       \
-                using T = decltype(r->name);                                                \
-                using S = REACT_MSVC_NO_TYPENAME REACT::DecayInput<T>::Type;                \
-                return static_cast<S>(r->name);                                             \
-            }))
 
 #endif // REACT_SIGNAL_H_INCLUDED

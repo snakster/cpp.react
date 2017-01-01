@@ -86,8 +86,8 @@ class IterateNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    IterateNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events) :
-        IterateNode::SignalNode( graphPtr, std::forward<T>(init) ),
+    IterateNode(const Group& group, T&& init, FIn&& func, const Event<E>& events) :
+        IterateNode::SignalNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         events_( events )
     {
@@ -125,7 +125,7 @@ public:
         { return 1; }
 
 private:
-    std::shared_ptr<EventStreamNode<E>> events_;
+    Event<E> events_;
     
     F func_;
 };
@@ -138,8 +138,8 @@ class IterateByRefNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    IterateByRefNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events) :
-        IterateByRefNode::SignalNode( graphPtr, std::forward<T>(init) ),
+    IterateByRefNode(const Group& group, T&& init, FIn&& func, const Event<E>& events) :
+        IterateByRefNode::SignalNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         events_( events )
     {
@@ -172,7 +172,7 @@ public:
 protected:
     F   func_;
 
-    std::shared_ptr<EventStreamNode<E>> events_;
+    Event<E> events_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -183,8 +183,8 @@ class SyncedIterateNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    SyncedIterateNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
-        SyncedIterateNode::SignalNode( graphPtr, std::forward<T>(init) ),
+    SyncedIterateNode(const Group& group, T&& init, FIn&& func, const Event<E>& events, const Signal<TSyncs>& ... syncs) :
+        SyncedIterateNode::SignalNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         events_( events ),
         syncHolder_( syncs ... )
@@ -236,7 +236,7 @@ public:
 private:
     F func_;
 
-    std::shared_ptr<EventStreamNode<E>> events_;
+    Event<E> events_;
 
     std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
 };
@@ -249,8 +249,8 @@ class SyncedIterateByRefNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    SyncedIterateByRefNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, FIn&& func, const std::shared_ptr<EventStreamNode<E>>& events, const std::shared_ptr<SignalNode<TSyncs>>& ... syncs) :
-        SyncedIterateByRefNode::SignalNode( graphPtr, std::forward<T>(init) ),
+    SyncedIterateByRefNode(const Group& group, T&& init, FIn&& func, const Event<E>& events, const Signal<TSyncs>& ... syncs) :
+        SyncedIterateByRefNode::SignalNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         events_( events ),
         syncHolder_( syncs ... )
@@ -294,9 +294,9 @@ public:
 private:
     F func_;
 
-    std::shared_ptr<EventStreamNode<E>> events_;
+    Event<E> events_;
 
-    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
+    std::tuple<Signal<TSyncs> ...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -307,8 +307,8 @@ class HoldNode : public SignalNode<S>
 {
 public:
     template <typename T>
-    HoldNode(const std::shared_ptr<ReactiveGraph>& graphPtr, T&& init, const std::shared_ptr<EventStreamNode<S>>& events) :
-        HoldNode::SignalNode( graphPtr, std::forward<T>(init) ),
+    HoldNode(const Group& group, T&& init, const Event<S>& events) :
+        HoldNode::SignalNode( group, std::forward<T>(init) ),
         events_( events )
     {
         this->RegisterMe();
@@ -351,7 +351,7 @@ public:
         { return 1; }
 
 private:
-    const std::shared_ptr<EventStreamNode<S>>    events_;
+    const Event<S>    events_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -361,8 +361,8 @@ template <typename S, typename E>
 class SnapshotNode : public SignalNode<S>
 {
 public:
-    SnapshotNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target, const std::shared_ptr<EventStreamNode<E>>& trigger) :
-        SnapshotNode::SignalNode( graphPtr, target->Value() ),
+    SnapshotNode(const Group& group, const Signal<S>& target, const Event<E>& trigger) :
+        SnapshotNode::SignalNode( group, target->Value() ),
         target_( target ),
         trigger_( trigger )
     {
@@ -408,8 +408,8 @@ public:
         { return 2; }
 
 private:
-    std::shared_ptr<SignalNode<S>>      target_;
-    std::shared_ptr<EventStreamNode<E>> trigger_;
+    Signal<S>   target_;
+    Event<E>    trigger_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -419,8 +419,8 @@ template <typename S>
 class MonitorNode : public EventStreamNode<S>
 {
 public:
-    MonitorNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target) :
-        MonitorNode::EventStreamNode( graphPtr ),
+    MonitorNode(const Group& group, const Signal<S>& target) :
+        MonitorNode::EventStreamNode( group ),
         target_( target )
     {
         this->RegisterMe();
@@ -449,7 +449,7 @@ public:
         { return 1; }
 
 private:
-    std::shared_ptr<SignalNode<S>>    target_;
+    Signal<S>    target_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -459,8 +459,8 @@ template <typename S, typename E>
 class PulseNode : public EventStreamNode<S>
 {
 public:
-    PulseNode(const std::shared_ptr<ReactiveGraph>& graphPtr, const std::shared_ptr<SignalNode<S>>& target, const std::shared_ptr<EventStreamNode<E>>& trigger) :
-        PulseNode::EventStreamNode( graphPtr ),
+    PulseNode(const Group& group, const Signal<S>& target, const Event<E>& trigger) :
+        PulseNode::EventStreamNode( group ),
         target_( target ),
         trigger_( trigger )
     {
@@ -501,8 +501,8 @@ public:
         { return 2; }
 
 private:
-    const std::shared_ptr<SignalNode<S>>      target_;
-    const std::shared_ptr<EventStreamNode<E>> trigger_;
+    Signal<S>   target_;
+    Event<E>    trigger_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
