@@ -184,7 +184,7 @@ public:
         depHolder_( deps ... )
     {
         this->RegisterMe();
-        REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
+        REACT_EXPAND_PACK(this->AttachToMe(GetInternals(deps).GetNodeId()));
     }
 
     ~EventMergeNode()
@@ -195,7 +195,7 @@ public:
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(MergeFromDep(deps)); }, depHolder_);
+        apply([this] (auto& ... deps) { REACT_EXPAND_PACK(MergeFromDep(deps)); }, depHolder_);
 
         if (! this->Events().empty())
         {
@@ -216,12 +216,13 @@ public:
 
 private:
     template <typename U>
-    void MergeFromDep(const Event<U>& dep)
+    void MergeFromDep(Event<U>& dep)
     {
-        auto& depNodePtr = BaseCast(dep).GetNodePtr();
+        auto& depInternals = GetInternals(dep);
 
-        this->Events().insert(this->Events().end(), depNodePtr->Events().begin(), depNodePtr->Events().end());
-        depNodePtr->DecrementPendingSuccessorCount();
+        this->Events().insert(this->Events().end(), depInternals.Events().begin(), depInternals.Events().end());
+        
+        depInternals.DecrementPendingSuccessorCount();
     }
 
     std::tuple<Event<TIns> ...> depHolder_;
@@ -234,20 +235,20 @@ template <typename E>
 class EventSlotNode : public EventStreamNode<E>
 {
 public:
-    EventSlotNode(const Group& group, const Event<E>& dep) :
+    EventSlotNode(const Group& group) :
         EventSlotNode::EventStreamNode( group ),
-        slotInput_( *this, dep )
+        slotInput_( *this )
     {
         slotInput_.nodeId = GraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
         this->RegisterMe();
 
         this->AttachToMe(slotInput_.nodeId);
-        this->AttachToMe(dep->GetNodeId());
+        //this->AttachToMe(GetInternals(dep).GetNodeId());
     }
 
     ~EventSlotNode()
     {
-        this->DetachFromMe(slotInput_.dep->GetNodeId());
+        this->DetachFromMe(GetInternals(slotInput_.dep).GetNodeId());
         this->DetachFromMe(slotInput_.nodeId);
 
         this->UnregisterMe();
@@ -277,8 +278,45 @@ public:
         }
     }
 
-    void SetInput(const std::shared_ptr<EventStreamNode<E>>& newInput)
-        { slotInput_.newDep = newInput; }
+    void AddInput(const Event<E>>& input)
+    {
+        auto& newDeps = slotInput_.newDeps;
+
+        for (auto& e : newDeps)
+        {
+            if (e.second != input)
+                continue;
+
+            // Earlier remove is overridden by later add.
+            if (e.first == false)
+                e.first = true;
+            
+            // Either element was already added, or remove has been overridden. Nothing more to do.
+            return;
+        }
+
+        newDeps.emplace_back(true, input);
+    }
+
+    void RemoveInput(const Event<E>& input)
+    {
+        auto& newDeps = slotInput_.newDeps;
+
+        for (auto& e : newDeps)
+        {
+            if (e.second != input)
+                continue;
+
+            // Earlier add is overridden by later remove.
+            if (e.first == true)
+                e.first = false;
+            
+            // Either element was already removed, or add has been overridden. Nothing more to do.
+            return;
+        }
+
+        newDeps.emplace_back(false, input);
+    }
 
     NodeId GetInputNodeId() const
         { return slotInput_.nodeId; }
@@ -318,8 +356,8 @@ private:
 
         NodeId nodeId;
 
-        Event<E> dep;
-        Event<E> newDep;
+        std::vector<Event<E>> deps;
+        std::vector<std::pair<bool /* isAdded */, Event<E>>> newDeps;
     };
 
     VirtualInputNode slotInput_;
@@ -339,20 +377,20 @@ public:
         dep_( dep )
     {
         this->RegisterMe();
-        this->AttachToMe(dep->GetNodeId());
+        this->AttachToMe(GetInternals(dep).GetNodeId());
     }
 
     ~EventProcessingNode()
     {
-        this->DetachFromMe(dep_->GetNodeId());
+        this->DetachFromMe(GetInternals(dep_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        func_(EventRange<TIn>( dep_->Events() ), std::back_inserter(this->Events()));
+        func_(EventRange<TIn>( GetInternals(dep_).Events() ), std::back_inserter(this->Events()));
 
-        dep_->DecrementPendingSuccessorCount();
+        GetInternals(dep_).DecrementPendingSuccessorCount();
 
         if (! this->Events().empty())
         {
@@ -455,12 +493,12 @@ public:
         slots_( deps ... )
     {
         this->RegisterMe();
-        REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
+        REACT_EXPAND_PACK(this->AttachToMe(GetInternals(deps).GetNodeId()));
     }
 
     ~EventJoinNode()
     {
-        apply([this] (const auto& ... slots) { REACT_EXPAND_PACK(this->DetachFromMe(slots.source->GetNodeId())); }, slots_);
+        apply([this] (const auto& ... slots) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(slots.source).GetNodeId())); }, slots_);
         this->UnregisterMe();
     }
 
@@ -527,8 +565,8 @@ private:
     template <typename U>
     static void FetchBuffer(TurnId turnId, Slot<U>& slot)
     {
-        slot.buffer.insert(slot.buffer.end(), slot.source->Events().begin(), slot.source->Events().end());
-        slot.source->DecrementPendingSuccessorCount();
+        slot.buffer.insert(slot.buffer.end(), GetInternals(slot.source).Events().begin(), GetInternals(slot.source).Events().end());
+        GetInternals(slot.source).DecrementPendingSuccessorCount();
     }
 
     template <typename T>
@@ -586,13 +624,15 @@ private:
             dep( depIn ),
             srcGroup( depIn.GetGroup() )
         {
+            auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
             nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
-            srcGraphPtr->OnNodeAttach(nodeId, dep->GetNodeId());
+            srcGraphPtr->OnNodeAttach(nodeId, GetInternals(dep).GetNodeId());
         }
 
         ~VirtualOutputNode()
         {
-            srcGraphPtr->OnNodeDetach(nodeId, dep->GetNodeId());
+            auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
+            srcGraphPtr->OnNodeDetach(nodeId, GetInternals(dep).GetNodeId());
             srcGraphPtr->UnregisterNode(nodeId);
         }
 
@@ -609,12 +649,12 @@ private:
         {
             if (auto p = parent.lock())
             {
-                auto* rawPtr = p->GraphPtr().get();
+                auto* rawPtr = p->GetGraphPtr().get();
                 output[rawPtr].push_back(
-                    [storedParent = std::move(p), storedEvents = dep->Events()] () mutable
+                    [storedParent = std::move(p), storedEvents = GetInternals(dep).Events()] () mutable
                     {
                         NodeId nodeId = storedParent->GetNodeId();
-                        auto& graphPtr = storedParent->GraphPtr();
+                        auto& graphPtr = storedParent->GetGraphPtr();
 
                         graphPtr->AddInput(nodeId,
                             [&storedParent, &storedEvents]

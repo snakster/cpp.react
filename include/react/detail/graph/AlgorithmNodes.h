@@ -86,26 +86,26 @@ class IterateNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    IterateNode(const Group& group, T&& init, FIn&& func, const Event<E>& events) :
+    IterateNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt) :
         IterateNode::SignalNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
-        events_( events )
+        evnt_( evnt )
     {
         this->RegisterMe();
-        this->AttachToMe(events->GetNodeId());
+        this->AttachToMe(GetInternals(evnt).GetNodeId());
     }
 
     ~IterateNode()
     {
-        this->DetachFromMe(events_->GetNodeId());
+        this->DetachFromMe(GetInternals(evnt_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        S newValue = func_(EventRange<E>( events_->Events() ), this->Value());
+        S newValue = func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value());
 
-        events_->DecrementPendingSuccessorCount();
+        GetInternals(evnt_).DecrementPendingSuccessorCount();
 
         if (! (newValue == this->Value()))
         {
@@ -125,9 +125,8 @@ public:
         { return 1; }
 
 private:
-    Event<E> events_;
-    
-    F func_;
+    F           func_;
+    Event<E>    evnt_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -138,26 +137,26 @@ class IterateByRefNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    IterateByRefNode(const Group& group, T&& init, FIn&& func, const Event<E>& events) :
+    IterateByRefNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt) :
         IterateByRefNode::SignalNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
-        events_( events )
+        evnt_( evnt )
     {
         this->RegisterMe();
-        this->AttachToMe(events->GetNodeId());
+        this->AttachToMe(GetInternals(evnt_).GetNodeId());
     }
 
     ~IterateByRefNode()
     {
-        this->DetachFromMe(events_->GetNodeId());
+        this->DetachFromMe(GetInternals(evnt).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        func_(EventRange<E>( events_->Events() ), this->Value());
+        func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value());
 
-        events_->DecrementPendingSuccessorCount();
+        GetInternals(evnt_).DecrementPendingSuccessorCount();
 
         // Always assume change
         return UpdateResult::changed;
@@ -170,9 +169,8 @@ public:
         { return 1; }
 
 protected:
-    F   func_;
-
-    Event<E> events_;
+    F           func_;
+    Event<E>    evnt_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -183,38 +181,38 @@ class SyncedIterateNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    SyncedIterateNode(const Group& group, T&& init, FIn&& func, const Event<E>& events, const Signal<TSyncs>& ... syncs) :
+    SyncedIterateNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt, const Signal<TSyncs>& ... syncs) :
         SyncedIterateNode::SignalNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
-        events_( events ),
+        evnt_( evnt ),
         syncHolder_( syncs ... )
     {
         this->RegisterMe();
-        this->AttachToMe(events->GetNodeId());
-        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
+        this->AttachToMe(GetInternals(evnt).GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(GetInternals(syncs).GetNodeId()));
     }
 
     ~SyncedIterateNode()
     {
-        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
-        this->DetachFromMe(events_->GetNodeId());
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(GetInternals(evnt_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
-        if (events_->Events().empty())
+        if (GetInternals(evnt_).Events().empty())
             return UpdateResult::unchanged;
 
         S newValue = apply(
             [this] (const auto& ... syncs)
             {
-                return func_(EventRange<E>( events_->Events() ), this->Value(), syncs->Value() ...);
+                return func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value(), GetInternals(syncs).Value() ...);
             },
             syncHolder_);
 
-        events_->DecrementPendingSuccessorCount();
+        GetInternals(evnt_).DecrementPendingSuccessorCount();
 
         if (! (newValue == this->Value()))
         {
@@ -234,11 +232,10 @@ public:
         { return 1 + sizeof...(TSyncs); }
 
 private:
-    F func_;
+    F           func_;
+    Event<E>    evnt_;
 
-    Event<E> events_;
-
-    std::tuple<std::shared_ptr<SignalNode<TSyncs>>...> syncHolder_;
+    std::tuple<Signal<TSyncs> ...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -249,38 +246,38 @@ class SyncedIterateByRefNode : public SignalNode<S>
 {
 public:
     template <typename T, typename FIn>
-    SyncedIterateByRefNode(const Group& group, T&& init, FIn&& func, const Event<E>& events, const Signal<TSyncs>& ... syncs) :
+    SyncedIterateByRefNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt, const Signal<TSyncs>& ... syncs) :
         SyncedIterateByRefNode::SignalNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
-        events_( events ),
+        evnt_( evnt ),
         syncHolder_( syncs ... )
     {
         this->RegisterMe();
-        this->AttachToMe(events->GetNodeId());
-        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
+        this->AttachToMe(GetInternals(evnt).GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(GetInternals(syncs).GetNodeId()));
     }
 
     ~SyncedIterateByRefNode()
     {
-        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
-        this->DetachFromMe(events_->GetNodeId());
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(GetInternals(evnt_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
-        if (events_->Events().empty())
+        if (GetInternals(evnt_).Events().empty())
             return UpdateResult::unchanged;
 
         apply(
             [this] (const auto& ... args)
             {
-                func_(EventRange<E>( events_->Events() ), this->Value(), args->Value() ...);
+                func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value(), GetInternals(args).Value() ...);
             },
             syncHolder_);
 
-        events_->DecrementPendingSuccessorCount();
+        GetInternals(evnt_).DecrementPendingSuccessorCount();
 
         return UpdateResult::changed;
     }
@@ -292,9 +289,8 @@ public:
         { return 1 + sizeof...(TSyncs); }
 
 private:
-    F func_;
-
-    Event<E> events_;
+    F           func_;
+    Event<E>    events_;
 
     std::tuple<Signal<TSyncs> ...> syncHolder_;
 };
@@ -307,17 +303,17 @@ class HoldNode : public SignalNode<S>
 {
 public:
     template <typename T>
-    HoldNode(const Group& group, T&& init, const Event<S>& events) :
+    HoldNode(const Group& group, T&& init, const Event<S>& evnt) :
         HoldNode::SignalNode( group, std::forward<T>(init) ),
-        events_( events )
+        evnt_( evnt )
     {
         this->RegisterMe();
-        this->AttachToMe(events->GetNodeId());
+        this->AttachToMe(GetInternals(evnt).GetNodeId());
     }
 
     ~HoldNode()
     {
-        this->DetachFromMe(events_->GetNodeId());
+        this->DetachFromMe(GetInternals(evnt_).GetNodeId());
         this->UnregisterMe();
     }
 
@@ -328,9 +324,9 @@ public:
     {
         bool changed = false;
 
-        if (! events_->Events().empty())
+        if (! GetInternals(evnt_).Events().empty())
         {
-            const S& newValue = events_->Events().back();
+            const S& newValue = GetInternals(evnt_).Events().back();
 
             if (! (newValue == this->Value()))
             {
@@ -338,7 +334,7 @@ public:
                 this->Value() = newValue;
             }
 
-            events_->DecrementPendingSuccessorCount();
+            GetInternals(evnt_).DecrementPendingSuccessorCount();
         }
 
         if (changed)
@@ -351,7 +347,7 @@ public:
         { return 1; }
 
 private:
-    const Event<S>    events_;
+    Event<S>  evnt_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -362,19 +358,19 @@ class SnapshotNode : public SignalNode<S>
 {
 public:
     SnapshotNode(const Group& group, const Signal<S>& target, const Event<E>& trigger) :
-        SnapshotNode::SignalNode( group, target->Value() ),
+        SnapshotNode::SignalNode( group, GetInternals(target).Value() ),
         target_( target ),
         trigger_( trigger )
     {
         this->RegisterMe();
-        this->AttachToMe(target->GetNodeId());
-        this->AttachToMe(trigger->GetNodeId());
+        this->AttachToMe(GetInternals(target).GetNodeId());
+        this->AttachToMe(GetInternals(trigger).GetNodeId());
     }
 
     ~SnapshotNode()
     {
-        this->DetachFromMe(trigger_->GetNodeId());
-        this->DetachFromMe(target_->GetNodeId());
+        this->DetachFromMe(GetInternals(trigger_).GetNodeId());
+        this->DetachFromMe(GetInternals(target_).GetNodeId());
         this->UnregisterMe();
     }
 
@@ -382,9 +378,9 @@ public:
     {
         bool changed = false;
         
-        if (! trigger_->Events().empty())
+        if (! GetInternals(trigger_).Events().empty())
         {
-            const S& newValue = target_->Value();
+            const S& newValue = GetInternals(target_).Value();
 
             if (! (newValue == this->Value()))
             {
@@ -392,7 +388,7 @@ public:
                 this->Value() = newValue;
             }
 
-            trigger_->DecrementPendingSuccessorCount();
+            GetInternals(trigger_).DecrementPendingSuccessorCount();
         }
 
         if (changed)
@@ -424,18 +420,18 @@ public:
         target_( target )
     {
         this->RegisterMe();
-        this->AttachToMe(target->GetNodeId());
+        this->AttachToMe(GetInternals(target).GetNodeId());
     }
 
     ~MonitorNode()
     {
-        this->DetachFromMe(target_->GetNodeId());
+        this->DetachFromMe(GetInternals(target_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        this->Events().push_back(target_->Value());
+        this->Events().push_back(GetInternals(target_).Value());
 
         this->SetPendingSuccessorCount(successorCount);
 
@@ -465,23 +461,23 @@ public:
         trigger_( trigger )
     {
         this->RegisterMe();
-        this->AttachToMe(target->GetNodeId());
-        this->AttachToMe(trigger->GetNodeId());
+        this->AttachToMe(GetInternals(target).GetNodeId());
+        this->AttachToMe(GetInternals(trigger).GetNodeId());
     }
 
     ~PulseNode()
     {
-        this->DetachFromMe(trigger_->GetNodeId());
-        this->DetachFromMe(target_->GetNodeId());
+        this->DetachFromMe(GetInternals(trigger_).GetNodeId());
+        this->DetachFromMe(GetInternals(target_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        for (size_t i=0; i<trigger_->Events().size(); i++)
-            this->Events().push_back(target_->Value());
+        for (size_t i = 0; i < GetInternals(trigger_).Events().size(); i++)
+            this->Events().push_back(GetInternals(target_).Value());
 
-        trigger_->DecrementPendingSuccessorCount();
+        GetInternals(trigger_).DecrementPendingSuccessorCount();
 
         if (! this->Events().empty())
         {

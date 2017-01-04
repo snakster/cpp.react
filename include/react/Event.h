@@ -49,10 +49,10 @@ public:
         { return nodePtr_->GetNodeId(); }
 
     StorageType& Events()
-        { return nodePtr->Events(); }
+        { return nodePtr_->Events(); }
 
     const StorageType& Events() const
-        { return nodePtr->Events(); }
+        { return nodePtr_->Events(); }
 
     void SetPendingSuccessorCount(size_t count)
         { nodePtr_->SetPendingSuccessorCount(count); }
@@ -383,7 +383,7 @@ auto Transform(const Group& group, F&& op, const Event<T>& dep) -> Event<E>
 
 template <typename E, typename F, typename T>
 auto Transform(F&& op, const Event<T>& dep) -> Event<E>
-    { return Transform(dep1.GetGroup(), std::forward<F>(op), dep); }
+    { return Transform<E>(dep.GetGroup(), std::forward<F>(op), dep); }
 
 template <typename E, typename F, typename T, typename ... Us>
 auto Transform(const Group& group, F&& op, const Event<T>& dep, const Signal<Us>& ... signals) -> Event<E>
@@ -399,7 +399,7 @@ auto Transform(const Group& group, F&& op, const Event<T>& dep, const Signal<Us>
 
 template <typename E, typename F, typename T, typename ... Us>
 auto Transform(F&& op, const Event<T>& dep, const Signal<Us>& ... signals) -> Event<E>
-    { return Transform(dep.GetGroup(), std::forward<F>(op), dep, signals ...); }
+    { return Transform<E>(dep.GetGroup(), std::forward<F>(op), dep, signals ...); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Flatten
@@ -450,12 +450,6 @@ auto Tokenize(T&& source) -> decltype(auto)
 /******************************************/ REACT_END /******************************************/
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-template <typename L, typename R>
-bool Equals(const Event<L>& lhs, const Event<R>& rhs)
-{
-    return lhs.Equals(rhs);
-}
 
 template <typename E>
 static Event<E> SameGroupOrLink(const Group& targetGroup, const Event<E>& dep)

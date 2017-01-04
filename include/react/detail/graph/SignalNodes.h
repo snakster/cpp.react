@@ -168,12 +168,12 @@ class SignalFuncNode : public SignalNode<S>
 public:
     template <typename FIn>
     SignalFuncNode(const Group& group, FIn&& func, const Signal<TDeps>& ... deps) :
-        SignalFuncNode::SignalNode( group, func(deps->Value() ...) ),
+        SignalFuncNode::SignalNode( group, func(GetInternals(deps).Value() ...) ),
         func_( std::forward<FIn>(func) ),
         depHolder_( deps ... )
     {
         this->RegisterMe();
-        REACT_EXPAND_PACK(this->AttachToMe(deps->GetNodeId()));
+        REACT_EXPAND_PACK(this->AttachToMe(GetInternals(deps).GetNodeId()));
     }
 
     ~SignalFuncNode()
@@ -220,14 +220,14 @@ class SignalSlotNode : public SignalNode<S>
 {
 public:
     SignalSlotNode(const Group& group, const Signal<S>& dep) :
-        SignalSlotNode::SignalNode( group, dep->Value() ),
+        SignalSlotNode::SignalNode( group, GetInternals(dep).Value() ),
         slotInput_( *this, dep )
     {
-        slotInput_.nodeId = GraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
+        slotInput_.nodeId = GetGraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
         this->RegisterMe();
 
         this->AttachToMe(slotInput_.nodeId);
-        this->AttachToMe(dep->GetNodeId());
+        this->AttachToMe(GetInternals(dep).GetNodeId());
     }
 
     ~SignalSlotNode()
@@ -263,6 +263,9 @@ public:
     }
 
     void SetInput(const Signal<S>& newInput)
+    {
+        slotInput_.isChanged = true;
+    }
         { slotInput_.newDep = newInput; }
 
     NodeId GetInputNodeId() const
@@ -273,8 +276,7 @@ private:
     {
         VirtualInputNode(SignalSlotNode& parentIn, const Signal<S>& depIn) :
             parent( parentIn ),
-            dep( depIn ),
-            newDep( depIn ),
+            dep( depIn )
             { }
 
         virtual const char* GetNodeType() const override
@@ -306,8 +308,8 @@ private:
 
         NodeId nodeId;
 
-        Signal<S> dep;
-        Signal<S> newDep;
+        Signal<S>   dep;
+        bool        isChanged = false;
     };
 
     VirtualInputNode slotInput_;
@@ -320,9 +322,9 @@ template <typename S>
 class SignalLinkNode : public SignalNode<S>
 {
 public:
-    SignalLinkNode(const Group& group, const Group& srcGroup, const Signal<S>& dep) :
-        SignalLinkNode::SignalNode( group, dep->Value() ),
-        linkOutput_( srcGroup, dep )
+    SignalLinkNode(const Group& group, const Signal<S>& dep) :
+        SignalLinkNode::SignalNode( group, GetInternals(dep).Value() ),
+        linkOutput_( dep )
     {
         this->RegisterMe(NodeCategory::input);
     }
@@ -351,18 +353,20 @@ public:
 private:
     struct VirtualOutputNode : public ILinkOutputNode
     {
-        VirtualOutputNode(const Group& srcGroupIn, const Signal<S>& depIn) :
+        VirtualOutputNode(const Signal<S>& depIn) :
             parent( ),
-            srcGroup( srcGroupIn ),
-            dep( depIn )
+            dep( depIn ),
+            srcGroup( depIn.GetGroup() )
         {
+            auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
             nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
-            srcGraphPtr->OnNodeAttach(nodeId, dep->GetNodeId());
+            srcGraphPtr->OnNodeAttach(nodeId, GetInternals(dep).GetNodeId());
         }
 
         ~VirtualOutputNode()
         {
-            srcGraphPtr->OnNodeDetach(nodeId, dep->GetNodeId());
+            auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
+            srcGraphPtr->OnNodeDetach(nodeId, GetInternals(dep).GetNodeId());
             srcGraphPtr->UnregisterNode(nodeId);
         }
 
@@ -379,12 +383,12 @@ private:
         {
             if (auto p = parent.lock())
             {
-                auto* rawPtr = p->GraphPtr().get();
+                auto* rawPtr = p->GetGraphPtr().get();
                 output[rawPtr].push_back(
-                    [storedParent = std::move(p), storedValue = dep->Value()]
+                    [storedParent = std::move(p), storedValue = GetInternals(dep).Value()]
                     {
                         NodeId nodeId = storedParent->GetNodeId();
-                        auto& graphPtr = storedParent->GraphPtr();
+                        auto& graphPtr = storedParent->GetGraphPtr();
 
                         graphPtr->AddInput(nodeId,
                             [&storedParent, &storedValue]
@@ -397,11 +401,9 @@ private:
 
         std::weak_ptr<SignalLinkNode> parent;
 
-        NodeId nodeId;
-
-        Signal<S> dep;
-
-        Group srcGroup;
+        NodeId      nodeId;
+        Signal<S>   dep;
+        Group       srcGroup;
     };
 
     VirtualOutputNode linkOutput_;

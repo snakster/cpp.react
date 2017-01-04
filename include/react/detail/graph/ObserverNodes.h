@@ -139,7 +139,7 @@ public:
         syncHolder_( syncs ... )
     {
         this->RegisterMe(NodeCategory::output);
-        this->AttachToMe(subject->GetNodeId());
+        this->AttachToMe(GetInternals(subject).GetNodeId());
         REACT_EXPAND_PACK(this->AttachToMe(GetInternals(syncs).GetNodeId()));
     }
 

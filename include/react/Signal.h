@@ -205,7 +205,7 @@ private:
         VarNodeType* castedPtr = static_cast<VarNodeType*>(this->GetNodePtr().get());
         
         NodeId nodeId = castedPtr->GetNodeId();
-        auto& graphPtr = BaseCast(this->GetGroup()).GetGraphPtr();
+        auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
         graphPtr->AddInput(nodeId, [castedPtr, &func] { castedPtr->ModifyValue(func); });
     }
@@ -224,17 +224,12 @@ public:
     SignalSlot(SignalSlot&&) = default;
     SignalSlot& operator=(SignalSlot&&) = default;
 
-    // Construct with group + default
-    explicit SignalSlot(const Group& group) :
-        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(group) )
-        { }
-
-    // Construct with group + value
+    // Construct with explicit group
     SignalSlot(const Group& group, const Signal<S>& input) :
         SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(group, input) )
         { }
 
-    // Construct with value
+    // Construct with implicit group
     explicit SignalSlot(const Signal<S>& input) :
         SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(input.GetGroup(), input) )
         { }
@@ -246,12 +241,6 @@ public:
         { SetInput(newInput); }
 
 protected:
-    static auto CreateSlotNode(const Group& group) -> decltype(auto)
-    {
-        using REACT_IMPL::SignalSlotNode;
-        return std::make_shared<SignalSlotNode<S>>(group);
-    }
-
     static auto CreateSlotNode(const Group& group, const Signal<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::SignalSlotNode;
@@ -301,7 +290,7 @@ protected:
     {
         using REACT_IMPL::SignalLinkNode;
 
-        auto node = std::make_shared<SignalLinkNode<S>>(group, PrivateNodeInterface::GraphPtr(input), PrivateNodeInterface::NodePtr(input));
+        auto node = std::make_shared<SignalLinkNode<S>>(group, input);
         node->SetWeakSelfPtr(std::weak_ptr<SignalLinkNode<S>>{ node });
         return node;
     }
@@ -311,19 +300,13 @@ protected:
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename L, typename R>
-bool Equals(const Signal<L>& lhs, const Signal<R>& rhs)
-{
-    return lhs.Equals(rhs);
-}
-
 template <typename S>
 static Signal<S> SameGroupOrLink(const Group& targetGroup, const Signal<S>& dep)
 {
     if (dep.GetGroup() == targetGroup)
         return dep;
     else
-        return SignalLink<S>( group, dep );
+        return SignalLink<S>( targetGroup, dep );
 }
 
 /****************************************/ REACT_IMPL_END /***************************************/

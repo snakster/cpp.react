@@ -66,10 +66,10 @@ public:
 
 protected:
     auto GetGraphPtr() const -> const std::shared_ptr<ReactiveGraph>&
-        { GetInternals(group_).GetGraphPtr(); }
+        { return GetInternals(group_).GetGraphPtr(); }
 
     auto GetGraphPtr() -> std::shared_ptr<ReactiveGraph>&
-        { GetInternals(group_).GetGraphPtr(); }
+        { return GetInternals(group_).GetGraphPtr(); }
 
     void RegisterMe(NodeCategory category = NodeCategory::normal)
         { nodeId_ = GetGraphPtr()->RegisterNode(this, category); }
