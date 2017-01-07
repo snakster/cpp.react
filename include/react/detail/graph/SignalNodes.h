@@ -221,24 +221,22 @@ class SignalSlotNode : public SignalNode<S>
 public:
     SignalSlotNode(const Group& group, const Signal<S>& dep) :
         SignalSlotNode::SignalNode( group, GetInternals(dep).Value() ),
-        slotInput_( *this, dep )
+        input_( dep )
     {
-        slotInput_.nodeId = GetGraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
+        inputNodeId_ = GetGraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
         this->RegisterMe();
 
-        this->AttachToMe(slotInput_.nodeId);
+        this->AttachToMe(inputNodeId_);
         this->AttachToMe(GetInternals(dep).GetNodeId());
     }
 
     ~SignalSlotNode()
     {
-        const auto& depNodePtr = GetInternals(slotInput_.dep).GetNodePtr();
-
-        this->DetachFromMe(depNodePtr->GetNodeId());
-        this->DetachFromMe(slotInput_.nodeId);
+        this->DetachFromMe(GetInternals(input_).GetNodeId());
+        this->DetachFromMe(inputNodeId_);
 
         this->UnregisterMe();
-        GetGraphPtr()->UnregisterNode(slotInput_.nodeId);
+        GetGraphPtr()->UnregisterNode(inputNodeId_);
     }
 
     virtual const char* GetNodeType() const override
@@ -249,11 +247,9 @@ public:
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        const auto& depNodePtr = GetInternals(slotInput_.dep).GetNodePtr();
-
-        if (! (this->Value() == depNodePtr->Value()))
+        if (! (this->Value() == GetInternals(input_).Value()))
         {
-            this->Value() = depNodePtr->Value();
+            this->Value() = GetInternals(input_).Value();
             return UpdateResult::changed;
         }
         else
@@ -264,21 +260,21 @@ public:
 
     void SetInput(const Signal<S>& newInput)
     {
-        slotInput_.isChanged = true;
+        if (newInput == input_)
+            return;
+
+        this->DetachFromMe(GetInternals(input_).GetNodeId());
+        this->AttachToMe(GetInternals(newInput).GetNodeId());
+
+        input_ = newInput;
     }
-        { slotInput_.newDep = newInput; }
 
     NodeId GetInputNodeId() const
-        { return slotInput_.nodeId; }
+        { return inputNodeId_; }
 
 private:        
     struct VirtualInputNode : public IReactiveNode
     {
-        VirtualInputNode(SignalSlotNode& parentIn, const Signal<S>& depIn) :
-            parent( parentIn ),
-            dep( depIn )
-            { }
-
         virtual const char* GetNodeType() const override
             { return "SignalSlotInput"; }
 
@@ -286,33 +282,14 @@ private:
             { return 0; }
 
         virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
-        {
-            if (dep != newDep)
-            {
-                const auto& depNodePtr = GetInternals(dep).GetNodePtr();
-                const auto& newDepNodePtr = GetInternals(newDep).GetNodePtr();
-
-                parent.DynamicDetachFromMe(depNodePtr->GetNodeId(), 0);
-                parent.DynamicAttachToMe(newDepNodePtr->GetNodeId(), 0);
-
-                dep = std::move(newDep);
-                return UpdateResult::changed;
-            }
-            else
-            {
-                return UpdateResult::unchanged;
-            }
-        }
-
-        SignalSlotNode& parent;
-
-        NodeId nodeId;
-
-        Signal<S>   dep;
-        bool        isChanged = false;
+            { return UpdateResult::changed; }
     };
 
-    VirtualInputNode slotInput_;
+    Signal<S> input_;
+
+    NodeId              inputNodeId_;
+    VirtualInputNode    slotInput_;
+    
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -236,23 +236,21 @@ class EventSlotNode : public EventStreamNode<E>
 {
 public:
     EventSlotNode(const Group& group) :
-        EventSlotNode::EventStreamNode( group ),
-        slotInput_( *this )
+        EventSlotNode::EventStreamNode( group )
     {
-        slotInput_.nodeId = GraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
+        inputNodeId_ = GetGraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
         this->RegisterMe();
 
-        this->AttachToMe(slotInput_.nodeId);
-        //this->AttachToMe(GetInternals(dep).GetNodeId());
+        this->AttachToMe(inputNodeId_);
     }
 
     ~EventSlotNode()
     {
-        this->DetachFromMe(GetInternals(slotInput_.dep).GetNodeId());
-        this->DetachFromMe(slotInput_.nodeId);
+        RemoveAllInputs();
+        this->DetachFromMe(inputNodeId_);
 
         this->UnregisterMe();
-        GraphPtr()->UnregisterNode(slotInput_.nodeId);
+        GetGraphPtr()->UnregisterNode(inputNodeId_);
     }
 
     virtual const char* GetNodeType() const override
@@ -263,7 +261,11 @@ public:
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        this->Events().insert(this->Events().end(), slotInput_.dep->Events().begin(), slotInput_.dep->Events().end());
+        for (const auto& e : deps_)
+        {
+            const auto& events = GetInternals(e).Events();
+            this->Events().insert(this->Events().end(), events.begin(), events.end());
+        }
 
         slotInput_.dep->DecrementPendingSuccessorCount();
 
@@ -278,89 +280,54 @@ public:
         }
     }
 
-    void AddInput(const Event<E>>& input)
+    void AddInput(const Event<E>& input)
     {
-        auto& newDeps = slotInput_.newDeps;
-
-        for (auto& e : newDeps)
+        auto it = std::find(inputs_.begin(), inputs_.end(), input);
+        if (it == inputs_.end())
         {
-            if (e.second != input)
-                continue;
-
-            // Earlier remove is overridden by later add.
-            if (e.first == false)
-                e.first = true;
-            
-            // Either element was already added, or remove has been overridden. Nothing more to do.
-            return;
+            inputs_.push_back(input);
+            this->AttachToMe(GetInternals(input).GetNodeId());
         }
-
-        newDeps.emplace_back(true, input);
     }
 
     void RemoveInput(const Event<E>& input)
     {
-        auto& newDeps = slotInput_.newDeps;
-
-        for (auto& e : newDeps)
+        auto it = std::find(inputs_.begin(), inputs_.end(), input);
+        if (it != inputs_.end())
         {
-            if (e.second != input)
-                continue;
-
-            // Earlier add is overridden by later remove.
-            if (e.first == true)
-                e.first = false;
-            
-            // Either element was already removed, or add has been overridden. Nothing more to do.
-            return;
+            inputs_.erase(it);
+            this->DetachFromMe(GetInternals(input).GetNodeId());
         }
+    }
 
-        newDeps.emplace_back(false, input);
+    void RemoveAllInputs()
+    {
+        for (const auto& e : inputs_)
+            this->DetachFromMe(GetInternals(e).GetNodeId());
+
+        inputs_.clear();
     }
 
     NodeId GetInputNodeId() const
-        { return slotInput_.nodeId; }
+        { return inputNodeId_; }
 
 private:        
     struct VirtualInputNode : public IReactiveNode
     {
-        VirtualInputNode(EventSlotNode& parentIn, const Event<E>& depIn) :
-            parent( parentIn ),
-            dep( depIn )
-            { }
-
         virtual const char* GetNodeType() const override
-            { return "EventSlotVirtualInput"; }
+            { return "EventSlotInput"; }
 
         virtual int GetDependencyCount() const override
             { return 0; }
 
         virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
-        {
-            if (dep != newDep)
-            {
-                parent.DynamicDetachFromMe(dep->GetNodeId(), 0);
-                parent.DynamicAttachToMe(newDep->GetNodeId(), 0);
-
-                dep = std::move(newDep);
-                return UpdateResult::changed;
-            }
-            else
-            {
-                newDep.reset();
-                return UpdateResult::unchanged;
-            }
-        }
-
-        EventSlotNode& parent;
-
-        NodeId nodeId;
-
-        std::vector<Event<E>> deps;
-        std::vector<std::pair<bool /* isAdded */, Event<E>>> newDeps;
+            { return UpdateResult::changed; }
     };
 
-    VirtualInputNode slotInput_;
+    std::vector<Event<E>> inputs_;
+
+    NodeId              inputNodeId_;
+    VirtualInputNode    slotInput_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

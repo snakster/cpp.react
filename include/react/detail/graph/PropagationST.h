@@ -26,6 +26,33 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+template <typename K>
+class PtrCache
+{
+public:
+    void Add(const K& key, const std::shared_ptr<void>& ptr)
+    {
+        auto res = map1_.insert(key, ptr);
+        if (res.first == true)
+        {
+            map2_.insert(ptr , res.second);
+            return true;
+        }
+        
+    }
+
+    void Remove(const std::shared_ptr<void>& ptr)
+    {
+        map2_.remove();
+    }
+
+private:
+    std::mutex  lock_;
+
+    std::map<K, std::weak_ptr<void>> map1_;
+    std::unordered_map<void*, std::map::iterator> map2_;
+};
+
 class ReactiveGraph;
 
 class TransactionQueue
@@ -93,9 +120,6 @@ public:
 
     void OnNodeAttach(NodeId node, NodeId parentId);
     void OnNodeDetach(NodeId node, NodeId parentId);
-
-    void OnDynamicNodeAttach(NodeId node, NodeId parentId, TurnId turnId);
-    void OnDynamicNodeDetach(NodeId node, NodeId parentId, TurnId turnId);
 
     template <typename F>
     void AddInput(NodeId nodeId, F&& inputCallback);

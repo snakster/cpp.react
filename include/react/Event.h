@@ -239,37 +239,37 @@ public:
     EventSlot(EventSlot&&) = default;
     EventSlot& operator=(EventSlot&&) = default;
 
-    // Construct with explicit group
-    EventSlot(const Group& group, const Event<E>& input) :
-        EventSlot::Event( REACT_IMPL::CtorTag{ }, CreateSlotNode(group, input) )
+    // Construct emtpy slot
+    EventSlot(const Group& group) :
+        EventSlot::Event( REACT_IMPL::CtorTag{ }, CreateSlotNode(group) )
         { }
 
-    // Construct with implicit group
-    EventSlot(const Event<E>& input) :
-        EventSlot::Event( REACT_IMPL::CtorTag{ }, CreateSlotNode(input.GetGroup(), input) )
-        { }
+    void Add(const Event<E>& input)
+        { AddInput(input); }
 
-    void Set(const Event<E>& newInput)
-        { SetInput(newInput); }
+    void Remove(const Event<E>& input)
+        { RemoveInput(input); }
 
-    void operator<<=(const Event<E>& newInput)
-        { SetInput(newInput); }
+    void RemoveAll()
+        { RemoveAllInputs(); }
 
 protected:
-    auto CreateSlotNode(const Group& group, const Event<E>& input) -> decltype(auto)
+    auto CreateSlotNode(const Group& group) -> decltype(auto)
     {
         using REACT_IMPL::EventSlotNode;
-        return std::make_shared<EventSlotNode<E>>(group, SameGroupOrLink(input));
+        return std::make_shared<EventSlotNode<E>>(group);
     }
 
 private:
-    void SetInput(const Event<E>& newInput)
+    void AddInput(const Event<E>& input)
     {
+        SameGroupOrLink(input)
+
         using REACT_IMPL::NodeId;
         using REACT_IMPL::ReactiveGraph;
         using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
 
-        SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->NodePtr().get());
+        SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->GetNodePtr().get());
 
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = NodePtr()->GraphPtr();
@@ -292,21 +292,24 @@ public:
 
     // Construct with explicit group
     EventLink(const Group& group, const Event<E>& input) :
-        EventLink::Event( REACT_IMPL::CtorTag{ }, CreateLinkNode(group, input) )
-        { }
-
-    // Construct with implicit group
-    explicit EventLink(const Event<E>& input) :
-        EventLink::Event( REACT_IMPL::CtorTag{ }, CreateLinkNode(input.GetGroup(), input) )
+        EventLink::Event( REACT_IMPL::CtorTag{ }, GetOrCreateLinkNode(group, input) )
         { }
 
 protected:
-    static auto CreateLinkNode(const Group& group, const Event<E>& input) -> decltype(auto)
+    static auto GetOrCreateLinkNode(const Group& group, const Event<E>& input) -> decltype(auto)
     {
         using REACT_IMPL::EventLinkNode;
 
-        auto node = std::make_shared<EventLinkNode<E>>(group, input);
-        node->SetWeakSelfPtr(std::weak_ptr<EventLinkNode<E>>{ node });
+        const void* inputPtr = GetInternals(input.GetGroup()).GetGraphPtr().get();
+        const void* targetPtr = GetInternals(group).GetGraphPtr().get();
+
+        {
+
+        }
+
+        auto nodePtr = std::make_shared<EventLinkNode<E>>(group, input);
+        auto weakPtr = 
+        nodePtr->SetWeakSelfPtr(std::weak_ptr<EventLinkNode<E>>{ nodePtr });
         return node;
     }
 };

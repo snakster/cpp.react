@@ -58,17 +58,17 @@ namespace example2
     {
         cout << "Example 2 - Detaching observers manually" << endl;
 
-        Observer obs(
-            [] (EventRange<> in)
-            {
-                for (auto _ : in)
-                    cout << "Triggered!" << endl;
-            },
-            trigger);
+        {
+            Observer obs(
+                [] (EventRange<> in)
+                {
+                    for (auto _ : in)
+                        cout << "Triggered!" << endl;
+                },
+                trigger);
 
-        trigger.Emit(); // output: Triggered!
-
-        obs.Cancel();   // Remove the observer
+            trigger.Emit(); // output: Triggered!
+        }
 
         trigger.Emit(); // no output
 

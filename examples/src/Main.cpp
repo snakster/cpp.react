@@ -17,7 +17,6 @@
 
 using namespace react;
 
-
 template <typename T>
 class GridGraphGenerator
 {
@@ -67,13 +66,13 @@ public:
 
                 if (shouldGrow)
                 {
-										auto s = SignalType{ group, function1, *l };
+                    auto s = SignalType{ group, function1, *l };
                     nextBuf->push_back(std::move(s));
                 }
 
                 while (r != curBuf->end())
                 {
-										auto s = SignalType{ group, function2, *l, *r };
+                    auto s = SignalType{ group, function2, *l, *r };
                     nextBuf->push_back(std::move(s));
                     ++nodeCount;
                     ++l; ++r;
@@ -111,38 +110,38 @@ public:
 template <typename T>
 T Multiply(T a, T b)
 {
-	return a * b;
+    return a * b;
 }
 
 template <typename T> void PrintValue(T v)
 {
-	printf("Value: %d\n", v);
+    printf("Value: %d\n", v);
 }
 
 template <typename T> void PrintArea(T v)
 {
-	printf("Area: %d\n", v);
+    printf("Area: %d\n", v);
 }
 
 template <typename T> void PrintVolume(T v)
 {
-	printf("Volume: %d\n", v);
+    printf("Volume: %d\n", v);
 }
 
 template <typename T> void PrintEvents(EventRange<T> evts)
 {
 	printf("Processing events...\n");
 
-	for (const auto& e : evts)
-		printf("  Event: %d\n", e);
+    for (const auto& e : evts)
+        printf("  Event: %d\n", e);
 }
 
 template <typename T> void PrintSyncedEvents(EventRange<T> evts, int a, int b)
 {
-	printf("Processing events...\n");
+    printf("Processing events...\n");
 
-	for (const auto& e : evts)
-		printf("  Event: %d, %d, %d\n", e, a, b);
+    for (const auto& e : evts)
+        printf("  Event: %d, %d, %d\n", e, a, b);
 }
 
 template <typename T> bool FilterFunc(T v)
@@ -152,211 +151,224 @@ template <typename T> bool FilterFunc(T v)
 
 template <typename T> T IterFunc1(EventRange<T> evts, T v)
 {
-	return v + 1;
+    return v + 1;
 }
 
 template <typename T> T IterFunc2(EventRange<T> evts, T v, T a1, T a2)
 {
-	return v + 1;
+    return v + 1;
 }
-
-int main2()
-{
-	Group group;
-
-	{
-		// Signals
-		VarSignal<int> x{ group, 0 };
-		VarSignal<int> y{ group, 0 };
-		VarSignal<int> z{ group, 0 };
-
-		Signal<int> area{ Multiply<int>, x, y };
-		Signal<int> volume{ Multiply<int>, area, z };
-
-		Observer areaObs{ PrintArea<int>, area };
-		Observer volumeObs{ PrintVolume<int>, volume };
-
-		x.Set(2); // a: 0, v: 0
-		y.Set(2); // a: 4, v: 0
-		z.Set(2); // a: 4, v: 8
-
-		group.DoTransaction([&]
-		{
-			x.Set(100);
-			y <<= 3;
-			y <<= 4;
-		});
-
-		// a: 400, v: 800
-	}
-
-	{
-		// Events
-		EventSource<int> button1{ group };
-		EventSource<int> button2{ group };
-
-		Event<int> anyButton = Merge(button1, button2);
-		Event<int> filtered  = Filter(FilterFunc<int>, anyButton);
-
-		Observer eventObs{ PrintEvents<int>, anyButton };
-
-		button1.Emit(1);
-		button2.Emit(2);
-
-		group.DoTransaction([&]
-		{
-			for (int i=0; i<10; ++i)
-				button1.Emit(42);
-		});
-	}
-
-	{
-		// Dynamic signals
-		VarSignal<int> s1{ group, 10 };
-		VarSignal<int> s2{ group, 22 };
-
-		SignalSlot<int> slot{ s1 };
-
-		Observer areaObs{ PrintValue<int>, slot };
-
-		s1.Set(42);
-
-		slot.Set(s2);
-
-		s2.Set(667);
-	}
-
-	// Links
-	{
-		Group group1;
-		Group group2;
-
-		VarSignal<int> s1{ group1, 10 };
-		VarSignal<int> s2{ group2, 11 };
-
-		Signal<int> v{ Multiply<int>, s1, s2 };
-
-		Observer obs{ PrintValue<int>, v };
-
-		s1.Set(555);
-
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-	}
-
-	{
-		Group group1;
-		Group group2;
-
-		VarSignal<int> s1{ group1, 10 };
-		VarSignal<int> s2{ group2, 11 };
-
-		EventSource<int> e1{ group1 };
-		EventSource<int> e2{ group2 };
-
-		auto hold = Hold(group1, 0, e1);
-
-		auto merged = Merge(group2, e1, e2);
-
-		auto joined1 = Join(e1, e2);
-		auto joined2 = Join(group1, e1, e2);
-
-		Observer eventObs1{ PrintEvents<int>, merged };
-		Observer eventObs2{ group2, PrintSyncedEvents<int>, merged, s1, s2 };
-
-		e1.Emit(222);
-
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-	}
-
-	{
-		Group group1;
-		Group group2;
-
-		VarSignal<int> s1{ group1, 10 };
-		VarSignal<int> s2{ group2, 11 };
-
-		EventSource<int> e1{ group1 };
-		EventSource<int> e2{ group2 };
-
-		auto hold1 = Hold(group1, 0, e1);
-		auto hold2 = Hold(0, e1);
-
-		auto monitor1 = Monitor(group1, s1);
-		auto monitor2 = Monitor(s1);
-
-		auto snapshot1 = Snapshot(group1, s1, e1);
-		auto snapshot2 = Snapshot(s1, e1);
-
-		auto pulse1 = Pulse(group1, s1, e1);
-		auto pulse2 = Pulse(s1, e1);
-
-		auto merged = Merge(group2, e1, e2);
-
-		auto joined1 = Join(e1, e2);
-		auto joined2 = Join(group1, e1, e2);
-
-		auto iter1 = Iterate<int>(group, 0, IterFunc1<int>, e1);
-		auto iter2 = Iterate<int>(0, IterFunc1<int>, e1);
-
-		auto iter3 = Iterate<int>(group, 0, IterFunc2<int>, e1, s1, s2);
-		auto iter4 = Iterate<int>(0, IterFunc2<int>, e1, s1, s2);
-
-		Observer eventObs{ PrintEvents<int>, merged };
-		Observer eventObs2{ group2, PrintSyncedEvents<int>, merged, s1, s2 };
-
-		e1.Emit(222);
-
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-
-		GridGraphGenerator<int> grid;
-	}
-
-	return 0;
-}
-
-
-
-
-
-
-
-
-
-
 
 int main()
 {
-	Group group;
+    Group group;
 
-	VarSignal<int> in{ group, 1 };
-	Signal<int> in2 = in;
+    {
+        // Signals
+        VarSignal<int> x{ group, 0 };
+        VarSignal<int> y{ group, 0 };
+        VarSignal<int> z{ group, 0 };
 
-	GridGraphGenerator<int> generator;
+        Signal<int> area{ Multiply<int>, x, y };
+        Signal<int> volume{ Multiply<int>, area, z };
 
-	generator.inputSignals.push_back(in2);
+        Observer areaObs{ PrintArea<int>, area };
+        Observer volumeObs{ PrintVolume<int>, volume };
 
-	generator.widths.push_back(100);
-	generator.widths.push_back(1);
+        x.Set(2); // a: 0, v: 0
+        y.Set(2); // a: 4, v: 0
+        z.Set(2); // a: 4, v: 8
 
-	int updateCount = 0;
+        group.DoTransaction([&]
+        {
+            x.Set(100);
+            y <<= 3;
+            y <<= 4;
+        });
 
-	generator.function1 = [&] (int a) { ++updateCount; return a; };
-	generator.function2 = [&] (int a, int b) { ++updateCount; return a + b; };
+        // a: 400, v: 800
+    }
 
-	generator.Generate(group);
+    {
+        // Events
+        EventSource<int> button1{ group };
+        EventSource<int> button2{ group };
 
-	updateCount = 0;
+        Event<int> anyButton = Merge(button1, button2);
+        Event<int> filtered  = Filter(FilterFunc<int>, anyButton);
 
-	auto t0 = tbb::tick_count::now();
-	for (int i = 0; i < 10000; i++)
-		in <<= 10 + i;
-	auto t1 = tbb::tick_count::now();
+        Observer eventObs{ PrintEvents<int>, anyButton };
 
-	double d = (t1 - t0).seconds();
-	printf("updateCount %d\n", updateCount);
-	printf("Time %g\n", d);
+        button1.Emit(1);
+        button2.Emit(2);
 
-	return 0;
+        group.DoTransaction([&]
+        {
+            for (int i=0; i<10; ++i)
+                button1.Emit(42);
+        });
+    }
+
+    {
+        // Dynamic signals
+        VarSignal<int> s1{ group, 10 };
+        VarSignal<int> s2{ group, 22 };
+
+        SignalSlot<int> slot{ s1 };
+
+        Observer areaObs{ PrintValue<int>, slot };
+
+        s1.Set(42);
+
+        slot.Set(s2);
+
+        s2.Set(667);
+    }
+
+    {
+        // Dynamic events
+        EventSource<int> s1{ group };
+        EventSource<int> s2{ group };
+
+        EventSlot<int> slot{ group };
+
+        Observer eventObs{ PrintEvents<int>, anyButton };
+
+        slot.AddInput(s1);
+        slot.AddInput(s2);
+    }
+
+    // Links
+    {
+        Group group1;
+        Group group2;
+
+        VarSignal<int> s1{ group1, 10 };
+        VarSignal<int> s2{ group2, 11 };
+
+        Signal<int> v{ Multiply<int>, s1, s2 };
+
+        Observer obs{ PrintValue<int>, v };
+
+        s1.Set(555);
+
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+
+    {
+        Group group1;
+        Group group2;
+
+        VarSignal<int> s1{ group1, 10 };
+        VarSignal<int> s2{ group2, 11 };
+
+        EventSource<int> e1{ group1 };
+        EventSource<int> e2{ group2 };
+
+        auto hold = Hold(group1, 0, e1);
+
+        auto merged = Merge(group2, e1, e2);
+
+        auto joined1 = Join(e1, e2);
+        auto joined2 = Join(group1, e1, e2);
+
+        Observer eventObs1{ PrintEvents<int>, merged };
+        Observer eventObs2{ group2, PrintSyncedEvents<int>, merged, s1, s2 };
+
+        e1.Emit(222);
+
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+
+    {
+        Group group1;
+        Group group2;
+
+        VarSignal<int> s1{ group1, 10 };
+        VarSignal<int> s2{ group2, 11 };
+
+        EventSource<int> e1{ group1 };
+        EventSource<int> e2{ group2 };
+
+        auto hold1 = Hold(group1, 0, e1);
+        auto hold2 = Hold(0, e1);
+
+        auto monitor1 = Monitor(group1, s1);
+        auto monitor2 = Monitor(s1);
+
+        auto snapshot1 = Snapshot(group1, s1, e1);
+        auto snapshot2 = Snapshot(s1, e1);
+
+        auto pulse1 = Pulse(group1, s1, e1);
+        auto pulse2 = Pulse(s1, e1);
+
+        auto merged = Merge(group2, e1, e2);
+
+        auto joined1 = Join(e1, e2);
+        auto joined2 = Join(group1, e1, e2);
+
+        auto iter1 = Iterate<int>(group, 0, IterFunc1<int>, e1);
+        auto iter2 = Iterate<int>(0, IterFunc1<int>, e1);
+
+        auto iter3 = Iterate<int>(group, 0, IterFunc2<int>, e1, s1, s2);
+        auto iter4 = Iterate<int>(0, IterFunc2<int>, e1, s1, s2);
+
+        Observer eventObs{ PrintEvents<int>, merged };
+        Observer eventObs2{ group2, PrintSyncedEvents<int>, merged, s1, s2 };
+
+        e1.Emit(222);
+
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+
+        GridGraphGenerator<int> grid;
+    }
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+int main2()
+{
+    Group group;
+
+    VarSignal<int> in{ group, 1 };
+    Signal<int> in2 = in;
+
+    GridGraphGenerator<int> generator;
+
+    generator.inputSignals.push_back(in2);
+
+    generator.widths.push_back(100);
+    generator.widths.push_back(1);
+
+    int updateCount = 0;
+
+    generator.function1 = [&] (int a) { ++updateCount; return a; };
+    generator.function2 = [&] (int a, int b) { ++updateCount; return a + b; };
+
+    generator.Generate(group);
+
+    updateCount = 0;
+
+    auto t0 = tbb::tick_count::now();
+    for (int i = 0; i < 10000; i++)
+	    in <<= 10 + i;
+    auto t1 = tbb::tick_count::now();
+
+    double d = (t1 - t0).seconds();
+    printf("updateCount %d\n", updateCount);
+    printf("Time %g\n", d);
+
+    return 0;
 }
 
 
@@ -371,47 +383,46 @@ int main()
 
 
 
+/*
 
-
-
-/*int main2()
+int main7()
 {
-	Group group1;
-	Group group2;
-	Group group3;
+    Group group1;
+    Group group2;
+    Group group3;
 
-	VarSignal<int> x{ 0, group1 };
-	VarSignal<int> y{ 0, group2 };
-	VarSignal<int> z{ 0, group3 };
+    VarSignal<int> x{ group1, 0 };
+    VarSignal<int> y{ group2, 0 };
+    VarSignal<int> z{ group3, 0 };
 
-	Signal<int> area{ Multiply<int>, x, y };
-	Signal<int> volume{ Multiply<int>, area, z };
+    Signal<int> area{ Multiply<int>, x, y };
+    Signal<int> volume{ Multiply<int>, area, z };
 
-	Observer obs{ PrintAreaAndVolume, area, volume };
+    Observer obs{ PrintAreaAndVolume, area, volume };
 
-	Signal<vector<int>> volumeHistory = Iterate<vector<int>>( vector<int>{ }, PushToVector, Monitor(volume));
+    Signal<vector<int>> volumeHistory = Iterate<vector<int>>( vector<int>{ }, PushToVector, Monitor(volume));
 
-	x <<= 2;
-	y <<= 2;
-	z <<= 2;
+    x <<= 2;
+    y <<= 2;
+    z <<= 2;
 
-	group.DoTransaction([&]
-	{
-		x <<= 100;
-		y <<= 200;
-		z <<= 300;
-	});
+    group.DoTransaction([&]
+    {
+        x <<= 100;
+        y <<= 200;
+        z <<= 300;
+    });
 
-	obs.Cancel();
+    obs.Cancel();
 
-	x <<= 42;
+    x <<= 42;
 
-	printf("History:\n");
-	for (auto t : volumeHistory.Value())
-		printf("%d ", t);
-	printf("\n");
+    printf("History:\n");
+    for (auto t : volumeHistory.Value())
+        printf("%d ", t);
+    printf("\n");
 
-	return 0;
+    return 0;
 }
 
 
@@ -421,14 +432,16 @@ int main3()
     using namespace react;
 
     Group group1;
-		Group group2;
+    Group group2;
 
     auto sig1 = VarSignal<int>( 10, group1 );
 
     auto link1 = SignalLink<int>( sig1, group2 );
-		auto link2 = SignalLink<int>( sig1, group2 );
+    auto link2 = SignalLink<int>( sig1, group2 );
 
-		sig1.Set(10);
+    sig1.Set(10);
 
     return 0;
-}*/
+}
+
+*/

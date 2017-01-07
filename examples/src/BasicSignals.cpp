@@ -26,6 +26,9 @@ namespace example1
     string ConcatFunc(string first, string second)
         { return first + string(" ") + second; }
 
+    void PrintFunc(const string& s)
+        { cout  << s << endl; }
+
     // Defines a group.
     // Each group represents a separate dependency graph.
     // Reactives from different groups can not be mixed.
@@ -40,17 +43,13 @@ namespace example1
 
     void Run()
     {
-        cout << "Example 1 - Hello world" << endl;
+        Observer obs{ PrintFunc, bothWords };
 
-        cout  << bothWords.Value() << endl;
+        cout << "Example 1 - Hello world" << endl;
 
         firstWord <<= string("Hello");
 
-        cout << bothWords.Value() << endl;
-
         secondWord <<= string("World");
-
-        cout << bothWords.Value() << endl;
 
         cout << endl;
     }
@@ -150,8 +149,8 @@ namespace example4
         data.Modify([] (vector<string>& data)
             { data.push_back("World"); });
 
-        for (const auto& s : data.Value())
-            cout << s << " ";
+//        for (const auto& s : data.Value())
+//            cout << s << " ";
         cout << endl;
         // output: Hello World
 

@@ -244,7 +244,7 @@ protected:
     static auto CreateSlotNode(const Group& group, const Signal<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::SignalSlotNode;
-        return std::make_shared<SignalSlotNode<S>>(group, input);
+        return std::make_shared<SignalSlotNode<S>>(group, SameGroupOrLink(group, input));
     }
 
 private:
