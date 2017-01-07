@@ -263,17 +263,41 @@ protected:
 private:
     void AddInput(const Event<E>& input)
     {
-        SameGroupOrLink(input)
-
         using REACT_IMPL::NodeId;
-        using REACT_IMPL::ReactiveGraph;
         using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
 
         SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->GetNodePtr().get());
 
         NodeId nodeId = castedPtr->GetInputNodeId();
-        auto& graphPtr = NodePtr()->GraphPtr();
-        graphPtr->AddInput(nodeId, [castedPtr, &newInput] { castedPtr->SetInput(PrivateNodeInterface::NodePtr(newInput)); });
+        auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
+
+        graphPtr->AddInput(nodeId, [castedPtr, &input] { castedPtr->AddInput(input); });
+    }
+
+    void RemoveInput(const Event<E>& input)
+    {
+        using REACT_IMPL::NodeId;
+        using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
+
+        SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->GetNodePtr().get());
+
+        NodeId nodeId = castedPtr->GetInputNodeId();
+        auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
+
+        graphPtr->AddInput(nodeId, [castedPtr, &input] { castedPtr->RemoveInput(input); });
+    }
+
+    void RemoveAllInputs()
+    {
+        using REACT_IMPL::NodeId;
+        using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
+
+        SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->GetNodePtr().get());
+
+        NodeId nodeId = castedPtr->GetInputNodeId();
+        auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
+
+        graphPtr->AddInput(nodeId, [castedPtr] { castedPtr->RemoveAllInputs(); });
     }
 };
 
@@ -295,22 +319,33 @@ public:
         EventLink::Event( REACT_IMPL::CtorTag{ }, GetOrCreateLinkNode(group, input) )
         { }
 
+    ~EventLink()
+    {
+        auto nodePtr = GetNodePtr();
+    }
+
 protected:
     static auto GetOrCreateLinkNode(const Group& group, const Event<E>& input) -> decltype(auto)
     {
         using REACT_IMPL::EventLinkNode;
 
-        const void* inputPtr = GetInternals(input.GetGroup()).GetGraphPtr().get();
-        const void* targetPtr = GetInternals(group).GetGraphPtr().get();
+        auto targetGraphPtr = GetInternals(group).GetGraphPtr();
+        
+        void* k1 = GetInternals(input.GetGroup()).GetGraphPtr().get();
+        void* k2 = GetInternals(input).GetNodePtr().get();
 
-        {
+        auto& linkCache = targetGraphPtr->GetLinkCache();
 
-        }
+        auto nodePtr = linkCache.LookupOrCreate<EventLinkNode<E>>(
+            { k1, k2 },
+            [&]
+            {
+                auto nodePtr = std::make_shared<EventLinkNode<E>>(group, input);
+                nodePtr->SetWeakSelfPtr(std::weak_ptr<EventLinkNode<E>>{ nodePtr });
+                return nodePtr;
+            });
 
-        auto nodePtr = std::make_shared<EventLinkNode<E>>(group, input);
-        auto weakPtr = 
-        nodePtr->SetWeakSelfPtr(std::weak_ptr<EventLinkNode<E>>{ nodePtr });
-        return node;
+        return nodePtr;
     }
 };
 

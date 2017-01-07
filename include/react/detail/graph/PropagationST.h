@@ -16,6 +16,8 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <map>
+#include <mutex>
 
 #include <tbb/concurrent_queue.h>
 #include <tbb/task.h>
@@ -30,27 +32,49 @@ template <typename K>
 class PtrCache
 {
 public:
-    void Add(const K& key, const std::shared_ptr<void>& ptr)
+    template <typename V, typename F>
+    std::shared_ptr<V> LookupOrCreate(const K& key, F&& createFunc)
     {
-        auto res = map1_.insert(key, ptr);
-        if (res.first == true)
+        std::lock_guard<std::mutex> scopedLock(mutex_);
+
+        auto it = map1_.find(key);
+
+        if (it != map1_.end())
         {
-            map2_.insert(ptr , res.second);
-            return true;
+            if (auto ptr = it->second.lock())
+            {
+                return std::static_pointer_cast<V>(ptr);
+            }
         }
-        
+
+        std::shared_ptr<V> v = createFunc();
+        auto res = map1_.insert({ key, std::weak_ptr<void>{ v } });
+        map2_[v.get()] = res.first;
+        return v;
     }
 
-    void Remove(const std::shared_ptr<void>& ptr)
+    template <typename V>
+    void Erase(const std::shared_ptr<V>& ptr)
     {
-        map2_.remove();
+        std::lock_guard<std::mutex> scopedLock(mutex_);
+
+        auto it = map2_.find((void*)ptr.get());
+
+        if (it != map2_.end())
+        {
+            map1_.erase(it->second);
+            map2_.erase(it);
+        }
     }
 
 private:
-    std::mutex  lock_;
+    std::mutex  mutex_;
 
-    std::map<K, std::weak_ptr<void>> map1_;
-    std::unordered_map<void*, std::map::iterator> map2_;
+    using Map1Type = std::map<K, std::weak_ptr<void>>;
+    using Map2Type = std::unordered_map<void*, typename Map1Type::iterator>;
+
+    Map1Type map1_;
+    Map2Type map2_;
 };
 
 class ReactiveGraph;
@@ -115,6 +139,8 @@ private:
 class ReactiveGraph
 {
 public:
+    using LinkCacheType = PtrCache<std::pair<void*, void*>>;
+
     NodeId RegisterNode(IReactiveNode* nodePtr, NodeCategory category);
     void UnregisterNode(NodeId nodeId);
 
@@ -129,6 +155,9 @@ public:
 
     template <typename F>
     void EnqueueTransaction(TransactionFlags flags, F&& transactionCallback);
+    
+    LinkCacheType& GetLinkCache()
+        { return linkCache_; }
 
 private:
     struct NodeData
@@ -189,7 +218,9 @@ private:
     TopoQueue           scheduledNodes_;
     IndexMap<NodeData>  nodeData_;
     std::vector<NodeId> changedInputs_;
-    LinkOutputMap				scheduledLinkOutputs_;
+    LinkOutputMap       scheduledLinkOutputs_;
+
+    LinkCacheType       linkCache_;
 
     bool isTransactionActive_ = false;
 };
@@ -202,7 +233,6 @@ NodeId ReactiveGraph::RegisterNode(IReactiveNode* nodePtr, NodeCategory category
 void ReactiveGraph::UnregisterNode(NodeId nodeId)
 {
     nodeData_.Remove(nodeId);
-
 }
 
 void ReactiveGraph::OnNodeAttach(NodeId nodeId, NodeId parentId)
@@ -222,16 +252,6 @@ void ReactiveGraph::OnNodeDetach(NodeId nodeId, NodeId parentId)
     auto& successors = parent.successors;
 
     successors.erase(std::find(successors.begin(), successors.end(), nodeId));
-}
-
-void ReactiveGraph::OnDynamicNodeAttach(NodeId nodeId, NodeId parentId, TurnId turnId)
-{
-    OnNodeAttach(nodeId, parentId);
-}
-
-void ReactiveGraph::OnDynamicNodeDetach(NodeId nodeId, NodeId parentId, TurnId turnId)
-{
-    OnNodeDetach(nodeId, parentId);
 }
 
 template <typename F>

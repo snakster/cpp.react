@@ -83,12 +83,6 @@ protected:
     void DetachFromMe(NodeId otherNodeId)
         { GetGraphPtr()->OnNodeDetach(nodeId_, otherNodeId); }
 
-    void DynamicAttachToMe(NodeId otherNodeId, TurnId turnId)
-        { GetGraphPtr()->OnDynamicNodeAttach(nodeId_, otherNodeId, turnId); }
-
-    void DynamicDetachFromMe(NodeId otherNodeId, TurnId turnId)
-        { GetGraphPtr()->OnDynamicNodeDetach(nodeId_, otherNodeId, turnId); }
-
 private:
     NodeId nodeId_;
 

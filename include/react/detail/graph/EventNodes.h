@@ -261,13 +261,13 @@ public:
 
     virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
     {
-        for (const auto& e : deps_)
+        for (auto& e : inputs_)
         {
             const auto& events = GetInternals(e).Events();
             this->Events().insert(this->Events().end(), events.begin(), events.end());
-        }
 
-        slotInput_.dep->DecrementPendingSuccessorCount();
+            GetInternals(e).DecrementPendingSuccessorCount();
+        }
 
         if (! this->Events().empty())
         {
