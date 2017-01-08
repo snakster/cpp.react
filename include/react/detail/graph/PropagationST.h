@@ -54,11 +54,11 @@ public:
     }
 
     template <typename V>
-    void Erase(const std::shared_ptr<V>& ptr)
+    void Erase(V* ptr)
     {
         std::lock_guard<std::mutex> scopedLock(mutex_);
 
-        auto it = map2_.find((void*)ptr.get());
+        auto it = map2_.find((void*)ptr);
 
         if (it != map2_.end())
         {

@@ -258,7 +258,7 @@ private:
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->AddInput(nodeId, [castedPtr, &newInput] { castedPtr->SetInput(newInput); });
+        graphPtr->AddInput(nodeId, [this, castedPtr, &newInput] { castedPtr->SetInput(SameGroupOrLink(GetGroup(), newInput)); });
     }
 };
 
@@ -275,24 +275,33 @@ public:
     SignalLink(SignalLink&&) = default;
     SignalLink& operator=(SignalLink&&) = default;
 
-    // Construct with explicit group
+    // Construct with group
     SignalLink(const Group& group, const Signal<S>& input) :
-        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(group, input) )
-        { }
-
-    // Construct with implicit group
-    explicit SignalLink(const Signal<S>& input) :
-        SignalLink::Signal( REACT_IMPL::CtorTag{ }, CreateLinkNode(input.GetGroup(), input) )
+        SignalLink::Signal( REACT_IMPL::CtorTag{ }, GetOrCreateLinkNode(group, input) )
         { }
 
 protected:
-    static auto CreateLinkNode(const Group& group, const Signal<S>& input) -> decltype(auto)
+    static auto GetOrCreateLinkNode(const Group& group, const Signal<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::SignalLinkNode;
 
-        auto node = std::make_shared<SignalLinkNode<S>>(group, input);
-        node->SetWeakSelfPtr(std::weak_ptr<SignalLinkNode<S>>{ node });
-        return node;
+        auto targetGraphPtr = GetInternals(group).GetGraphPtr();
+        
+        void* k1 = GetInternals(input.GetGroup()).GetGraphPtr().get();
+        void* k2 = GetInternals(input).GetNodePtr().get();
+
+        auto& linkCache = targetGraphPtr->GetLinkCache();
+
+        auto nodePtr = linkCache.LookupOrCreate<SignalLinkNode<S>>(
+            { k1, k2 },
+            [&]
+            {
+                auto nodePtr = std::make_shared<SignalLinkNode<S>>(group, input);
+                nodePtr->SetWeakSelfPtr(std::weak_ptr<SignalLinkNode<S>>{ nodePtr });
+                return nodePtr;
+            });
+
+        return nodePtr;
     }
 };
 

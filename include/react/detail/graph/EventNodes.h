@@ -562,6 +562,9 @@ public:
 
     ~EventLinkNode()
     {
+        auto& linkCache = GetGraphPtr()->GetLinkCache();
+        linkCache.Erase(this);
+
         this->UnregisterMe();
     }
 

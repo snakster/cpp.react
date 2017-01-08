@@ -271,7 +271,7 @@ private:
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->AddInput(nodeId, [castedPtr, &input] { castedPtr->AddInput(input); });
+        graphPtr->AddInput(nodeId, [this, castedPtr, &input] { castedPtr->AddInput(SameGroupOrLink(GetGroup(), input)); });
     }
 
     void RemoveInput(const Event<E>& input)
@@ -284,7 +284,7 @@ private:
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->AddInput(nodeId, [castedPtr, &input] { castedPtr->RemoveInput(input); });
+        graphPtr->AddInput(nodeId, [this, castedPtr, &input] { castedPtr->RemoveInput(SameGroupOrLink(GetGroup(), input)); });
     }
 
     void RemoveAllInputs()
@@ -314,27 +314,21 @@ public:
     EventLink(EventLink&&) = default;
     EventLink& operator=(EventLink&&) = default;
 
-    // Construct with explicit group
+    // Construct with group
     EventLink(const Group& group, const Event<E>& input) :
         EventLink::Event( REACT_IMPL::CtorTag{ }, GetOrCreateLinkNode(group, input) )
         { }
-
-    ~EventLink()
-    {
-        auto nodePtr = GetNodePtr();
-    }
 
 protected:
     static auto GetOrCreateLinkNode(const Group& group, const Event<E>& input) -> decltype(auto)
     {
         using REACT_IMPL::EventLinkNode;
 
-        auto targetGraphPtr = GetInternals(group).GetGraphPtr();
+        auto& targetGraphPtr = GetInternals(group).GetGraphPtr();
+        auto& linkCache = targetGraphPtr->GetLinkCache();
         
         void* k1 = GetInternals(input.GetGroup()).GetGraphPtr().get();
         void* k2 = GetInternals(input).GetNodePtr().get();
-
-        auto& linkCache = targetGraphPtr->GetLinkCache();
 
         auto nodePtr = linkCache.LookupOrCreate<EventLinkNode<E>>(
             { k1, k2 },
@@ -495,7 +489,7 @@ static Event<E> SameGroupOrLink(const Group& targetGroup, const Event<E>& dep)
     if (dep.GetGroup() == targetGroup)
         return dep;
     else
-        return EventLink<E>( targetGroup, dep );
+        return EventLink<E>{ targetGroup, dep };
 }
 
 /****************************************/ REACT_IMPL_END /***************************************/

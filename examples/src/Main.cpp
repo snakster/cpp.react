@@ -159,7 +159,7 @@ template <typename T> T IterFunc2(EventRange<T> evts, T v, T a1, T a2)
     return v + 1;
 }
 
-int main()
+int main1()
 {
     Group group;
 
@@ -232,10 +232,13 @@ int main()
 
         EventSlot<int> slot{ group };
 
-        Observer eventObs{ PrintEvents<int>, anyButton };
+        Observer eventObs{ PrintEvents<int>, slot };
 
-        slot.AddInput(s1);
-        slot.AddInput(s2);
+        slot.Add(s1);
+        slot.Add(s2);
+
+        slot.Remove(s1);
+        slot.RemoveAll();
     }
 
     // Links
@@ -327,7 +330,44 @@ int main()
 }
 
 
+int main()
+{
+    Group group;
 
+    Group extGroup;
+
+    // Dynamic events
+    EventSource<int> s1{ group };
+    EventSource<int> s2{ group };
+    EventSource<int> s3{ extGroup };
+    //EventSource<int> s4{ extGroup };
+
+    EventSlot<int> slot{ group };
+
+    Observer eventObs{ PrintEvents<int>, slot };
+    //Observer extObs{ PrintEvents<int>, link1 };
+
+    //slot.Add(s1);
+    //slot.Add(s2);
+
+    group.DoTransaction([&]
+    {
+        s1.Emit(1);
+        s2.Emit(2);
+
+
+        slot.Add(s3);
+        slot.Add(s3);
+        slot.Add(s3);
+        slot.Add(s3);
+    });
+
+    s3.Emit(3);
+
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    return 0;
+}
 
 
 

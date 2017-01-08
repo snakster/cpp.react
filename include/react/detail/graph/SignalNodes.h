@@ -308,6 +308,9 @@ public:
 
     ~SignalLinkNode()
     {
+        auto& linkCache = GetGraphPtr()->GetLinkCache();
+        linkCache.Erase(this);
+
         this->UnregisterMe();
     }
 
