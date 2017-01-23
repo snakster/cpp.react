@@ -215,8 +215,9 @@ private:
 private:
     TransactionQueue    transactionQueue_{ *this };
 
+    IndexedStorage<NodeData>    nodeData_;
+
     TopoQueue           scheduledNodes_;
-    IndexMap<NodeData>  nodeData_;
     std::vector<NodeId> changedInputs_;
     LinkOutputMap       scheduledLinkOutputs_;
 
@@ -232,7 +233,7 @@ NodeId ReactiveGraph::RegisterNode(IReactiveNode* nodePtr, NodeCategory category
 
 void ReactiveGraph::UnregisterNode(NodeId nodeId)
 {
-    nodeData_.Remove(nodeId);
+    nodeData_.Erase(nodeId);
 }
 
 void ReactiveGraph::OnNodeAttach(NodeId nodeId, NodeId parentId)

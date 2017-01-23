@@ -65,9 +65,9 @@ class TransactionStatus
 
 public:
     // Default ctor
-    inline TransactionStatus() :
+    TransactionStatus() :
         statePtr_( StateT::Create() )
-    {}
+        { }
 
     // Move ctor
     TransactionStatus(TransactionStatus&& other) :
@@ -91,7 +91,7 @@ public:
     TransactionStatus(const TransactionStatus&) = delete;
     TransactionStatus& operator=(const TransactionStatus&) = delete;
 
-    inline void Wait()
+    void Wait()
     {
         assert(statePtr_.Get() != nullptr);
         statePtr_->Wait();

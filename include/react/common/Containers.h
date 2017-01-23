@@ -14,59 +14,41 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <memory>
 #include <type_traits>
-#include <vector>
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EnumFlags
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-class EnumFlags
-{
-public:
-    using FlagsT = typename std::underlying_type<T>::type;
-
-    template <T x>
-    void Set() { flags_ |= 1 << x; }
-
-    template <T x>
-    void Clear() { flags_ &= ~(1 << x); }
-
-    template <T x>
-    bool Test() const { return (flags_ & (1 << x)) != 0; }
-
-private:
-    FlagsT  flags_ = 0;
-};
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// IndexMap
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-class IndexMap
+class IndexedStorage
 {
     static const size_t initial_capacity = 8;
     static const size_t grow_factor = 2;
 
+    using StorageType = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
 public:
     using ValueType = T;
 
-    IndexMap() = default;
+    IndexedStorage() = default;
 
-    IndexMap(const IndexMap&) = default;
-    IndexMap& operator=(const IndexMap&) = default;
+    IndexedStorage(IndexedStorage&&) = default;
+    IndexedStorage& operator=(IndexedStorage&&) = default;
 
-    IndexMap(IndexMap&&) = default;
-    IndexMap& operator=(IndexMap&&) = default;
+    IndexedStorage(const IndexedStorage&) = delete;
+    IndexedStorage& operator=(const IndexedStorage&) = delete;
+
+    ~IndexedStorage()
+        { Reset(); }
 
     T& operator[](size_t index)
-        { return data_[index]; }
+        { return reinterpret_cast<T&>(data_[index]); }
 
     const T& operator[](size_t index) const
-        { return data_[index]; }
+        { return reinterpret_cast<T&>(data_[index]); }
 
     size_t Insert(T value)
     {
@@ -85,61 +67,73 @@ public:
         }
     }
 
-    void Remove(size_t index)
+    void Erase(size_t index)
     {
-        for (size_t index : freeIndices_)
-            data_[index].~T();
+        // If we erased something other than the last element, save in free index list.
+        if (index != (size_ - 1))
+        {
+            freeIndices_[freeSize_++] = index;
+        }
+
+        reinterpret_cast<T&>(data_[index]).~T();
         --size_;
-        freeIndices_.push_back(index);
     }
 
     void Clear()
     {
-        // Sort free indexes so we can remove check for them in linear time
-        std::sort(freeIndices_.begin(), freeIndices_.end());
+        // Sort free indexes so we can remove check for them in linear time.
+        std::sort(&freeIndices_[0], &freeIndices_[freeSize_]);
         
-        const size_t totalSize = size_ + freeIndices_.size();
-        size_t i = 0;
+        const size_t totalSize = size_ + freeSize_;
+        size_t index = 0;
 
-        // Skip over free indices
-        for (auto freeIndex : freeIndices_)
+        // Skip over free indices.
+        for (size_t j = 0; j < freeSize_; ++j)
         {
-            for (; i < totalSize; ++i)
+            for (; index < totalSize; ++index)
             {
-                if (i == freeIndex)
+                if (j == freeIndex_)
+                {
+                    ++index;
                     break;
+                }
                 else
-                    data_[i].~T();
+                {
+                    data_[index].~T();
+                }
             }
         }
 
         // Rest
-        for (; i < totalSize; ++i)
-            data_[i].~T();
+        for (; index < totalSize; ++index)
+            data_[index].~T();
 
         size_ = 0;
-        freeIndices_.clear();
+        freeList_ = 0;
     }
 
     void Reset()
     {
         Clear();
 
-        capacity_ = 0;
-        delete[] data_;
+        data_.reset();
+        freeIndices_.reset();
 
-        freeIndices_.shrink_to_fit();
+        capacity_ = 0;
     }
 
-    ~IndexMap()
-        { Reset(); }
-
 private:
+    T& GetDataAt(size_t index)
+        { return reinterpret_cast<T&>(data_[index]); }
+
+    T& GetDataAt(size_t index) const
+        { return reinterpret_cast<T&>(data_[index]); }
+
     bool IsAtFullCapacity() const
         { return capacity_ == size_; }
 
     bool HasFreeIndices() const
-        { return !freeIndices_.empty(); }
+        { return freeSize_ > 0; }
 
     size_t CalcNextCapacity() const
         { return capacity_ == 0? initial_capacity : capacity_ * grow_factor;  }
@@ -148,20 +142,23 @@ private:
     {
         // Allocate new storage
         size_t  newCapacity = CalcNextCapacity();
-        T*      newData = new T[newCapacity];
+        
+        std::unique_ptr<StorageType[]> newData{ new StorageType[newCapacity] };
+        std::unique_ptr<size_t[]> newFreeList{ new size_t[newCapacity] };
 
         // Move data to new storage
-        for (size_t i = 0; i < size_; ++i)
+        for (size_t i = 0; i < capacity_; ++i)
         {
-            new (&newData[i]) T(std::move(data_[i]));
-            data_[i].~T();
+            new (reinterpret_cast<T*>(&newData[i])) T{ std::move(reinterpret_cast<T&>(data_[i])) };
+            reinterpret_cast<T&>(data_[i]).~T();
         }
-            
-        delete[] data_;
+
+        // Free list is empty if we are at max capacity anyway
 
         // Use new storage
-        data_ = newData;
-        capacity_ = newCapacity;
+        data_           = std::move(newData);
+        freeIndices_    = std::move(newFreeList);
+        capacity_       = newCapacity;
     }
 
     size_t InsertAtBack(T&& value)
@@ -172,153 +169,19 @@ private:
 
     size_t InsertAtFreeIndex(T&& value)
     {
-        size_t nextFreeIndex = freeIndices_.back();
-        freeIndices_.pop_back();
-
+        size_t nextFreeIndex = freeIndices_[--freeSize_];
         new (&data_[nextFreeIndex]) T(std::move(value));
         ++size_;
 
         return nextFreeIndex;
     }
 
-    T*      data_       = nullptr;
+    std::unique_ptr<StorageType[]>  data_;
+    std::unique_ptr<size_t[]>       freeIndices_;
+
     size_t  size_       = 0;
+    size_t  freeSize_   = 0;
     size_t  capacity_   = 0;
-
-    std::vector<size_t> freeIndices_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// NodeVector
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename TNode>
-class NodeVector
-{
-private:
-    typedef std::vector<TNode*>    DataT;
-
-public:
-    void Add(TNode& node)
-    {
-        data_.push_back(&node);
-    }
-
-    void Remove(const TNode& node)
-    {
-        data_.erase(std::find(data_.begin(), data_.end(), &node));
-    }
-
-    typedef typename DataT::iterator        iterator;
-    typedef typename DataT::const_iterator  const_iterator;
-
-    iterator    begin() { return data_.begin(); }
-    iterator    end()   { return data_.end(); }
-
-    const_iterator begin() const    { return data_.begin(); }
-    const_iterator end() const      { return data_.end(); }
-
-private:
-    DataT    data_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// NodeBuffer
-///////////////////////////////////////////////////////////////////////////////////////////////////
-struct SplitTag {};
-
-template <typename T, size_t N>
-class NodeBuffer
-{
-public:
-    using DataT = std::array<T*,N>;
-    using iterator = typename DataT::iterator;
-    using const_iterator = typename DataT::const_iterator;
-
-    static const size_t split_size = N / 2;
-
-    NodeBuffer() :
-        size_( 0 ),
-        front_( nodes_.begin() ),
-        back_( nodes_.begin() )
-    {}
-
-    NodeBuffer(T* node) :
-        size_( 1 ),
-        front_( nodes_.begin() ),
-        back_( nodes_.begin() + 1 )
-    {
-        nodes_[0] = node;
-    }
-
-    template <typename TInput>
-    NodeBuffer(TInput srcBegin, TInput srcEnd) :
-        size_( std::distance(srcBegin, srcEnd) ), // parentheses to allow narrowing conversion
-        front_( nodes_.begin() ),
-        back_( size_ != N ? nodes_.begin() + size_ : nodes_.begin() )
-    {
-        std::copy(srcBegin, srcEnd, front_);
-    }
-
-    // Other must be full
-    NodeBuffer(NodeBuffer& other, SplitTag) :
-        size_( split_size ),
-        front_( nodes_.begin() ),
-        back_( nodes_.begin() )
-    {
-        for (auto i=0; i<split_size; i++)
-            *(back_++) = other.PopFront();
-    }
-
-    void PushFront(T* e)
-    {
-        size_++;
-        decrement(front_);
-        *front_ = e;
-    }
-
-    void PushBack(T* e)
-    {
-        size_++;
-        *back_ = e;
-        increment(back_);
-    }
-
-    T* PopFront()
-    {
-        size_--;
-        auto t = *front_;
-        increment(front_);
-        return t;
-    }
-
-    T* PopBack()
-    {
-        size_--;
-        decrement(back_);
-        return *back_;
-    }
-
-    bool IsFull() const     { return size_ == N; }
-    bool IsEmpty() const    { return size_ == 0; }
-
-private:
-    inline void increment(iterator& it)
-    {
-        if (++it == nodes_.end())
-            it = nodes_.begin();
-    }
-
-    inline void decrement(iterator& it)
-    {
-        if (it == nodes_.begin())
-            it = nodes_.end();
-        --it;
-    }
-
-    DataT       nodes_;
-    size_t      size_;
-    iterator    front_;
-    iterator    back_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

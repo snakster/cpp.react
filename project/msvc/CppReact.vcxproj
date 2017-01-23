@@ -168,9 +168,6 @@
     <ClInclude Include="..\..\include\react\detail\graph\SignalNodes.h" />
     <ClInclude Include="..\..\include\react\detail\IReactiveGraph.h" />
     <ClInclude Include="..\..\include\react\Group.h" />
-    <ClInclude Include="..\..\include\react\engine\PulsecountEngine.h" />
-    <ClInclude Include="..\..\include\react\engine\SubtreeEngine.h" />
-    <ClInclude Include="..\..\include\react\engine\ToposortEngine.h" />
     <ClInclude Include="..\..\include\react\common\Concurrency.h" />
     <ClInclude Include="..\..\include\react\common\Containers.h" />
     <ClInclude Include="..\..\include\react\common\SourceIdSet.h" />
