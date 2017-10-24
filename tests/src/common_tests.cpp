@@ -15,6 +15,36 @@
 using namespace react;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+TEST(SyncPointTest, DependencyCreation)
+{
+    SyncPoint sp;
+
+    {
+        SyncPoint::Dependency dep1(sp);
+        SyncPoint::Dependency dep2(sp);
+        SyncPoint::Dependency dep3(sp);
+
+        std::vector<SyncPoint::Dependency> deps1 = { dep1, dep2, dep3 };
+        std::vector<SyncPoint::Dependency> deps2 = { dep1 };
+
+        SyncPoint::Dependency dep4( begin(deps1), end(deps1) );
+        
+
+        SyncPoint::Dependency dep5;
+
+        dep5 = std::move(dep4);
+
+        SyncPoint::Dependency dep6;
+        dep6 = dep5;
+        SyncPoint::Dependency dep7( dep6 );
+
+        SyncPoint::Dependency dep8( begin(deps2), end(deps2) );
+    }
+
+    bool done = sp.WaitFor(std::chrono::milliseconds(1));
+    EXPECT_EQ(true, done);
+}
+
 TEST(SyncPointTest, SingleWait)
 {
     SyncPoint sp;
@@ -29,7 +59,6 @@ TEST(SyncPointTest, SingleWait)
             output = 1;
         });
 
-    
     sp.Wait();
     
     EXPECT_EQ(1, output);

@@ -11,8 +11,10 @@
 
 #include "react/detail/defs.h"
 
+#include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <iterator>
 #include <mutex>
 
 
@@ -23,20 +25,23 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class SyncPoint
 {
-private:
+public:
     class Dependency;
 
-    class ISyncPointState
+private:
+    
+
+    class ISyncTarget
     {
     public:
-        virtual ~ISyncPointState() = default;
+        virtual ~ISyncTarget() = default;
 
         virtual void IncrementWaitCount() = 0;
         
         virtual void DecrementWaitCount() = 0;
     };
 
-    class SyncPointState : public ISyncPointState
+    class SyncPointState : public ISyncTarget
     {
     public:
         virtual void IncrementWaitCount() override
@@ -81,14 +86,27 @@ private:
         int waitCount_ = 0;
     };
 
-    class SyncPointStateCollection : public ISyncPointState
+    class SyncTargetCollection : public ISyncTarget
     {
-    private:
-        std::vector<Dependency>
+    public:
+        virtual void IncrementWaitCount() override
+        {
+            for (const auto& e : targets)
+                e->IncrementWaitCount();
+        }
+
+        virtual void DecrementWaitCount() override
+        {
+            for (const auto& e : targets)
+                e->DecrementWaitCount();
+        }
+
+        std::vector<std::shared_ptr<ISyncTarget>> targets;
     };
 
 public:
-    SyncPoint() : state_( std::make_shared<SyncPointState>() )
+    SyncPoint() :
+        state_( std::make_shared<SyncPointState>() )
     { }
 
     SyncPoint(const SyncPoint&) = default;
@@ -123,67 +141,90 @@ public:
 
         // Construct from single sync point.
         explicit Dependency(const SyncPoint& sp) :
-            state_( sp.state_ )
+            target_( sp.state_ )
         {
-            state_->IncrementWaitCount();
+            target_->IncrementWaitCount();
         }
 
         // Construct from vector of other dependencies.
-        explicit Dependency(std::vector<Dependency>&& others) :
-            state_( sp.state_ )
+        template <typename TBegin, typename TEnd>
+        Dependency(TBegin first, TEnd last)
         {
-            state_->IncrementWaitCount();
+            auto count = std::distance(first, last);
+
+            if (count == 1)
+            {
+                target_ = first->target_;
+                if (target_)
+                    target_->IncrementWaitCount();
+            }
+            else if (count > 1)
+            {
+                auto collection = std::make_shared<SyncTargetCollection>();
+                collection->targets.reserve(count);
+            
+                for (; !(first == last); ++first)
+                    if (first->target_) // There's no point in propagating released/empty dependencies.
+                        collection->targets.push_back(first->target_);
+
+                collection->IncrementWaitCount();
+
+                target_ = std::move(collection);
+            }
         }
 
         Dependency(const Dependency& other) :
-            state_( other.state_ )
+            target_( other.target_ )
         {
-            state_->IncrementWaitCount();
+            if (target_)
+                target_->IncrementWaitCount();
         }
 
         Dependency& operator=(const Dependency& other)
         {
-            if (other.state_)
-                state_->IncrementWaitCount();
+            if (other.target_)
+                other.target_->IncrementWaitCount();
 
-            if (state_)
-                state_->DecrementWaitCount();
+            if (target_)
+                target_->DecrementWaitCount();
 
-            state_ = other.state_;
+            target_ = other.target_;
+            return *this;
         }
 
         Dependency(Dependency&& other) :
-            state_( std::move(other.state_) )
+            target_( std::move(other.target_) )
         { }
 
         Dependency& operator=(Dependency&& other)
         {
-            if (state_)
-                state_->DecrementWaitCount();
+            if (target_)
+                target_->DecrementWaitCount();
 
-            state_ = std::move(other.state_);
+            target_ = std::move(other.target_);
+            return *this;
         }
 
         ~Dependency()
         {
-            if (state_)
-                state_->DecrementWaitCount();
+            if (target_)
+                target_->DecrementWaitCount();
         }
 
         void Release()
         {
-            if (state_)
+            if (target_)
             {
-                state_->DecrementWaitCount();
-                state_.reset();
+                target_->DecrementWaitCount();
+                target_ = nullptr;
             }
         }
 
         bool IsReleased() const
-            { return state_ == nullptr; }
+            { return target_ == nullptr; }
 
     private:
-        std::shared_ptr<ISyncPointState> state_;
+        std::shared_ptr<ISyncTarget> target_;
     };
 
 private:

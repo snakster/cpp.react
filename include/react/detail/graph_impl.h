@@ -18,7 +18,6 @@
 #include <vector>
 #include <map>
 #include <mutex>
-#include <optional>
 
 #include <tbb/concurrent_queue.h>
 #include <tbb/task.h>
@@ -39,16 +38,10 @@ public:
         graph_( graph )
     { }
 
-    TransactionQueue(const TransactionQueue&) = delete;
-    TransactionQueue& operator=(const TransactionQueue&) = delete;
-
-    TransactionQueue(TransactionQueue&&) = default;
-    TransactionQueue& operator =(TransactionQueue&&) = default;
-
     template <typename F>
     void Push(F&& func, SyncPoint::Dependency dep, TransactionFlags flags)
     {
-        transactions_.push(StoredTransaction{ std::forward<F>(transaction), std::move(dep), flags });
+        transactions_.push(StoredTransaction{ std::forward<F>(func), std::move(dep), flags });
 
         if (count_.fetch_add(1, std::memory_order_release) == 0)
             tbb::task::enqueue(*new(tbb::task::allocate_root()) WorkerTask(*this));
@@ -57,9 +50,9 @@ public:
 private:
     struct StoredTransaction
     {
-        std::function<void()>       func;
-        SyncPoint::DependencyList   deps;
-        TransactionFlags            flags;
+        std::function<void()>   func;
+        SyncPoint::Dependency   dep;
+        TransactionFlags        flags;
     };
 
     class WorkerTask : public tbb::task
@@ -67,7 +60,7 @@ private:
     public:
         WorkerTask(TransactionQueue& parent) :
             parent_( parent )
-            { }
+        { }
 
         tbb::task* execute()
         {
@@ -104,13 +97,15 @@ public:
     template <typename F>
     void PushInput(NodeId nodeId, F&& inputCallback);
 
-    void PushDependency(SyncPoint::Dependency dep);
+    void AddSyncPointDependency(SyncPoint::Dependency dep, bool syncLinked);
+
+    void AllowLinkedTransactionMerging(bool allowMerging);
 
     template <typename F>
     void DoTransaction(F&& transactionCallback);
 
     template <typename F>
-    void EnqueueTransaction(F&& func, SyncPoint::DependencyList&& deps, TransactionFlags flags);
+    void EnqueueTransaction(F&& func, SyncPoint::Dependency dep, TransactionFlags flags);
     
     LinkCache& GetLinkCache()
         { return linkCache_; }
@@ -173,18 +168,20 @@ private:
 
     SlotMap<NodeData>   nodeData_;
 
-    TopoQueue           scheduledNodes_;
+    TopoQueue scheduledNodes_;
 
     std::vector<NodeId>         changedInputs_;
     std::vector<IReactNode*>    changedNodes_;
 
-    std::vector<SyncPoint::Dependency> curDependencies_;
+    LinkOutputMap scheduledLinkOutputs_;
 
-    LinkOutputMap       scheduledLinkOutputs_;
+    std::vector<SyncPoint::Dependency> localDependencies_;
+    std::vector<SyncPoint::Dependency> linkDependencies_;
 
-    LinkCache           linkCache_;
+    LinkCache linkCache_;
 
     bool isTransactionActive_ = false;
+    bool allowLinkedTransactionMerging_ = false;
 };
 
 template <typename F>
@@ -214,9 +211,9 @@ void ReactGraph::DoTransaction(F&& transactionCallback)
 }
 
 template <typename F>
-void ReactGraph::EnqueueTransaction(F&& func, SyncPoint::DependencyList&& deps, TransactionFlags flags)
+void ReactGraph::EnqueueTransaction(F&& func, SyncPoint::Dependency dep, TransactionFlags flags)
 {
-    transactionQueue_.Push(std::forward<F>(func), std::move(deps), flags);
+    transactionQueue_.Push(std::forward<F>(func), std::move(dep), flags);
 }
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -11,9 +11,11 @@
 
 #include "react/detail/defs.h"
 #include "react/api.h"
+#include "react/common/utility.h"
 
 #include <memory>
 #include <utility>
+#include <tuple>
 
 #include "node_base.h"
 
@@ -23,13 +25,13 @@
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class SignalNode;
+class StateNode;
 
 template <typename E>
 class EventStreamNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalObserverNode
+/// StateObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class ObserverNode : public NodeBase
 {
@@ -40,39 +42,43 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalObserverNode
+/// StateObserverNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename F, typename ... TDeps>
-class SignalObserverNode : public ObserverNode
+class StateObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    SignalObserverNode(const Group& group, FIn&& func, const Signal<TDeps>& ... deps) :
-        SignalObserverNode::ObserverNode( group ),
+    StateObserverNode(const Group& group, FIn&& func, const State<TDeps>& ... deps) :
+        StateObserverNode::ObserverNode( group ),
         func_( std::forward<FIn>(func) ),
         depHolder_( deps ... )
     {
         this->RegisterMe(NodeCategory::output);
         REACT_EXPAND_PACK(this->AttachToMe(GetInternals(deps).GetNodeId()));
+
+        apply([this] (const auto& ... deps)
+            { this->func_(GetInternals(deps).Value() ...); }, depHolder_);
     }
 
-    ~SignalObserverNode()
+    ~StateObserverNode()
     {
-        std::apply([this] (const auto& ... deps)
+        apply([this] (const auto& ... deps)
             { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodeId())); }, depHolder_);
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        std::apply([this] (const auto& ... deps) { this->func_(GetInternals(deps).Value() ...); }, depHolder_);
+        apply([this] (const auto& ... deps)
+            { this->func_(GetInternals(deps).Value() ...); }, depHolder_);
         return UpdateResult::unchanged;
     }
 
 private:
     F func_;
 
-    std::tuple<Signal<TDeps> ...> depHolder_;
+    std::tuple<State<TDeps> ...> depHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,7 +124,7 @@ class SyncedEventObserverNode : public ObserverNode
 {
 public:
     template <typename FIn>
-    SyncedEventObserverNode(const Group& group, FIn&& func, const Event<E>& subject, const Signal<TSyncs>& ... syncs) :
+    SyncedEventObserverNode(const Group& group, FIn&& func, const Event<E>& subject, const State<TSyncs>& ... syncs) :
         SyncedEventObserverNode::ObserverNode( group ),
         func_( std::forward<FIn>(func) ),
         subject_( subject ),
@@ -131,7 +137,7 @@ public:
 
     ~SyncedEventObserverNode()
     {
-        std::apply([this] (const auto& ... syncs)
+        apply([this] (const auto& ... syncs)
             { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
         this->DetachFromMe(GetInternals(subject_).GetNodeId());
         this->UnregisterMe();
@@ -143,7 +149,7 @@ public:
         if (GetInternals(this->subject_).Events().empty())
             return UpdateResult::unchanged;
 
-        std::apply([this] (const auto& ... syncs)
+        apply([this] (const auto& ... syncs)
             { func_(EventRange<E>( GetInternals(this->subject_).Events() ), GetInternals(syncs).Value() ...); }, syncHolder_);
 
         return UpdateResult::unchanged;
@@ -154,7 +160,39 @@ private:
 
     Event<E> subject_;
 
-    std::tuple<Signal<TSyncs> ...> syncHolder_;
+    std::tuple<State<TSyncs> ...> syncHolder_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ObserverInternals
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class ObserverInternals
+{
+public:
+    ObserverInternals(const ObserverInternals&) = default;
+    ObserverInternals& operator=(const ObserverInternals&) = default;
+
+    ObserverInternals(ObserverInternals&&) = default;
+    ObserverInternals& operator=(ObserverInternals&&) = default;
+
+    explicit ObserverInternals(std::shared_ptr<ObserverNode>&& nodePtr) :
+        nodePtr_( std::move(nodePtr) )
+    { }
+
+    auto GetNodePtr() -> std::shared_ptr<ObserverNode>&
+        { return nodePtr_; }
+
+    auto GetNodePtr() const -> const std::shared_ptr<ObserverNode>&
+        { return nodePtr_; }
+
+    NodeId GetNodeId() const
+        { return nodePtr_->GetNodeId(); }
+
+protected:
+    ObserverInternals() = default;
+
+private:
+    std::shared_ptr<ObserverNode> nodePtr_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -51,14 +51,14 @@ public:
 
     // Construct with explicit group
     template <typename F, typename T, typename ... Us>
-    Event(const Group& group, F&& func, const Event<T>& dep, const Signal<Us>& ... signals) :
-        Event::Event( CreateSyncedProcessingNode(group, std::forward<F>(func), dep, signals ...) )
+    Event(const Group& group, F&& func, const Event<T>& dep, const State<Us>& ... states) :
+        Event::Event( CreateSyncedProcessingNode(group, std::forward<F>(func), dep, states ...) )
     { }
 
     // Construct with implicit group
     template <typename F, typename T, typename ... Us>
-    Event(F&& func, const Event<T>& dep, const Signal<Us>& ... signals) :
-        Event::Event( CreateSyncedProcessingNode(dep.GetGroup(), std::forward<F>(func), dep, signals ...) )
+    Event(F&& func, const Event<T>& dep, const State<Us>& ... states) :
+        Event::Event( CreateSyncedProcessingNode(dep.GetGroup(), std::forward<F>(func), dep, states ...) )
     { }
 
     auto Tokenize() const -> decltype(auto)
@@ -84,7 +84,7 @@ public:
 
 protected:
     // Private node ctor
-    explicit Event(std::shared_ptr<REACT_IMPL::EventStreamNode<E>>&& nodePtr) :
+    explicit Event(std::shared_ptr<REACT_IMPL::EventNode<E>>&& nodePtr) :
         Event::EventInternals( std::move(nodePtr) )
     { }
 
@@ -99,7 +99,7 @@ protected:
     }
 
     template <typename F, typename T, typename ... Us>
-    auto CreateSyncedProcessingNode(const Group& group, F&& func, const Event<T>& dep, const Signal<Us>& ... syncs) -> decltype(auto)
+    auto CreateSyncedProcessingNode(const Group& group, F&& func, const Event<T>& dep, const State<Us>& ... syncs) -> decltype(auto)
     {
         using REACT_IMPL::SyncedEventProcessingNode;
         using REACT_IMPL::SameGroupOrLink;
@@ -166,7 +166,7 @@ private:
         NodeId nodeId = castedPtr->GetNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->AddInput(nodeId, [castedPtr, &value] { castedPtr->EmitValue(std::forward<T>(value)); });
+        graphPtr->PushInput(nodeId, [castedPtr, &value] { castedPtr->EmitValue(std::forward<T>(value)); });
     }
 };
 
@@ -215,7 +215,7 @@ private:
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->AddInput(nodeId, [this, castedPtr, &input] { castedPtr->AddInput(SameGroupOrLink(GetGroup(), input)); });
+        graphPtr->PushInput(nodeId, [this, castedPtr, &input] { castedPtr->AddInput(SameGroupOrLink(GetGroup(), input)); });
     }
 
     void RemoveInput(const Event<E>& input)
@@ -228,7 +228,7 @@ private:
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->AddInput(nodeId, [this, castedPtr, &input] { castedPtr->RemoveInput(SameGroupOrLink(GetGroup(), input)); });
+        graphPtr->PushInput(nodeId, [this, castedPtr, &input] { castedPtr->RemoveInput(SameGroupOrLink(GetGroup(), input)); });
     }
 
     void RemoveAllInputs()
@@ -241,7 +241,7 @@ private:
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->AddInput(nodeId, [castedPtr] { castedPtr->RemoveAllInputs(); });
+        graphPtr->PushInput(nodeId, [castedPtr] { castedPtr->RemoveAllInputs(); });
     }
 };
 
@@ -309,8 +309,8 @@ auto Merge(const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
 template <typename F, typename E>
 auto Filter(const Group& group, F&& pred, const Event<E>& dep) -> Event<E>
 {
-    auto filterFunc = [capturedPred = std::forward<F>(pred)] (EventRange<E> inRange, EventSink<E> out)
-        { std::copy_if(inRange.begin(), inRange.end(), out, capturedPred); };
+    auto filterFunc = [capturedPred = std::forward<F>(pred)] (const EventValueList<E>& evts, EventValueSink<E> out)
+        { std::copy_if(evts.begin(), evts.end(), out, capturedPred); };
 
     return Event<E>(group, std::move(filterFunc), dep);
 }
@@ -320,20 +320,20 @@ auto Filter(F&& pred, const Event<E>& dep) -> Event<E>
     { return Filter(dep.GetGroup(), std::forward<F>(pred), dep); }
 
 template <typename F, typename E, typename ... Ts>
-auto Filter(const Group& group, F&& pred, const Event<E>& dep, const Signal<Ts>& ... signals) -> Event<E>
+auto Filter(const Group& group, F&& pred, const Event<E>& dep, const State<Ts>& ... states) -> Event<E>
 {
-    auto filterFunc = [capturedPred = std::forward<F>(pred)] (EventRange<E> inRange, EventSink<E> out, const Us& ... values)
+    auto filterFunc = [capturedPred = std::forward<F>(pred)] (const EventValueList<E>& evts, EventValueSink<E> out, const Us& ... values)
     {
-        for (const auto& v : inRange)
+        for (const auto& v : evts)
             if (capturedPred(v, values ...))
                 *out++ = v;
     };
 
-    return Event<E>(group, std::move(filterFunc), dep, signals ...);
+    return Event<E>(group, std::move(filterFunc), dep, State ...);
 }
 
 template <typename F, typename E, typename ... Ts>
-auto Filter(F&& pred, const Event<E>& dep, const Signal<Ts>& ... signals) -> Event<E>
+auto Filter(F&& pred, const Event<E>& dep, const State<Ts>& ... states) -> Event<E>
     { return Filter(dep.GetGroup(), std::forward<F>(pred), dep); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,7 +353,7 @@ auto Transform(F&& op, const Event<T>& dep) -> Event<E>
     { return Transform<E>(dep.GetGroup(), std::forward<F>(op), dep); }
 
 template <typename E, typename F, typename T, typename ... Us>
-auto Transform(const Group& group, F&& op, const Event<T>& dep, const Signal<Us>& ... signals) -> Event<E>
+auto Transform(const Group& group, F&& op, const Event<T>& dep, const State<Us>& ... states) -> Event<E>
 {
     auto transformFunc = [capturedOp = std::forward<F>(pred)] (EventRange<T> inRange, EventSink<E> out, const Vs& ... values)
     {
@@ -361,12 +361,12 @@ auto Transform(const Group& group, F&& op, const Event<T>& dep, const Signal<Us>
             *out++ = capturedPred(v, values ...);
     };
 
-    return Event<E>(group, std::move(transformFunc), dep, signals ...);
+    return Event<E>(group, std::move(transformFunc), dep, states ...);
 }
 
 template <typename E, typename F, typename T, typename ... Us>
-auto Transform(F&& op, const Event<T>& dep, const Signal<Us>& ... signals) -> Event<E>
-    { return Transform<E>(dep.GetGroup(), std::forward<F>(op), dep, signals ...); }
+auto Transform(F&& op, const Event<T>& dep, const State<Us>& ... states) -> Event<E>
+    { return Transform<E>(dep.GetGroup(), std::forward<F>(op), dep, states ...); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Join

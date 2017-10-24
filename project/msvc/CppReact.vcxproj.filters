@@ -39,9 +39,6 @@
     <ClInclude Include="..\..\include\react\observer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\signal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\react\detail\algorithm_nodes.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
@@ -58,9 +55,6 @@
       <Filter>Header Files\detail</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\detail\observer_nodes.h">
-      <Filter>Header Files\detail</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\signal_nodes.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\react\algorithm.h">
@@ -80,6 +74,12 @@
     </ClInclude>
     <ClInclude Include="..\..\include\react\common\utility.h">
       <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\state_nodes.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\state.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

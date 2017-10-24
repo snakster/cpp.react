@@ -106,7 +106,6 @@
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Cpp0xSupport>true</Cpp0xSupport>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -145,7 +144,6 @@
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Cpp0xSupport>true</Cpp0xSupport>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -170,11 +168,11 @@
     <ClInclude Include="..\..\include\react\detail\node_base.h" />
     <ClInclude Include="..\..\include\react\detail\observer_nodes.h" />
     <ClInclude Include="..\..\include\react\detail\graph_impl.h" />
-    <ClInclude Include="..\..\include\react\detail\signal_nodes.h" />
+    <ClInclude Include="..\..\include\react\detail\state_nodes.h" />
     <ClInclude Include="..\..\include\react\event.h" />
     <ClInclude Include="..\..\include\react\group.h" />
     <ClInclude Include="..\..\include\react\observer.h" />
-    <ClInclude Include="..\..\include\react\signal.h" />
+    <ClInclude Include="..\..\include\react\state.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\detail\graph_impl.cpp" />

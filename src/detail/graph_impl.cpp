@@ -54,9 +54,17 @@ void ReactGraph::DetachNode(NodeId nodeId, NodeId parentId)
     successors.erase(std::find(successors.begin(), successors.end(), nodeId));
 }
 
-void ReactGraph::PushDependency(SyncPoint::Dependency dep)
+void ReactGraph::AddSyncPointDependency(SyncPoint::Dependency dep, bool syncLinked)
 {
-    curDependencies_.push_back(std::move(dep));
+    if (syncLinked)
+        linkDependencies_.push_back(std::move(dep));
+    else
+        localDependencies_.push_back(std::move(dep));
+}
+
+void ReactGraph::AllowLinkedTransactionMerging(bool allowMerging)
+{
+    allowLinkedTransactionMerging_ = true;
 }
 
 void ReactGraph::Propagate()
@@ -115,21 +123,35 @@ void ReactGraph::Propagate()
     for (IReactNode* nodePtr : changedNodes_)
         nodePtr->Clear();
     changedNodes_.clear();
+
+    // Clean link state.
+    scheduledLinkOutputs_.clear();
+    localDependencies_.clear();
+    linkDependencies_.clear();
+    allowLinkedTransactionMerging_ = false;
 }
 
 void ReactGraph::UpdateLinkNodes()
 {
+    TransactionFlags flags = TransactionFlags::none;
+
+    if (! linkDependencies_.empty())
+        flags |= TransactionFlags::sync_linked;
+
+    if (allowLinkedTransactionMerging_)
+        flags |= TransactionFlags::allow_merging;
+
+    SyncPoint::Dependency dep{ begin(linkDependencies_), end(linkDependencies_) };
+
     for (auto& e : scheduledLinkOutputs_)
     {
-        e.first->EnqueueTransaction(TransactionFlags::none,
+        e.first->EnqueueTransaction(
             [inputs = std::move(e.second)]
             {
                 for (auto& callback : inputs)
                     callback();
-            });
+            }, dep, flags);
     }
-
-    scheduledLinkOutputs_.clear();
 }
 
 void ReactGraph::ScheduleSuccessors(NodeData& node)
@@ -197,7 +219,10 @@ size_t TransactionQueue::ProcessNextBatch()
 {
     StoredTransaction curTransaction;
     size_t popCount = 0;
+
     bool canMerge = false;
+    bool syncLinked = false;
+
     bool skipPop = false;
     bool isDone = false;
 
@@ -210,6 +235,8 @@ size_t TransactionQueue::ProcessNextBatch()
                 return popCount;
 
             canMerge = IsBitmaskSet(curTransaction.flags, TransactionFlags::allow_merging);
+            syncLinked = IsBitmaskSet(curTransaction.flags, TransactionFlags::sync_linked);
+
             ++popCount;
         }
         else
@@ -220,16 +247,21 @@ size_t TransactionQueue::ProcessNextBatch()
         graph_.DoTransaction([&]
         {
             curTransaction.func();
+            graph_.AddSyncPointDependency(std::move(curTransaction.dep), syncLinked);
 
             if (canMerge)
             {
-                // Inner loop. Mergeable transactions are merged
+                graph_.AllowLinkedTransactionMerging(true);
+
+                // Pull in additional mergeable transactions.
                 for (;;)
                 {
-                    if (transactions_.try_pop(curTransaction))
+                    if (!transactions_.try_pop(curTransaction))
                         return;
 
                     canMerge = IsBitmaskSet(curTransaction.flags, TransactionFlags::allow_merging);
+                    syncLinked = IsBitmaskSet(curTransaction.flags, TransactionFlags::sync_linked);
+
                     ++popCount;
 
                     if (!canMerge)
@@ -239,6 +271,7 @@ size_t TransactionQueue::ProcessNextBatch()
                     }
 
                     curTransaction.func();
+                    graph_.AddSyncPointDependency(std::move(curTransaction.dep), syncLinked);
                 }
             }
         });

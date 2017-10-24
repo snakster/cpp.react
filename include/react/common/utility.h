@@ -17,6 +17,34 @@
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
+template<size_t N>
+struct Apply
+{
+    template <typename F, typename T, typename ... A>
+    static auto apply(F&& f, T&& t, A&& ... a) -> decltype(auto)
+    {
+        return Apply<N-1>::apply(std::forward<F>(f), std::forward<T>(t), std::get<N-1>(
+            std::forward<T>(t)), std::forward<A>(a)...);
+    }
+};
+
+template<>
+struct Apply<0>
+{
+    template <typename F, typename T, typename ... A>
+    static auto apply(F&& f, T&&, A&& ... a) -> decltype(auto)
+    {
+        return std::forward<F>(f)(std::forward<A>(a) ...);
+    }
+};
+
+template<typename F, typename T>
+inline auto apply(F&& f, T&& t) -> decltype(auto)
+{
+    return Apply<std::tuple_size<typename std::decay<T>::type>::value>::apply(
+        std::forward<F>(f), std::forward<T>(t));
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Helper to enable calling a function on each element of an argument pack.
 /// We can't do f(args) ...; because ... expands with a comma.

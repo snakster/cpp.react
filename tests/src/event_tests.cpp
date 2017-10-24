@@ -80,7 +80,7 @@ TEST(EventTest, BasicOutput)
     EXPECT_EQ(3, output);
 }
 
-TEST(EventTest, EventSlots)
+TEST(EventTest, Slots)
 {
     Group g;
 
@@ -144,7 +144,7 @@ TEST(EventTest, EventSlots)
     EXPECT_EQ(4, turns);
 }
 
-TEST(EventTest, EventTransactions)
+TEST(EventTest, Transactions)
 {
     Group g;
 
@@ -174,7 +174,7 @@ TEST(EventTest, EventTransactions)
     EXPECT_EQ(1, turns);
 }
 
-TEST(EventTest, ExplicitEventLinks)
+TEST(EventTest, Links)
 {
     Group g1;
     Group g2;

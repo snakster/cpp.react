@@ -14,8 +14,8 @@
 #include <memory>
 #include <utility>
 
+#include "state_nodes.h"
 #include "event_nodes.h"
-#include "signal_nodes.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -23,12 +23,12 @@
 /// IterateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename F, typename E>
-class IterateNode : public SignalNode<S>
+class IterateNode : public StateNode<S>
 {
 public:
     template <typename T, typename FIn>
     IterateNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt) :
-        IterateNode::SignalNode( group, std::forward<T>(init) ),
+        IterateNode::StateNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         evnt_( evnt )
     {
@@ -66,12 +66,12 @@ private:
 /// IterateByRefNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename F, typename E>
-class IterateByRefNode : public SignalNode<S>
+class IterateByRefNode : public StateNode<S>
 {
 public:
     template <typename T, typename FIn>
     IterateByRefNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt) :
-        IterateByRefNode::SignalNode( group, std::forward<T>(init) ),
+        IterateByRefNode::StateNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         evnt_( evnt )
     {
@@ -102,12 +102,12 @@ protected:
 /// SyncedIterateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename F, typename E, typename ... TSyncs>
-class SyncedIterateNode : public SignalNode<S>
+class SyncedIterateNode : public StateNode<S>
 {
 public:
     template <typename T, typename FIn>
-    SyncedIterateNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt, const Signal<TSyncs>& ... syncs) :
-        SyncedIterateNode::SignalNode( group, std::forward<T>(init) ),
+    SyncedIterateNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt, const State<TSyncs>& ... syncs) :
+        SyncedIterateNode::StateNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         evnt_( evnt ),
         syncHolder_( syncs ... )
@@ -119,7 +119,7 @@ public:
 
     ~SyncedIterateNode()
     {
-        std::apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
         this->DetachFromMe(GetInternals(evnt_).GetNodeId());
         this->UnregisterMe();
     }
@@ -130,7 +130,7 @@ public:
         if (GetInternals(evnt_).Events().empty())
             return UpdateResult::unchanged;
 
-        S newValue = std::apply(
+        S newValue = apply(
             [this] (const auto& ... syncs)
             {
                 return func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value(), GetInternals(syncs).Value() ...);
@@ -152,19 +152,19 @@ private:
     F           func_;
     Event<E>    evnt_;
 
-    std::tuple<Signal<TSyncs> ...> syncHolder_;
+    std::tuple<State<TSyncs> ...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// SyncedIterateByRefNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename F, typename E, typename ... TSyncs>
-class SyncedIterateByRefNode : public SignalNode<S>
+class SyncedIterateByRefNode : public StateNode<S>
 {
 public:
     template <typename T, typename FIn>
-    SyncedIterateByRefNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt, const Signal<TSyncs>& ... syncs) :
-        SyncedIterateByRefNode::SignalNode( group, std::forward<T>(init) ),
+    SyncedIterateByRefNode(const Group& group, T&& init, FIn&& func, const Event<E>& evnt, const State<TSyncs>& ... syncs) :
+        SyncedIterateByRefNode::StateNode( group, std::forward<T>(init) ),
         func_( std::forward<FIn>(func) ),
         evnt_( evnt ),
         syncHolder_( syncs ... )
@@ -176,7 +176,7 @@ public:
 
     ~SyncedIterateByRefNode()
     {
-        std::apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
         this->DetachFromMe(GetInternals(evnt_).GetNodeId());
         this->UnregisterMe();
     }
@@ -187,7 +187,7 @@ public:
         if (GetInternals(evnt_).Events().empty())
             return UpdateResult::unchanged;
 
-        std::apply(
+        apply(
             [this] (const auto& ... args)
             {
                 func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value(), GetInternals(args).Value() ...);
@@ -201,19 +201,19 @@ private:
     F           func_;
     Event<E>    events_;
 
-    std::tuple<Signal<TSyncs> ...> syncHolder_;
+    std::tuple<State<TSyncs> ...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// HoldNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class HoldNode : public SignalNode<S>
+class HoldNode : public StateNode<S>
 {
 public:
     template <typename T>
     HoldNode(const Group& group, T&& init, const Event<S>& evnt) :
-        HoldNode::SignalNode( group, std::forward<T>(init) ),
+        HoldNode::StateNode( group, std::forward<T>(init) ),
         evnt_( evnt )
     {
         this->RegisterMe();
@@ -255,11 +255,11 @@ private:
 /// SnapshotNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename E>
-class SnapshotNode : public SignalNode<S>
+class SnapshotNode : public StateNode<S>
 {
 public:
-    SnapshotNode(const Group& group, const Signal<S>& target, const Event<E>& trigger) :
-        SnapshotNode::SignalNode( group, GetInternals(target).Value() ),
+    SnapshotNode(const Group& group, const State<S>& target, const Event<E>& trigger) :
+        SnapshotNode::StateNode( group, GetInternals(target).Value() ),
         target_( target ),
         trigger_( trigger )
     {
@@ -297,7 +297,7 @@ public:
     }
 
 private:
-    Signal<S>   target_;
+    State<S>    target_;
     Event<E>    trigger_;
 };
 
@@ -308,7 +308,7 @@ template <typename S>
 class MonitorNode : public EventStreamNode<S>
 {
 public:
-    MonitorNode(const Group& group, const Signal<S>& target) :
+    MonitorNode(const Group& group, const State<S>& target) :
         MonitorNode::EventStreamNode( group ),
         target_( target )
     {
@@ -330,7 +330,7 @@ public:
     }
 
 private:
-    Signal<S>    target_;
+    State<S>    target_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -340,7 +340,7 @@ template <typename S, typename E>
 class PulseNode : public EventStreamNode<S>
 {
 public:
-    PulseNode(const Group& group, const Signal<S>& target, const Event<E>& trigger) :
+    PulseNode(const Group& group, const State<S>& target, const Event<E>& trigger) :
         PulseNode::EventStreamNode( group ),
         target_( target ),
         trigger_( trigger )
@@ -373,7 +373,7 @@ public:
     }
 
 private:
-    Signal<S>   target_;
+    State<S>    target_;
     Event<E>    trigger_;
 };
 

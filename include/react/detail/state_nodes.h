@@ -6,8 +6,8 @@
 
 #pragma once
 
-#ifndef REACT_DETAIL_GRAPH_SIGNALNODES_H_INCLUDED
-#define REACT_DETAIL_GRAPH_SIGNALNODES_H_INCLUDED
+#ifndef REACT_DETAIL_GRAPH_STATENODES_H_INCLUDED
+#define REACT_DETAIL_GRAPH_STATENODES_H_INCLUDED
 
 #include "react/detail/defs.h"
 
@@ -27,26 +27,26 @@ template <typename L, typename R>
 bool Equals(const L& lhs, const R& rhs);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalNode
+/// StateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class SignalNode : public NodeBase
+class StateNode : public NodeBase
 {
 public:
-    SignalNode(SignalNode&&) = default;
-    SignalNode& operator=(SignalNode&&) = default;
+    StateNode(StateNode&&) = default;
+    StateNode& operator=(StateNode&&) = default;
 
-    SignalNode(const SignalNode&) = delete;
-    SignalNode& operator=(const SignalNode&) = delete;
+    StateNode(const StateNode&) = delete;
+    StateNode& operator=(const StateNode&) = delete;
 
-    explicit SignalNode(const Group& group) :
-        SignalNode::NodeBase( group ),
+    explicit StateNode(const Group& group) :
+        StateNode::NodeBase( group ),
         value_( )
     { }
 
     template <typename T>
-    SignalNode(const Group& group, T&& value) :
-        SignalNode::NodeBase( group ),
+    StateNode(const Group& group, T&& value) :
+        StateNode::NodeBase( group ),
         value_( std::forward<T>(value) )
     { }
 
@@ -64,25 +64,25 @@ private:
 /// VarNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class VarSignalNode : public SignalNode<S>
+class StateVarNode : public StateNode<S>
 {
 public:
-    explicit VarSignalNode(const Group& group) :
-        VarSignalNode::SignalNode( group ),
+    explicit StateVarNode(const Group& group) :
+        StateVarNode::StateNode( group ),
         newValue_( )
     {
         this->RegisterMe(NodeCategory::input);
     }
 
     template <typename T>
-    VarSignalNode(const Group& group, T&& value) :
-        VarSignalNode::SignalNode( group, std::forward<T>(value) ),
+    StateVarNode(const Group& group, T&& value) :
+        StateVarNode::StateNode( group, std::forward<T>(value) ),
         newValue_( value )
     {
         this->RegisterMe();
     }
 
-    ~VarSignalNode()
+    ~StateVarNode()
     {
         this->UnregisterMe();
     }
@@ -127,7 +127,6 @@ public:
         isInputModified_ = false;
     }
 
-    // This is signal-specific
     template <typename F>
     void ModifyValue(F&& func)
     {
@@ -154,15 +153,15 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalOpNode
+/// StateOpNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename F, typename ... TDeps>
-class SignalFuncNode : public SignalNode<S>
+class StateFuncNode : public StateNode<S>
 {
 public:
     template <typename FIn>
-    SignalFuncNode(const Group& group, FIn&& func, const Signal<TDeps>& ... deps) :
-        SignalFuncNode::SignalNode( group, func(GetInternals(deps).Value() ...) ),
+    StateFuncNode(const Group& group, FIn&& func, const State<TDeps>& ... deps) :
+        StateFuncNode::StateNode( group, func(GetInternals(deps).Value() ...) ),
         func_( std::forward<FIn>(func) ),
         depHolder_( deps ... )
     {
@@ -170,9 +169,9 @@ public:
         REACT_EXPAND_PACK(this->AttachToMe(GetInternals(deps).GetNodeId()));
     }
 
-    ~SignalFuncNode()
+    ~StateFuncNode()
     {
-        std::apply([this] (const auto& ... deps)
+        apply([this] (const auto& ... deps)
             { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodePtr()->GetNodeId())); }, depHolder_);
         this->UnregisterMe();
     }
@@ -181,7 +180,7 @@ public:
     {   
         bool changed = false;
 
-        S newValue = std::apply([this] (const auto& ... deps)
+        S newValue = apply([this] (const auto& ... deps)
             { return this->func_(GetInternals(deps).Value() ...); }, depHolder_);
 
         if (! (this->Value() == newValue))
@@ -198,18 +197,18 @@ public:
 
 private:
     F func_;
-    std::tuple<Signal<TDeps> ...> depHolder_;
+    std::tuple<State<TDeps> ...> depHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalSlotNode
+/// StateSlotNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class SignalSlotNode : public SignalNode<S>
+class StateSlotNode : public StateNode<S>
 {
 public:
-    SignalSlotNode(const Group& group, const Signal<S>& dep) :
-        SignalSlotNode::SignalNode( group, GetInternals(dep).Value() ),
+    StateSlotNode(const Group& group, const State<S>& dep) :
+        StateSlotNode::StateNode( group, GetInternals(dep).Value() ),
         input_( dep )
     {
         inputNodeId_ = GetGraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
@@ -219,7 +218,7 @@ public:
         this->AttachToMe(GetInternals(dep).GetNodeId());
     }
 
-    ~SignalSlotNode()
+    ~StateSlotNode()
     {
         this->DetachFromMe(GetInternals(input_).GetNodeId());
         this->DetachFromMe(inputNodeId_);
@@ -241,7 +240,7 @@ public:
         }
     }
 
-    void SetInput(const Signal<S>& newInput)
+    void SetInput(const State<S>& newInput)
     {
         if (newInput == input_)
             return;
@@ -262,36 +261,35 @@ private:
             { return UpdateResult::changed; }
     };
 
-    Signal<S>           input_;
+    State<S>           input_;
     NodeId              inputNodeId_;
     VirtualInputNode    slotInput_;
     
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalLinkNode
+/// StateLinkNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class SignalLinkNode : public SignalNode<S>
+class StateLinkNode : public StateNode<S>
 {
 public:
-    SignalLinkNode(const Group& group, const Signal<S>& dep) :
-        SignalLinkNode::SignalNode( group, GetInternals(dep).Value() ),
-        dep_ ( dep )
+    StateLinkNode(const Group& group, const State<S>& dep) :
+        StateLinkNode::StateNode( group, GetInternals(dep).Value() ),
+        dep_ ( dep ),
+        srcGroup_( dep.GetGroup() )
     {
         this->RegisterMe(NodeCategory::input);
 
-        auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
-        outputNodeId_ = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
+        auto& srcGraphPtr = GetInternals(srcGroup_).GetGraphPtr();
+        outputNodeId_ = srcGraphPtr->RegisterNode(&linkOutput_, NodeCategory::linkoutput);
         
         srcGraphPtr->AttachNode(outputNodeId_, GetInternals(dep).GetNodeId());
     }
 
-    ~SignalLinkNode()
+    ~StateLinkNode()
     {
-        this->DetachFromMe(GetInternals(dep_).GetNodeId());
-
-        auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
+        auto& srcGraphPtr = GetInternals(srcGroup_).GetGraphPtr();
         srcGraphPtr->DetachNode(outputNodeId_, GetInternals(dep_).GetNodeId());
         srcGraphPtr->UnregisterNode(outputNodeId_);
 
@@ -301,7 +299,7 @@ public:
         this->UnregisterMe();
     }
 
-    void SetWeakSelfPtr(const std::weak_ptr<SignalLinkNode>& self)
+    void SetWeakSelfPtr(const std::weak_ptr<StateLinkNode>& self)
         { linkOutput_.parent = self; }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
@@ -327,7 +325,7 @@ private:
                         NodeId nodeId = storedParent->GetNodeId();
                         auto& graphPtr = storedParent->GetGraphPtr();
 
-                        graphPtr->AddInput(nodeId,
+                        graphPtr->PushInput(nodeId,
                             [&storedParent, &storedValue]
                             {
                                 storedParent->SetValue(std::move(storedValue));
@@ -336,37 +334,38 @@ private:
             }
         }
 
-        std::weak_ptr<SignalLinkNode> parent;
+        std::weak_ptr<StateLinkNode> parent;
     };
 
-    Signal<S>   dep_;
-    Group       srcGroup;
+    State<S>    dep_;
+    Group       srcGroup_;
     NodeId      outputNodeId_;
+
     VirtualOutputNode linkOutput_;
 };
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SignalInternals
+/// StateInternals
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class SignalInternals
+class StateInternals
 {
 public:
-    SignalInternals(const SignalInternals&) = default;
-    SignalInternals& operator=(const SignalInternals&) = default;
+    StateInternals(const StateInternals&) = default;
+    StateInternals& operator=(const StateInternals&) = default;
 
-    SignalInternals(SignalInternals&&) = default;
-    SignalInternals& operator=(SignalInternals&&) = default;
+    StateInternals(StateInternals&&) = default;
+    StateInternals& operator=(StateInternals&&) = default;
 
-    explicit SignalInternals(std::shared_ptr<SignalNode<S>>&& nodePtr) :
+    explicit StateInternals(std::shared_ptr<StateNode<S>>&& nodePtr) :
         nodePtr_( std::move(nodePtr) )
     { }
 
-    auto GetNodePtr() -> std::shared_ptr<SignalNode<S>>&
+    auto GetNodePtr() -> std::shared_ptr<StateNode<S>>&
         { return nodePtr_; }
 
-    auto GetNodePtr() const -> const std::shared_ptr<SignalNode<S>>&
+    auto GetNodePtr() const -> const std::shared_ptr<StateNode<S>>&
         { return nodePtr_; }
 
     NodeId GetNodeId() const
@@ -379,9 +378,9 @@ public:
         { return nodePtr_->Value(); }
 
 private:
-    std::shared_ptr<SignalNode<S>> nodePtr_;
+    std::shared_ptr<StateNode<S>> nodePtr_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
-#endif // REACT_DETAIL_GRAPH_SIGNALNODES_H_INCLUDED
+#endif // REACT_DETAIL_GRAPH_STATENODES_H_INCLUDED

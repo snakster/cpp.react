@@ -18,39 +18,6 @@
 
 #include "react/detail/observer_nodes.h"
 
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-class ObserverInternals
-{
-public:
-    ObserverInternals(const ObserverInternals&) = default;
-    ObserverInternals& operator=(const ObserverInternals&) = default;
-
-    ObserverInternals(ObserverInternals&&) = default;
-    ObserverInternals& operator=(ObserverInternals&&) = default;
-
-    explicit ObserverInternals(std::shared_ptr<ObserverNode>&& nodePtr) :
-        nodePtr_( std::move(nodePtr) )
-    { }
-
-    auto GetNodePtr() -> std::shared_ptr<ObserverNode>&
-        { return nodePtr_; }
-
-    auto GetNodePtr() const -> const std::shared_ptr<ObserverNode>&
-        { return nodePtr_; }
-
-    NodeId GetNodeId() const
-        { return nodePtr_->GetNodeId(); }
-
-protected:
-    ObserverInternals() = default;
-
-private:
-    std::shared_ptr<ObserverNode> nodePtr_;
-};
-
-/****************************************/ REACT_IMPL_END /***************************************/
-
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,16 +35,16 @@ public:
     Observer(Observer&&) = default;
     Observer& operator=(Observer&&) = default;
 
-    // Construct signal observer with explicit group
+    // Construct state observer with explicit group
     template <typename F, typename T1, typename ... Ts>
-    Observer(const Group& group, F&& func, const Signal<T1>& subject1, const Signal<Ts>& ... subjects) :
-        Observer::Observer( CreateSignalObserverNode(group, std::forward<F>(func), subject1, subjects ...))
+    Observer(const Group& group, F&& func, const State<T1>& subject1, const State<Ts>& ... subjects) :
+        Observer::Observer( CreateStateObserverNode(group, std::forward<F>(func), subject1, subjects ...))
     { }
 
-    // Construct signal observer with implicit group
+    // Construct state observer with implicit group
     template <typename F, typename T1, typename ... Ts>
-    Observer(F&& func, const Signal<T1>& subject1, const Signal<Ts>& ... subjects) :
-        Observer::Observer( CreateSignalObserverNode(subject1.GetGroup(), std::forward<F>(func), subject1, subjects ...))
+    Observer(F&& func, const State<T1>& subject1, const State<Ts>& ... subjects) :
+        Observer::Observer( CreateStateObserverNode(subject1.GetGroup(), std::forward<F>(func), subject1, subjects ...))
     { }
 
     // Construct event observer with explicit group
@@ -94,14 +61,14 @@ public:
 
     // Constructed synced event observer with explicit group
     template <typename F, typename T, typename ... Us>
-    Observer(const Group& group, F&& func, const Event<T>& subject, const Signal<Us>& ... signals) :
-        Observer::Observer( CreateSyncedEventObserverNode(group, std::forward<F>(func), subject, signals ...))
+    Observer(const Group& group, F&& func, const Event<T>& subject, const State<Us>& ... states) :
+        Observer::Observer( CreateSyncedEventObserverNode(group, std::forward<F>(func), subject, states ...))
     { }
 
     // Constructed synced event observer with implicit group
     template <typename F, typename T, typename ... Us>
-    Observer(F&& func, const Event<T>& subject, const Signal<Us>& ... signals) :
-        Observer::Observer( CreateSyncedEventObserverNode(subject.GetGroup(), std::forward<F>(func), subject, signals ...))
+    Observer(F&& func, const Event<T>& subject, const State<Us>& ... states) :
+        Observer::Observer( CreateSyncedEventObserverNode(subject.GetGroup(), std::forward<F>(func), subject, states ...))
     { }
 
 public: //Internal
@@ -112,10 +79,10 @@ public: //Internal
 
 protected:
     template <typename F, typename T1, typename ... Ts>
-    auto CreateSignalObserverNode(const Group& group, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) -> decltype(auto)
+    auto CreateStateObserverNode(const Group& group, F&& func, const State<T1>& dep1, const State<Ts>& ... deps) -> decltype(auto)
     {
-        using REACT_IMPL::SignalObserverNode;
-        return std::make_shared<SignalObserverNode<typename std::decay<F>::type, T1, Ts ...>>(
+        using REACT_IMPL::StateObserverNode;
+        return std::make_shared<StateObserverNode<typename std::decay<F>::type, T1, Ts ...>>(
             group, std::forward<F>(func), SameGroupOrLink(group, dep1), SameGroupOrLink(group, deps) ...);
     }
 
@@ -128,7 +95,7 @@ protected:
     }
 
     template <typename F, typename T, typename ... Us>
-    auto CreateSyncedEventObserverNode(const Group& group, F&& func, const Event<T>& dep, const Signal<Us>& ... syncs) -> decltype(auto)
+    auto CreateSyncedEventObserverNode(const Group& group, F&& func, const Event<T>& dep, const State<Us>& ... syncs) -> decltype(auto)
     {
         using REACT_IMPL::SyncedEventObserverNode;
         return std::make_shared<SyncedEventObserverNode<typename std::decay<F>::type, T, Us ...>>(

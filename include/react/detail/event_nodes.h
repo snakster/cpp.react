@@ -20,7 +20,7 @@
 //#include "tbb/spin_mutex.h"
 
 #include "node_base.h"
-#include "react/common/Types.h"
+#include "react/common/utility.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -41,23 +41,23 @@ using EventValueSink = std::back_insert_iterator<std::vector<E>>;
 /// Forward declarations
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class SignalNode;
+class StateNode;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// EventStreamNode
+/// EventNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename E>
-class EventStreamNode : public NodeBase
+class EventNode : public NodeBase
 {
 public:
-    EventStreamNode(EventStreamNode&&) = default;
-    EventStreamNode& operator=(EventStreamNode&&) = default;
+    EventNode(EventNode&&) = default;
+    EventNode& operator=(EventNode&&) = default;
 
-    EventStreamNode(const EventStreamNode&) = delete;
-    EventStreamNode& operator=(const EventStreamNode&) = delete;
+    EventNode(const EventNode&) = delete;
+    EventNode& operator=(const EventNode&) = delete;
 
-    explicit EventStreamNode(const Group& group) :
-        EventStreamNode::NodeBase( group )
+    explicit EventNode(const Group& group) :
+        EventNode::NodeBase( group )
     { }
 
     EventValueList<E>& Events()
@@ -77,11 +77,11 @@ private:
 /// EventSourceNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename E>
-class EventSourceNode : public EventStreamNode<E>
+class EventSourceNode : public EventNode<E>
 {
 public:
     EventSourceNode(const Group& group) :
-        EventSourceNode::EventStreamNode( group )
+        EventSourceNode::EventNode( group )
     {
         this->RegisterMe(NodeCategory::input);
     }
@@ -108,11 +108,11 @@ public:
 /// EventMergeNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename E, typename ... TInputs>
-class EventMergeNode : public EventStreamNode<E>
+class EventMergeNode : public EventNode<E>
 {
 public:
     EventMergeNode(const Group& group, const Event<TInputs>& ... deps) :
-        EventMergeNode::EventStreamNode( group ),
+        EventMergeNode::EventNode( group ),
         inputs_( deps ... )
     {
         this->RegisterMe();
@@ -121,14 +121,14 @@ public:
 
     ~EventMergeNode()
     {
-        std::apply([this] (const auto& ... deps)
+        apply([this] (const auto& ... deps)
             { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodeId())); }, depHolder_);
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        std::apply([this] (auto& ... deps)
+        apply([this] (auto& ... deps)
             { REACT_EXPAND_PACK(MergeFromDep(deps)); }, depHolder_);
 
         if (! this->Events().empty())
@@ -152,11 +152,11 @@ private:
 /// EventSlotNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename E>
-class EventSlotNode : public EventStreamNode<E>
+class EventSlotNode : public EventNode<E>
 {
 public:
     EventSlotNode(const Group& group) :
-        EventSlotNode::EventStreamNode( group )
+        EventSlotNode::EventNode( group )
     {
         inputNodeId_ = GetGraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
         this->RegisterMe();
@@ -235,12 +235,12 @@ private:
 /// EventProcessingNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TOut, typename TIn, typename F>
-class EventProcessingNode : public EventStreamNode<TOut>
+class EventProcessingNode : public EventNode<TOut>
 {
 public:
     template <typename FIn>
     EventProcessingNode(const Group& group, FIn&& func, const Event<TIn>& dep) :
-        EventProcessingNode::EventStreamNode( group ),
+        EventProcessingNode::EventNode( group ),
         func_( std::forward<FIn>(func) ),
         dep_( dep )
     {
@@ -256,7 +256,7 @@ public:
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        func_(EventRange<TIn>( GetInternals(dep_).Events() ), std::back_inserter(this->Events()));
+        func_(GetInternals(dep_).Events(), std::back_inserter(this->Events()));
 
         if (! this->Events().empty())
             return UpdateResult::changed;
@@ -274,12 +274,12 @@ private:
 /// SyncedEventProcessingNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TOut, typename TIn, typename F, typename ... TSyncs>
-class SyncedEventProcessingNode : public EventStreamNode<TOut>
+class SyncedEventProcessingNode : public EventNode<TOut>
 {
 public:
     template <typename FIn>
-    SyncedEventProcessingNode(const Group& group, FIn&& func, const Event<TIn>& dep, const Signal<TSyncs>& ... syncs) :
-        SyncedEventProcessingNode::EventStreamNode( group ),
+    SyncedEventProcessingNode(const Group& group, FIn&& func, const Event<TIn>& dep, const State<TSyncs>& ... syncs) :
+        SyncedEventProcessingNode::EventNode( group ),
         func_( std::forward<FIn>(func) ),
         dep_( dep ),
         syncHolder_( syncs ... )
@@ -291,7 +291,7 @@ public:
 
     ~SyncedEventProcessingNode()
     {
-        std::apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
+        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
         this->DetachFromMe(dep_->GetNodeId());
         this->UnregisterMe();
     }
@@ -302,7 +302,7 @@ public:
         if (dep_->Events().empty())
             return UpdateResult::unchanged;
 
-        std::apply(
+        apply(
             [this] (const auto& ... syncs)
             {
                 func_(EventRange<TIn>( this->dep_->Events() ), std::back_inserter(this->Events()), syncs->Value() ...);
@@ -320,18 +320,18 @@ private:
 
     Event<TIn> dep_;
 
-    std::tuple<Signal<TSyncs> ...> syncHolder_;
+    std::tuple<State<TSyncs> ...> syncHolder_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// EventJoinNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename ... Ts>
-class EventJoinNode : public EventStreamNode<std::tuple<Ts ...>>
+class EventJoinNode : public EventNode<std::tuple<Ts ...>>
 {
 public:
     EventJoinNode(const Group& group, const Event<Ts>& ... deps) :
-        EventJoinNode::EventStreamNode( group ),
+        EventJoinNode::EventNode( group ),
         slots_( deps ... )
     {
         this->RegisterMe();
@@ -340,21 +340,21 @@ public:
 
     ~EventJoinNode()
     {
-        std::apply([this] (const auto& ... slots) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(slots.source).GetNodeId())); }, slots_);
+        apply([this] (const auto& ... slots) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(slots.source).GetNodeId())); }, slots_);
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
         // Move events into buffers.
-        std::apply([this, turnId] (Slot<Ts>& ... slots) { REACT_EXPAND_PACK(FetchBuffer(turnId, slots)); }, slots_);
+        apply([this, turnId] (Slot<Ts>& ... slots) { REACT_EXPAND_PACK(FetchBuffer(turnId, slots)); }, slots_);
 
         while (true)
         {
             bool isReady = true;
 
             // All slots ready?
-            std::apply(
+            apply(
                 [this, &isReady] (Slot<Ts>& ... slots)
                 {
                     // Todo: combine return values instead
@@ -366,7 +366,7 @@ public:
                 break;
 
             // Pop values from buffers and emit tuple.
-            std::apply(
+            apply(
                 [this] (Slot<Ts>& ... slots)
                 {
                     this->Events().emplace_back(slots.buffer.front() ...);
@@ -419,11 +419,11 @@ private:
 /// EventLinkNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename E>
-class EventLinkNode : public EventStreamNode<E>
+class EventLinkNode : public EventNode<E>
 {
 public:
     EventLinkNode(const Group& group, const Event<E>& dep) :
-        EventLinkNode::EventStreamNode( group ),
+        EventLinkNode::EventNode( group ),
         linkOutput_( dep )
     {
         this->RegisterMe(NodeCategory::input);
@@ -480,7 +480,7 @@ private:
                         NodeId nodeId = storedParent->GetNodeId();
                         auto& graphPtr = storedParent->GetGraphPtr();
 
-                        graphPtr->AddInput(nodeId,
+                        graphPtr->PushInput(nodeId,
                             [&storedParent, &storedEvents]
                             {
                                 storedParent->SetEvents(std::move(storedEvents));
@@ -512,14 +512,14 @@ public:
     EventInternals(EventInternals&&) = default;
     EventInternals& operator=(EventInternals&&) = default;
 
-    explicit EventInternals(std::shared_ptr<EventStreamNode<E>>&& nodePtr) :
+    explicit EventInternals(std::shared_ptr<EventNode<E>>&& nodePtr) :
         nodePtr_( std::move(nodePtr) )
     { }
 
-    auto GetNodePtr() -> std::shared_ptr<EventStreamNode<E>>&
+    auto GetNodePtr() -> std::shared_ptr<EventNode<E>>&
         { return nodePtr_; }
 
-    auto GetNodePtr() const -> const std::shared_ptr<EventStreamNode<E>>&
+    auto GetNodePtr() const -> const std::shared_ptr<EventNode<E>>&
         { return nodePtr_; }
 
     NodeId GetNodeId() const
@@ -532,7 +532,7 @@ public:
         { return nodePtr_->Events(); }
 
 private:
-    std::shared_ptr<EventStreamNode<E>> nodePtr_;
+    std::shared_ptr<EventNode<E>> nodePtr_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/
