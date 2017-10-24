@@ -424,13 +424,23 @@ class EventLinkNode : public EventNode<E>
 public:
     EventLinkNode(const Group& group, const Event<E>& dep) :
         EventLinkNode::EventNode( group ),
-        linkOutput_( dep )
+        dep_( dep ),
+        srcGroup_( dep.GetGroup() )
     {
         this->RegisterMe(NodeCategory::input);
+
+        auto& srcGraphPtr = GetInternals(srcGroup_).GetGraphPtr();
+        outputNodeId_ = srcGraphPtr->RegisterNode(&linkOutput_, NodeCategory::linkoutput);
+        
+        srcGraphPtr->AttachNode(outputNodeId_, GetInternals(dep).GetNodeId());
     }
 
     ~EventLinkNode()
     {
+        auto& srcGraphPtr = GetInternals(srcGroup_).GetGraphPtr();
+        srcGraphPtr->DetachNode(outputNodeId_, GetInternals(dep_).GetNodeId());
+        srcGraphPtr->UnregisterNode(outputNodeId_);
+
         auto& linkCache = GetGraphPtr()->GetLinkCache();
         linkCache.Erase(this);
 
@@ -449,23 +459,6 @@ public:
 private:
     struct VirtualOutputNode : public IReactNode
     {
-        VirtualOutputNode(const Event<E>& depIn) :
-            parent( ),
-            dep( depIn ),
-            srcGroup( depIn.GetGroup() )
-        {
-            auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
-            nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
-            srcGraphPtr->AttachNode(nodeId, GetInternals(dep).GetNodeId());
-        }
-
-        ~VirtualOutputNode()
-        {
-            auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
-            srcGraphPtr->DetachNode(nodeId, GetInternals(dep).GetNodeId());
-            srcGraphPtr->UnregisterNode(nodeId);
-        }
-
         virtual UpdateResult Update(TurnId turnId) noexcept override
             { return UpdateResult::changed; }
 
@@ -475,7 +468,7 @@ private:
             {
                 auto* rawPtr = p->GetGraphPtr().get();
                 output[rawPtr].push_back(
-                    [storedParent = std::move(p), storedEvents = GetInternals(dep).Events()] () mutable
+                    [storedParent = std::move(p), storedEvents = GetInternals(p->dep_).Events()] () mutable
                     {
                         NodeId nodeId = storedParent->GetNodeId();
                         auto& graphPtr = storedParent->GetGraphPtr();
@@ -489,12 +482,12 @@ private:
             }
         }
 
-        std::weak_ptr<EventLinkNode> parent;
-
-        NodeId      nodeId;
-        Event<E>    dep;
-        Group       srcGroup;
+        std::weak_ptr<EventLinkNode> parent;  
     };
+
+    Event<E>    dep_;
+    Group       srcGroup_;
+    NodeId      outputNodeId_;
 
     VirtualOutputNode linkOutput_;
 };
