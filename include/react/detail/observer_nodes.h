@@ -1,23 +1,21 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef REACT_DETAIL_GRAPH_OBSERVERNODES_H_INCLUDED
-#define REACT_DETAIL_GRAPH_OBSERVERNODES_H_INCLUDED
+#ifndef REACT_DETAIL_OBSERVER_NODES_H_INCLUDED
+#define REACT_DETAIL_OBSERVER_NODES_H_INCLUDED
 
 #pragma once
 
-#include "react/detail/Defs.h"
-#include "react/API.h"
+#include "react/detail/defs.h"
+#include "react/api.h"
 
 #include <memory>
 #include <utility>
 
-#include "GraphBase.h"
-
-#include "react/detail/ReactiveInput.h"
+#include "node_base.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -36,9 +34,9 @@ class EventStreamNode;
 class ObserverNode : public NodeBase
 {
 public:
-    ObserverNode(const Group& group) :
+    explicit ObserverNode(const Group& group) :
         ObserverNode::NodeBase( group )
-        { }
+    { }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -60,19 +58,14 @@ public:
 
     ~SignalObserverNode()
     {
-        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodeId())); }, depHolder_);
+        std::apply([this] (const auto& ... deps)
+            { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodeId())); }, depHolder_);
         this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override
-        { return "SignalObserver"; }
-
-    virtual int GetDependencyCount() const override
-        { return sizeof...(TDeps); }
-
-    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
+    virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        apply([this] (const auto& ... deps) { this->func_(GetInternals(deps).Value() ...); }, depHolder_);
+        std::apply([this] (const auto& ... deps) { this->func_(GetInternals(deps).Value() ...); }, depHolder_);
         return UpdateResult::unchanged;
     }
 
@@ -105,16 +98,9 @@ public:
         this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override
-        { return "EventObserver"; }
-
-    virtual int GetDependencyCount() const override
-        { return 1; }
-
-    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
+    virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        func_(EventRange<E>( GetInternals(subject_).Events() ));
-        GetInternals(subject_).DecrementPendingSuccessorCount();
+        func_(GetInternals(subject_).Events());
         return UpdateResult::unchanged;
     }
 
@@ -145,26 +131,20 @@ public:
 
     ~SyncedEventObserverNode()
     {
-        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
+        std::apply([this] (const auto& ... syncs)
+            { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
         this->DetachFromMe(GetInternals(subject_).GetNodeId());
         this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override
-        { return "SyncedEventObserver"; }
-
-    virtual int GetDependencyCount() const override
-        { return 1 + sizeof...(TSyncs); }
-
-    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
+    virtual UpdateResult Update(TurnId turnId) noexcept override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
         if (GetInternals(this->subject_).Events().empty())
             return UpdateResult::unchanged;
 
-        apply([this] (const auto& ... syncs) { func_(EventRange<E>( GetInternals(this->subject_).Events() ), GetInternals(syncs).Value() ...); }, syncHolder_);
-
-        GetInternals(subject_).DecrementPendingSuccessorCount();
+        std::apply([this] (const auto& ... syncs)
+            { func_(EventRange<E>( GetInternals(this->subject_).Events() ), GetInternals(syncs).Value() ...); }, syncHolder_);
 
         return UpdateResult::unchanged;
     }
@@ -179,4 +159,4 @@ private:
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
-#endif // REACT_DETAIL_GRAPH_OBSERVERNODES_H_INCLUDED
+#endif // REACT_DETAIL_OBSERVER_NODES_H_INCLUDED

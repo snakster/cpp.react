@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef REACT_COMMON_CONTAINERS_H_INCLUDED
-#define REACT_COMMON_CONTAINERS_H_INCLUDED
+#ifndef REACT_COMMON_INDEXED_STORAGE_H_INCLUDED
+#define REACT_COMMON_INDEXED_STORAGE_H_INCLUDED
 
 #pragma once
 
@@ -17,13 +17,13 @@
 #include <memory>
 #include <type_traits>
 
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
+/*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// IndexMap
+/// SlotMap
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-class IndexedStorage
+class SlotMap
 {
     static const size_t initial_capacity = 8;
     static const size_t grow_factor = 2;
@@ -33,15 +33,15 @@ class IndexedStorage
 public:
     using ValueType = T;
 
-    IndexedStorage() = default;
+    SlotMap() = default;
 
-    IndexedStorage(IndexedStorage&&) = default;
-    IndexedStorage& operator=(IndexedStorage&&) = default;
+    SlotMap(SlotMap&&) = default;
+    SlotMap& operator=(SlotMap&&) = default;
 
-    IndexedStorage(const IndexedStorage&) = delete;
-    IndexedStorage& operator=(const IndexedStorage&) = delete;
+    SlotMap(const SlotMap&) = delete;
+    SlotMap& operator=(const SlotMap&) = delete;
 
-    ~IndexedStorage()
+    ~SlotMap()
         { Reset(); }
 
     T& operator[](size_t index)
@@ -90,26 +90,28 @@ public:
         // Skip over free indices.
         for (size_t j = 0; j < freeSize_; ++j)
         {
+            size_t freeIndex = freeIndices_[j];
+
             for (; index < totalSize; ++index)
             {
-                if (j == freeIndex_)
+                if (index == freeIndex)
                 {
                     ++index;
                     break;
                 }
                 else
                 {
-                    data_[index].~T();
+                    reinterpret_cast<T&>(data_[index]).~T();
                 }
             }
         }
 
         // Rest
         for (; index < totalSize; ++index)
-            data_[index].~T();
+            reinterpret_cast<T&>(data_[index]).~T();
 
         size_ = 0;
-        freeList_ = 0;
+        freeSize_ = 0;
     }
 
     void Reset()
@@ -144,7 +146,7 @@ private:
         size_t  newCapacity = CalcNextCapacity();
         
         std::unique_ptr<StorageType[]> newData{ new StorageType[newCapacity] };
-        std::unique_ptr<size_t[]> newFreeList{ new size_t[newCapacity] };
+        std::unique_ptr<size_t[]> newFreeIndices{ new size_t[newCapacity] };
 
         // Move data to new storage
         for (size_t i = 0; i < capacity_; ++i)
@@ -157,7 +159,7 @@ private:
 
         // Use new storage
         data_           = std::move(newData);
-        freeIndices_    = std::move(newFreeList);
+        freeIndices_    = std::move(newFreeIndices);
         capacity_       = newCapacity;
     }
 
@@ -184,6 +186,6 @@ private:
     size_t  capacity_   = 0;
 };
 
-/****************************************/ REACT_IMPL_END /***************************************/
+/******************************************/ REACT_END /******************************************/
 
-#endif // REACT_COMMON_CONTAINERS_H_INCLUDED
+#endif // REACT_COMMON_INDEXED_STORAGE_H_INCLUDED

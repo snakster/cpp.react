@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -33,7 +33,7 @@ Turn::Turn(TurnIdT id, TransactionFlagsT flags) :
 /// PulsecountEngine
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-void EngineBase::OnNodeAttach(Node& node, Node& parent)
+void EngineBase::AttachNode(Node& node, Node& parent)
 {
     parent.Successors.Add(node);
 
@@ -41,7 +41,7 @@ void EngineBase::OnNodeAttach(Node& node, Node& parent)
         node.Level = parent.Level + 1;
 }
 
-void EngineBase::OnNodeDetach(Node& node, Node& parent)
+void EngineBase::DetachNode(Node& node, Node& parent)
 {
     parent.Successors.Remove(node);
 }
@@ -230,7 +230,7 @@ void EngineBase::OnDynamicNodeAttach(Node& node, Node& parent, Turn& turn)
     }
     else
     {
-        OnNodeAttach(node, parent);
+        AttachNode(node, parent);
     
         invalidateSuccessors(node);
 
@@ -245,7 +245,7 @@ void EngineBase::OnDynamicNodeDetach(Node& node, Node& parent, Turn& turn)
     if (isInPhase2_)
         applyAsyncDynamicDetach(node, parent, turn);
     else
-        OnNodeDetach(node, parent);
+        DetachNode(node, parent);
 }
 
 void EngineBase::applyAsyncDynamicAttach(Node& node, Node& parent, Turn& turn)

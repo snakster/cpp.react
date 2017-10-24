@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <cassert>
 #include <cstddef>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -21,15 +20,13 @@
 #define REACT_IMPL_END      REACT_END       }
 #define REACT_IMPL          REACT           ::impl
 
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
+/*****************************************/ REACT_BEGIN /*****************************************/
 
 // Type aliases
 using uint = unsigned int;
 using uchar = unsigned char;
 using std::size_t;
 
-struct CtorTag { };
-
-/****************************************/ REACT_IMPL_END /***************************************/
+/******************************************/ REACT_END /******************************************/
 
 #endif // REACT_DETAIL_DEFS_H_INCLUDED

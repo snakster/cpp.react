@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -30,7 +30,7 @@ ParTurn::ParTurn(TurnIdT id, TransactionFlagsT flags) :
 /// EngineBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TNode, typename TTurn>
-void EngineBase<TNode,TTurn>::OnNodeAttach(TNode& node, TNode& parent)
+void EngineBase<TNode,TTurn>::AttachNode(TNode& node, TNode& parent)
 {
     parent.Successors.Add(node);
 
@@ -39,7 +39,7 @@ void EngineBase<TNode,TTurn>::OnNodeAttach(TNode& node, TNode& parent)
 }
 
 template <typename TNode, typename TTurn>
-void EngineBase<TNode,TTurn>::OnNodeDetach(TNode& node, TNode& parent)
+void EngineBase<TNode,TTurn>::DetachNode(TNode& node, TNode& parent)
 {
     parent.Successors.Remove(node);
 }
@@ -85,7 +85,7 @@ void SeqEngineBase::Propagate(SeqTurn& turn)
 
 void SeqEngineBase::OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, SeqTurn& turn)
 {
-    this->OnNodeAttach(node, parent);
+    this->AttachNode(node, parent);
     
     invalidateSuccessors(node);
 
@@ -96,7 +96,7 @@ void SeqEngineBase::OnDynamicNodeAttach(SeqNode& node, SeqNode& parent, SeqTurn&
 
 void SeqEngineBase::OnDynamicNodeDetach(SeqNode& node, SeqNode& parent, SeqTurn& turn)
 {
-    this->OnNodeDetach(node, parent);
+    this->DetachNode(node, parent);
 }
 
 void SeqEngineBase::processChildren(SeqNode& node, SeqTurn& turn)
@@ -184,7 +184,7 @@ void ParEngineBase::OnDynamicNodeDetach(ParNode& node, ParNode& parent, ParTurn&
 
 void ParEngineBase::applyDynamicAttach(ParNode& node, ParNode& parent, ParTurn& turn)
 {
-    this->OnNodeAttach(node, parent);
+    this->AttachNode(node, parent);
 
     invalidateSuccessors(node);
 
@@ -195,7 +195,7 @@ void ParEngineBase::applyDynamicAttach(ParNode& node, ParNode& parent, ParTurn& 
 
 void ParEngineBase::applyDynamicDetach(ParNode& node, ParNode& parent, ParTurn& turn)
 {
-    this->OnNodeDetach(node, parent);
+    this->DetachNode(node, parent);
 }
 
 void ParEngineBase::processChildren(ParNode& node, ParTurn& turn)

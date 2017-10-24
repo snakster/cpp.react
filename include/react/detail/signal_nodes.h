@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -9,14 +9,14 @@
 #ifndef REACT_DETAIL_GRAPH_SIGNALNODES_H_INCLUDED
 #define REACT_DETAIL_GRAPH_SIGNALNODES_H_INCLUDED
 
-#include "react/detail/Defs.h"
+#include "react/detail/defs.h"
 
 #include <memory>
 #include <queue>
 #include <utility>
 #include <vector>
 
-#include "GraphBase.h"
+#include "node_base.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -42,13 +42,13 @@ public:
     explicit SignalNode(const Group& group) :
         SignalNode::NodeBase( group ),
         value_( )
-        { }
+    { }
 
     template <typename T>
     SignalNode(const Group& group, T&& value) :
         SignalNode::NodeBase( group ),
         value_( std::forward<T>(value) )
-        { }
+    { }
 
     S& Value()
         { return value_; }
@@ -87,13 +87,7 @@ public:
         this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override
-        { return "VarSignal"; }
-
-    virtual int GetDependencyCount() const override
-        { return 0; }
-
-    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
+    virtual UpdateResult Update(TurnId turnId) noexcept override
     {
         if (isInputAdded_)
         {
@@ -149,7 +143,7 @@ public:
         // in ApplyInput
         else
         {
-            func(newValue_);            
+            func(newValue_);
         }
     }
 
@@ -178,21 +172,17 @@ public:
 
     ~SignalFuncNode()
     {
-        apply([this] (const auto& ... deps) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodePtr()->GetNodeId())); }, depHolder_);
+        std::apply([this] (const auto& ... deps)
+            { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodePtr()->GetNodeId())); }, depHolder_);
         this->UnregisterMe();
     }
 
-    virtual const char* GetNodeType() const override
-        { return "SignalFunc"; }
-
-    virtual int GetDependencyCount() const override
-        { return sizeof...(TDeps); }
-
-    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
+    virtual UpdateResult Update(TurnId turnId) noexcept override
     {   
         bool changed = false;
 
-        S newValue = apply([this] (const auto& ... deps) { return this->func_(GetInternals(deps).Value() ...); }, depHolder_);
+        S newValue = std::apply([this] (const auto& ... deps)
+            { return this->func_(GetInternals(deps).Value() ...); }, depHolder_);
 
         if (! (this->Value() == newValue))
         {
@@ -208,7 +198,6 @@ public:
 
 private:
     F func_;
-
     std::tuple<Signal<TDeps> ...> depHolder_;
 };
 
@@ -224,8 +213,8 @@ public:
         input_( dep )
     {
         inputNodeId_ = GetGraphPtr()->RegisterNode(&slotInput_, NodeCategory::dyninput);
+        
         this->RegisterMe();
-
         this->AttachToMe(inputNodeId_);
         this->AttachToMe(GetInternals(dep).GetNodeId());
     }
@@ -234,18 +223,12 @@ public:
     {
         this->DetachFromMe(GetInternals(input_).GetNodeId());
         this->DetachFromMe(inputNodeId_);
-
         this->UnregisterMe();
+
         GetGraphPtr()->UnregisterNode(inputNodeId_);
     }
 
-    virtual const char* GetNodeType() const override
-        { return "SignalSlot"; }
-
-    virtual int GetDependencyCount() const override
-        { return 2; }
-
-    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
+    virtual UpdateResult Update(TurnId turnId) noexcept override
     {
         if (! (this->Value() == GetInternals(input_).Value()))
         {
@@ -273,20 +256,13 @@ public:
         { return inputNodeId_; }
 
 private:        
-    struct VirtualInputNode : public IReactiveNode
+    struct VirtualInputNode : public IReactNode
     {
-        virtual const char* GetNodeType() const override
-            { return "SignalSlotInput"; }
-
-        virtual int GetDependencyCount() const override
-            { return 0; }
-
-        virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
+        virtual UpdateResult Update(TurnId turnId) noexcept override
             { return UpdateResult::changed; }
     };
 
-    Signal<S> input_;
-
+    Signal<S>           input_;
     NodeId              inputNodeId_;
     VirtualInputNode    slotInput_;
     
@@ -301,13 +277,24 @@ class SignalLinkNode : public SignalNode<S>
 public:
     SignalLinkNode(const Group& group, const Signal<S>& dep) :
         SignalLinkNode::SignalNode( group, GetInternals(dep).Value() ),
-        linkOutput_( dep )
+        dep_ ( dep )
     {
         this->RegisterMe(NodeCategory::input);
+
+        auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
+        outputNodeId_ = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
+        
+        srcGraphPtr->AttachNode(outputNodeId_, GetInternals(dep).GetNodeId());
     }
 
     ~SignalLinkNode()
     {
+        this->DetachFromMe(GetInternals(dep_).GetNodeId());
+
+        auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
+        srcGraphPtr->DetachNode(outputNodeId_, GetInternals(dep_).GetNodeId());
+        srcGraphPtr->UnregisterNode(outputNodeId_);
+
         auto& linkCache = GetGraphPtr()->GetLinkCache();
         linkCache.Erase(this);
 
@@ -317,46 +304,16 @@ public:
     void SetWeakSelfPtr(const std::weak_ptr<SignalLinkNode>& self)
         { linkOutput_.parent = self; }
 
-    virtual const char* GetNodeType() const override
-        { return "SignalLink"; }
-
-    virtual int GetDependencyCount() const override
-        { return 1; }
-
-    virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
+    virtual UpdateResult Update(TurnId turnId) noexcept override
         { return UpdateResult::changed; }
 
-    template <typename T>
-    void SetValue(T&& newValue)
-        { this->Value() = std::forward<T>(newValue); }
+    void SetValue(S&& newValue)
+        { this->Value() = std::move(newValue); }
 
 private:
-    struct VirtualOutputNode : public ILinkOutputNode
+    struct VirtualOutputNode : public IReactNode
     {
-        VirtualOutputNode(const Signal<S>& depIn) :
-            parent( ),
-            dep( depIn ),
-            srcGroup( depIn.GetGroup() )
-        {
-            auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
-            nodeId = srcGraphPtr->RegisterNode(this, NodeCategory::linkoutput);
-            srcGraphPtr->OnNodeAttach(nodeId, GetInternals(dep).GetNodeId());
-        }
-
-        ~VirtualOutputNode()
-        {
-            auto& srcGraphPtr = GetInternals(srcGroup).GetGraphPtr();
-            srcGraphPtr->OnNodeDetach(nodeId, GetInternals(dep).GetNodeId());
-            srcGraphPtr->UnregisterNode(nodeId);
-        }
-
-        virtual const char* GetNodeType() const override
-            { return "SignalLinkOutput"; }
-
-        virtual int GetDependencyCount() const override
-            { return 1; }
-
-        virtual UpdateResult Update(TurnId turnId, size_t successorCount) override
+        virtual UpdateResult Update(TurnId turnId) noexcept override
             { return UpdateResult::changed; }
 
         virtual void CollectOutput(LinkOutputMap& output) override
@@ -365,7 +322,7 @@ private:
             {
                 auto* rawPtr = p->GetGraphPtr().get();
                 output[rawPtr].push_back(
-                    [storedParent = std::move(p), storedValue = GetInternals(dep).Value()]
+                    [storedParent = std::move(p), storedValue = GetInternals(p->dep_).Value()] () mutable -> void
                     {
                         NodeId nodeId = storedParent->GetNodeId();
                         auto& graphPtr = storedParent->GetGraphPtr();
@@ -380,13 +337,49 @@ private:
         }
 
         std::weak_ptr<SignalLinkNode> parent;
-
-        NodeId      nodeId;
-        Signal<S>   dep;
-        Group       srcGroup;
     };
 
+    Signal<S>   dep_;
+    Group       srcGroup;
+    NodeId      outputNodeId_;
     VirtualOutputNode linkOutput_;
+};
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SignalInternals
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename S>
+class SignalInternals
+{
+public:
+    SignalInternals(const SignalInternals&) = default;
+    SignalInternals& operator=(const SignalInternals&) = default;
+
+    SignalInternals(SignalInternals&&) = default;
+    SignalInternals& operator=(SignalInternals&&) = default;
+
+    explicit SignalInternals(std::shared_ptr<SignalNode<S>>&& nodePtr) :
+        nodePtr_( std::move(nodePtr) )
+    { }
+
+    auto GetNodePtr() -> std::shared_ptr<SignalNode<S>>&
+        { return nodePtr_; }
+
+    auto GetNodePtr() const -> const std::shared_ptr<SignalNode<S>>&
+        { return nodePtr_; }
+
+    NodeId GetNodeId() const
+        { return nodePtr_->GetNodeId(); }
+
+    S& Value()
+        { return nodePtr_->Value(); }
+
+    const S& Value() const
+        { return nodePtr_->Value(); }
+
+private:
+    std::shared_ptr<SignalNode<S>> nodePtr_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -16,88 +16,70 @@
     <Filter Include="Header Files\detail">
       <UniqueIdentifier>{82fd9b9e-0b63-40f7-b245-b5eb0271b0d2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\detail\graph">
-      <UniqueIdentifier>{c7adc39d-d19e-4fe2-b945-332515717bc8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\common">
       <UniqueIdentifier>{11a75126-8bfd-4693-be4b-4e06ab73450c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\engine">
       <UniqueIdentifier>{3f444875-ab1a-4bbd-99eb-7018c930098a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\detail">
+      <UniqueIdentifier>{45678bfc-0ce5-4e47-a365-54a72d8ecb6d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\react\common\Containers.h">
-      <Filter>Header Files\common</Filter>
+    <ClInclude Include="..\..\include\react\api.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\common\SourceIdSet.h">
-      <Filter>Header Files\common</Filter>
+    <ClInclude Include="..\..\include\react\event.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\common\TopoQueue.h">
-      <Filter>Header Files\common</Filter>
+    <ClInclude Include="..\..\include\react\group.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\common\Types.h">
-      <Filter>Header Files\common</Filter>
+    <ClInclude Include="..\..\include\react\observer.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\common\Util.h">
-      <Filter>Header Files\common</Filter>
+    <ClInclude Include="..\..\include\react\signal.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\common\Concurrency.h">
-      <Filter>Header Files\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\Defs.h">
+    <ClInclude Include="..\..\include\react\detail\algorithm_nodes.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h">
-      <Filter>Header Files\detail\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\SignalNodes.h">
-      <Filter>Header Files\detail\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\ReactiveInput.h">
+    <ClInclude Include="..\..\include\react\detail\defs.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\AlgorithmNodes.h">
-      <Filter>Header Files\detail\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h">
-      <Filter>Header Files\detail\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\EventNodes.h">
-      <Filter>Header Files\detail\graph</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\common\Timing.h">
-      <Filter>Header Files\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\common\RefCounting.h">
-      <Filter>Header Files\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\IReactiveGraph.h">
+    <ClInclude Include="..\..\include\react\detail\event_nodes.h">
       <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\PropagationST.h">
-      <Filter>Header Files\detail\graph</Filter>
+    <ClInclude Include="..\..\include\react\detail\graph_interface.h">
+      <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\detail\graph\PropagationMT.h">
-      <Filter>Header Files\detail\graph</Filter>
+    <ClInclude Include="..\..\include\react\detail\node_base.h">
+      <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\Algorithm.h">
+    <ClInclude Include="..\..\include\react\detail\observer_nodes.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\detail\signal_nodes.h">
+      <Filter>Header Files\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\react\algorithm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\Event.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\include\react\detail\graph_impl.h">
+      <Filter>Header Files\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\Observer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\include\react\common\slotmap.h">
+      <Filter>Header Files\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\Signal.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\include\react\common\ptrcache.h">
+      <Filter>Header Files\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\API.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\include\react\common\syncpoint.h">
+      <Filter>Header Files\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\react\Group.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\include\react\common\utility.h">
+      <Filter>Header Files\common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -109,6 +91,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\engine\PulsecountEngine.cpp">
       <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\detail\graph_impl.cpp">
+      <Filter>Source Files\detail</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

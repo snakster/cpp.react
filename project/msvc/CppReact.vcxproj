@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -21,31 +21,32 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5E56AAB9-4E33-4B9E-A315-E85CEDB75CF1}</ProjectGuid>
     <RootNamespace>CppReact</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -105,6 +106,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Cpp0xSupport>true</Cpp0xSupport>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -143,6 +145,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Cpp0xSupport>true</Cpp0xSupport>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -154,32 +157,27 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\react\API.h" />
-    <ClInclude Include="..\..\include\react\common\RefCounting.h" />
-    <ClInclude Include="..\..\include\react\common\Timing.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\ObserverNodes.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\PropagationST.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\PropagationMT.h" />
-    <ClInclude Include="..\..\include\react\detail\ReactiveInput.h" />
-    <ClInclude Include="..\..\include\react\detail\Defs.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\AlgorithmNodes.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\EventNodes.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\GraphBase.h" />
-    <ClInclude Include="..\..\include\react\detail\graph\SignalNodes.h" />
-    <ClInclude Include="..\..\include\react\detail\IReactiveGraph.h" />
-    <ClInclude Include="..\..\include\react\Group.h" />
-    <ClInclude Include="..\..\include\react\common\Concurrency.h" />
-    <ClInclude Include="..\..\include\react\common\Containers.h" />
-    <ClInclude Include="..\..\include\react\common\SourceIdSet.h" />
-    <ClInclude Include="..\..\include\react\common\TopoQueue.h" />
-    <ClInclude Include="..\..\include\react\common\Types.h" />
-    <ClInclude Include="..\..\include\react\common\Util.h" />
-    <ClInclude Include="..\..\include\react\Algorithm.h" />
-    <ClInclude Include="..\..\include\react\Event.h" />
-    <ClInclude Include="..\..\include\react\Observer.h" />
-    <ClInclude Include="..\..\include\react\Signal.h" />
+    <ClInclude Include="..\..\include\react\algorithm.h" />
+    <ClInclude Include="..\..\include\react\api.h" />
+    <ClInclude Include="..\..\include\react\common\slotmap.h" />
+    <ClInclude Include="..\..\include\react\common\ptrcache.h" />
+    <ClInclude Include="..\..\include\react\common\syncpoint.h" />
+    <ClInclude Include="..\..\include\react\common\utility.h" />
+    <ClInclude Include="..\..\include\react\detail\algorithm_nodes.h" />
+    <ClInclude Include="..\..\include\react\detail\defs.h" />
+    <ClInclude Include="..\..\include\react\detail\event_nodes.h" />
+    <ClInclude Include="..\..\include\react\detail\graph_interface.h" />
+    <ClInclude Include="..\..\include\react\detail\node_base.h" />
+    <ClInclude Include="..\..\include\react\detail\observer_nodes.h" />
+    <ClInclude Include="..\..\include\react\detail\graph_impl.h" />
+    <ClInclude Include="..\..\include\react\detail\signal_nodes.h" />
+    <ClInclude Include="..\..\include\react\event.h" />
+    <ClInclude Include="..\..\include\react\group.h" />
+    <ClInclude Include="..\..\include\react\observer.h" />
+    <ClInclude Include="..\..\include\react\signal.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\detail\graph_impl.cpp" />
     <ClCompile Include="..\..\src\engine\PulsecountEngine.cpp" />
     <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp" />
     <ClCompile Include="..\..\src\engine\ToposortEngine.cpp" />

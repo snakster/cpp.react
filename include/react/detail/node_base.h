@@ -1,37 +1,47 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef REACT_DETAIL_GRAPH_GRAPHBASE_H_INCLUDED
-#define REACT_DETAIL_GRAPH_GRAPHBASE_H_INCLUDED
+#ifndef REACT_DETAIL_NODE_BASE_H_INCLUDED
+#define REACT_DETAIL_NODE_BASE_H_INCLUDED
 
 #pragma once
 
-#include "react/detail/Defs.h"
+#include "react/detail/defs.h"
 
 #include <iterator>
 #include <memory>
 #include <utility>
 
-#include "react/common/Types.h"
-#include "react/common/Util.h"
-#include "react/detail/IReactiveGraph.h"
+#include "react/common/types.h"
+#include "react/common/utility.h"
+#include "react/detail/graph_interface.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-class ReactiveGraph;
+class ReactGraph;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// CreateWrappedNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename RET, typename NODE, typename ... ARGS>
+static RET CreateWrappedNode(ARGS&& ... args)
+{
+    auto node = std::make_shared<NODE>(std::forward<ARGS>(args) ...);
+    return RET(std::move(node));
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// NodeBase
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-class NodeBase : public IReactiveNode
+class NodeBase : public IReactNode
 {
 public:
     NodeBase(const Group& group) :
         group_( group )
-        { }
+    { }
     
     NodeBase(const NodeBase&) = delete;
     NodeBase& operator=(const NodeBase&) = delete;
@@ -65,10 +75,10 @@ public:
         { return group_; }
 
 protected:
-    auto GetGraphPtr() const -> const std::shared_ptr<ReactiveGraph>&
+    auto GetGraphPtr() const -> const std::shared_ptr<ReactGraph>&
         { return GetInternals(group_).GetGraphPtr(); }
 
-    auto GetGraphPtr() -> std::shared_ptr<ReactiveGraph>&
+    auto GetGraphPtr() -> std::shared_ptr<ReactGraph>&
         { return GetInternals(group_).GetGraphPtr(); }
 
     void RegisterMe(NodeCategory category = NodeCategory::normal)
@@ -78,10 +88,10 @@ protected:
         { GetGraphPtr()->UnregisterNode(nodeId_); }
 
     void AttachToMe(NodeId otherNodeId)
-        { GetGraphPtr()->OnNodeAttach(nodeId_, otherNodeId); }
+        { GetGraphPtr()->AttachNode(nodeId_, otherNodeId); }
 
     void DetachFromMe(NodeId otherNodeId)
-        { GetGraphPtr()->OnNodeDetach(nodeId_, otherNodeId); }
+        { GetGraphPtr()->DetachNode(nodeId_, otherNodeId); }
 
 private:
     NodeId nodeId_;
@@ -91,4 +101,4 @@ private:
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
-#endif // REACT_DETAIL_GRAPH_GRAPHBASE_H_INCLUDED
+#endif // REACT_DETAIL_NODE_BASE_H_INCLUDED

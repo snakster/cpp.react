@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -9,53 +9,18 @@
 
 #pragma once
 
-#include "react/detail/Defs.h"
-#include "react/API.h"
-#include "react/Group.h"
+#include "react/detail/defs.h"
+#include "react/api.h"
+#include "react/group.h"
+#include "react/common/ptrcache.h"
 
 #include <memory>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
-#include "react/detail/graph/SignalNodes.h"
+#include "react/detail/signal_nodes.h"
 
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-template <typename S>
-class SignalInternals
-{
-public:
-    SignalInternals(const SignalInternals&) = default;
-    SignalInternals& operator=(const SignalInternals&) = default;
-
-    SignalInternals(SignalInternals&&) = default;
-    SignalInternals& operator=(SignalInternals&&) = default;
-
-    SignalInternals(std::shared_ptr<SignalNode<S>>&& nodePtr) :
-        nodePtr_( std::move(nodePtr) )
-        { }
-
-    auto GetNodePtr() -> std::shared_ptr<SignalNode<S>>&
-        { return nodePtr_; }
-
-    auto GetNodePtr() const -> const std::shared_ptr<SignalNode<S>>&
-        { return nodePtr_; }
-
-    NodeId GetNodeId() const
-        { return nodePtr_->GetNodeId(); }
-
-    S& Value()
-        { return nodePtr_->Value(); }
-
-    const S& Value() const
-        { return nodePtr_->Value(); }
-
-private:
-    std::shared_ptr<SignalNode<S>> nodePtr_;
-};
-
-/****************************************/ REACT_IMPL_END /***************************************/
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -76,13 +41,13 @@ public:
     template <typename F, typename T1, typename ... Ts>
     explicit Signal(const Group& group, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) :
         Signal::SignalInternals( CreateFuncNode(group, std::forward<F>(func), dep1, deps ...) )
-        { }
+    { }
 
     // Construct with implicit group
     template <typename F, typename T1, typename ... Ts>
     explicit Signal(F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) :
         Signal::SignalInternals( CreateFuncNode(dep1.GetGroup(), std::forward<F>(func), dep1, deps ...) )
-        { }
+    { }
 
     auto GetGroup() const -> const Group&
         { return this->GetNodePtr()->GetGroup(); }
@@ -102,23 +67,24 @@ public:
     friend auto GetInternals(const Signal<S>& s) -> const REACT_IMPL::SignalInternals<S>&
         { return s; }
 
-    template <typename TNode, typename ... TArgs>
-    static Signal<S> CreateWithNode(TArgs&& ... args)
-        { return Signal<S>( REACT_IMPL::CtorTag{ }, std::make_shared<TNode>(std::forward<TArgs>(args) ...) ); }
-
 protected:
-    Signal(REACT_IMPL::CtorTag, std::shared_ptr<REACT_IMPL::SignalNode<S>>&& nodePtr) :
+    explicit Signal(std::shared_ptr<REACT_IMPL::SignalNode<S>>&& nodePtr) :
         Signal::SignalInternals( std::move(nodePtr) )
-        { }
+    { }
 
+private:
     template <typename F, typename T1, typename ... Ts>
     auto CreateFuncNode(const Group& group, F&& func, const Signal<T1>& dep1, const Signal<Ts>& ... deps) -> decltype(auto)
     {
         using REACT_IMPL::SignalFuncNode;
+        using REACT_IMPL::SameGroupOrLink;
 
         return std::make_shared<SignalFuncNode<S, typename std::decay<F>::type, T1, Ts ...>>(
             group, std::forward<F>(func), SameGroupOrLink(group, dep1), SameGroupOrLink(group, deps) ...);
     }
+
+    template <typename RET, typename NODE, typename ... ARGS>
+    friend RET impl::CreateWrappedNode(ARGS&& ... args);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -136,25 +102,19 @@ public:
 
     // Construct with group + default
     explicit VarSignal(const Group& group) :
-        VarSignal::Signal( REACT_IMPL::CtorTag{ }, CreateVarNode(group) )
-        { }
+        VarSignal::Signal( CreateVarNode(group) )
+    { }
 
     // Construct with group + value
     template <typename T>
     VarSignal(const Group& group, T&& value) :
-        VarSignal::Signal( REACT_IMPL::CtorTag{ }, CreateVarNode(group, std::forward<T>(value)) )
-        { }
+        VarSignal::Signal( CreateVarNode(group, std::forward<T>(value)) )
+    { }
 
     void Set(const S& newValue)
         { SetValue(newValue); }
 
     void Set(S&& newValue)
-        { SetValue(std::move(newValue)); }
-
-    void operator<<=(const S& newValue)
-        { SetValue(newValue); }
-
-    void operator<<=(S&& newValue)
         { SetValue(std::move(newValue)); }
 
     template <typename F>
@@ -168,6 +128,11 @@ public:
         { return !(a == b); }
 
 protected:
+    explicit VarSignal(std::shared_ptr<REACT_IMPL::SignalNode<S>>&& nodePtr) :
+        VarSignal::Signal( std::move(nodePtr) )
+    { }
+
+private:
     static auto CreateVarNode(const Group& group) -> decltype(auto)
     {
         using REACT_IMPL::VarSignalNode;
@@ -181,7 +146,6 @@ protected:
         return std::make_shared<VarSignalNode<S>>(group, std::forward<T>(value));
     }
 
-private:
     template <typename T>
     void SetValue(T&& newValue)
     {
@@ -226,13 +190,13 @@ public:
 
     // Construct with explicit group
     SignalSlot(const Group& group, const Signal<S>& input) :
-        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(group, input) )
-        { }
+        SignalSlot::Signal( CreateSlotNode(group, input) )
+    { }
 
     // Construct with implicit group
     explicit SignalSlot(const Signal<S>& input) :
-        SignalSlot::Signal( REACT_IMPL::CtorTag{ }, CreateSlotNode(input.GetGroup(), input) )
-        { }
+        SignalSlot::Signal( CreateSlotNode(input.GetGroup(), input) )
+    { }
 
     void Set(const Signal<S>& newInput)
         { SetInput(newInput); }
@@ -241,19 +205,26 @@ public:
         { SetInput(newInput); }
 
 protected:
+    explicit SignalSlot(std::shared_ptr<REACT_IMPL::SignalNode<S>>&& nodePtr) :
+        SignalSlot::Signal( std::move(nodePtr) )
+    { }
+
+private:
     static auto CreateSlotNode(const Group& group, const Signal<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::SignalSlotNode;
+        using REACT_IMPL::SameGroupOrLink;
+
         return std::make_shared<SignalSlotNode<S>>(group, SameGroupOrLink(group, input));
     }
 
-private:
     void SetInput(const Signal<S>& newInput)
     {
         using REACT_IMPL::NodeId;
-        using SlotNodeType = REACT_IMPL::SignalSlotNode<S>;
+        using REACT_IMPL::SignalSlotNode;
+        using REACT_IMPL::SameGroupOrLink;
 
-        SlotNodeType* castedPtr = static_cast<SlotNodeType*>(this->GetNodePtr().get());
+        auto* castedPtr = static_cast<SignalSlotNode<S>*>(this->GetNodePtr().get());
 
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
@@ -277,31 +248,30 @@ public:
 
     // Construct with group
     SignalLink(const Group& group, const Signal<S>& input) :
-        SignalLink::Signal( REACT_IMPL::CtorTag{ }, GetOrCreateLinkNode(group, input) )
-        { }
+        SignalLink::Signal( GetOrCreateLinkNode(group, input) )
+    { }
 
 protected:
     static auto GetOrCreateLinkNode(const Group& group, const Signal<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::SignalLinkNode;
-
-        auto targetGraphPtr = GetInternals(group).GetGraphPtr();
+        using REACT_IMPL::IReactNode;
+        using REACT_IMPL::ReactGraph;
         
-        void* k1 = GetInternals(input.GetGroup()).GetGraphPtr().get();
-        void* k2 = GetInternals(input).GetNodePtr().get();
+        IReactNode* k = GetInternals(input).GetNodePtr().get();
 
-        auto& linkCache = targetGraphPtr->GetLinkCache();
+        ReactGraph::LinkCache& linkCache = GetInternals(group).GetGraphPtr()->GetLinkCache();
 
-        auto nodePtr = linkCache.LookupOrCreate<SignalLinkNode<S>>(
-            { k1, k2 },
+        std::shared_ptr<IReactNode> nodePtr = linkCache.LookupOrCreate(
+            k,
             [&]
             {
                 auto nodePtr = std::make_shared<SignalLinkNode<S>>(group, input);
                 nodePtr->SetWeakSelfPtr(std::weak_ptr<SignalLinkNode<S>>{ nodePtr });
-                return nodePtr;
+                return std::static_pointer_cast<IReactNode>(nodePtr);
             });
 
-        return nodePtr;
+        return std::static_pointer_cast<SignalLinkNode<S>>(nodePtr);
     }
 };
 

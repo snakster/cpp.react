@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -9,62 +9,18 @@
 
 #pragma once
 
-#include "react/detail/Defs.h"
-#include "react/API.h"
-#include "react/Group.h"
+#include "react/detail/defs.h"
+#include "react/api.h"
+#include "react/group.h"
+#include "react/common/ptrcache.h"
 
 #include <memory>
 #include <type_traits>
 #include <utility>
 
-#include "react/detail/graph/EventNodes.h"
+#include "react/detail/event_nodes.h"
 
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
 
-template <typename E>
-class EventInternals
-{
-protected:
-    using NodeType = EventStreamNode<E>;
-    using StorageType = typename NodeType::StorageType;
-
-public:
-    EventInternals(const EventInternals&) = default;
-    EventInternals& operator=(const EventInternals&) = default;
-
-    EventInternals(EventInternals&&) = default;
-    EventInternals& operator=(EventInternals&&) = default;
-
-    EventInternals(std::shared_ptr<NodeType>&& nodePtr) :
-        nodePtr_( std::move(nodePtr) )
-        { }
-
-    auto GetNodePtr() -> std::shared_ptr<NodeType>&
-        { return nodePtr_; }
-
-    auto GetNodePtr() const -> const std::shared_ptr<NodeType>&
-        { return nodePtr_; }
-
-    NodeId GetNodeId() const
-        { return nodePtr_->GetNodeId(); }
-
-    StorageType& Events()
-        { return nodePtr_->Events(); }
-
-    const StorageType& Events() const
-        { return nodePtr_->Events(); }
-
-    void SetPendingSuccessorCount(size_t count)
-        { nodePtr_->SetPendingSuccessorCount(count); }
-
-    void DecrementPendingSuccessorCount()
-        { nodePtr_->DecrementPendingSuccessorCount(); }
-
-private:
-    std::shared_ptr<NodeType> nodePtr_;
-};
-
-/****************************************/ REACT_IMPL_END /***************************************/
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -81,40 +37,32 @@ public:
     Event(Event&&) = default;
     Event& operator=(Event&&) = default;
 
-    template <typename F, typename T>
-    Event(F&& func, const Event<T>& dep) :
-        Event::Event( REACT_IMPL::CtorTag{ }, CreateProcessingNode(dep.GetGroup(), std::forward<F>(func), dep) )
-        { }
-
+    // Construct with explicit group
     template <typename F, typename T>
     Event(const Group& group, F&& func, const Event<T>& dep) :
-        Event::Event( REACT_IMPL::CtorTag{ }, CreateProcessingNode(group, std::forward<F>(func), dep) )
-        { }
+        Event::Event( CreateProcessingNode(group, std::forward<F>(func), dep) )
+    { }
 
-    template <typename F, typename T, typename ... Us>
-    Event(F&& func, const Event<T>& dep, const Signal<Us>& ... signals) :
-        Event::Event( REACT_IMPL::CtorTag{ }, CreateSyncedProcessingNode(dep.GetGroup(), std::forward<F>(func), dep, signals ...) )
-        { }
+    // Construct with implicit group
+    template <typename F, typename T>
+    Event(F&& func, const Event<T>& dep) :
+        Event::Event( CreateProcessingNode(dep.GetGroup(), std::forward<F>(func), dep) )
+    { }
 
+    // Construct with explicit group
     template <typename F, typename T, typename ... Us>
     Event(const Group& group, F&& func, const Event<T>& dep, const Signal<Us>& ... signals) :
-        Event::Event( REACT_IMPL::CtorTag{ }, CreateSyncedProcessingNode(group, std::forward<F>(func), dep, signals ...) )
-        { }
+        Event::Event( CreateSyncedProcessingNode(group, std::forward<F>(func), dep, signals ...) )
+    { }
+
+    // Construct with implicit group
+    template <typename F, typename T, typename ... Us>
+    Event(F&& func, const Event<T>& dep, const Signal<Us>& ... signals) :
+        Event::Event( CreateSyncedProcessingNode(dep.GetGroup(), std::forward<F>(func), dep, signals ...) )
+    { }
 
     auto Tokenize() const -> decltype(auto)
         { return REACT::Tokenize(*this); }
-
-    /*template <typename ... Us>
-    auto Merge(Us&& ... deps) const -> decltype(auto)
-        { return REACT::Merge(*this, std::forward<Us>(deps) ...); }
-
-    template <typename F>
-    auto Filter(F&& pred) const -> decltype(auto)
-        { return REACT::Filter(std::forward<F>(pred), *this); }
-
-    template <typename F>
-    auto Transform(F&& pred) const -> decltype(auto)
-        { return REACT::Transform(*this, std::forward<F>(f)); }*/
 
     auto GetGroup() const -> const Group&
         { return GetNodePtr()->GetGroup(); }
@@ -134,18 +82,11 @@ public:
     friend auto GetInternals(const Event<E>& e) -> const REACT_IMPL::EventInternals<E>&
         { return e; }
 
-public: // Internal
-    template <typename TNode, typename ... TArgs>
-    static Event<E> CreateWithNode(TArgs&& ... args)
-    {
-        return Event<E>( REACT_IMPL::CtorTag{ }, std::make_shared<TNode>(std::forward<TArgs>(args) ...) );
-    }
-
 protected:
     // Private node ctor
-    Event(REACT_IMPL::CtorTag, std::shared_ptr<REACT_IMPL::EventStreamNode<E>>&& nodePtr) :
+    explicit Event(std::shared_ptr<REACT_IMPL::EventStreamNode<E>>&& nodePtr) :
         Event::EventInternals( std::move(nodePtr) )
-        { }
+    { }
 
     template <typename F, typename T>
     auto CreateProcessingNode(const Group& group, F&& func, const Event<T>& dep) -> decltype(auto)
@@ -166,6 +107,9 @@ protected:
         return std::make_shared<SyncedEventProcessingNode<E, T, typename std::decay<F>::type, Us ...>>(
             group, std::forward<F>(func), SameGroupOrLink(group, dep), SameGroupOrLink(group, syncs) ...);
     }
+
+    template <typename RET, typename NODE, typename ... ARGS>
+    friend static RET impl::CreateWrappedNode(ARGS&& ... args);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -183,8 +127,8 @@ public:
 
     // Construct event source
     explicit EventSource(const Group& group) :
-        EventSource::Event( REACT_IMPL::CtorTag{ }, CreateSourceNode(group) )
-        { }
+        EventSource::Event( CreateSourceNode(group) )
+    { }
     
     void Emit(const E& value)
         { EmitValue(value); }
@@ -192,7 +136,7 @@ public:
     void Emit(E&& value)
         { EmitValue(std::move(value)); }
 
-    template <typename T = E, typename = typename std::enable_if<std::is_same<T,Token>::value>::type>
+    template <typename T = E, typename = std::enable_if_t<std::is_same_v<T,Token>>::type>
     void Emit()
         { EmitValue(Token::value); }
 
@@ -214,10 +158,10 @@ private:
     void EmitValue(T&& value)
     {
         using REACT_IMPL::NodeId;
-        using REACT_IMPL::ReactiveGraph;
-        using SrcNodeType = REACT_IMPL::EventSourceNode<E>;
+        using REACT_IMPL::ReactGraph;
+        using REACT_IMPL::EventSourceNode;
 
-        SrcNodeType* castedPtr = static_cast<SrcNodeType*>(this->GetNodePtr().get());
+        auto* castedPtr = static_cast<EventSourceNode<E>*>(this->GetNodePtr().get());
 
         NodeId nodeId = castedPtr->GetNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
@@ -241,8 +185,8 @@ public:
 
     // Construct emtpy slot
     EventSlot(const Group& group) :
-        EventSlot::Event( REACT_IMPL::CtorTag{ }, CreateSlotNode(group) )
-        { }
+        EventSlot::Event( CreateSlotNode(group) )
+    { }
 
     void Add(const Event<E>& input)
         { AddInput(input); }
@@ -316,50 +260,41 @@ public:
 
     // Construct with group
     EventLink(const Group& group, const Event<E>& input) :
-        EventLink::Event( REACT_IMPL::CtorTag{ }, GetOrCreateLinkNode(group, input) )
-        { }
+        EventLink::Event( GetOrCreateLinkNode(group, input) )
+    { }
 
 protected:
     static auto GetOrCreateLinkNode(const Group& group, const Event<E>& input) -> decltype(auto)
     {
         using REACT_IMPL::EventLinkNode;
-
-        auto& targetGraphPtr = GetInternals(group).GetGraphPtr();
-        auto& linkCache = targetGraphPtr->GetLinkCache();
+        using REACT_IMPL::IReactNode;
+        using REACT_IMPL::ReactGraph;
         
-        void* k1 = GetInternals(input.GetGroup()).GetGraphPtr().get();
-        void* k2 = GetInternals(input).GetNodePtr().get();
+        IReactNode* k = GetInternals(input).GetNodePtr().get();
 
-        auto nodePtr = linkCache.LookupOrCreate<EventLinkNode<E>>(
-            { k1, k2 },
+        ReactGraph::LinkCache& linkCache = GetInternals(group).GetGraphPtr()->GetLinkCache();
+
+        std::shared_ptr<IReactNode> nodePtr = linkCache.LookupOrCreate(
+            k,
             [&]
             {
                 auto nodePtr = std::make_shared<EventLinkNode<E>>(group, input);
                 nodePtr->SetWeakSelfPtr(std::weak_ptr<EventLinkNode<E>>{ nodePtr });
-                return nodePtr;
+                return std::static_pointer_cast<IReactNode>(nodePtr);
             });
 
-        return nodePtr;
+        return std::static_pointer_cast<EventLinkNode<E>>(nodePtr);
     }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Merge
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T = void, typename U1, typename ... Us>
-auto Merge(const Group& group, const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
+template <typename E, typename ... Us>
+auto Merge(const Group& group, const Event<E>& dep1, const Event<Us>& ... deps) -> decltype(auto)
 {
     using REACT_IMPL::EventMergeNode;
     using REACT_IMPL::SameGroupOrLink;
-    using REACT_IMPL::CtorTag;
-
-    static_assert(sizeof...(Us) > 0, "Merge requires at least 2 inputs.");
-
-    // If supplied, use merge type, otherwise default to common type.
-    using E = typename std::conditional<
-        std::is_same<T, void>::value,
-        typename std::common_type<U1, Us ...>::type,
-        T>::type;
 
     return Event<E>::CreateWithNode<EventMergeNode<E, U1, Us ...>>(group, SameGroupOrLink(group, dep1), SameGroupOrLink(group, deps) ...);
 }
@@ -432,17 +367,6 @@ auto Transform(const Group& group, F&& op, const Event<T>& dep, const Signal<Us>
 template <typename E, typename F, typename T, typename ... Us>
 auto Transform(F&& op, const Event<T>& dep, const Signal<Us>& ... signals) -> Event<E>
     { return Transform<E>(dep.GetGroup(), std::forward<F>(op), dep, signals ...); }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Flatten
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/*template <typename TInnerValue>
-auto Flatten(const Signal<Events<TInnerValue>>& outer) -> Events<TInnerValue>
-{
-    return Events<TInnerValue>(
-        std::make_shared<REACT_IMPL::EventFlattenNode<Events<TInnerValue>, TInnerValue>>(
-            GetNodePtr(outer), GetNodePtr(outer.Value())));
-}*/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Join

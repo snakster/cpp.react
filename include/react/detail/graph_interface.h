@@ -1,24 +1,24 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef REACT_DETAIL_IREACTIVEENGINE_H_INCLUDED
-#define REACT_DETAIL_IREACTIVEENGINE_H_INCLUDED
+#ifndef REACT_DETAIL_GRAPH_INTERFACE_H_INCLUDED
+#define REACT_DETAIL_GRAPH_INTERFACE_H_INCLUDED
 
 #pragma once
 
-#include "react/detail/Defs.h"
+#include "react/detail/defs.h"
 
 #include <functional>
 #include <memory>
 #include <unordered_map>
 #include <utility>
 
-#include "react/API.h"
-#include "react/common/Types.h"
-#include "react/common/Util.h"
+#include "react/api.h"
+#include "react/common/types.h"
+#include "react/common/utility.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -48,29 +48,29 @@ enum class NodeCategory
     linkoutput
 };
 
-class ReactiveGraph;
+class ReactGraph;
+struct IReactNode;
+
+using LinkOutputMap = std::unordered_map<ReactGraph*, std::vector<std::function<void()>>>;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// IReactiveNode
+/// IReactNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-struct IReactiveNode
+struct IReactNode
 {
-    virtual ~IReactiveNode() = default;
+    virtual ~IReactNode() = default;
 
-    virtual const char* GetNodeType() const = 0;
+    virtual UpdateResult Update(TurnId turnId) noexcept = 0;
+    
+    virtual void Clear() noexcept
+        { }
 
-    virtual UpdateResult Update(TurnId turnId, size_t successorCount) = 0;
-
-    virtual int GetDependencyCount() const = 0;
+    virtual void CollectOutput(LinkOutputMap& output)
+        { }
 };
 
-using LinkOutputMap = std::unordered_map<ReactiveGraph*, std::vector<std::function<void()>>>;
 
-struct ILinkOutputNode : public IReactiveNode
-{
-    virtual void CollectOutput(LinkOutputMap& output) = 0;
-};
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
-#endif // REACT_DETAIL_IREACTIVEENGINE_H_INCLUDED
+#endif // REACT_DETAIL_GRAPH_INTERFACE_H_INCLUDED

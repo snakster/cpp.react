@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "react/detail/Defs.h"
-#include "react/common/Util.h"
+#include "react/detail/defs.h"
+#include "react/common/utility.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -26,8 +26,9 @@ enum class WeightHint
 
 enum class TransactionFlags
 {
-    none          = 0,
-    allow_merging = 1 << 1
+    none            = 0,
+    allow_merging   = 1 << 1,
+    sync_linked     = 1 << 2
 };
 
 REACT_DEFINE_BITMASK_OPERATORS(TransactionFlags)

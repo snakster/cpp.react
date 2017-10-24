@@ -15,6 +15,8 @@
 #include "react/Algorithm.h"
 #include "react/Observer.h"
 
+#include "react/common/expected.h"
+
 using namespace react;
 
 template <typename T>
@@ -38,9 +40,6 @@ public:
 
     void Generate(const Group& group)
     {
-        assert(inputSignals.size() >= 1);
-        assert(widths.size() >= 1);
-
         SignalVectType buf1 = std::move(inputSignals);
         SignalVectType buf2;
 
@@ -365,6 +364,8 @@ int main()
     s3.Emit(3);
 
     std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    Expected<int> x;
 
     return 0;
 }

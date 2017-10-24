@@ -1,5 +1,5 @@
 
-//          Copyright Sebastian Jeckel 2016.
+//          Copyright Sebastian Jeckel 2017.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -9,15 +9,16 @@
 
 #pragma once
 
-#include "react/detail/Defs.h"
+#include "react/detail/defs.h"
 
 #include <memory>
 #include <utility>
 
 #include "react/API.h"
+#include "react/common/syncpoint.h"
 
-#include "react/detail/IReactiveGraph.h"
-#include "react/detail/graph/PropagationST.h"
+#include "react/detail/graph_interface.h"
+#include "react/detail/graph_impl.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
@@ -26,7 +27,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class GroupInternals
 {
-    using GraphType = REACT_IMPL::ReactiveGraph;
+    using GraphType = REACT_IMPL::ReactGraph;
 
 public:
     GroupInternals() :
@@ -53,62 +54,6 @@ private:
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
-#if 0
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// TransactionStatus
-///////////////////////////////////////////////////////////////////////////////////////////////////
-class TransactionStatus
-{
-    using StateT = REACT_IMPL::SharedWaitingState;
-    using PtrT = REACT_IMPL::WaitingStatePtrT;
-
-public:
-    // Default ctor
-    TransactionStatus() :
-        statePtr_( StateT::Create() )
-        { }
-
-    // Move ctor
-    TransactionStatus(TransactionStatus&& other) :
-        statePtr_( std::move(other.statePtr_) )
-    {
-        other.statePtr_ = StateT::Create();
-    }
-
-    // Move assignment
-    TransactionStatus& operator=(TransactionStatus&& other)
-    {
-        if (this != &other)
-        {
-            statePtr_ = std::move(other.statePtr_);
-            other.statePtr_ = StateT::Create();
-        }
-        return *this;
-    }
-
-    // Deleted copy ctor & assignment
-    TransactionStatus(const TransactionStatus&) = delete;
-    TransactionStatus& operator=(const TransactionStatus&) = delete;
-
-    void Wait()
-    {
-        assert(statePtr_.Get() != nullptr);
-        statePtr_->Wait();
-    }
-
-private:
-    PtrT statePtr_;
-
-    template <typename D, typename F>
-    friend void AsyncTransaction(TransactionStatus& status, F&& func);
-
-    template <typename D, typename F>
-    friend void AsyncTransaction(TransactionFlagsT flags, TransactionStatus& status, F&& func);
-};
-
-#endif
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Group
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -128,12 +73,12 @@ public:
         { GetGraphPtr()->DoTransaction(std::forward<F>(func)); }
 
     template <typename F>
-    void EnqueueTransaction(F&& func)
-        { EnqueueTransaction(TransactionFlags::none, std::forward<F>(func)); }
+    void EnqueueTransaction(F&& func, TransactionFlags flags = TransactionFlags::none)
+        { GetGraphPtr()->EnqueueTransaction(std::forward<F>(func), SyncPoint::Dependency{ }, flags); }
 
     template <typename F>
-    void EnqueueTransaction(TransactionFlags flags, F&& func)
-        { GetGraphPtr()->EnqueueTransaction(flags, std::forward<F>(func)); }
+    void EnqueueTransaction(F&& func, const SyncPoint& syncPoint, TransactionFlags flags = TransactionFlags::none)
+        { GetGraphPtr()->EnqueueTransaction(std::forward<F>(func), SyncPoint::Dependency{ syncPoint }, flags); }
 
     friend bool operator==(const Group& a, const Group& b)
         { return a.GetGraphPtr() == b.GetGraphPtr(); }
