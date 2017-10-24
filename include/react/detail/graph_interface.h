@@ -17,7 +17,6 @@
 #include <utility>
 
 #include "react/api.h"
-#include "react/common/types.h"
 #include "react/common/utility.h"
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/

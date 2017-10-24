@@ -16,11 +16,8 @@
 #include <tbb/concurrent_queue.h>
 #include <tbb/task.h>
 
-#include "react/detail/graph_impl.h"
-
-#include "react/common/types.h"
-#include "react/common/expected.h"
 #include "react/detail/graph_interface.h"
+#include "react/detail/graph_impl.h"
 
 
 /***************************************/ REACT_IMPL_BEGIN /**************************************/

@@ -164,9 +164,8 @@
   <ItemGroup>
     <ClCompile Include="..\..\tests\src\common_tests.cpp" />
     <ClCompile Include="..\..\tests\src\event_tests.cpp" />
-    <ClCompile Include="..\..\tests\src\MoveTest.cpp" />
-    <ClCompile Include="..\..\tests\src\ObserverTest.cpp" />
-    <ClCompile Include="..\..\tests\src\OperationsTest.cpp" />
+    <ClCompile Include="..\..\tests\src\observer_test.cpp" />
+    <ClCompile Include="..\..\tests\src\algorithm_tests.cpp" />
     <ClCompile Include="..\..\tests\src\ParallelizationTest.cpp" />
     <ClCompile Include="..\..\tests\src\state_tests.cpp" />
     <ClCompile Include="..\..\tests\src\transaction_tests.cpp" />

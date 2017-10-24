@@ -15,7 +15,6 @@
 #include <memory>
 #include <utility>
 
-#include "react/common/types.h"
 #include "react/common/utility.h"
 #include "react/detail/graph_interface.h"
 

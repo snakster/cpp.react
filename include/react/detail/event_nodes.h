@@ -121,15 +121,15 @@ public:
 
     ~EventMergeNode()
     {
-        apply([this] (const auto& ... deps)
-            { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(deps).GetNodeId())); }, depHolder_);
+        apply([this] (const auto& ... inputs)
+            { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(inputs).GetNodeId())); }, inputs_);
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        apply([this] (auto& ... deps)
-            { REACT_EXPAND_PACK(MergeFromDep(deps)); }, depHolder_);
+        apply([this] (auto& ... inputs)
+            { REACT_EXPAND_PACK(MergeFromInput(inputs)); }, inputs_);
 
         if (! this->Events().empty())
             return UpdateResult::changed;
@@ -141,7 +141,7 @@ private:
     template <typename U>
     void MergeFromInput(Event<U>& dep)
     {
-        EventInternals& depInternals = GetInternals(dep);
+        auto& depInternals = GetInternals(dep);
         this->Events().insert(this->Events().end(), depInternals.Events().begin(), depInternals.Events().end());
     }
 
@@ -340,22 +340,23 @@ public:
 
     ~EventJoinNode()
     {
-        apply([this] (const auto& ... slots) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(slots.source).GetNodeId())); }, slots_);
+        apply([this] (const auto& ... slots)
+            { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(slots.source).GetNodeId())); }, slots_);
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
         // Move events into buffers.
-        apply([this, turnId] (Slot<Ts>& ... slots) { REACT_EXPAND_PACK(FetchBuffer(turnId, slots)); }, slots_);
+        apply([this, turnId] (Slot<Ts>& ... slots)
+            { REACT_EXPAND_PACK(FetchBuffer(turnId, slots)); }, slots_);
 
         while (true)
         {
             bool isReady = true;
 
             // All slots ready?
-            apply(
-                [this, &isReady] (Slot<Ts>& ... slots)
+            apply([this, &isReady] (Slot<Ts>& ... slots)
                 {
                     // Todo: combine return values instead
                     REACT_EXPAND_PACK(CheckSlot(slots, isReady));
@@ -366,8 +367,7 @@ public:
                 break;
 
             // Pop values from buffers and emit tuple.
-            apply(
-                [this] (Slot<Ts>& ... slots)
+            apply([this] (Slot<Ts>& ... slots)
                 {
                     this->Events().emplace_back(slots.buffer.front() ...);
                     REACT_EXPAND_PACK(slots.buffer.pop_front());
@@ -376,14 +376,9 @@ public:
         }
 
         if (! this->Events().empty())
-        {
-            this->SetPendingSuccessorCount(successorCount);
             return UpdateResult::changed;
-        }
         else
-        {
             return UpdateResult::unchanged;
-        }
     }
 
 private:
@@ -392,7 +387,7 @@ private:
     {
         Slot(const Event<U>& src) :
             source( src )
-            { }
+        { }
 
         Event<U>        source;
         std::deque<U>   buffer;
@@ -402,7 +397,6 @@ private:
     static void FetchBuffer(TurnId turnId, Slot<U>& slot)
     {
         slot.buffer.insert(slot.buffer.end(), GetInternals(slot.source).Events().begin(), GetInternals(slot.source).Events().end());
-        GetInternals(slot.source).DecrementPendingSuccessorCount();
     }
 
     template <typename T>

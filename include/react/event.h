@@ -291,12 +291,14 @@ protected:
 /// Merge
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename E, typename ... Us>
-auto Merge(const Group& group, const Event<E>& dep1, const Event<Us>& ... deps) -> decltype(auto)
+auto Merge(const Group& group, const Event<E>& dep1, const Event<Us>& ... deps) -> Event<E>
 {
     using REACT_IMPL::EventMergeNode;
     using REACT_IMPL::SameGroupOrLink;
+    using REACT_IMPL::CreateWrappedNode;
 
-    return Event<E>::CreateWithNode<EventMergeNode<E, U1, Us ...>>(group, SameGroupOrLink(group, dep1), SameGroupOrLink(group, deps) ...);
+    return CreateWrappedNode<Event<E>, EventMergeNode<E, E, Us ...>>(
+        group, SameGroupOrLink(group, dep1), SameGroupOrLink(group, deps) ...);
 }
 
 template <typename T = void, typename U1, typename ... Us>
@@ -342,8 +344,8 @@ auto Filter(F&& pred, const Event<E>& dep, const State<Ts>& ... states) -> Event
 template <typename E, typename F, typename T>
 auto Transform(const Group& group, F&& op, const Event<T>& dep) -> Event<E>
 {
-    auto transformFunc = [capturedOp = std::forward<F>(op)] (EventRange<T> inRange, EventSink<E> out)
-        { std::transform(inRange.begin(), inRange.end(), out, capturedOp); };
+    auto transformFunc = [capturedOp = std::forward<F>(op)] (const EventValueList<T>& evts, EventValueSink<E> out)
+        { std::transform(evts.begin(), evts.end(), out, capturedOp); };
 
     return Event<E>(group, std::move(transformFunc), dep);
 }
@@ -355,9 +357,9 @@ auto Transform(F&& op, const Event<T>& dep) -> Event<E>
 template <typename E, typename F, typename T, typename ... Us>
 auto Transform(const Group& group, F&& op, const Event<T>& dep, const State<Us>& ... states) -> Event<E>
 {
-    auto transformFunc = [capturedOp = std::forward<F>(pred)] (EventRange<T> inRange, EventSink<E> out, const Vs& ... values)
+    auto transformFunc = [capturedOp = std::forward<F>(pred)] (const EventValueList<T>& evts, EventValueSink<E> out, const Us& ... values)
     {
-        for (const auto& v : inRange)
+        for (const auto& v : evts)
             *out++ = capturedPred(v, values ...);
     };
 
@@ -375,10 +377,12 @@ template <typename U1, typename ... Us>
 auto Join(const Group& group, const Event<U1>& dep1, const Event<Us>& ... deps) -> Event<std::tuple<U1, Us ...>>
 {
     using REACT_IMPL::EventJoinNode;
+    using REACT_IMPL::SameGroupOrLink;
+    using REACT_IMPL::CreateWrappedNode;
 
     static_assert(sizeof...(Us) > 0, "Join requires at least 2 inputs.");
 
-    return Event<std::tuple<U1, Us ...>>::CreateWithNode<EventJoinNode<U1, Us ...>>(
+    return CreateWrappedNode<Event<std::tuple<U1, Us ...>>, EventJoinNode<U1, Us ...>>(
         group, SameGroupOrLink(group, dep1), SameGroupOrLink(group, deps) ...);
 }
 
