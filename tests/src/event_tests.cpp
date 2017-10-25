@@ -7,6 +7,7 @@
 #include "gtest/gtest.h"
 
 #include "react/event.h"
+#include "react/state.h"
 #include "react/observer.h"
 
 #include <algorithm>
@@ -168,10 +169,7 @@ TEST(EventTest, Transactions)
 
     g.DoTransaction([&]
         {
-            evt.Emit(1);
-            evt.Emit(1);
-            evt.Emit(1);
-            evt.Emit(1);
+            evt << 1 << 1 << 1 << 1;
         });
 
     EXPECT_EQ(4, output);
@@ -212,9 +210,9 @@ TEST(EventTest, Links)
                 output += e;
         }, slot);
 
-    evt1.Emit(1);
-    evt2.Emit(1);
-    evt3.Emit(1);
+    evt1 << 1;
+    evt2 << 1;
+    evt3 << 1;
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -244,13 +242,8 @@ TEST(EventTest, EventSources)
                 results2.push(e);
         }, es2);
 
-    es1.Emit(10);
-    es1.Emit(20);
-    es1.Emit(30);
-
-    es2.Emit(40);
-    es2.Emit(50);
-    es2.Emit(60);
+    es1 << 10 << 20 << 30;
+    es2 << 40 << 50 << 60;
 
     // First batch.
     EXPECT_FALSE(results1.empty());
@@ -453,7 +446,7 @@ TEST(EventTest, Transform)
     EXPECT_TRUE(std::find(results.begin(), results.end(), "HELLO VORLD") != results.end());
 }
 
-TEST(EventTest, Chain)
+TEST(EventTest, Flow)
 {
     Group g;
 
@@ -537,4 +530,130 @@ TEST(EventTest, Join)
     in1.Emit(20);
     EXPECT_EQ(results.size(), 2);
     EXPECT_EQ(results[1], std::make_tuple(20, 20, 20));
+}
+
+TEST(EventTest, FilterWithState)
+{
+    Group g;
+
+    EventSource<std::string> in( g );
+
+    StateVar<int> sig1( g, 1338 );
+    StateVar<int> sig2( g, 1336 );
+
+    EventSource<int> in2( g );
+
+    auto filtered = Filter([] (const std::string& s, int sig1, int sig2)
+        {
+            return s == "Hello World" && sig1 > sig2;
+        }, in, sig1, sig2);
+
+    std::queue<std::string> results;
+
+    Observer obs([&] (const auto& events)
+        {
+            for (const auto& e : events)
+                results.push(e);
+        }, filtered);
+
+    in << std::string("Hello Worlt") << std::string("Hello World") << std::string("Hello Vorld");
+    sig1.Set(1335);
+    in << std::string("Hello Vorld");
+
+    EXPECT_FALSE(results.empty());
+    EXPECT_EQ(results.front(), "Hello World");
+    results.pop();
+
+    EXPECT_TRUE(results.empty());
+}
+
+TEST(EventTest, TransformWithState)
+{
+    Group g;
+
+    std::vector<std::string> results;
+
+    EventSource<std::string> in1( g );
+    EventSource<std::string> in2( g );
+
+    Event<std::string> merged = Merge(in1, in2);
+
+    StateVar<std::string> first( g, "Ace" );
+    StateVar<std::string> last( g, "McSteele" );
+
+    auto transformed = Transform<std::string>([] (std::string s, const std::string& first, const std::string& last) -> std::string
+        {
+            std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+            s += std::string(", ") + first + std::string(" ") + last;
+            return s;
+        }, merged, first, last);
+
+    Observer obs([&] (const auto& events)
+        {
+            for (const auto& e : events)
+                results.push_back(e);
+        }, transformed);
+
+    in1 << std::string("Hello Worlt") << std::string("Hello World");
+
+    g.DoTransaction([&]
+        {
+            in2 << std::string("Hello Vorld");
+            first.Set(std::string("Alice"));
+            last.Set(std::string("Anderson"));
+        });
+
+    EXPECT_EQ(results.size(), 3);
+    EXPECT_TRUE(std::find(results.begin(), results.end(), "HELLO WORLT, Ace McSteele") != results.end());
+    EXPECT_TRUE(std::find(results.begin(), results.end(), "HELLO WORLD, Ace McSteele") != results.end());
+    EXPECT_TRUE(std::find(results.begin(), results.end(), "HELLO VORLD, Alice Anderson") != results.end());
+}
+
+TEST(EventTest, FlowWithState)
+{
+    Group g;
+
+    std::vector<float> results;
+
+    EventSource<int> in1( g );
+    EventSource<int> in2( g );
+
+    StateVar<int> mult( g, 10 );
+
+    Event<int> merged = Merge(in1, in2);
+    int callCount = 0;
+
+    Event<float> processed([&] (const auto& events, auto out, int mult)
+        {
+            for (const auto& e : events)
+            {
+                *out = 0.1f * e * mult;
+                *out = 1.5f * e * mult;
+            }
+
+            callCount++;
+        }, merged, mult);
+
+    Observer obs([&] (const auto& events)
+        {
+            for (float e : events)
+                results.push_back(e);
+        }, processed);
+
+    g.DoTransaction([&]
+        {
+            in1 << 10 << 20;
+        });
+
+    in2 << 30;
+
+    EXPECT_EQ(results.size(), 6);
+    EXPECT_EQ(callCount, 2);
+
+    EXPECT_EQ(results[0], 10.0f);
+    EXPECT_EQ(results[1], 150.0f);
+    EXPECT_EQ(results[2], 20.0f);
+    EXPECT_EQ(results[3], 300.0f);
+    EXPECT_EQ(results[4], 30.0f);
+    EXPECT_EQ(results[5], 450.0f);
 }

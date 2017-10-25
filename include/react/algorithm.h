@@ -15,11 +15,11 @@
 #include <type_traits>
 #include <utility>
 
-#include "react/API.h"
-#include "react/detail/algorithm_nodes.h"
-
+#include "react/api.h"
 #include "react/state.h"
 #include "react/event.h"
+
+#include "react/detail/algorithm_nodes.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -66,7 +66,6 @@ template <typename S, typename T, typename F, typename E>
 auto Iterate(const Group& group, T&& initialValue, F&& func, const Event<E>& evnt) -> State<S>
 {
     using REACT_IMPL::IterateNode;
-    using REACT_IMPL::IsCallableWith;
     using REACT_IMPL::SameGroupOrLink;
     using REACT_IMPL::CreateWrappedNode;
 
@@ -80,7 +79,6 @@ template <typename S, typename T, typename F, typename E>
 auto IterateByRef(const Group& group, T&& initialValue, F&& func, const Event<E>& evnt) -> State<S>
 {
     using REACT_IMPL::IterateByRefNode;
-    using REACT_IMPL::IsCallableWith;
     using REACT_IMPL::SameGroupOrLink;
     using REACT_IMPL::CreateWrappedNode;
 
@@ -105,7 +103,6 @@ template <typename S, typename T, typename F, typename E, typename ... Us>
 auto Iterate(const Group& group, T&& initialValue, F&& func, const Event<E>& evnt, const State<Us>& ... states) -> State<S>
 {
     using REACT_IMPL::SyncedIterateNode;
-    using REACT_IMPL::IsCallableWith;
     using REACT_IMPL::SameGroupOrLink;
     using REACT_IMPL::CreateWrappedNode;
 
@@ -119,7 +116,6 @@ template <typename S, typename T, typename F, typename E, typename ... Us>
 auto IterateByRef(const Group& group, T&& initialValue, F&& func, const Event<E>& evnt, const State<Us>& ... states) -> State<S>
 {
     using REACT_IMPL::SyncedIterateByRefNode;
-    using REACT_IMPL::IsCallableWith;
     using REACT_IMPL::SameGroupOrLink;
     using REACT_IMPL::CreateWrappedNode;
 

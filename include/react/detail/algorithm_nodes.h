@@ -44,7 +44,7 @@ public:
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        S newValue = func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value());
+        S newValue = func_(GetInternals(evnt_).Events(), this->Value());
 
         if (! (newValue == this->Value()))
         {
@@ -81,15 +81,15 @@ public:
 
     ~IterateByRefNode()
     {
-        this->DetachFromMe(GetInternals(evnt).GetNodeId());
+        this->DetachFromMe(GetInternals(evnt_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value());
+        func_(GetInternals(evnt_).Events(), this->Value());
 
-        // Always assume change
+        // Always assume a change
         return UpdateResult::changed;
     }
 
@@ -119,7 +119,8 @@ public:
 
     ~SyncedIterateNode()
     {
-        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
+        apply([this] (const auto& ... syncs)
+            { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
         this->DetachFromMe(GetInternals(evnt_).GetNodeId());
         this->UnregisterMe();
     }
@@ -130,12 +131,10 @@ public:
         if (GetInternals(evnt_).Events().empty())
             return UpdateResult::unchanged;
 
-        S newValue = apply(
-            [this] (const auto& ... syncs)
+        S newValue = apply([this] (const auto& ... syncs)
             {
-                return func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value(), GetInternals(syncs).Value() ...);
-            },
-            syncHolder_);
+                return func_(GetInternals(evnt_).Events(), this->Value(), GetInternals(syncs).Value() ...);
+            }, syncHolder_);
 
         if (! (newValue == this->Value()))
         {
@@ -190,7 +189,7 @@ public:
         apply(
             [this] (const auto& ... args)
             {
-                func_(EventRange<E>( GetInternals(evnt_).Events() ), this->Value(), GetInternals(args).Value() ...);
+                func_(GetInternals(evnt_).Events(), this->Value(), GetInternals(args).Value() ...);
             },
             syncHolder_);
 
@@ -199,7 +198,7 @@ public:
 
 private:
     F           func_;
-    Event<E>    events_;
+    Event<E>    evnt_;
 
     std::tuple<State<TSyncs> ...> syncHolder_;
 };
@@ -305,75 +304,70 @@ private:
 /// MonitorNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-class MonitorNode : public EventStreamNode<S>
+class MonitorNode : public EventNode<S>
 {
 public:
-    MonitorNode(const Group& group, const State<S>& target) :
-        MonitorNode::EventStreamNode( group ),
-        target_( target )
+    MonitorNode(const Group& group, const State<S>& input) :
+        MonitorNode::EventNode( group ),
+        input_( input )
     {
         this->RegisterMe();
-        this->AttachToMe(GetInternals(target).GetNodeId());
+        this->AttachToMe(GetInternals(input_).GetNodeId());
     }
 
     ~MonitorNode()
     {
-        this->DetachFromMe(GetInternals(target_).GetNodeId());
+        this->DetachFromMe(GetInternals(input_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        this->Events().push_back(GetInternals(target_).Value());
-
+        this->Events().push_back(GetInternals(input_).Value());
         return UpdateResult::changed;
     }
 
 private:
-    State<S>    target_;
+    State<S>    input_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// PulseNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename E>
-class PulseNode : public EventStreamNode<S>
+class PulseNode : public EventNode<S>
 {
 public:
-    PulseNode(const Group& group, const State<S>& target, const Event<E>& trigger) :
-        PulseNode::EventStreamNode( group ),
-        target_( target ),
+    PulseNode(const Group& group, const State<S>& input, const Event<E>& trigger) :
+        PulseNode::EventNode( group ),
+        input_( input ),
         trigger_( trigger )
     {
         this->RegisterMe();
-        this->AttachToMe(GetInternals(target).GetNodeId());
+        this->AttachToMe(GetInternals(input).GetNodeId());
         this->AttachToMe(GetInternals(trigger).GetNodeId());
     }
 
     ~PulseNode()
     {
         this->DetachFromMe(GetInternals(trigger_).GetNodeId());
-        this->DetachFromMe(GetInternals(target_).GetNodeId());
+        this->DetachFromMe(GetInternals(input_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
-        for (size_t i = 0; i < GetInternals(trigger_).Events().size(); i++)
-            this->Events().push_back(GetInternals(target_).Value());
+        for (size_t i = 0; i < GetInternals(trigger_).Events().size(); ++i)
+            this->Events().push_back(GetInternals(input_).Value());
 
         if (! this->Events().empty())
-        {
             return UpdateResult::changed;
-        }
         else
-        {
             return UpdateResult::unchanged;
-        }
     }
 
 private:
-    State<S>    target_;
+    State<S>    input_;
     Event<E>    trigger_;
 };
 

@@ -285,27 +285,27 @@ public:
         syncHolder_( syncs ... )
     {
         this->RegisterMe();
-        this->AttachToMe(dep->GetNodeId());
-        REACT_EXPAND_PACK(this->AttachToMe(syncs->GetNodeId()));
+        this->AttachToMe(GetInternals(dep).GetNodeId());
+        REACT_EXPAND_PACK(this->AttachToMe(GetInternals(syncs).GetNodeId()));
     }
 
     ~SyncedEventProcessingNode()
     {
-        apply([this] (const auto& ... syncs) { REACT_EXPAND_PACK(this->DetachFromMe(syncs->GetNodeId())); }, syncHolder_);
-        this->DetachFromMe(dep_->GetNodeId());
+        apply([this] (const auto& ... syncs)
+            { REACT_EXPAND_PACK(this->DetachFromMe(GetInternals(syncs).GetNodeId())); }, syncHolder_);
+        this->DetachFromMe(GetInternals(dep_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
         // Updates might be triggered even if only sync nodes changed. Ignore those.
-        if (dep_->Events().empty())
+        if (GetInternals(dep_).Events().empty())
             return UpdateResult::unchanged;
 
-        apply(
-            [this] (const auto& ... syncs)
+        apply([this] (const auto& ... syncs)
             {
-                func_(EventRange<TIn>( this->dep_->Events() ), std::back_inserter(this->Events()), syncs->Value() ...);
+                func_(GetInternals(dep_).Events(), std::back_inserter(this->Events()), GetInternals(syncs).Value() ...);
             },
             syncHolder_);
 

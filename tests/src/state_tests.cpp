@@ -202,6 +202,9 @@ TEST(StateTest, Links)
     std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
+namespace
+{
+
 template <typename T>
 static T Sum2(T a, T b)
 {
@@ -214,7 +217,9 @@ static T Sum3(T a, T b, T c)
     return a + b + c;
 }
 
-TEST(StateTest, StateCombination)
+} // ~namespace
+
+TEST(StateTest, StateCombination1)
 {
     Group g;
 
@@ -259,4 +264,164 @@ TEST(StateTest, StateCombination)
 
     EXPECT_EQ(3, output2);
     EXPECT_EQ(4, turns2);
+}
+
+TEST(StateTest, StateCombination2)
+{
+    Group g;
+
+    std::vector<int> results;
+
+    StateVar<int> n1( g, 1 );
+
+    State<int> n2([] (int n1)
+        { return n1 + 1; }, n1);
+
+    State<int> n3([] (int n1, int n2)
+        { return n2 + n1 + 1; }, n1, n2);
+
+    State<int> n4([] (int n3)
+        { return n3 + 1; }, n3);
+
+    State<int> n5([] (int n1, int n3, int n4)
+        { return n4 + n3 + n1 + 1; }, n1, n3, n4);
+
+    State<int> n6([] (int n5)
+        { return n5 + 1; }, n5);
+
+    State<int> n7([] (int n5, int n6)
+        { return n6 + n5 + 1; }, n5, n6);
+
+    State<int> n8([] (int n7)
+        { return n7 + 1; }, n7);
+
+    State<int> n9([] (int n1, int n5, int n7, int n8)
+        { return n8 + n7 + n5 + n1 + 1; }, n1, n5, n7, n8);
+
+    State<int> n10([] (int n9)
+        { return n9 + 1; }, n9);
+
+    State<int> n11([] (int n9, int n10)
+        { return n10 + n9 + 1; }, n9, n10);
+
+    State<int> n12([] (int n11)
+        { return n11 + 1; }, n11);
+
+    State<int> n13([] (int n9, int n11, int n12)
+        { return n12 + n11 + n9 + 1; }, n9, n11, n12);
+
+    State<int> n14([] (int n13)
+        { return n13 + 1; }, n13);
+
+    State<int> n15([] (int n13, int n14)
+        { return n14 + n13 + 1; }, n13, n14);
+
+    State<int> n16([] (int n15)
+        { return n15 + 1; }, n15);
+
+    State<int> n17([] (int n9, int n13, int n15, int n16)
+        { return n16 + n15 + n13 + n9 + 1; }, n9, n13, n15, n16);
+
+    Observer obs([&] (int v) { results.push_back(v); }, n17);
+
+    n1.Set(10);     // 7732
+    n1.Set(100);    // 68572
+    n1.Set(1000);   // 676972
+
+    EXPECT_EQ(results.size(), 4);
+
+    EXPECT_EQ(results[0], 1648);
+    EXPECT_EQ(results[1], 7732);
+    EXPECT_EQ(results[2], 68572);
+    EXPECT_EQ(results[3], 676972);
+}
+
+TEST(StateTest, Modify1)
+{
+    Group g;
+
+    std::vector<int> results;
+
+    StateVar<std::vector<int>> var( g, std::vector<int>{ } );
+
+    int turns = 0;
+
+    Observer obs([&] (const std::vector<int>& v)
+        {
+            ++turns;
+            results = v;
+        }, var);
+    
+    var.Modify([] (std::vector<int>& v)
+        {
+            v.push_back(30);
+            v.push_back(50);
+            v.push_back(70);
+        });
+
+    EXPECT_EQ(results[0], 30);
+    EXPECT_EQ(results[1], 50);
+    EXPECT_EQ(results[2], 70);
+
+    EXPECT_EQ(turns, 2);
+}
+
+TEST(StateTest, Modify2)
+{
+    Group g;
+
+    std::vector<int> results;
+
+    StateVar<std::vector<int>> var( g, std::vector<int>{ } );
+
+    int turns = 0;
+
+    Observer obs([&] (const std::vector<int>& v)
+        {
+            ++turns;
+            results = v;
+        }, var);
+    
+    g.DoTransaction([&]
+        {
+            var.Modify([] (std::vector<int>& v) { v.push_back(30); });
+            var.Modify([] (std::vector<int>& v) { v.push_back(50); });
+            var.Modify([] (std::vector<int>& v) { v.push_back(70); });
+        });
+
+    EXPECT_EQ(results[0], 30);
+    EXPECT_EQ(results[1], 50);
+    EXPECT_EQ(results[2], 70);
+
+    EXPECT_EQ(turns, 2);
+}
+
+TEST(StateTest, Modify3)
+{
+    Group g;
+
+    std::vector<int> results;
+
+    StateVar<std::vector<int>> var( g, std::vector<int>{ } );
+
+    int turns = 0;
+
+    Observer obs([&] (const std::vector<int>& v)
+        {
+            ++turns;
+            results = v;
+        }, var);
+    
+    // Also terrible
+    g.DoTransaction([&]
+        {
+            var.Set(std::vector<int>{ 30, 50 });
+            var.Modify([] (std::vector<int>& v) { v.push_back(70); });
+        });
+
+    EXPECT_EQ(results[0], 30);
+    EXPECT_EQ(results[1], 50);
+    EXPECT_EQ(results[2], 70);
+
+    ASSERT_EQ(turns, 2);
 }

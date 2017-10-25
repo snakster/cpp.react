@@ -261,7 +261,7 @@ private:
             { return UpdateResult::changed; }
     };
 
-    State<S>           input_;
+    State<S>            input_;
     NodeId              inputNodeId_;
     VirtualInputNode    slotInput_;
     

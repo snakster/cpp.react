@@ -10,17 +10,17 @@
 #pragma once
 
 #include "react/detail/defs.h"
-#include "react/api.h"
-#include "react/group.h"
-#include "react/common/ptrcache.h"
 
 #include <memory>
 #include <type_traits>
 #include <utility>
 
+#include "react/api.h"
+#include "react/group.h"
+
 #include "react/detail/event_nodes.h"
 
-
+#include "react/common/ptrcache.h"
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -136,12 +136,12 @@ public:
     void Emit(E&& value)
         { EmitValue(std::move(value)); }
 
-    template <typename T = E, typename = std::enable_if_t<std::is_same_v<T,Token>>::type>
+    template <typename T = E, typename = std::enable_if_t<std::is_same_v<T, Token>>>
     void Emit()
         { EmitValue(Token::value); }
 
     EventSource& operator<<(const E& value)
-        { EmitValue(e); return *this; }
+        { EmitValue(value); return *this; }
 
     EventSource& operator<<(E&& value)
         { EmitValue(std::move(value)); return *this; }
@@ -311,8 +311,8 @@ auto Merge(const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
 template <typename F, typename E>
 auto Filter(const Group& group, F&& pred, const Event<E>& dep) -> Event<E>
 {
-    auto filterFunc = [capturedPred = std::forward<F>(pred)] (const EventValueList<E>& evts, EventValueSink<E> out)
-        { std::copy_if(evts.begin(), evts.end(), out, capturedPred); };
+    auto filterFunc = [capturedPred = std::forward<F>(pred)] (const EventValueList<E>& events, EventValueSink<E> out)
+        { std::copy_if(events.begin(), events.end(), out, capturedPred); };
 
     return Event<E>(group, std::move(filterFunc), dep);
 }
@@ -324,19 +324,19 @@ auto Filter(F&& pred, const Event<E>& dep) -> Event<E>
 template <typename F, typename E, typename ... Ts>
 auto Filter(const Group& group, F&& pred, const Event<E>& dep, const State<Ts>& ... states) -> Event<E>
 {
-    auto filterFunc = [capturedPred = std::forward<F>(pred)] (const EventValueList<E>& evts, EventValueSink<E> out, const Us& ... values)
+    auto filterFunc = [capturedPred = std::forward<F>(pred)] (const EventValueList<E>& evts, EventValueSink<E> out, const Ts& ... values)
     {
         for (const auto& v : evts)
             if (capturedPred(v, values ...))
                 *out++ = v;
     };
 
-    return Event<E>(group, std::move(filterFunc), dep, State ...);
+    return Event<E>(group, std::move(filterFunc), dep, states ...);
 }
 
 template <typename F, typename E, typename ... Ts>
 auto Filter(F&& pred, const Event<E>& dep, const State<Ts>& ... states) -> Event<E>
-    { return Filter(dep.GetGroup(), std::forward<F>(pred), dep); }
+    { return Filter(dep.GetGroup(), std::forward<F>(pred), dep, states ...); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Transform
@@ -357,10 +357,10 @@ auto Transform(F&& op, const Event<T>& dep) -> Event<E>
 template <typename E, typename F, typename T, typename ... Us>
 auto Transform(const Group& group, F&& op, const Event<T>& dep, const State<Us>& ... states) -> Event<E>
 {
-    auto transformFunc = [capturedOp = std::forward<F>(pred)] (const EventValueList<T>& evts, EventValueSink<E> out, const Us& ... values)
+    auto transformFunc = [capturedOp = std::forward<F>(op)] (const EventValueList<T>& evts, EventValueSink<E> out, const Us& ... values)
     {
         for (const auto& v : evts)
-            *out++ = capturedPred(v, values ...);
+            *out++ = capturedOp(v, values ...);
     };
 
     return Event<E>(group, std::move(transformFunc), dep, states ...);
@@ -389,23 +389,6 @@ auto Join(const Group& group, const Event<U1>& dep1, const Event<Us>& ... deps) 
 template <typename U1, typename ... Us>
 auto Join(const Event<U1>& dep1, const Event<Us>& ... deps) -> Event<std::tuple<U1, Us ...>>
     { return Join(dep1.GetGroup(), dep1, deps ...); }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Token
-///////////////////////////////////////////////////////////////////////////////////////////////////
-enum class Token { value };
-
-/*struct Tokenizer
-{
-    template <typename T>
-    Token operator()(const T&) const { return Token::value; }
-};
-
-template <typename T>
-auto Tokenize(T&& source) -> decltype(auto)
-{
-    return Transform(source, Tokenizer{ });
-}*/
 
 /******************************************/ REACT_END /******************************************/
 

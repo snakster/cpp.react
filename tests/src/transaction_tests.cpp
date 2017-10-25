@@ -6,6 +6,7 @@
 
 #include "gtest/gtest.h"
 
+#include "react/state.h"
 #include "react/event.h"
 #include "react/observer.h"
 
@@ -14,7 +15,7 @@
 
 using namespace react;
 
-TEST(TransactionTests, Merging)
+TEST(TransactionTest, Merging)
 {
     Group g;
 
@@ -68,7 +69,7 @@ TEST(TransactionTests, Merging)
     EXPECT_EQ(21, output);
 }
 
-TEST(TransactionTests, LinkedSync)
+TEST(TransactionTest, LinkedSync)
 {
     // Three groups. Each has one event with an observer attached.
     // The last observer adds a little delay.
@@ -138,7 +139,7 @@ TEST(TransactionTests, LinkedSync)
     EXPECT_EQ(3, output3);
 }
 
-TEST(TransactionTests, LinkedSyncMerging)
+TEST(TransactionTest, LinkedSyncMerging)
 {
     // Two groups. Each has one event with an observer attached.
     // The last observer adds a little delay.
