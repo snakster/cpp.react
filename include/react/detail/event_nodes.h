@@ -27,11 +27,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Iterators for event processing
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename E = Token>
-using EventValueList = std::vector<E>;
-
-template <typename E>
-using EventValueSink = std::back_insert_iterator<std::vector<E>>;
 
 /******************************************/ REACT_END /******************************************/
 
@@ -493,6 +488,8 @@ template <typename E>
 class EventInternals
 {
 public:
+    EventInternals() = default;
+
     EventInternals(const EventInternals&) = default;
     EventInternals& operator=(const EventInternals&) = default;
 

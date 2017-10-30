@@ -16,6 +16,7 @@
 #include <condition_variable>
 #include <iterator>
 #include <mutex>
+#include <vector>
 
 
 /*****************************************/ REACT_BEGIN /*****************************************/
@@ -29,8 +30,6 @@ public:
     class Dependency;
 
 private:
-    
-
     class ISyncTarget
     {
     public:

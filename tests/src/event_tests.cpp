@@ -25,7 +25,7 @@ TEST(EventTest, Construction)
 
     // Event source
     {
-        EventSource<int> t1( g );
+        auto t1 = EventSource<int>::Create(g);
         EventSource<int> t2( t1 );
         EventSource<int> t3( std::move(t1) );
         
@@ -37,7 +37,7 @@ TEST(EventTest, Construction)
 
     // Event slot
     {
-        EventSlot<int> t1( g );
+        auto t1 = EventSlot<int>::Create(g);
         EventSlot<int> t2( t1 );
         EventSlot<int> t3( std::move(t1) );
         
@@ -49,9 +49,9 @@ TEST(EventTest, Construction)
 
     // Event link
     {
-        EventSlot<int> s1( g );
+        auto s1 = EventSlot<int>::Create(g);
 
-        EventLink<int> t1( g, s1 );
+        auto t1 = EventLink<int>::Create(g, s1);
         EventLink<int> t2( t1 );
         EventLink<int> t3( std::move(t1) );
         
@@ -66,11 +66,11 @@ TEST(EventTest, BasicOutput)
 {
     Group g;
 
-    EventSource<int> evt( g );
+    auto evt = EventSource<int>::Create(g);
 
     int output = 0;
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             for (int e : events)
                 output += e;
@@ -89,15 +89,15 @@ TEST(EventTest, Slots)
 {
     Group g;
 
-    EventSource<int> evt1( g );
-    EventSource<int> evt2( g );
+    auto evt1 = EventSource<int>::Create(g);
+    auto evt2 = EventSource<int>::Create(g);
 
-    EventSlot<int> slot( g );
+    auto slot = EventSlot<int>::Create(g);
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             ++turns;
 
@@ -153,12 +153,12 @@ TEST(EventTest, Transactions)
 {
     Group g;
 
-    EventSource<int> evt( g );
+    auto evt = EventSource<int>::Create(g);
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             ++turns;
             for (int e : events)
@@ -182,17 +182,17 @@ TEST(EventTest, Links)
     Group g2;
     Group g3;
 
-    EventSource<int> evt1( g1 );
-    EventSource<int> evt2( g2 );
-    EventSource<int> evt3( g3 );
+    auto evt1 = EventSource<int>::Create(g1);
+    auto evt2 = EventSource<int>::Create(g2);
+    auto evt3 = EventSource<int>::Create(g3);
 
-    EventSlot<int> slot( g1 );
+    auto slot = EventSlot<int>::Create(g1);
 
     // Same group
     slot.Add(evt1);
 
     // Explicit link
-    EventLink<int> lnk2( g1, evt2 );
+    auto lnk2 = EventLink<int>::Create(g1, evt2);
     slot.Add(lnk2);
 
     // Implicit link
@@ -203,7 +203,7 @@ TEST(EventTest, Links)
 
     EXPECT_EQ(0, output);
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             ++turns;
             for (int e : events)
@@ -224,19 +224,19 @@ TEST(EventTest, EventSources)
 {
     Group g;
 
-    EventSource<int> es1( g );
-    EventSource<int> es2( g );
+    auto es1 = EventSource<int>::Create(g);
+    auto es2 = EventSource<int>::Create(g);
 
     std::queue<int> results1;
     std::queue<int> results2;
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             for (int e : events)
                 results1.push(e);
         }, es1);
 
-    Observer obs2([&] (const auto& events)
+    auto obs2 = Observer::Create([&] (const auto& events)
         {
             for (int e : events)
                 results2.push(e);
@@ -280,15 +280,15 @@ TEST(EventTest, Merge1)
 {
     Group g;
 
-    EventSource<int> a1( g );
-    EventSource<int> a2( g );
-    EventSource<int> a3( g );
+    auto a1 = EventSource<int>::Create(g);
+    auto a2 = EventSource<int>::Create(g);
+    auto a3 = EventSource<int>::Create(g);
 
     Event<int> merged = Merge(g, a1, a2, a3);
 
     std::vector<int> results;
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             for (int e : events)
                 results.push_back(e);
@@ -312,15 +312,15 @@ TEST(EventTest, Merge2)
 {
     Group g;
 
-    EventSource<std::string> a1( g );
-    EventSource<std::string> a2( g );
-    EventSource<std::string> a3( g );
+    auto a1 = EventSource<std::string>::Create(g);
+    auto a2 = EventSource<std::string>::Create(g);
+    auto a3 = EventSource<std::string>::Create(g);
 
     Event<std::string> merged = Merge(a1, a2, a3);
 
     std::vector<std::string> results;
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             for (const auto& e : events)
                 results.push_back(e);
@@ -348,8 +348,8 @@ TEST(EventTest, Merge3)
 {
     Group g;
 
-    EventSource<int> a1( g );
-    EventSource<int> a2( g );
+    auto a1 = EventSource<int>::Create(g);
+    auto a2 = EventSource<int>::Create(g);
 
     Event<int> f1 = Filter([] (int v) { return true; }, a1);
     Event<int> f2 = Filter([] (int v) { return true; }, a2);
@@ -358,7 +358,7 @@ TEST(EventTest, Merge3)
 
     std::queue<int> results;
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             for (int e : events)
                 results.push(e);
@@ -387,7 +387,7 @@ TEST(EventTest, Filter)
 {
     Group g;
 
-    EventSource<std::string> in( g );
+    auto in = EventSource<std::string>::Create(g);
 
     std::queue<std::string> results;
 
@@ -396,7 +396,7 @@ TEST(EventTest, Filter)
             return s == "Hello World";
         }, in);
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             for (const auto& e : events)
                 results.push(e);
@@ -417,8 +417,8 @@ TEST(EventTest, Transform)
 {
     Group g;
 
-    EventSource<std::string> in1( g );
-    EventSource<std::string> in2( g );
+    auto in1 = EventSource<std::string>::Create(g);
+    auto in2 = EventSource<std::string>::Create(g);
 
     std::vector<std::string> results;
 
@@ -430,7 +430,7 @@ TEST(EventTest, Transform)
             return s;
         }, merged);
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             for (const auto& e : events)
                 results.push_back(e);
@@ -452,13 +452,13 @@ TEST(EventTest, Flow)
 
     std::vector<float> results;
 
-    EventSource<int> in1( g );
-    EventSource<int> in2( g );
+    auto in1 = EventSource<int>::Create(g);
+    auto in2 = EventSource<int>::Create(g);
 
     auto merged = Merge(in1, in2);
     int turns = 0;
 
-    Event<float> processed([&] (const auto& events, auto out)
+    auto processed = Event<float>::Create([&] (const auto& events, auto out)
         {
             for (const auto& e : events)
             {
@@ -469,7 +469,7 @@ TEST(EventTest, Flow)
             ++turns;
         }, merged);
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             for (float e : events)
                 results.push_back(e);
@@ -497,15 +497,15 @@ TEST(EventTest, Join)
 {
     Group g;
 
-    EventSource<int> in1( g );
-    EventSource<int> in2( g );
-    EventSource<int> in3( g );
+    auto in1 = EventSource<int>::Create(g);
+    auto in2 = EventSource<int>::Create(g);
+    auto in3 = EventSource<int>::Create(g);
 
     Event<std::tuple<int, int, int>> joined = Join(in1, in2, in3);
 
     std::vector<std::tuple<int, int, int>> results;
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             for (const auto& e : events)
                 results.push_back(e);
@@ -536,12 +536,12 @@ TEST(EventTest, FilterWithState)
 {
     Group g;
 
-    EventSource<std::string> in( g );
+    auto in = EventSource<std::string>::Create(g);
 
-    StateVar<int> sig1( g, 1338 );
-    StateVar<int> sig2( g, 1336 );
+    auto sig1 = StateVar<int>::Create(g, 1338);
+    auto sig2 = StateVar<int>::Create(g, 1336);
 
-    EventSource<int> in2( g );
+    auto in2 = EventSource<int>::Create(g);
 
     auto filtered = Filter([] (const std::string& s, int sig1, int sig2)
         {
@@ -550,7 +550,7 @@ TEST(EventTest, FilterWithState)
 
     std::queue<std::string> results;
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             for (const auto& e : events)
                 results.push(e);
@@ -573,13 +573,13 @@ TEST(EventTest, TransformWithState)
 
     std::vector<std::string> results;
 
-    EventSource<std::string> in1( g );
-    EventSource<std::string> in2( g );
+    auto in1 = EventSource<std::string>::Create(g);
+    auto in2 = EventSource<std::string>::Create(g);
 
     Event<std::string> merged = Merge(in1, in2);
 
-    StateVar<std::string> first( g, "Ace" );
-    StateVar<std::string> last( g, "McSteele" );
+    auto first = StateVar<std::string>::Create(g, "Ace");
+    auto last =  StateVar<std::string>::Create(g, "McSteele");
 
     auto transformed = Transform<std::string>([] (std::string s, const std::string& first, const std::string& last) -> std::string
         {
@@ -588,7 +588,7 @@ TEST(EventTest, TransformWithState)
             return s;
         }, merged, first, last);
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             for (const auto& e : events)
                 results.push_back(e);
@@ -615,15 +615,15 @@ TEST(EventTest, FlowWithState)
 
     std::vector<float> results;
 
-    EventSource<int> in1( g );
-    EventSource<int> in2( g );
+    auto in1 = EventSource<int>::Create(g);
+    auto in2 = EventSource<int>::Create(g);
 
-    StateVar<int> mult( g, 10 );
+    auto mult = StateVar<int>::Create(g, 10);
 
     Event<int> merged = Merge(in1, in2);
     int callCount = 0;
 
-    Event<float> processed([&] (const auto& events, auto out, int mult)
+    auto processed = Event<float>::Create([&] (const auto& events, auto out, int mult)
         {
             for (const auto& e : events)
             {
@@ -634,7 +634,7 @@ TEST(EventTest, FlowWithState)
             callCount++;
         }, merged, mult);
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             for (float e : events)
                 results.push_back(e);

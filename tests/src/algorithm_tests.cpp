@@ -24,14 +24,14 @@ TEST(AlgorithmTest, Hold)
 
     Group g;
 
-    EventSource<int> evt1( g );
+    auto evt1 = EventSource<int>::Create(g);
 
     State<int> st = Hold(1, evt1);
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (int v)
+    auto obs = Observer::Create([&] (int v)
         {
             ++turns;
             output = v;
@@ -60,14 +60,14 @@ TEST(AlgorithmTest, Monitor1)
 
     Group g;
 
-    StateVar<int> st( g, 1 );
+    auto st = StateVar<int>::Create(g, 1);
 
     Event<int> evt = Monitor( st );
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             ++turns;
 
@@ -98,7 +98,7 @@ TEST(AlgorithmTest, Monitor2)
 
     Group g;
 
-    StateVar<int> target( g, 10 );
+    auto target = StateVar<int>::Create(g, 10);
 
     std::vector<int> results;
 
@@ -107,7 +107,7 @@ TEST(AlgorithmTest, Monitor2)
     {
         // Observer is created in a nested scope so it gets destructed before the end of this function.
 
-        Observer obs([&] (const auto& events)
+        auto obs = Observer::Create([&] (const auto& events)
             {
                 for (int e : events)
                     results.push_back(e);
@@ -134,15 +134,15 @@ TEST(AlgorithmTest, Snapshot)
 {
     Group g;
 
-    StateVar<int> sv( g, 1 );
-    EventSource<> es( g );
+    auto sv = StateVar<int>::Create(g, 1);
+    auto es = EventSource<>::Create(g);
 
     State<int> st = Snapshot( sv, es );
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (int v)
+    auto obs = Observer::Create([&] (int v)
         {
             ++turns;
             output = v;
@@ -166,15 +166,15 @@ TEST(AlgorithmTest, Pulse)
 {
     Group g;
 
-    StateVar<int> sv( g, 1 );
-    EventSource<> es( g );
+    auto sv = StateVar<int>::Create(g, 1);
+    auto es = EventSource<>::Create(g);
 
     Event<int> st = Pulse( sv, es );
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             for (int e : events)
             {
@@ -201,7 +201,7 @@ TEST(AlgorithmTest, Iterate1)
 {
     Group g;
 
-    EventSource<int> numSrc( g );
+    auto numSrc = EventSource<int>::Create(g);
 
     State<int> numFold = Iterate<int>(0, [] (const auto& events, int v)
         {
@@ -214,7 +214,7 @@ TEST(AlgorithmTest, Iterate1)
         numSrc << i;
 
     int output = 0;
-    Observer obs([&] (int v) { output = v; }, numFold);
+    auto obs = Observer::Create([&] (int v) { output = v; }, numFold);
 
     EXPECT_EQ(output, 5050);
 }
@@ -223,7 +223,7 @@ TEST(AlgorithmTest, Iterate2)
 {
     Group g;
 
-    EventSource<char> charSrc( g );
+    auto charSrc = EventSource<char>::Create(g);
 
     State<std::string> strFold = Iterate<std::string>(std::string(""), [] (const auto& events, std::string s)
         {
@@ -233,7 +233,7 @@ TEST(AlgorithmTest, Iterate2)
         }, charSrc);
 
     std::string output;
-    Observer obs([&] (const auto& v) { output = v; }, strFold);
+    auto obs = Observer::Create([&] (const auto& v) { output = v; }, strFold);
 
     charSrc << 'T' << 'e' << 's' << 't';
 
@@ -244,7 +244,7 @@ TEST(AlgorithmTest, Iterate3)
 {
     Group g;
 
-    EventSource<int> numSrc( g );
+    auto numSrc = EventSource<int>::Create(g);
 
     State<int> numFold = Iterate<int>(0, [] (const auto& events, int v)
         {
@@ -256,7 +256,7 @@ TEST(AlgorithmTest, Iterate3)
     int turns = 0;
     int output = 0;
 
-    Observer obs([&] (const auto& v)
+    auto obs = Observer::Create([&] (const auto& v)
         {
             ++turns;
             output = v;
@@ -298,7 +298,7 @@ TEST(AlgorithmTest, Iterate4)
 {
     Group g;
 
-    EventSource<> trigger( g );
+    auto trigger = EventSource<>::Create(g);
 
     {
         State<int> inc = Iterate<int>(0, Incrementer<int>{ }, trigger);
@@ -306,7 +306,7 @@ TEST(AlgorithmTest, Iterate4)
             trigger.Emit();
 
         int output = 0;
-        Observer obs([&] (int v) { output = v; }, inc);
+        auto obs = Observer::Create([&] (int v) { output = v; }, inc);
 
         EXPECT_EQ(output, 100);
     }
@@ -317,7 +317,7 @@ TEST(AlgorithmTest, Iterate4)
             trigger.Emit();
 
         int output = 0;
-        Observer obs([&] (int v) { output = v; }, dec);
+        auto obs = Observer::Create([&] (int v) { output = v; }, dec);
 
         ASSERT_EQ(output, 100);
     }
@@ -327,7 +327,7 @@ TEST(AlgorithmTest, IterateByRef1)
 {
     Group g;
 
-    EventSource<int> src( g );
+    auto src = EventSource<int>::Create(g);
 
     auto x = IterateByRef<std::vector<int>>(std::vector<int>{ }, [] (const auto& events, auto& v)
         {
@@ -336,7 +336,7 @@ TEST(AlgorithmTest, IterateByRef1)
         }, src);
 
     std::vector<int> output;
-    Observer obs([&] (const auto& v) { output = v; }, x);
+    auto obs = Observer::Create([&] (const auto& v) { output = v; }, x);
 
     // Push
     for (int i=1; i<=100; i++)
@@ -353,7 +353,7 @@ TEST(AlgorithmTest, IterateByRef2)
 {
     Group g;
 
-    EventSource<> src( g );
+    auto src = EventSource<>::Create(g);
 
     auto x = IterateByRef<std::vector<int>>(std::vector<int>{ }, [] (const auto& events, std::vector<int>& v)
         {
@@ -362,7 +362,7 @@ TEST(AlgorithmTest, IterateByRef2)
         }, src);
 
     std::vector<int> output;
-    Observer obs([&] (const auto& v) { output = v; }, x);
+    auto obs = Observer::Create([&] (const auto& v) { output = v; }, x);
 
     // Push
     for (auto i=0; i<100; i++)
@@ -392,15 +392,15 @@ TEST(AlgorithmTest, TransformWithState)
 {
     Group g;
 
-    StateVar<int> in1( g );
-    StateVar<int> in2( g );
+    auto in1 = StateVar<int>::Create(g);
+    auto in2 = StateVar<int>::Create(g);
 
-    State<int> sum( Sum<int>, in1, in2 );
-    State<int> prod( Prod<int>, in1, in2 );
-    State<int> diff( Diff<int>, in1, in2 );
+    auto sum  = State<int>::Create(Sum<int>, in1, in2);
+    auto prod = State<int>::Create(Prod<int>, in1, in2);
+    auto diff = State<int>::Create(Diff<int>, in1, in2);
 
-    EventSource<> src1( g );
-    EventSource<int> src2( g );
+    auto src1 = EventSource<>::Create(g);
+    auto src2 = EventSource<int>::Create(g);
 
     auto out1 = Transform<std::tuple<int, int, int>>([] (Token, int sum, int prod, int diff)
         {
@@ -418,7 +418,7 @@ TEST(AlgorithmTest, TransformWithState)
     {
         std::tuple<int, int, int> output1;
 
-        Observer obs1([&] (const auto& events)
+        auto obs1 = Observer::Create([&] (const auto& events)
             {
                 for (const auto& e : events)
                 {
@@ -429,7 +429,7 @@ TEST(AlgorithmTest, TransformWithState)
 
         std::tuple<int, int, int, int> output2;
 
-        Observer obs2([&] (const auto& events)
+        auto obs2 = Observer::Create([&] (const auto& events)
             {
                 for (const auto& e : events)
                 {
@@ -460,7 +460,7 @@ TEST(AlgorithmTest, TransformWithState)
     {
         std::tuple<int, int, int> output1;
 
-        Observer obs1([&] (const auto& events)
+        auto obs1 = Observer::Create([&] (const auto& events)
             {
                 for (const auto& e : events)
                 {
@@ -471,7 +471,7 @@ TEST(AlgorithmTest, TransformWithState)
 
         std::tuple<int, int, int, int> output2;
 
-        Observer obs2([&] (const auto& events)
+        auto obs2 = Observer::Create([&] (const auto& events)
             {
                 for (const auto& e : events)
                 {
@@ -504,14 +504,14 @@ TEST(AlgorithmTest, IterateWithState)
 {
     Group g;
 
-    StateVar<int> in1( g );
-    StateVar<int> in2( g );
+    auto in1 = StateVar<int>::Create(g);
+    auto in2 = StateVar<int>::Create(g);
 
-    State<int> op1(Sum<int>, in1, in2);
-    State<int> op2([] (int a, int b) { return (a + b) * 10; }, in1, in2);
+    auto op1 = State<int>::Create(Sum<int>, in1, in2);
+    auto op2 = State<int>::Create([] (int a, int b) { return (a + b) * 10; }, in1, in2);
 
-    EventSource<> src1( g );
-    EventSource<int> src2( g );
+    auto src1 = EventSource<>::Create(g);
+    auto src2 = EventSource<int>::Create(g);
 
     auto out1 = Iterate<std::tuple<int, int>>(std::make_tuple(0, 0), [] (const auto& events, std::tuple<int, int> t, int op1, int op2)
         {
@@ -536,7 +536,7 @@ TEST(AlgorithmTest, IterateWithState)
     {
         std::tuple<int, int> output1;
 
-        Observer obs1([&] (const auto& v)
+        auto obs1 = Observer::Create([&] (const auto& v)
             {
                 ++turns1;
                 output1 = v;
@@ -544,7 +544,7 @@ TEST(AlgorithmTest, IterateWithState)
 
         std::tuple<int, int, int> output2;
 
-        Observer obs2([&] (const auto& v)
+        auto obs2 = Observer::Create([&] (const auto& v)
             {
                 ++turns2;
                 output2 = v;
@@ -570,7 +570,7 @@ TEST(AlgorithmTest, IterateWithState)
     {
         std::tuple<int, int> output1;
 
-        Observer obs1([&] (const auto& v)
+        auto obs1 = Observer::Create([&] (const auto& v)
             {
                 ++turns1;
                 output1 = v;
@@ -578,7 +578,7 @@ TEST(AlgorithmTest, IterateWithState)
 
         std::tuple<int, int, int> output2;
 
-        Observer obs2([&] (const auto& v)
+        auto obs2 = Observer::Create([&] (const auto& v)
             {
                 ++turns2;
                 output2 = v;
@@ -606,14 +606,14 @@ TEST(AlgorithmTest, IterateByRefWithState)
 {
     Group g;
 
-    StateVar<int> in1( g );
-    StateVar<int> in2( g );
+    auto in1 = StateVar<int>::Create(g);
+    auto in2 = StateVar<int>::Create(g);
 
-    State<int> op1( Sum<int>, in1, in2 );
-    State<int> op2([] (int a, int b) { return (a + b) * 10; }, in1, in2);
+    auto op1 = State<int>::Create(Sum<int>, in1, in2);
+    auto op2 = State<int>::Create([] (int a, int b) { return (a + b) * 10; }, in1, in2);
 
-    EventSource<> src1( g );
-    EventSource<int> src2( g );
+    auto src1 = EventSource<>::Create(g);
+    auto src2 = EventSource<int>::Create(g);
 
     auto out1 = IterateByRef<std::vector<int>>(std::vector<int>{ }, [] (const auto& events, std::vector<int>& v, int op1, int op2)
         {
@@ -640,7 +640,7 @@ TEST(AlgorithmTest, IterateByRefWithState)
     {
         std::vector<int> output1;
 
-        Observer obs1([&] (const std::vector<int>& v)
+        auto obs1 = Observer::Create([&] (const std::vector<int>& v)
             {
                 ++turns1;
                 output1 = v;
@@ -648,7 +648,7 @@ TEST(AlgorithmTest, IterateByRefWithState)
 
         std::vector<int> output2;
 
-        Observer obs2([&] (const std::vector<int>& v)
+        auto obs2 = Observer::Create([&] (const std::vector<int>& v)
             {
                 ++turns2;
                 output2 = v;
@@ -676,7 +676,7 @@ TEST(AlgorithmTest, IterateByRefWithState)
     {
         std::vector<int> output1;
 
-        Observer obs1([&] (const std::vector<int>& v)
+        auto obs1 = Observer::Create([&] (const std::vector<int>& v)
             {
                 ++turns1;
                 output1 = v;
@@ -684,7 +684,7 @@ TEST(AlgorithmTest, IterateByRefWithState)
 
         std::vector<int> output2;
 
-        Observer obs2([&] (const std::vector<int>& v)
+        auto obs2 = Observer::Create([&] (const std::vector<int>& v)
             {
                 ++turns2;
                 output2 = v;

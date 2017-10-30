@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "react/detail/defs.h"
 #include "react/common/utility.h"
 
@@ -35,6 +37,14 @@ REACT_DEFINE_BITMASK_OPERATORS(TransactionFlags)
 
 enum class Token { value };
 
+enum class InPlaceTag
+{
+    value = 1
+};
+
+static constexpr InPlaceTag in_place = InPlaceTag::value;
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// API types
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,6 +65,13 @@ class StateSlot;
 template <typename S>
 class StateLink;
 
+// Object state
+template <typename S>
+class ObjectContext;
+
+template <typename T>
+class ObjectState;
+
 // Event
 enum class Token;
 
@@ -66,6 +83,12 @@ class EventSource;
 
 template <typename E>
 class EventSlot;
+
+template <typename E = Token>
+using EventValueList = std::vector<E>;
+
+template <typename E>
+using EventValueSink = std::back_insert_iterator<std::vector<E>>;
 
 // Observer
 class Observer;

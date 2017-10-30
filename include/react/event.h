@@ -31,35 +31,33 @@ template <typename E>
 class Event : protected REACT_IMPL::EventInternals<E>
 {
 public:
+    // Construct with explicit group
+    template <typename F, typename T>
+    static Event Create(const Group& group, F&& func, const Event<T>& dep)
+        { return CreateProcessingNode(group, std::forward<F>(func), dep); }
+
+    // Construct with implicit group
+    template <typename F, typename T>
+    static Event Create(F&& func, const Event<T>& dep)
+        { return CreateProcessingNode(dep.GetGroup(), std::forward<F>(func), dep); }
+
+    // Construct with explicit group
+    template <typename F, typename T, typename ... Us>
+    static Event Create(const Group& group, F&& func, const Event<T>& dep, const State<Us>& ... states)
+        { return CreateSyncedProcessingNode(group, std::forward<F>(func), dep, states ...); }
+
+    // Construct with implicit group
+    template <typename F, typename T, typename ... Us>
+    static Event Create(F&& func, const Event<T>& dep, const State<Us>& ... states)
+        { return CreateSyncedProcessingNode(dep.GetGroup(), std::forward<F>(func), dep, states ...); }
+
+    Event() = default;
+
     Event(const Event&) = default;
     Event& operator=(const Event&) = default;
 
     Event(Event&&) = default;
     Event& operator=(Event&&) = default;
-
-    // Construct with explicit group
-    template <typename F, typename T>
-    Event(const Group& group, F&& func, const Event<T>& dep) :
-        Event::Event( CreateProcessingNode(group, std::forward<F>(func), dep) )
-    { }
-
-    // Construct with implicit group
-    template <typename F, typename T>
-    Event(F&& func, const Event<T>& dep) :
-        Event::Event( CreateProcessingNode(dep.GetGroup(), std::forward<F>(func), dep) )
-    { }
-
-    // Construct with explicit group
-    template <typename F, typename T, typename ... Us>
-    Event(const Group& group, F&& func, const Event<T>& dep, const State<Us>& ... states) :
-        Event::Event( CreateSyncedProcessingNode(group, std::forward<F>(func), dep, states ...) )
-    { }
-
-    // Construct with implicit group
-    template <typename F, typename T, typename ... Us>
-    Event(F&& func, const Event<T>& dep, const State<Us>& ... states) :
-        Event::Event( CreateSyncedProcessingNode(dep.GetGroup(), std::forward<F>(func), dep, states ...) )
-    { }
 
     auto Tokenize() const -> decltype(auto)
         { return REACT::Tokenize(*this); }
@@ -83,13 +81,12 @@ public:
         { return e; }
 
 protected:
-    // Private node ctor
-    explicit Event(std::shared_ptr<REACT_IMPL::EventNode<E>>&& nodePtr) :
+    Event(std::shared_ptr<REACT_IMPL::EventNode<E>>&& nodePtr) :
         Event::EventInternals( std::move(nodePtr) )
     { }
 
     template <typename F, typename T>
-    auto CreateProcessingNode(const Group& group, F&& func, const Event<T>& dep) -> decltype(auto)
+    static auto CreateProcessingNode(const Group& group, F&& func, const Event<T>& dep) -> decltype(auto)
     {
         using REACT_IMPL::EventProcessingNode;
         using REACT_IMPL::SameGroupOrLink;
@@ -99,7 +96,7 @@ protected:
     }
 
     template <typename F, typename T, typename ... Us>
-    auto CreateSyncedProcessingNode(const Group& group, F&& func, const Event<T>& dep, const State<Us>& ... syncs) -> decltype(auto)
+    static auto CreateSyncedProcessingNode(const Group& group, F&& func, const Event<T>& dep, const State<Us>& ... syncs) -> decltype(auto)
     {
         using REACT_IMPL::SyncedEventProcessingNode;
         using REACT_IMPL::SameGroupOrLink;
@@ -119,16 +116,17 @@ template <typename E>
 class EventSource : public Event<E>
 {
 public:
+    // Construct event source
+    static EventSource Create(const Group& group)
+        { return CreateSourceNode(group); }
+
+    EventSource() = default;
+
     EventSource(const EventSource&) = default;
     EventSource& operator=(const EventSource&) = default;
 
     EventSource(EventSource&& other) = default;
     EventSource& operator=(EventSource&& other) = default;
-
-    // Construct event source
-    explicit EventSource(const Group& group) :
-        EventSource::Event( CreateSourceNode(group) )
-    { }
     
     void Emit(const E& value)
         { EmitValue(value); }
@@ -147,13 +145,17 @@ public:
         { EmitValue(std::move(value)); return *this; }
 
 protected:
-    auto CreateSourceNode(const Group& group) -> decltype(auto)
+    EventSource(std::shared_ptr<REACT_IMPL::EventNode<E>>&& nodePtr) :
+        EventSource::Event( std::move(nodePtr) )
+    { }
+
+private:
+    static auto CreateSourceNode(const Group& group) -> decltype(auto)
     {
         using REACT_IMPL::EventSourceNode;
         return std::make_shared<EventSourceNode<E>>(group);
     }
 
-private:
     template <typename T>
     void EmitValue(T&& value)
     {
@@ -177,16 +179,17 @@ template <typename E>
 class EventSlot : public Event<E>
 {
 public:
+    // Construct emtpy slot
+    static EventSlot Create(const Group& group)
+        { return CreateSlotNode(group); }
+
+    EventSlot() = default;
+
     EventSlot(const EventSlot&) = default;
     EventSlot& operator=(const EventSlot&) = default;
 
     EventSlot(EventSlot&&) = default;
     EventSlot& operator=(EventSlot&&) = default;
-
-    // Construct emtpy slot
-    EventSlot(const Group& group) :
-        EventSlot::Event( CreateSlotNode(group) )
-    { }
 
     void Add(const Event<E>& input)
         { AddInput(input); }
@@ -198,13 +201,17 @@ public:
         { RemoveAllInputs(); }
 
 protected:
-    auto CreateSlotNode(const Group& group) -> decltype(auto)
+    EventSlot(std::shared_ptr<REACT_IMPL::EventNode<E>>&& nodePtr) :
+        EventSlot::Event( std::move(nodePtr) )
+    { }
+
+private:
+    static auto CreateSlotNode(const Group& group) -> decltype(auto)
     {
         using REACT_IMPL::EventSlotNode;
         return std::make_shared<EventSlotNode<E>>(group);
     }
 
-private:
     void AddInput(const Event<E>& input)
     {
         using REACT_IMPL::NodeId;
@@ -252,18 +259,24 @@ template <typename E>
 class EventLink : public Event<E>
 {
 public:
+    // Construct with group
+    static EventLink Create(const Group& group, const Event<E>& input)
+        { return GetOrCreateLinkNode(group, input); }
+
+    EventLink() = default;
+
     EventLink(const EventLink&) = default;
     EventLink& operator=(const EventLink&) = default;
 
     EventLink(EventLink&&) = default;
     EventLink& operator=(EventLink&&) = default;
 
-    // Construct with group
-    EventLink(const Group& group, const Event<E>& input) :
-        EventLink::Event( GetOrCreateLinkNode(group, input) )
+protected:
+    EventLink(std::shared_ptr<REACT_IMPL::EventNode<E>>&& nodePtr) :
+        EventLink::Event( std::move(nodePtr) )
     { }
 
-protected:
+private:
     static auto GetOrCreateLinkNode(const Group& group, const Event<E>& input) -> decltype(auto)
     {
         using REACT_IMPL::EventLinkNode;
@@ -274,9 +287,7 @@ protected:
 
         ReactGraph::LinkCache& linkCache = GetInternals(group).GetGraphPtr()->GetLinkCache();
 
-        std::shared_ptr<IReactNode> nodePtr = linkCache.LookupOrCreate(
-            k,
-            [&]
+        std::shared_ptr<IReactNode> nodePtr = linkCache.LookupOrCreate(k, [&]
             {
                 auto nodePtr = std::make_shared<EventLinkNode<E>>(group, input);
                 nodePtr->SetWeakSelfPtr(std::weak_ptr<EventLinkNode<E>>{ nodePtr });
@@ -291,7 +302,7 @@ protected:
 /// Merge
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename E, typename ... Us>
-auto Merge(const Group& group, const Event<E>& dep1, const Event<Us>& ... deps) -> Event<E>
+static auto Merge(const Group& group, const Event<E>& dep1, const Event<Us>& ... deps) -> Event<E>
 {
     using REACT_IMPL::EventMergeNode;
     using REACT_IMPL::SameGroupOrLink;
@@ -302,79 +313,79 @@ auto Merge(const Group& group, const Event<E>& dep1, const Event<Us>& ... deps) 
 }
 
 template <typename T = void, typename U1, typename ... Us>
-auto Merge(const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
+static auto Merge(const Event<U1>& dep1, const Event<Us>& ... deps) -> decltype(auto)
     { return Merge(dep1.GetGroup(), dep1, deps ...); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Filter
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename F, typename E>
-auto Filter(const Group& group, F&& pred, const Event<E>& dep) -> Event<E>
+static auto Filter(const Group& group, F&& pred, const Event<E>& dep) -> Event<E>
 {
     auto filterFunc = [capturedPred = std::forward<F>(pred)] (const EventValueList<E>& events, EventValueSink<E> out)
         { std::copy_if(events.begin(), events.end(), out, capturedPred); };
 
-    return Event<E>(group, std::move(filterFunc), dep);
+    return Event<E>::Create(group, std::move(filterFunc), dep);
 }
 
 template <typename F, typename E>
-auto Filter(F&& pred, const Event<E>& dep) -> Event<E>
+static auto Filter(F&& pred, const Event<E>& dep) -> Event<E>
     { return Filter(dep.GetGroup(), std::forward<F>(pred), dep); }
 
 template <typename F, typename E, typename ... Ts>
-auto Filter(const Group& group, F&& pred, const Event<E>& dep, const State<Ts>& ... states) -> Event<E>
+static auto Filter(const Group& group, F&& pred, const Event<E>& dep, const State<Ts>& ... states) -> Event<E>
 {
     auto filterFunc = [capturedPred = std::forward<F>(pred)] (const EventValueList<E>& evts, EventValueSink<E> out, const Ts& ... values)
-    {
-        for (const auto& v : evts)
-            if (capturedPred(v, values ...))
-                *out++ = v;
-    };
+        {
+            for (const auto& v : evts)
+                if (capturedPred(v, values ...))
+                    *out++ = v;
+        };
 
-    return Event<E>(group, std::move(filterFunc), dep, states ...);
+    return Event<E>::Create(group, std::move(filterFunc), dep, states ...);
 }
 
 template <typename F, typename E, typename ... Ts>
-auto Filter(F&& pred, const Event<E>& dep, const State<Ts>& ... states) -> Event<E>
+static auto Filter(F&& pred, const Event<E>& dep, const State<Ts>& ... states) -> Event<E>
     { return Filter(dep.GetGroup(), std::forward<F>(pred), dep, states ...); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Transform
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename E, typename F, typename T>
-auto Transform(const Group& group, F&& op, const Event<T>& dep) -> Event<E>
+static auto Transform(const Group& group, F&& op, const Event<T>& dep) -> Event<E>
 {
     auto transformFunc = [capturedOp = std::forward<F>(op)] (const EventValueList<T>& evts, EventValueSink<E> out)
         { std::transform(evts.begin(), evts.end(), out, capturedOp); };
 
-    return Event<E>(group, std::move(transformFunc), dep);
+    return Event<E>::Create(group, std::move(transformFunc), dep);
 }
 
 template <typename E, typename F, typename T>
-auto Transform(F&& op, const Event<T>& dep) -> Event<E>
+static auto Transform(F&& op, const Event<T>& dep) -> Event<E>
     { return Transform<E>(dep.GetGroup(), std::forward<F>(op), dep); }
 
 template <typename E, typename F, typename T, typename ... Us>
-auto Transform(const Group& group, F&& op, const Event<T>& dep, const State<Us>& ... states) -> Event<E>
+static auto Transform(const Group& group, F&& op, const Event<T>& dep, const State<Us>& ... states) -> Event<E>
 {
     auto transformFunc = [capturedOp = std::forward<F>(op)] (const EventValueList<T>& evts, EventValueSink<E> out, const Us& ... values)
-    {
-        for (const auto& v : evts)
-            *out++ = capturedOp(v, values ...);
-    };
+        {
+            for (const auto& v : evts)
+                *out++ = capturedOp(v, values ...);
+        };
 
-    return Event<E>(group, std::move(transformFunc), dep, states ...);
+    return Event<E>::Create(group, std::move(transformFunc), dep, states ...);
 }
 
 template <typename E, typename F, typename T, typename ... Us>
-auto Transform(F&& op, const Event<T>& dep, const State<Us>& ... states) -> Event<E>
+static auto Transform(F&& op, const Event<T>& dep, const State<Us>& ... states) -> Event<E>
     { return Transform<E>(dep.GetGroup(), std::forward<F>(op), dep, states ...); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Join
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename U1, typename ... Us>
-auto Join(const Group& group, const Event<U1>& dep1, const Event<Us>& ... deps) -> Event<std::tuple<U1, Us ...>>
+static auto Join(const Group& group, const Event<U1>& dep1, const Event<Us>& ... deps) -> Event<std::tuple<U1, Us ...>>
 {
     using REACT_IMPL::EventJoinNode;
     using REACT_IMPL::SameGroupOrLink;
@@ -387,7 +398,7 @@ auto Join(const Group& group, const Event<U1>& dep1, const Event<Us>& ... deps) 
 }
 
 template <typename U1, typename ... Us>
-auto Join(const Event<U1>& dep1, const Event<Us>& ... deps) -> Event<std::tuple<U1, Us ...>>
+static auto Join(const Event<U1>& dep1, const Event<Us>& ... deps) -> Event<std::tuple<U1, Us ...>>
     { return Join(dep1.GetGroup(), dep1, deps ...); }
 
 /******************************************/ REACT_END /******************************************/
@@ -400,7 +411,7 @@ static Event<E> SameGroupOrLink(const Group& targetGroup, const Event<E>& dep)
     if (dep.GetGroup() == targetGroup)
         return dep;
     else
-        return EventLink<E>{ targetGroup, dep };
+        return EventLink<E>::Create(targetGroup, dep);
 }
 
 /****************************************/ REACT_IMPL_END /***************************************/

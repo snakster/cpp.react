@@ -21,24 +21,12 @@
 /***************************************/ REACT_IMPL_BEGIN /**************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Forward declarations
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename L, typename R>
-bool Equals(const L& lhs, const R& rhs);
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// StateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
 class StateNode : public NodeBase
 {
 public:
-    StateNode(StateNode&&) = default;
-    StateNode& operator=(StateNode&&) = default;
-
-    StateNode(const StateNode&) = delete;
-    StateNode& operator=(const StateNode&) = delete;
-
     explicit StateNode(const Group& group) :
         StateNode::NodeBase( group ),
         value_( )
@@ -48,6 +36,12 @@ public:
     StateNode(const Group& group, T&& value) :
         StateNode::NodeBase( group ),
         value_( std::forward<T>(value) )
+    { }
+
+    template <typename ... Ts>
+    StateNode(InPlaceTag, const Group& group, Ts&& ... args) :
+        StateNode::NodeBase( group ),
+        value_( std::forward<Ts>(args) ... )
     { }
 
     S& Value()
@@ -153,7 +147,7 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// StateOpNode
+/// StateFuncNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename F, typename ... TDeps>
 class StateFuncNode : public StateNode<S>
@@ -344,6 +338,64 @@ private:
     VirtualOutputNode linkOutput_;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ObjectStateNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename S>
+class ObjectStateNode : public StateNode<ObjectContext<S>>
+{
+public:
+    ObjectStateNode(const Group& group, S&& obj, const std::initializer_list<NodeId>& memberIds) :
+        ObjectStateNode::StateNode( group, std::move(obj) )
+    {
+        this->RegisterMe();
+
+        if (memberIds.size() == 0)
+        {
+            apply([this] (const auto& ... members)
+                {
+                    REACT_EXPAND_PACK(memberIds_.push_back(GetInternals(members).GetNodeId()));
+                    REACT_EXPAND_PACK(this->AttachToMe(GetInternals(members).GetNodeId()));
+                }, this->Value().GetObject().GetReactiveMembers());
+        }
+        else
+        {
+            memberIds_.reserve(memberIds.size());
+
+            for (NodeId id : memberIds)
+            {
+                memberIds_.push_back(id);
+                this->AttachToMe(id);
+            }
+        }
+    }
+
+    template <typename ... Us>
+    ObjectStateNode(InPlaceTag, const Group& group, Us&& ... args) :
+        ObjectStateNode::StateNode( in_place, group, group, std::forward<Us>(args) ... )
+    {
+        this->RegisterMe();
+
+        apply([this] (const auto& ... members)
+            { REACT_EXPAND_PACK(memberIds_.push_back(GetInternals(members).GetNodeId())); }, this->Value().GetObject().GetReactiveMembers());
+    }
+
+    ~ObjectStateNode()
+    {
+        for (NodeId id : memberIds_)
+            this->DetachFromMe(id);
+
+        this->UnregisterMe();
+    }
+
+    virtual UpdateResult Update(TurnId turnId) noexcept override
+    {
+        return UpdateResult::changed;
+    }
+
+private:
+    std::vector<NodeId> memberIds_;
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// StateInternals
@@ -352,6 +404,8 @@ template <typename S>
 class StateInternals
 {
 public:
+    StateInternals() = default;
+
     StateInternals(const StateInternals&) = default;
     StateInternals& operator=(const StateInternals&) = default;
 
@@ -380,6 +434,18 @@ public:
 private:
     std::shared_ptr<StateNode<S>> nodePtr_;
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// SameGroupOrLink
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename S>
+static State<S> SameGroupOrLink(const Group& targetGroup, const State<S>& dep)
+{
+    if (dep.GetGroup() == targetGroup)
+        return dep;
+    else
+        return StateLink<S>::Create(targetGroup, dep);
+}
 
 /****************************************/ REACT_IMPL_END /***************************************/
 

@@ -13,11 +13,7 @@ include_directories ("${PROJECT_SOURCE_DIR}/include")
 
 ### CppReact
 add_library(CppReact 
-	src/engine/PulsecountEngine.cpp
-	src/engine/SubtreeEngine.cpp
-	src/engine/ToposortEngine.cpp
-	src/logging/EventLog.cpp
-	src/logging/EventRecords.cpp)
+	src/detail/graph_impl.cpp)
 
 target_link_libraries(CppReact tbb)
 

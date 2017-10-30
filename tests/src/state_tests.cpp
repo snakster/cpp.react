@@ -20,7 +20,7 @@ TEST(StateTest, Construction)
 
     // State variable
     {
-        StateVar<int> t1( g, 0 );
+        auto t1 = StateVar<int>::Create(g, 0);
         StateVar<int> t2( t1 );
         StateVar<int> t3( std::move(t1) );
         
@@ -32,9 +32,9 @@ TEST(StateTest, Construction)
 
     // State slot
     {
-        StateVar<int> t0( g, 0 );
+        auto t0 = StateVar<int>::Create(g, 0);
 
-        StateSlot<int> t1( g, t0 );
+        auto t1 = StateSlot<int>::Create(g, t0);
         StateSlot<int> t2( t1 );
         StateSlot<int> t3( std::move(t1) );
         
@@ -46,11 +46,11 @@ TEST(StateTest, Construction)
 
     // State link
     {
-        StateVar<int> t0( g, 0 );
+        auto t0 = StateVar<int>::Create(g, 0);
 
-        StateSlot<int> s1( g, t0 );
+        auto s1 = StateSlot<int>::Create(g, t0);
 
-        StateLink<int> t1( g, s1 );
+        auto t1 = StateLink<int>::Create(g, s1);
         StateLink<int> t2( t1 );
         StateLink<int> t3( std::move(t1) );
         
@@ -65,11 +65,11 @@ TEST(StateTest, BasicOutput)
 {
     Group g;
 
-    StateVar<int> st( g );
+    auto st = StateVar<int>::Create(g);
 
     int output = 0;
 
-    Observer obs([&] (const auto& v)
+    auto obs2 = Observer::Create([&] (const auto& v)
         {
             output += v;
         }, st);
@@ -87,15 +87,15 @@ TEST(StateTest, Slots)
 {
     Group g;
 
-    StateVar<int> st1( g );
-    StateVar<int> st2( g );
+    auto st1 = StateVar<int>::Create(g);
+    auto st2 = StateVar<int>::Create(g);
 
-    StateSlot<int> slot( g, st1 );
+    auto slot = StateSlot<int>::Create(g, st1);
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (const auto& v)
+    auto obs = Observer::Create([&] (const auto& v)
         {
             ++turns;
             output += v;
@@ -125,12 +125,12 @@ TEST(StateTest, Transactions)
 {
     Group g;
 
-    StateVar<int> st( g, 1 );
+    auto st = StateVar<int>::Create(g, 1);
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (const auto& v)
+    auto obs = Observer::Create([&] (const auto& v)
         {
             ++turns;
             output += v;
@@ -156,16 +156,16 @@ TEST(StateTest, Links)
     Group g2;
     Group g3;
 
-    StateVar<int> st1( g1, 1 );
-    StateVar<int> st2( g2, 2 );
-    StateVar<int> st3( g3, 3 );
+    auto st1 = StateVar<int>::Create(g1, 1);
+    auto st2 = StateVar<int>::Create(g2, 2);
+    auto st3 = StateVar<int>::Create(g3, 3);
 
-    StateSlot<int> slot( g1, st1 );
+    auto slot = StateSlot<int>::Create(g1, st1);
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (const auto& v)
+    auto obs = Observer::Create([&] (const auto& v)
         {
             ++turns;
             output = v;
@@ -177,7 +177,7 @@ TEST(StateTest, Links)
     EXPECT_EQ(2, turns);
 
     // Explicit link
-    StateLink<int> lnk2( g1, st2 );
+    auto lnk2 = StateLink<int>::Create(g1, st2);
     slot.Set(lnk2);
     std::this_thread::sleep_for(std::chrono::seconds(1));
     EXPECT_EQ(2, output);
@@ -223,21 +223,21 @@ TEST(StateTest, StateCombination1)
 {
     Group g;
 
-    StateVar<int> a( g, 0 );
-    StateVar<int> b( g, 0 );
-    StateVar<int> c( g, 0 );
+    auto a = StateVar<int>::Create(g, 0);
+    auto b = StateVar<int>::Create(g, 0);
+    auto c = StateVar<int>::Create(g, 0);
 
-    State<int> s1(Sum2<int>, a, b);
+    auto s1 = State<int>::Create(Sum2<int>, a, b);
     
-    State<int> x(Sum2<int>, s1, c);
-    State<int> y(Sum3<int>, a, b, c);
+    auto x = State<int>::Create(Sum2<int>, s1, c);
+    auto y = State<int>::Create(Sum3<int>, a, b, c);
 
     int output1 = 0;
     int output2 = 0;
     int turns1 = 0;
     int turns2 = 0;
 
-    Observer obs1([&] (int v)
+    auto obs1 = Observer::Create([&] (int v)
         {
             ++turns1;
             output1 = v;
@@ -246,7 +246,7 @@ TEST(StateTest, StateCombination1)
     EXPECT_EQ(0, output1);
     EXPECT_EQ(1, turns1);
 
-    Observer obs2([&] (int v)
+    auto obs2 = Observer::Create([&] (int v)
         {
             ++turns2;
             output2 = v;
@@ -272,57 +272,57 @@ TEST(StateTest, StateCombination2)
 
     std::vector<int> results;
 
-    StateVar<int> n1( g, 1 );
+    auto n1 = StateVar<int>::Create(g, 1);
 
-    State<int> n2([] (int n1)
+    auto n2 = State<int>::Create([] (int n1)
         { return n1 + 1; }, n1);
 
-    State<int> n3([] (int n1, int n2)
+    auto n3 = State<int>::Create([] (int n1, int n2)
         { return n2 + n1 + 1; }, n1, n2);
 
-    State<int> n4([] (int n3)
+    auto n4 = State<int>::Create([] (int n3)
         { return n3 + 1; }, n3);
 
-    State<int> n5([] (int n1, int n3, int n4)
+    auto n5 = State<int>::Create([] (int n1, int n3, int n4)
         { return n4 + n3 + n1 + 1; }, n1, n3, n4);
 
-    State<int> n6([] (int n5)
+    auto n6 = State<int>::Create([] (int n5)
         { return n5 + 1; }, n5);
 
-    State<int> n7([] (int n5, int n6)
+    auto n7 = State<int>::Create([] (int n5, int n6)
         { return n6 + n5 + 1; }, n5, n6);
 
-    State<int> n8([] (int n7)
+    auto n8 = State<int>::Create([] (int n7)
         { return n7 + 1; }, n7);
 
-    State<int> n9([] (int n1, int n5, int n7, int n8)
+    auto n9 = State<int>::Create([] (int n1, int n5, int n7, int n8)
         { return n8 + n7 + n5 + n1 + 1; }, n1, n5, n7, n8);
 
-    State<int> n10([] (int n9)
+    auto n10 = State<int>::Create([] (int n9)
         { return n9 + 1; }, n9);
 
-    State<int> n11([] (int n9, int n10)
+    auto n11 = State<int>::Create([] (int n9, int n10)
         { return n10 + n9 + 1; }, n9, n10);
 
-    State<int> n12([] (int n11)
+    auto n12 = State<int>::Create([] (int n11)
         { return n11 + 1; }, n11);
 
-    State<int> n13([] (int n9, int n11, int n12)
+    auto n13 = State<int>::Create([] (int n9, int n11, int n12)
         { return n12 + n11 + n9 + 1; }, n9, n11, n12);
 
-    State<int> n14([] (int n13)
+    auto n14 = State<int>::Create([] (int n13)
         { return n13 + 1; }, n13);
 
-    State<int> n15([] (int n13, int n14)
+    auto n15 = State<int>::Create([] (int n13, int n14)
         { return n14 + n13 + 1; }, n13, n14);
 
-    State<int> n16([] (int n15)
+    auto n16 = State<int>::Create([] (int n15)
         { return n15 + 1; }, n15);
 
-    State<int> n17([] (int n9, int n13, int n15, int n16)
+    auto n17 = State<int>::Create([] (int n9, int n13, int n15, int n16)
         { return n16 + n15 + n13 + n9 + 1; }, n9, n13, n15, n16);
 
-    Observer obs([&] (int v) { results.push_back(v); }, n17);
+    auto obs = Observer::Create([&] (int v) { results.push_back(v); }, n17);
 
     n1.Set(10);     // 7732
     n1.Set(100);    // 68572
@@ -342,11 +342,11 @@ TEST(StateTest, Modify1)
 
     std::vector<int> results;
 
-    StateVar<std::vector<int>> var( g, std::vector<int>{ } );
+    auto var = StateVar<std::vector<int>>::Create(g, std::vector<int>{ });
 
     int turns = 0;
 
-    Observer obs([&] (const std::vector<int>& v)
+    auto obs = Observer::Create([&] (const std::vector<int>& v)
         {
             ++turns;
             results = v;
@@ -372,11 +372,11 @@ TEST(StateTest, Modify2)
 
     std::vector<int> results;
 
-    StateVar<std::vector<int>> var( g, std::vector<int>{ } );
+    auto var = StateVar<std::vector<int>>::Create(g, std::vector<int>{ });
 
     int turns = 0;
 
-    Observer obs([&] (const std::vector<int>& v)
+    auto obs = Observer::Create([&] (const std::vector<int>& v)
         {
             ++turns;
             results = v;
@@ -402,17 +402,16 @@ TEST(StateTest, Modify3)
 
     std::vector<int> results;
 
-    StateVar<std::vector<int>> var( g, std::vector<int>{ } );
+    auto var = StateVar<std::vector<int>>::Create(g, std::vector<int>{ });
 
     int turns = 0;
 
-    Observer obs([&] (const std::vector<int>& v)
+    auto obs = Observer::Create([&] (const std::vector<int>& v)
         {
             ++turns;
             results = v;
         }, var);
     
-    // Also terrible
     g.DoTransaction([&]
         {
             var.Set(std::vector<int>{ 30, 50 });
@@ -424,4 +423,58 @@ TEST(StateTest, Modify3)
     EXPECT_EQ(results[2], 70);
 
     ASSERT_EQ(turns, 2);
+}
+
+class Widget
+{
+public:
+    StateVar<int> color;
+
+    StateVar<int> width;
+    StateVar<int> height;
+
+    auto GetReactiveMembers() const -> decltype(auto)
+        { return std::tie(color, width, height); }
+
+    Widget(const Group& group)
+    {
+        color  = StateVar<int>::Create(group, 0);
+        width  = StateVar<int>::Create(group, 0);
+        height = StateVar<int>::Create(group, 0);
+    }
+
+    Widget(const Group& group, int value)
+    {
+        color  = StateVar<int>::Create(group, value);
+        width  = StateVar<int>::Create(group, value);
+        height = StateVar<int>::Create(group, value);
+    }
+
+    
+};
+
+TEST(StateTest, Object)
+{
+    Group g;
+
+    Widget w1( g );
+    Widget w2( g );
+
+    auto st1 = ObjectState<Widget>::Create(g, std::move(w1), w1.color, w1.width, w1.height);
+
+    auto st2 = ObjectState<Widget>::Create(in_place, g, 1337);
+
+    auto st3 = ObjectState<Widget>::Create(g, std::move(w2));
+
+    auto obs = Observer::Create([&] (const auto& ctx)
+        {
+            const Widget& widget = ctx.GetObject();
+
+            int color = ctx.Get(widget.color);
+            int width = ctx.Get(widget.width);
+            int height = ctx.Get(widget.height);
+        }, st1);
+
+    w1.color.Set(10);
+    w2.color.Set(20);
 }

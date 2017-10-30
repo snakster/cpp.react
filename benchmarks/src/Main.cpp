@@ -222,10 +222,18 @@ int main()
 
 }
 
+struct Data
+{
+    State<int> a;
+    State<int> b;
+
+    State<Data*> (a, b);
+};
+
 #endif
 
 #include "react/common/expected.h"
-#include "react/signal.h"
+#include "react/state.h"
 #include "react/event.h"
 #include "react/algorithm.h"
 #include <iostream>

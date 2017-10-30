@@ -19,12 +19,12 @@ TEST(TransactionTest, Merging)
 {
     Group g;
 
-    EventSource<int> evt( g );
+    auto evt = EventSource<int>::Create(g);
 
     int output = 0;
     int turns = 0;
 
-    Observer obs([&] (const auto& events)
+    auto obs = Observer::Create([&] (const auto& events)
         {
             ++turns;
             for (int e : events)
@@ -78,12 +78,12 @@ TEST(TransactionTest, LinkedSync)
     Group g2;
     Group g3;
 
-    EventSource<int> evt1( g1 );
+    auto evt1 = EventSource<int>::Create(g1);
 
     int output1 = 0;
     int turns1 = 0;
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             ++turns1;
             for (int e : events)
@@ -95,7 +95,7 @@ TEST(TransactionTest, LinkedSync)
     int output2 = 0;
     int turns2 = 0;
 
-    Observer obs2([&] (const auto& events)
+    auto obs2 = Observer::Create([&] (const auto& events)
         {
             ++turns2;
             for (int e : events)
@@ -107,7 +107,7 @@ TEST(TransactionTest, LinkedSync)
     int output3 = 0;
     int turns3 = 0;
 
-    Observer obs3([&] (const auto& events)
+    auto obs3 = Observer::Create([&] (const auto& events)
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -147,12 +147,12 @@ TEST(TransactionTest, LinkedSyncMerging)
     Group g1;
     Group g2;
 
-    EventSource<int> evt1( g1 );
+    auto evt1 = EventSource<int>::Create(g1);
 
     int output1 = 0;
     int turns1 = 0;
 
-    Observer obs1([&] (const auto& events)
+    auto obs1 = Observer::Create([&] (const auto& events)
         {
             ++turns1;
             for (int e : events)
@@ -164,7 +164,7 @@ TEST(TransactionTest, LinkedSyncMerging)
     int output2 = 0;
     int turns2 = 0;
 
-    Observer obs2([&] (const auto& events)
+    auto obs2 = Observer::Create([&] (const auto& events)
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
 

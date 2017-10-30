@@ -13,14 +13,12 @@
 #include "react/api.h"
 #include "react/group.h"
 #include "react/common/ptrcache.h"
+#include "react/detail/state_nodes.h"
 
 #include <memory>
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include "react/detail/state_nodes.h"
-
 
 /*****************************************/ REACT_BEGIN /*****************************************/
 
@@ -31,23 +29,23 @@ template <typename S>
 class State : protected REACT_IMPL::StateInternals<S>
 {
 public:
+    // Construct with explicit group
+    template <typename F, typename T1, typename ... Ts>
+    static State Create(const Group& group, F&& func, const State<T1>& dep1, const State<Ts>& ... deps)
+        { return CreateFuncNode(group, std::forward<F>(func), dep1, deps ...); }
+
+    // Construct with implicit group
+    template <typename F, typename T1, typename ... Ts>
+    static State Create(F&& func, const State<T1>& dep1, const State<Ts>& ... deps)
+        { return CreateFuncNode(dep1.GetGroup(), std::forward<F>(func), dep1, deps ...); }
+
+    State() = default;
+
     State(const State&) = default;
     State& operator=(const State&) = default;
 
     State(State&&) = default;
     State& operator=(State&&) = default;
-
-    // Construct with explicit group
-    template <typename F, typename T1, typename ... Ts>
-    explicit State(const Group& group, F&& func, const State<T1>& dep1, const State<Ts>& ... deps) :
-        State::StateInternals( CreateFuncNode(group, std::forward<F>(func), dep1, deps ...) )
-    { }
-
-    // Construct with implicit group
-    template <typename F, typename T1, typename ... Ts>
-    explicit State(F&& func, const State<T1>& dep1, const State<Ts>& ... deps) :
-        State::StateInternals( CreateFuncNode(dep1.GetGroup(), std::forward<F>(func), dep1, deps ...) )
-    { }
 
     auto GetGroup() const -> const Group&
         { return this->GetNodePtr()->GetGroup(); }
@@ -68,13 +66,13 @@ public:
         { return s; }
 
 protected:
-    explicit State(std::shared_ptr<REACT_IMPL::StateNode<S>>&& nodePtr) :
+    State(std::shared_ptr<REACT_IMPL::StateNode<S>>&& nodePtr) :
         State::StateInternals( std::move(nodePtr) )
     { }
 
 private:
     template <typename F, typename T1, typename ... Ts>
-    auto CreateFuncNode(const Group& group, F&& func, const State<T1>& dep1, const State<Ts>& ... deps) -> decltype(auto)
+    static auto CreateFuncNode(const Group& group, F&& func, const State<T1>& dep1, const State<Ts>& ... deps) -> decltype(auto)
     {
         using REACT_IMPL::StateFuncNode;
         using REACT_IMPL::SameGroupOrLink;
@@ -94,22 +92,22 @@ template <typename S>
 class StateVar : public State<S>
 {
 public:
+    // Construct with group + default
+    static StateVar Create(const Group& group)
+        { return CreateVarNode(group); }
+
+    // Construct with group + value
+    template <typename T>
+    static StateVar Create(const Group& group, T&& value)
+        { return CreateVarNode(group, std::forward<T>(value)); }
+
+    StateVar() = default;
+
     StateVar(const StateVar&) = default;
     StateVar& operator=(const StateVar&) = default;
 
     StateVar(StateVar&&) = default;
     StateVar& operator=(StateVar&&) = default;
-
-    // Construct with group + default
-    explicit StateVar(const Group& group) :
-        StateVar::State( CreateVarNode(group) )
-    { }
-
-    // Construct with group + value
-    template <typename T>
-    StateVar(const Group& group, T&& value) :
-        StateVar::State( CreateVarNode(group, std::forward<T>(value)) )
-    { }
 
     void Set(const S& newValue)
         { SetValue(newValue); }
@@ -128,7 +126,7 @@ public:
         { return !(a == b); }
 
 protected:
-    explicit StateVar(std::shared_ptr<REACT_IMPL::StateNode<S>>&& nodePtr) :
+    StateVar(std::shared_ptr<REACT_IMPL::StateNode<S>>&& nodePtr) :
         StateVar::State( std::move(nodePtr) )
     { }
 
@@ -182,21 +180,21 @@ template <typename S>
 class StateSlot : public State<S>
 {
 public:
+    // Construct with explicit group
+    static StateSlot Create(const Group& group, const State<S>& input)
+        { return CreateSlotNode(group, input); }
+
+    // Construct with implicit group
+    static StateSlot Create(const State<S>& input)
+        { return CreateSlotNode(input.GetGroup(), input); }
+
+    StateSlot() = default;
+
     StateSlot(const StateSlot&) = default;
     StateSlot& operator=(const StateSlot&) = default;
 
     StateSlot(StateSlot&&) = default;
     StateSlot& operator=(StateSlot&&) = default;
-
-    // Construct with explicit group
-    StateSlot(const Group& group, const State<S>& input) :
-        StateSlot::State( CreateSlotNode(group, input) )
-    { }
-
-    // Construct with implicit group
-    explicit StateSlot(const State<S>& input) :
-        StateSlot::State( CreateSlotNode(input.GetGroup(), input) )
-    { }
 
     void Set(const State<S>& newInput)
         { SetInput(newInput); }
@@ -205,7 +203,7 @@ public:
         { SetInput(newInput); }
 
 protected:
-    explicit StateSlot(std::shared_ptr<REACT_IMPL::StateNode<S>>&& nodePtr) :
+    StateSlot(std::shared_ptr<REACT_IMPL::StateNode<S>>&& nodePtr) :
         StateSlot::State( std::move(nodePtr) )
     { }
 
@@ -240,18 +238,24 @@ template <typename S>
 class StateLink : public State<S>
 {
 public:
+    // Construct with group
+    static StateLink Create(const Group& group, const State<S>& input)
+        { return GetOrCreateLinkNode(group, input); }
+
+    StateLink() = default;
+
     StateLink(const StateLink&) = default;
     StateLink& operator=(const StateLink&) = default;
 
     StateLink(StateLink&&) = default;
     StateLink& operator=(StateLink&&) = default;
 
-    // Construct with group
-    StateLink(const Group& group, const State<S>& input) :
-        StateLink::State( GetOrCreateLinkNode(group, input) )
+protected:
+    StateLink(std::shared_ptr<REACT_IMPL::StateNode<S>>&& nodePtr) :
+        StateLink::State( std::move(nodePtr) )
     { }
 
-protected:
+private:
     static auto GetOrCreateLinkNode(const Group& group, const State<S>& input) -> decltype(auto)
     {
         using REACT_IMPL::StateLinkNode;
@@ -262,9 +266,7 @@ protected:
 
         ReactGraph::LinkCache& linkCache = GetInternals(group).GetGraphPtr()->GetLinkCache();
 
-        std::shared_ptr<IReactNode> nodePtr = linkCache.LookupOrCreate(
-            k,
-            [&]
+        std::shared_ptr<IReactNode> nodePtr = linkCache.LookupOrCreate(k, [&]
             {
                 auto nodePtr = std::make_shared<StateLinkNode<S>>(group, input);
                 nodePtr->SetWeakSelfPtr(std::weak_ptr<StateLinkNode<S>>{ nodePtr });
@@ -275,19 +277,97 @@ protected:
     }
 };
 
-/******************************************/ REACT_END /******************************************/
-
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ObjectContext
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S>
-static State<S> SameGroupOrLink(const Group& targetGroup, const State<S>& dep)
+class ObjectContext
 {
-    if (dep.GetGroup() == targetGroup)
-        return dep;
-    else
-        return StateLink<S>( targetGroup, dep );
-}
+public:
+    ObjectContext() = default;
 
-/****************************************/ REACT_IMPL_END /***************************************/
+    ObjectContext(const ObjectContext&) = default;
+    ObjectContext& operator=(const ObjectContext&) = default;
+
+    ObjectContext(ObjectContext&&) = default;
+    ObjectContext& operator=(ObjectContext&&) = default;
+
+    const S& GetObject() const
+        { return object_; }
+
+    template <typename U>
+    const U& Get(const State<U>& member) const
+        { return GetInternals(member).Value(); }
+
+    template <typename U>
+    const EventValueList<U>& Get(const Event<U>& member) const
+        { return GetInternals(member).Events(); }
+
+private:
+    template <typename ... Us>
+    explicit ObjectContext(Us&& ... args) :
+        object_( std::forward<Us>(args) ... )
+    { }
+
+    S object_;
+
+    template <typename U>
+    friend class impl::StateNode;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// ObjectState
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename S>
+class ObjectState : public State<ObjectContext<S>>
+{
+public:
+    // Construct with group
+    template <typename ... Us>
+    static ObjectState Create(const Group& group, S&& obj, const Us& ... members)
+    {
+        using REACT_IMPL::NodeId;
+
+        std::initializer_list<NodeId> memberIds = { GetInternals(members).GetNodeId() ... };
+
+        return CreateObjectStateNode(group, std::move(obj), memberIds);
+    }
+
+    template <typename ... Us>
+    static ObjectState Create(InPlaceTag, const Group& group, Us&& ... args)
+        { return CreateObjectStateNode(in_place, group, std::forward<Us>(args) ...); }
+
+    ObjectState() = default;
+
+    ObjectState(const ObjectState&) = default;
+    ObjectState& operator=(const ObjectState&) = default;
+
+    ObjectState(ObjectState&&) = default;
+    ObjectState& operator=(ObjectState&&) = default;
+
+protected:
+    ObjectState(std::shared_ptr<REACT_IMPL::StateNode<ObjectContext<S>>>&& nodePtr) :
+        ObjectState::State( std::move(nodePtr) )
+    { }
+
+private:
+    static auto CreateObjectStateNode(const Group& group, S&& obj, const std::initializer_list<REACT_IMPL::NodeId>& memberIds) -> decltype(auto)
+    {
+        using REACT_IMPL::ObjectStateNode;
+
+        return std::make_shared<ObjectStateNode<S>>(group, std::move(obj), memberIds);
+    }
+
+    template <typename ... Us>
+    static auto CreateObjectStateNode(InPlaceTag, const Group& group, Us&& ... args) -> decltype(auto)
+    {
+        using REACT_IMPL::ObjectStateNode;
+        using REACT_IMPL::SameGroupOrLink;
+
+        return std::make_shared<ObjectStateNode<S>>(in_place, group, std::forward<Us>(args) ...);
+    }
+};
+
+/******************************************/ REACT_END /******************************************/
 
 #endif // REACT_STATE_H_INCLUDED
