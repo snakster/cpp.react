@@ -1,6 +1,6 @@
 # ![C++React](http://schlangster.github.io/cpp.react//media/logo_banner3.png)
 
-C++React is reactive programming library for C++14 that enables declarative definition of data dependencies between state and event flows.
+C++React is reactive programming library for C++14. It enables the declarative definition of data dependencies between state and event flows.
 Based on these definitions, propagation of changes is handled automatically.
 
 Here's a simple example:
