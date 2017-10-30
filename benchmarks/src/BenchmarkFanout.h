@@ -6,6 +6,8 @@
 
 #pragma once
 
+#if 0
+
 #ifndef CPP_REACT_BENCHMARK_FANOUT_H
 #define CPP_REACT_BENCHMARK_FANOUT_H
 
@@ -15,7 +17,7 @@
 
 #include "BenchmarkBase.h"
 
-#include "react/Signal.h"
+#include "react/state.h"
 /*
 using namespace react;
 
@@ -85,3 +87,5 @@ struct Benchmark_Fanout
 */
 
 #endif // CPP_REACT_BENCHMARK_FANOUT_H
+
+#endif

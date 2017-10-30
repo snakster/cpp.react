@@ -6,6 +6,11 @@
 
 #pragma once
 
+#if 0
+
+#ifndef REACT_BENCHMARK_GRID_H
+#define REACT_BENCHMARK_GRID_H
+
 #include <functional>
 #include <iostream>
 #include <vector>
@@ -14,7 +19,7 @@
 
 #include "BenchmarkBase.h"
 
-#include "react/Signal.h"
+#include "react/state.h"
 
 using namespace react;
 
@@ -160,3 +165,7 @@ struct Benchmark_Grid
         return d;
     }
 };
+
+#endif // REACT_BENCHMARK_GRID_H
+
+#endif
