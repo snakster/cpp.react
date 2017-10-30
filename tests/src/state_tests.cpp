@@ -475,6 +475,6 @@ TEST(StateTest, Object)
             int height = ctx.Get(widget.height);
         }, st1);
 
-    w1.color.Set(10);
-    w2.color.Set(20);
+    st1->color.Set(10);
+    st2->color.Set(20);
 }

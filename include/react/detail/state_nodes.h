@@ -346,7 +346,8 @@ class ObjectStateNode : public StateNode<ObjectContext<S>>
 {
 public:
     ObjectStateNode(const Group& group, S&& obj, const std::initializer_list<NodeId>& memberIds) :
-        ObjectStateNode::StateNode( group, std::move(obj) )
+        ObjectStateNode::StateNode( group, &object_ ),
+        object_( std::move(obj) )
     {
         this->RegisterMe();
 
@@ -356,7 +357,7 @@ public:
                 {
                     REACT_EXPAND_PACK(memberIds_.push_back(GetInternals(members).GetNodeId()));
                     REACT_EXPAND_PACK(this->AttachToMe(GetInternals(members).GetNodeId()));
-                }, this->Value().GetObject().GetReactiveMembers());
+                }, object_.GetReactiveMembers());
         }
         else
         {
@@ -372,16 +373,18 @@ public:
 
     template <typename ... Us>
     ObjectStateNode(InPlaceTag, const Group& group, Us&& ... args) :
-        ObjectStateNode::StateNode( in_place, group, group, std::forward<Us>(args) ... )
+        ObjectStateNode::StateNode( group, &object_ ),
+        object_( group, std::forward<Us>(args) ... )
     {
         this->RegisterMe();
 
         apply([this] (const auto& ... members)
-            { REACT_EXPAND_PACK(memberIds_.push_back(GetInternals(members).GetNodeId())); }, this->Value().GetObject().GetReactiveMembers());
+            { REACT_EXPAND_PACK(memberIds_.push_back(GetInternals(members).GetNodeId())); }, object_.GetReactiveMembers());
     }
 
     ~ObjectStateNode()
     {
+        // TODO: This must happen inside of the node
         for (NodeId id : memberIds_)
             this->DetachFromMe(id);
 
@@ -394,6 +397,7 @@ public:
     }
 
 private:
+    S object_;
     std::vector<NodeId> memberIds_;
 };
 

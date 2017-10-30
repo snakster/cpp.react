@@ -216,6 +216,32 @@ void ReactGraph::EnqueueTransaction(F&& func, SyncPoint::Dependency dep, Transac
     transactionQueue_.Push(std::forward<F>(func), std::move(dep), flags);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// GroupInternals
+///////////////////////////////////////////////////////////////////////////////////////////////////
+class GroupInternals
+{
+public:
+    GroupInternals() :
+        graphPtr_( std::make_shared<ReactGraph>() )
+    {  }
+
+    GroupInternals(const GroupInternals&) = default;
+    GroupInternals& operator=(const GroupInternals&) = default;
+
+    GroupInternals(GroupInternals&&) = default;
+    GroupInternals& operator=(GroupInternals&&) = default;
+
+    auto GetGraphPtr() -> std::shared_ptr<ReactGraph>&
+        { return graphPtr_; }
+
+    auto GetGraphPtr() const -> const std::shared_ptr<ReactGraph>&
+        { return graphPtr_; }
+
+private:
+    std::shared_ptr<ReactGraph> graphPtr_;
+};
+
 /****************************************/ REACT_IMPL_END /***************************************/
 
 #endif // REACT_DETAIL_PROPAGATION_H_INCLUDED

@@ -19,9 +19,6 @@
     <Filter Include="Header Files\common">
       <UniqueIdentifier>{11a75126-8bfd-4693-be4b-4e06ab73450c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\engine">
-      <UniqueIdentifier>{3f444875-ab1a-4bbd-99eb-7018c930098a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\detail">
       <UniqueIdentifier>{45678bfc-0ce5-4e47-a365-54a72d8ecb6d}</UniqueIdentifier>
     </Filter>
@@ -83,15 +80,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\engine\SubtreeEngine.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\engine\ToposortEngine.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\engine\PulsecountEngine.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\detail\graph_impl.cpp">
       <Filter>Source Files\detail</Filter>
     </ClCompile>

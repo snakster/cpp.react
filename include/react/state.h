@@ -39,6 +39,11 @@ public:
     static State Create(F&& func, const State<T1>& dep1, const State<Ts>& ... deps)
         { return CreateFuncNode(dep1.GetGroup(), std::forward<F>(func), dep1, deps ...); }
 
+    // Construct with constant value
+    template <typename T>
+    static State Create(const Group& group, T&& init)
+        { return CreateFuncNode(group, [value = std::move(init)] { return value; }); }
+
     State() = default;
 
     State(const State&) = default;
@@ -292,8 +297,11 @@ public:
     ObjectContext(ObjectContext&&) = default;
     ObjectContext& operator=(ObjectContext&&) = default;
 
+    S& GetObject()
+        { return *objectPtr_; }
+
     const S& GetObject() const
-        { return object_; }
+        { return *objectPtr_; }
 
     template <typename U>
     const U& Get(const State<U>& member) const
@@ -305,11 +313,11 @@ public:
 
 private:
     template <typename ... Us>
-    explicit ObjectContext(Us&& ... args) :
-        object_( std::forward<Us>(args) ... )
+    explicit ObjectContext(S* objectPtr) :
+        objectPtr_( objectPtr )
     { }
 
-    S object_;
+    S* objectPtr_;
 
     template <typename U>
     friend class impl::StateNode;
@@ -344,6 +352,9 @@ public:
 
     ObjectState(ObjectState&&) = default;
     ObjectState& operator=(ObjectState&&) = default;
+
+    S* operator->()
+        { return &this->Value().GetObject(); }
 
 protected:
     ObjectState(std::shared_ptr<REACT_IMPL::StateNode<ObjectContext<S>>>&& nodePtr) :

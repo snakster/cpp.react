@@ -20,38 +20,6 @@
 #include "react/detail/graph_interface.h"
 #include "react/detail/graph_impl.h"
 
-/***************************************/ REACT_IMPL_BEGIN /**************************************/
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// GroupInternals
-///////////////////////////////////////////////////////////////////////////////////////////////////
-class GroupInternals
-{
-    using GraphType = REACT_IMPL::ReactGraph;
-
-public:
-    GroupInternals() :
-        graphPtr_( std::make_shared<GraphType>() )
-        {  }
-
-    GroupInternals(const GroupInternals&) = default;
-    GroupInternals& operator=(const GroupInternals&) = default;
-
-    GroupInternals(GroupInternals&&) = default;
-    GroupInternals& operator=(GroupInternals&&) = default;
-
-    auto GetGraphPtr() -> std::shared_ptr<GraphType>&
-        { return graphPtr_; }
-
-    auto GetGraphPtr() const -> const std::shared_ptr<GraphType>&
-        { return graphPtr_; }
-
-private:
-    std::shared_ptr<GraphType> graphPtr_;
-};
-
-/****************************************/ REACT_IMPL_END /***************************************/
-
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

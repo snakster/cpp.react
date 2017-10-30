@@ -150,7 +150,7 @@ public:
             return UpdateResult::unchanged;
 
         apply([this] (const auto& ... syncs)
-            { func_(EventRange<E>( GetInternals(this->subject_).Events() ), GetInternals(syncs).Value() ...); }, syncHolder_);
+            { func_(GetInternals(this->subject_).Events(), GetInternals(syncs).Value() ...); }, syncHolder_);
 
         return UpdateResult::unchanged;
     }
