@@ -8,10 +8,9 @@
 
 #include "tbb/tick_count.h"
 
-#include "react/Domain.h"
-#include "react/Signal.h"
-#include "react/Event.h"
-#include "react/Observer.h"
+#include "react/state.h"
+#include "react/event.h"
+#include "react/observer.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Example 1 - Asynchronous transactions
@@ -21,50 +20,41 @@ namespace example1
     using namespace react;
     using namespace std;
 
-    Group<> group;
+    Group group;
 
     class Sensor
     {
     public:
-        Sensor(const Sensor&) = default;
-        Sensor& operator=(const Sensor&) = default;
-        Sensor(Sensor&&) = default;
-        Sensor& operator=(Sensor&&) = default;
-
-        explicit Sensor(const Group<>& group) :
-            Samples( group )
-            { }
-
-        EventSource<int>    Samples;
+        EventSource<int> samples = EventSource<int>::Create(group);
     };
 
     void Run()
     {
         cout << "Example 1 - Asynchronous transactions" << endl;
 
-        Sensor mySensor( group );
+        Sensor mySensor;
 
-        Observer<> obs(
-            [&] (EventRange<> in)
+        auto obs = Observer::Create([&] (const auto& events)
             {
-                for (auto t : in)
-                    cout << v << endl;
-            },
-            mySensor.Samples);
+                for (auto t : events)
+                    cout << t << endl;
+            }, mySensor.samples);
 
-        TransactionStatus status;
+        SyncPoint sp;
 
-        AsyncTransaction<D>(status, [&] {
-            mySensor.Samples << 30 << 31 << 31 << 32;
-        });
+        group.EnqueueTransaction([&]
+            {
+                mySensor.samples << 30 << 31 << 31 << 32;
+            }, sp);
 
-        AsyncTransaction<D>(status, [&] {
-            mySensor.Samples << 40 << 41 << 51 << 62;
-        });
+        group.EnqueueTransaction([&]
+            {
+                mySensor.samples << 40 << 41 << 51 << 62;
+            }, sp);
 
         // Waits until both transactions are completed.
         // This does not mean that both transactions are interleaved.
-        status.Wait();
+        sp.Wait();
 
         cout << endl;
     }
@@ -78,17 +68,15 @@ namespace example2
     using namespace react;
     using namespace std;
 
-    REACTIVE_DOMAIN(D, sequential_concurrent)
+    Group group;
 
     class Sensor
     {
     public:
-        USING_REACTIVE_DOMAIN(D)
-
-        EventSourceT<int>   Samples     = MakeEventSource<D,int>();
+        EventSource<int> samples = EventSource<int>::Create(group);
     };
 
-    const int K = 100000;
+    const int K = 10000;
 
     namespace v1
     {
@@ -99,11 +87,13 @@ namespace example2
             Sensor mySensor;
             int sum = 0;
 
-            Observe(mySensor.Samples, [&] (int v) {
-                sum += v;
-            });
+            auto obs = Observer::Create([&] (const auto& events)
+                {
+                    for (int e : events)
+                        sum += e;
+                }, mySensor.samples);
 
-            TransactionStatus status;
+            SyncPoint sp;
 
             cout << "Executing " << K << " async transactions...";
 
@@ -111,12 +101,13 @@ namespace example2
 
             for (int i=0; i < K; i++)
             {
-                AsyncTransaction<D>(status, [&] {
-                    mySensor.Samples << 3 << 4 << 2 << 1;
-                });
+                group.EnqueueTransaction([&]
+                    {
+                        mySensor.samples << 3 << 4 << 2 << 1;
+                    }, sp);
             }
 
-            status.Wait();
+            sp.Wait();
 
             double d = (tbb::tick_count::now() - t0).seconds();
 
@@ -138,11 +129,13 @@ namespace example2
             Sensor mySensor;
             int sum = 0;
 
-            Observe(mySensor.Samples, [&] (int v) {
-                sum += v;
-            });
+            auto obs = Observer::Create([&] (const auto& events)
+                {
+                    for (int e : events)
+                        sum += e;
+                }, mySensor.samples);
 
-            TransactionStatus status;
+            SyncPoint sp;
 
             cout << "Executing " << K << " async transactions...";
 
@@ -150,12 +143,13 @@ namespace example2
 
             for (int i=0; i < K; i++)
             {
-                AsyncTransaction<D>(allow_merging, status, [&] {
-                    mySensor.Samples << 3 << 4 << 2 << 1;
-                });
+                group.EnqueueTransaction([&]
+                    {
+                        mySensor.samples << 3 << 4 << 2 << 1;
+                    }, sp, TransactionFlags::allow_merging);
             }
 
-            status.Wait();
+            sp.Wait();
 
             double d = (tbb::tick_count::now() - t0).seconds();
 
@@ -170,67 +164,6 @@ namespace example2
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 3 - Continuations (1)
-///////////////////////////////////////////////////////////////////////////////////////////////////
-namespace example3
-{
-    using namespace react;
-    using namespace std;
-
-    REACTIVE_DOMAIN(D, sequential_concurrent)
-
-    class Widget
-    {
-    public:
-        USING_REACTIVE_DOMAIN(D)
-
-        VarSignalT<string>  Label1 = MakeVar<D>(string( "Change" ));
-        VarSignalT<string>  Label2 = MakeVar<D>(string( "me!" ));
-
-        EventSourceT<>      Reset  = MakeEventSource<D>();
-
-        Widget() :
-            resetCont_
-            (
-                MakeContinuation<D>(
-                    Reset,
-                    [this] (Token) {
-                        Label1 <<= string( "Change" );
-                        Label2 <<= string( "me!" );
-                    })
-            )
-        {}
-
-    private:
-        Continuation<D> resetCont_;
-    };
-
-    void Run()
-    {
-        cout << "Example 3 - Continuations (1)" << endl;
-
-        Widget myWidget;
-
-        Observe(myWidget.Label1, [&] (const string& v) {
-            cout << "Label 1 changed to " << v << endl;
-        });
-
-        Observe(myWidget.Label2, [&] (const string& v) {
-            cout << "Label 2 changed to " << v << endl;
-        });
-
-        myWidget.Label1 <<= "Hello";
-        myWidget.Label2 <<= "world";
-
-        cout << "Resetting..." << endl;
-
-        myWidget.Reset();
-
-        cout << endl;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Run examples
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
@@ -239,8 +172,6 @@ int main()
 
     example2::v1::Run();
     example2::v2::Run();
-
-    example3::Run();
 
     return 0;
 }

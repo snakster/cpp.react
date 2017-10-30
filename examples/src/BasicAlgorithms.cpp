@@ -9,10 +9,10 @@
 #include <utility>
 #include <vector>
 
-#include "react/Signal.h"
-#include "react/Event.h"
-#include "react/Observer.h"
-#include "react/Algorithm.h"
+#include "react/state.h"
+#include "react/event.h"
+#include "react/observer.h"
+#include "react/algorithm.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Example 1 - Converting events to signals
@@ -22,33 +22,35 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    Group group;
+    Group g;
 
     struct Sensor
     {
-        EventSource<int>   samples      { group };
-        Signal<int>        lastSample   = Hold(0, samples);
+        EventSource<int> samples    = EventSource<int>::Create(g);
+        State<int>       lastSample = Hold(0, samples);
+
+        auto GetReactiveMembers() const -> decltype(auto)
+            { return std::tie(lastSample); }
     };
 
     void Run()
     {
         cout << "Example 1 - Converting events to signals" << endl;
 
-        Sensor mySensor;
+        auto sensor = ObjectState<Sensor>::Create(g, Sensor{ });
 
-        Observer obs(
-            [] (int v)
+        auto obs = Observer::Create(g, [] (const auto& ctx)
             {
-                cout << v << endl;
-            },
-            mySensor.lastSample);
+                const Sensor& obj = ctx.GetObject();
+                cout << ctx.Get(obj.lastSample) << endl;
+            }, sensor);
 
-        mySensor.samples << 20 << 21 << 21 << 22; // output: 20, 21, 22
+        sensor->samples << 20 << 21 << 21 << 22; // output: 20, 21, 22
 
-        group.DoTransaction([&]
-        {
-            mySensor.samples << 30 << 31 << 31 << 32;
-        }); // output: 32
+        g.DoTransaction([&]
+            {
+                sensor->samples << 30 << 31 << 31 << 32;
+            }); // output: 32
 
         cout << endl;
     }
@@ -62,12 +64,12 @@ namespace example2
     using namespace std;
     using namespace react;
 
-    Group group;
+    Group g;
 
     struct Employee
     {
-        VarSignal<string>   name    { group, string( "Bob" ) };
-        VarSignal<int>      salary  { group, 3000 };
+        StateVar<string>   name    = StateVar<string>::Create(g, string( "Bob" ));
+        StateVar<int>      salary  = StateVar<int>::Create(g, 66666);
     };
 
     void Run()
@@ -76,13 +78,13 @@ namespace example2
 
         Employee bob;
 
-        Observer obs(
-            [] (EventRange<int> in, const string& name)
+        auto obs = Observer::Create([] (const auto& events, const string& name)
             {
-                for (int newSalary : in)
+                for (int newSalary : events)
                     cout << name << " now earns " << newSalary << endl;
-            },
-            Monitor(bob.salary), bob.name);
+            }, Monitor(bob.salary), bob.name);
+
+        bob.salary.Set(66667);
 
         cout << endl;
     }
@@ -96,21 +98,18 @@ namespace example3
     using namespace std;
     using namespace react;
 
-    Group group;
+    Group g;
 
     struct Counter
     {
-        EventSource<> increment { group };
+        EventSource<> increment = EventSource<>::Create(g);
 
-        Signal<int> count = Iterate<int>(
-            0,
-            [] (EventRange<> in, int count)
+        State<int> count = Iterate<int>(0, [] (const auto& events, int count)
             {
-                for (auto _ : in)
+                for (auto e : events)
                     ++count;
                 return count;
-            },
-            increment);
+            }, increment);
     };
 
     void Run()
@@ -123,7 +122,10 @@ namespace example3
         myCounter.increment.Emit();
         myCounter.increment.Emit();
 
-        cout << myCounter.count.Value() << endl; // output: 3
+        auto obs = Observer::Create([] (int v)
+            {
+                cout << v << endl; // output: 3
+            }, myCounter.count);
 
         cout << endl;
     }
@@ -137,33 +139,34 @@ namespace example4
     using namespace std;
     using namespace react;
 
-    Group group;
+    Group g;
 
     struct Sensor
     {
-        EventSource<float> input{ group };
+        EventSource<float> input = EventSource<float>::Create(g);
 
-        Signal<int> count = Iterate<int>(
-            0,
-            [] (EventRange<float> in, int count)
+        State<int> count = Iterate<int>(0, [] (const auto& events, int count)
             {
-                for (auto _ : in)
-                    count++;
+                for (auto e : events)
+                    ++count;
                 return count;
-            },
-            input);
+            }, input);
 
-        Signal<float> sum = Iterate<float>(
-            0.0f,
-            [] (EventRange<float> in, float sum)
+        State<float> sum = Iterate<float>(0.0f, [] (const auto& events, float sum)
             {
-                for (auto v : in)
-                    sum += v;
+                for (auto e : events)
+                    sum += e;
                 return sum;
-            },
-            input);
+            }, input);
 
-        VarSignal<float> average{ group };
+        State<float> average = State<float>::Create([] (int c, float s)
+            {
+                if (c != 0)
+                    return s / c;
+                else
+                    return 0.0f;
+                    
+            }, count, sum);
     };
 
     void Run()
@@ -174,7 +177,10 @@ namespace example4
 
         mySensor.input << 10.0f << 5.0f << 10.0f << 8.0f;
 
-        cout << "Average: " << mySensor.average.Value() << endl; // output: 8.25
+        auto obs = Observer::Create([] (float v)
+            {
+                cout << "Average: " << v << endl; // output: 8.25
+            }, mySensor.average);
 
         cout << endl;
     }
@@ -188,16 +194,16 @@ namespace example5
     using namespace std;
     using namespace react;
 
-    Group group;
+    Group g;
 
     enum ECmd { increment, decrement, reset };
 
     class Counter
     {
     private:
-        static int DoCounterLoop(EventRange<int> in, int count, int delta, int start)
+        static int DoCounterLoop(const EventValueList<int>& cmds, int count, int delta, int start)
         {
-            for (int cmd : in)
+            for (int cmd : cmds)
             {
                 if (cmd == increment)
                     count += delta;
@@ -211,12 +217,12 @@ namespace example5
         }
 
     public:
-        EventSource<int> update{ group };
+        EventSource<int> update = EventSource<int>::Create(g);
 
-        VarSignal<int> delta{ group, 1 };
-        VarSignal<int> start{ group, 0 };
+        StateVar<int> delta = StateVar<int>::Create(g, 1);
+        StateVar<int> start = StateVar<int>::Create(g, 0);
 
-        Signal<int> count{ Iterate<int>(start.Value(), DoCounterLoop, update, delta, start) };
+        State<int> count = Iterate<int>(0, DoCounterLoop, update, delta, start);
     };
 
     void Run()
@@ -225,23 +231,44 @@ namespace example5
 
         Counter myCounter;
 
-        cout << "Start: " << myCounter.count.Value() << endl; // output: 0
+        {
+            auto obs = Observer::Create([] (int v)
+                {
+                    cout << "Start: " << v << endl; // output: 0
+                }, myCounter.count);
+        }
+        
 
         myCounter.update.Emit(increment);
         myCounter.update.Emit(increment);
         myCounter.update.Emit(increment);
 
-        cout << "3x increment by 1: " << myCounter.count.Value() << endl; // output: 3
+        {
+            auto obs = Observer::Create([] (int v)
+                {
+                    cout << "3x increment by 1: " << v << endl; // output: 3
+                }, myCounter.count);
+        }
 
-        myCounter.delta <<= 5;
+        myCounter.delta.Set(5);
         myCounter.update.Emit(decrement);
 
-        cout << "1x decrement by 5: " << myCounter.count.Value() << endl; // output: -2
+        {
+            auto obs = Observer::Create([] (int v)
+                {
+                    cout << "1x decrement by 5: " << v << endl; // output: -2
+                }, myCounter.count);
+        }        
 
-        myCounter.start <<= 100;
+        myCounter.start.Set(100);
         myCounter.update.Emit(reset);
 
-        cout << "reset to 100: " << myCounter.count.Value() << endl; // output: 100
+        {
+            auto obs = Observer::Create([] (int v)
+                {
+                    cout << "reset to 100: " << v << endl; // output: 100
+                }, myCounter.count);
+        }
 
         cout << endl;
     }
@@ -255,32 +282,32 @@ namespace example6
     using namespace std;
     using namespace react;
 
-    Group group;
+    Group g;
 
     class Sensor
     {
     private:
-        static void DoIterateAllSamples(EventRange<int> in, vector<int>& all)
+        static void DoIterateAllSamples(const EventValueList<int>& events, vector<int>& all)
         {
-            for (int input : in)
+            for (int input : events)
                 all.push_back(input);
         }
 
-        static void DoIterateCritSamples(EventRange<int> in, vector<int>& critical, int threshold)
+        static void DoIterateCritSamples(const EventValueList<int> events, vector<int>& critical, int threshold)
         {
-            for (int input : in)
+            for (int input : events)
                 if (input > threshold)
                     critical.push_back(input);
         }
 
     public:
-        EventSource<int> input{ group };
+        EventSource<int> input = EventSource<int>::Create(g);
 
-        VarSignal<int> threshold{ group, 42 };
+        StateVar<int> threshold = StateVar<int>::Create(g, 42);
 
-        Signal<vector<int>> allSamples{ Iterate<vector<int>>(vector<int>{ }, DoIterateAllSamples, input) };
+        State<vector<int>> allSamples = IterateByRef<vector<int>>(vector<int>{ }, DoIterateAllSamples, input);
 
-        Signal<vector<int>> criticalSamples{ Iterate<vector<int>>(vector<int>{ }, DoIterateCritSamples, input, threshold) };
+        State<vector<int>> criticalSamples = IterateByRef<vector<int>>(vector<int>{ }, DoIterateCritSamples, input, threshold);
     };
 
     void Run()
@@ -292,15 +319,23 @@ namespace example6
         mySensor.input << 40 << 29 << 43 << 50;
 
         cout << "All samples: ";
-        for (auto const& v : mySensor.allSamples.Value())
-            cout << v << " ";
+        {
+            auto obs = Observer::Create([] (const auto& allSamples)
+                {
+                    for (auto const& v : allSamples)
+                        cout << v << " ";
+                }, mySensor.allSamples);
+        }
         cout << endl;
 
         cout << "Critical samples: ";
-        for (auto const& v : mySensor.criticalSamples.Value())
-            cout << v << " ";
-        cout << endl;
-
+        {
+            auto obs = Observer::Create([] (const auto& criticalSamples)
+                {
+                    for (auto const& v : criticalSamples)
+                        cout << v << " ";
+                }, mySensor.criticalSamples);
+        }
         cout << endl;
     }
 }

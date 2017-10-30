@@ -8,9 +8,9 @@
 #include <string>
 #include <utility>
 
-#include "react/Signal.h"
-#include "react/Event.h"
-#include "react/Observer.h"
+#include "react/state.h"
+#include "react/event.h"
+#include "react/observer.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Example 1 - Creating subject-bound observers
@@ -22,55 +22,21 @@ namespace example1
 
     Group group;
 
-    VarSignal<int> x( group, 1 );
+    StateVar<int> x = StateVar<int>::Create(group, 1);
 
     void Run()
     {
-        cout << "Example 1 - Creating subject-bound observers (v1)" << endl;
+        cout << "Example 1 - Creating observers" << endl;
 
         {
-            Signal<int> mySignal( [] (int x) { return x; }, x );
+            auto st = State<int>::Create([] (int x) { return x; }, x);
 
-            Observer obs( [] (int mySignal) { cout << mySignal << endl; }, mySignal );
+            auto obs = Observer::Create([] (int v) { cout << v << endl; }, st);
 
-            x <<= 2; // output: 2
+            x.Set(2); // output: 2
         }
 
-        x <<= 3; // no ouput
-
-        cout << endl;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 2 - Detaching observers manually
-///////////////////////////////////////////////////////////////////////////////////////////////////
-namespace example2
-{
-    using namespace std;
-    using namespace react;
-
-    Group group;
-
-    EventSource<> trigger( group );
-
-    void Run()
-    {
-        cout << "Example 2 - Detaching observers manually" << endl;
-
-        {
-            Observer obs(
-                [] (EventRange<> in)
-                {
-                    for (auto _ : in)
-                        cout << "Triggered!" << endl;
-                },
-                trigger);
-
-            trigger.Emit(); // output: Triggered!
-        }
-
-        trigger.Emit(); // no output
+        x.Set(3); // no ouput
 
         cout << endl;
     }
@@ -82,7 +48,6 @@ namespace example2
 int main()
 {
     example1::Run();
-    example2::Run();
 
     return 0;
 }

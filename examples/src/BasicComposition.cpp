@@ -8,10 +8,9 @@
 #include <string>
 #include <utility>
 
-#include "react/Domain.h"
-#include "react/Signal.h"
-#include "react/Event.h"
-#include "react/Observer.h"
+#include "react/state.h"
+#include "react/event.h"
+#include "react/observer.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Example 1 - Reactive class members
@@ -21,155 +20,99 @@ namespace example1
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
+    Group g;
 
     class Shape
     {
     public:
-        USING_REACTIVE_DOMAIN(D)
+        StateVar<int> width     = StateVar<int>::Create(g, 0);
+        StateVar<int> height    = StateVar<int>::Create(g, 0);
 
-        VarSignalT<int>     Width   = MakeVar<D>(0);
-        VarSignalT<int>     Height  = MakeVar<D>(0);
+        State<int> size         = State<int>::Create(g, CalcSize, width, height);
 
-        SignalT<int>        Size    = Width * Height;
+        auto GetReactiveMembers() const -> decltype(auto)
+            { return std::tie(width, height, size); }
 
-        EventSourceT<>      HasMoved = MakeEventSource<D>();
+    private:
+        static int CalcSize(int w, int h)
+            { return w * h; }
     };
 
     void Run()
     {
         cout << "Example 1 - Reactive class members" << endl;
 
-        Shape myShape;
+        auto myShape = ObjectState<Shape>::Create(g, Shape());
 
-        Observe(myShape.Size, [] (int newValue) {
-            cout << "Size changed to " << newValue << endl;
-        });
+        auto obs = Observer::Create([] (const auto& ctx)
+            {
+                const Shape& shape = ctx.GetObject();
+                cout << "Size is " << ctx.Get(shape.size) << endl;
+            }, myShape);
 
-        DoTransaction<D>([&] {
-            myShape.Width  <<= 4;
-            myShape.Height <<= 4; 
-        }); // output: Size changed to 16
+        g.DoTransaction([&]
+            {
+                myShape->width.Set(4);
+                myShape->height.Set(4);
+            }); // output: Size changed to 16
 
         cout << endl;
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 2 - Signals of references
+/// Example 2 - Slots
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 namespace example2
 {
     using namespace std;
     using namespace react;
 
-    REACTIVE_DOMAIN(D, sequential)
+    Group g;
 
     class Company
     {
     public:
-        const char* Name;
+        StateVar<string> name;
 
         Company(const char* name) :
-            Name( name )
-        {}
+            name( StateVar<string>::Create(g, name) )
+        { }
 
-        // Note: To be used as a signal value type,
-        // values of the type must be comparable
         bool operator==(const Company& other) const
-        {
-            return this == &other;
-        }
+            { return name == other.name; }
     };
 
     class Employee
     {
     public:
-        USING_REACTIVE_DOMAIN(D)
+        StateSlot<string> myCompanyName;
 
-        VarSignalT<Company&> MyCompany;
+        Employee(const Company& company) :
+            myCompanyName( StateSlot<string>::Create(company.name) )
+        { }
 
-        Employee(Company& company) :
-            MyCompany( MakeVar<D>(ref(company)) )
-        {}
+        void SetCompany(const Company& company)
+            { myCompanyName.Set(company.name); }
     };
 
     void Run()
     {
-        cout << "Example 2 - Signals of references" << endl;
+        cout << "Example 2 - Slots" << endl;
 
-        Company     company1( "MetroTec" );
-        Company     company2( "ACME" );
-
-        Employee    bob( company1 );
-
-        Observe(bob.MyCompany, [] (const Company& company) {
-            cout << "Bob works for " << company.Name << endl;
-        });
-
-        bob.MyCompany <<= ref(company2); // output: Bob now works for ACME
-
-        cout << endl;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Example 3 - Dynamic signal references
-///////////////////////////////////////////////////////////////////////////////////////////////////
-namespace example3
-{
-    using namespace std;
-    using namespace react;
-
-    REACTIVE_DOMAIN(D, sequential)
-
-    class Company
-    {
-    public:
-        USING_REACTIVE_DOMAIN(D)
-
-        VarSignalT<string> Name;
-
-        Company(const char* name) :
-            Name( MakeVar<D>(string( name )) )
-        {}
-
-        bool operator==(const Company& other) const
-        {
-            return this == &other;
-        }
-    };
-
-    class Employee
-    {
-    public:
-        USING_REACTIVE_DOMAIN(D)
-
-        VarSignalT<Company&> MyCompany;
-
-        Employee(Company& company) :
-            MyCompany( MakeVar<D>(ref(company)) )
-        {}
-    };
-
-    void Run()
-    {
-        cout << "Example 3 - Dynamic signal references" << endl;
-
-        Company     company1( "MetroTec" );
-        Company     company2( "ACME" );
+        Company company1( "MetroTec" );
+        Company company2( "ACME" );
 
         Employee    alice( company1 );
 
-        auto obs = Observe(
-            REACTIVE_REF(alice.MyCompany, Name),
-            [] (const string& name) {
+        auto obs = Observer::Create([] (const string& name)
+            {
                 cout << "Alice now works for " << name << endl;
-            });
+            }, alice.myCompanyName);
 
-        company1.Name   <<= string( "ModernTec" );  // output: Alice now works for ModernTec
-        alice.MyCompany <<= ref(company2);          // output: Alice now works for ACME
-        company2.Name   <<= string( "A.C.M.E." );   // output: Alice now works for A.C.M.E.
+        company1.name.Set(string( "ModernTec" ));   // output: Alice now works for ModernTec
+        alice.SetCompany(company2);                 // output: Alice now works for ACME
+        company2.name.Set(string( "A.C.M.E." ));    // output: Alice now works for A.C.M.E.
 
         cout << endl;
     }
@@ -181,10 +124,7 @@ namespace example3
 int main()
 {
     example1::Run();
-
     example2::Run();
-
-    example3::Run();
 
     return 0;
 }

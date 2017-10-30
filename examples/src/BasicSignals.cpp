@@ -11,8 +11,8 @@
 #include <utility>
 #include <vector>
 
-#include "react/Signal.h"
-#include "react/Observer.h"
+#include "react/state.h"
+#include "react/observer.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Example 1 - Hello world
@@ -35,21 +35,20 @@ namespace example1
     Group group;
     
     // The two words
-    VarSignal<string> firstWord( group, string("Change") );
-    VarSignal<string> secondWord( group, string("me!") );
+    StateVar<string> firstWord = StateVar<string>::Create(group, string("Change"));
+    StateVar<string> secondWord = StateVar<string>::Create(group, string("me!"));
 
     // A signal that concatenates both words
-    Signal<string> bothWords(ConcatFunc, firstWord, secondWord);
+    State<string> bothWords = State<string>::Create(ConcatFunc, firstWord, secondWord);
 
     void Run()
     {
-        Observer obs{ PrintFunc, bothWords };
+        auto obs = Observer::Create(PrintFunc, bothWords);
 
         cout << "Example 1 - Hello world" << endl;
 
-        firstWord <<= string("Hello");
-
-        secondWord <<= string("World");
+        firstWord.Set(string("Hello"));
+        secondWord.Set(string("World"));
 
         cout << endl;
     }
@@ -65,22 +64,21 @@ namespace example2
 
     Group group;
 
-    VarSignal<int> x( group, 1 );
+    StateVar<int> x = StateVar<int>::Create(group, 1);
 
-    Signal<int> xAbs( [] (int v) { return abs(v); }, x);
+    State<int> xAbs = State<int>::Create([] (int v) { return abs(v); }, x);
 
     void Run()
     {
         cout << "Example 2 - Reacting to value changes" << endl;
 
-        Observer obs(
-            [] (int newValue) { cout << "xAbs changed to " << newValue << endl; },
-            xAbs );
+        auto obs = Observer::Create([] (int newValue)
+            { cout << "xAbs changed to " << newValue << endl; }, xAbs);
 
                     // initially x is 1
-        x <<=  2;   // output: xAbs changed to 2
-        x <<= -3;   // output: xAbs changed to 3
-        x <<=  3;   // no output, xAbs is still 3
+        x.Set(2);   // output: xAbs changed to 2
+        x.Set(-3);  // output: xAbs changed to 3
+        x.Set(3);   // no output, xAbs is still 3
 
         cout << endl;
     }
@@ -99,29 +97,28 @@ namespace example3
 
     Group group;
 
-    VarSignal<int> a( group, 1 );
-    VarSignal<int> b( group, 1 );
+    StateVar<int> a = StateVar<int>::Create(group, 1);
+    StateVar<int> b = StateVar<int>::Create(group, 1);
 
-    Signal<int> x( sumFunc, a, b );
-    Signal<int> y( sumFunc, a, b );
-    Signal<int> z( sumFunc, x, y );
+    State<int> x = State<int>::Create(sumFunc, a, b);
+    State<int> y = State<int>::Create(sumFunc, a, b);
+    State<int> z = State<int>::Create(sumFunc, x, y);
 
     void Run()
     {
         cout << "Example 3 - Changing multiple inputs" << endl;
 
-        Observer obs(
-            [] (int newValue) { cout << "z changed to " << newValue << endl; },
-            z );
+        auto obs = Observer::Create([] (int newValue)
+            { cout << "z changed to " << newValue << endl; }, z);
 
-        a <<= 2; // output: z changed to 6
-        b <<= 2; // output: z changed to 8
+        a.Set(2); // output: z changed to 6
+        b.Set(2); // output: z changed to 8
 
         group.DoTransaction([&]
-        {
-            a <<= 4;
-            b <<= 4; 
-        }); // output: z changed to 16
+            {
+                a.Set(4);
+                b.Set(4); 
+            }); // output: z changed to 16
 
         cout << endl;
     }
@@ -137,7 +134,7 @@ namespace example4
 
     Group group;
 
-    VarSignal<vector<string>> data( group );
+    StateVar<vector<string>> data = StateVar<vector<string>>::Create(group);
 
     void Run()
     {
@@ -149,8 +146,13 @@ namespace example4
         data.Modify([] (vector<string>& data)
             { data.push_back("World"); });
 
-//        for (const auto& s : data.Value())
-//            cout << s << " ";
+        auto obs = Observer::Create([] (const vector<string>& data)
+            {
+                for (const auto& s : data)
+                    cout << s << " ";
+            }, data);
+
+
         cout << endl;
         // output: Hello World
 
@@ -185,12 +187,11 @@ namespace example5
     }
 
     // Input operands
-    VarSignal<int> a( group, 1 );
-    VarSignal<int> b( group, 2 );
+    StateVar<int> a = StateVar<int>::Create(group, 1);
+    StateVar<int> b = StateVar<int>::Create(group, 2);
 
     // The expression vector
-    Signal<ExprVectType> expressions(
-        [] (int a, int b)
+    State<ExprVectType> expressions = State<ExprVectType>::Create([] (int a, int b)
         {
             ExprVectType result;
             result.push_back(make_pair(MakeExprStr(a, b, "+"), a + b));
@@ -203,10 +204,10 @@ namespace example5
     {
         cout << "Example 5 - Complex signals (v3)" << endl;
 
-        Observer obs(PrintExpressions, expressions);
+        auto obs = Observer::Create(PrintExpressions, expressions);
 
-        a <<= 50;
-        b <<= 60;
+        a.Set(50);
+        b.Set(60);
 
         cout << endl;
     }

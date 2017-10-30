@@ -4,7 +4,6 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-//#define REACT_ENABLE_LOGGING
 #if 0
 //#include "tbb/tick_count.h"
 //#include "tbb/tbbmalloc_proxy.h"
@@ -218,46 +217,11 @@ int main()
     //runBenchmarks();
     //debugBenchmarks();    
     //profileBenchmark();
-
-
 }
-
-struct Data
-{
-    State<int> a;
-    State<int> b;
-
-    State<Data*> (a, b);
-};
 
 #endif
 
-#include "react/common/expected.h"
-#include "react/state.h"
-#include "react/event.h"
-#include "react/algorithm.h"
-#include <iostream>
-
-#define unwind_on_error(x) if (!x) return UnwindExpected(std::move(x));
-
-using namespace react;
-
-
 int main()
 {
-    Group g;
-
-    VarSignal<int> t1(g);
-    VarSignal<int> t2(g);
-
-    EventSource<int> e1(g);
-    EventSource<int> e2(g);
-
-    auto h1 = Hold(1, e1);
-    auto h2 = Hold(2, e2);
-
-    auto m1 = Monitor(t1);
-    auto it1 = Iterate<int>(10, [] (EventRange<int> evnts, int b) { return b; }, e1);
-
     return 0;
 }

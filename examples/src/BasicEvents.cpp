@@ -27,19 +27,17 @@ namespace example1
     // An event source that emits values of type string
     namespace v1
     {
-        EventSource<string> mySource( group );
+        EventSource<string> mySource = EventSource<string>::Create(group);
 
         void Run()
         {
             cout << "Example 1 - Hello world (string source)" << endl;
 
-            Observer obs(
-                [] (EventRange<string> in)
+            auto obs = Observer::Create([] (const auto& events)
                 {
-                    for (const auto& s : in)
-                        cout << s << std::endl;
-                },
-                mySource);
+                    for (const auto& e : events)
+                        cout << e << std::endl;
+                }, mySource);
 
             mySource << string("Hello world #1");
 
@@ -53,7 +51,7 @@ namespace example1
     // An event source without an explicit value type
     namespace v2
     {
-        EventSource<> helloWorldTrigger( group );
+        EventSource<> helloWorldTrigger = EventSource<>::Create(group);
 
         void Run()
         {
@@ -61,13 +59,11 @@ namespace example1
 
             int count = 0;
 
-            Observer obs(
-                [&] (EventRange<> in)
+            auto obs = Observer::Create([&] (const auto& events)
                 {
-                    for (auto t : in)
+                    for (auto t : events)
                         cout << "Hello world #" << ++count << endl;
-                },
-                helloWorldTrigger);
+                }, helloWorldTrigger);
 
             helloWorldTrigger.Emit();
 
@@ -90,8 +86,8 @@ namespace example2
     Group group;
 
     // An event stream that merges both sources
-    EventSource<> leftClick( group );
-    EventSource<> rightClick( group );
+    EventSource<> leftClick = EventSource<>::Create(group);
+    EventSource<> rightClick = EventSource<>::Create(group);
 
     Event<> anyClick = Merge(leftClick, rightClick);
 
@@ -101,13 +97,11 @@ namespace example2
 
         int count = 0;
 
-        Observer obs(
-            [&] (EventRange<> in)
+        auto obs = Observer::Create([&] (const auto& events)
             {
-                for (auto t : in)
+                for (auto t : events)
                     cout << "clicked #" << ++count << endl;
-            },
-            anyClick);
+            }, anyClick);
 
         leftClick.Emit();  // output: clicked #1 
         rightClick.Emit(); // output: clicked #2
@@ -126,7 +120,7 @@ namespace example3
 
     Group group;
 
-    EventSource<int> numbers( group );
+    EventSource<int> numbers = EventSource<int>::Create(group);
 
     Event<int> greater10 = Filter([] (int n) { return n > 10; }, numbers);
 
@@ -134,13 +128,11 @@ namespace example3
     {
         cout << "Example 3 - Filtering events" << endl;
 
-        Observer obs(
-            [&] (EventRange<int> in)
+        auto obs = Observer::Create([&] (const auto& events)
             {
-                for (auto n : in)
+                for (auto n : events)
                     cout << n << endl;
-            },
-            greater10);
+            }, greater10);
 
         numbers << 5 << 11 << 7 << 100; // output: 11, 100
 
@@ -162,34 +154,30 @@ namespace example4
     enum class Tag { normal, critical };
     using TaggedNum = pair<Tag, int>;
 
-    EventSource<int> numbers( group );
+    EventSource<int> numbers = EventSource<int>::Create(group);
 
-    Event<TaggedNum> tagged = Transform<TaggedNum>(
-        [] (int n)
+    Event<TaggedNum> tagged = Transform<TaggedNum>([] (int n)
         {
             if (n > 10)
                 return TaggedNum( Tag::critical, n );
             else
                 return TaggedNum( Tag::normal, n );
-        },
-        numbers);
+        }, numbers);
 
     void Run()
     {
         cout << "Example 4 - Transforming  events" << endl;
 
-        Observer obs(
-            [] (EventRange<TaggedNum> in)
+        auto obs = Observer::Create([] (const auto& events)
             {
-                for (TaggedNum e : in)
+                for (TaggedNum e : events)
                 {
                     if (e.first == Tag::critical)
                         cout << "(critical) " << e.second << endl;
                     else
                         cout << "(normal)  " << e.second << endl;
                 }
-            },
-            tagged);
+            }, tagged);
 
         numbers << 5;   // output: (normal) 5
         numbers << 20;  // output: (critical) 20
@@ -208,25 +196,24 @@ namespace example5
 
     Group group;
 
-    EventSource<int> src( group );
+    EventSource<int> src = EventSource<int>::Create(group);
 
     void Run()
     {
         cout << "Example 5 - Queuing multiple inputs" << endl;
 
-        Observer obs(
-            [] (EventRange<int> in)
+        auto obs = Observer::Create([] (const auto& events)
             {
-                for (int e : in)
+                for (int e : events)
                     cout << e << endl;
             }, src);
         // output: 1, 2, 3, 4
 
         group.DoTransaction([]
-        {
-            src << 1 << 2 << 3;
-            src << 4;
-        });
+            {
+                src << 1 << 2 << 3;
+                src << 4;
+            });
 
         cout << endl;
     }
