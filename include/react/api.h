@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <type_traits>
 #include <vector>
 
 #include "react/detail/defs.h"
@@ -92,6 +93,26 @@ using EventValueSink = std::back_insert_iterator<std::vector<E>>;
 
 // Observer
 class Observer;
+
+// Ref
+template <typename T>
+using Ref = std::reference_wrapper<const T>;
+
+template <typename T>
+bool HasChanged(const T& a, const T& b)
+    { return !(a == b); }
+
+template <typename T>
+bool HasChanged(const Ref<T>& a, const Ref<T>& b)
+    { return true; }
+
+template <typename T, typename V>
+void ListInsert(T& list, V&& value)
+    { list.push_back(std::forward<V>(value)); }
+
+template <typename T, typename V>
+void MapInsert(T& map, V&& value)
+    { map.insert(std::forward<V>(value)); }
 
 /******************************************/ REACT_END /******************************************/
 

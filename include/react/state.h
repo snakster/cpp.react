@@ -202,10 +202,7 @@ public:
     StateSlot& operator=(StateSlot&&) = default;
 
     void Set(const State<S>& newInput)
-        { SetInput(newInput); }
-
-    void operator<<=(const State<S>& newInput)
-        { SetInput(newInput); }
+        { SetSlotInput(newInput); }
 
 protected:
     StateSlot(std::shared_ptr<REACT_IMPL::StateNode<S>>&& nodePtr) :
@@ -221,7 +218,7 @@ private:
         return std::make_shared<StateSlotNode<S>>(group, SameGroupOrLink(group, input));
     }
 
-    void SetInput(const State<S>& newInput)
+    void SetSlotInput(const State<S>& newInput)
     {
         using REACT_IMPL::NodeId;
         using REACT_IMPL::StateSlotNode;
@@ -281,6 +278,18 @@ private:
         return std::static_pointer_cast<StateLinkNode<S>>(nodePtr);
     }
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// CreateRef
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename S>
+auto CreateRef(const State<S>& state) -> State<Ref<S>>
+{
+    using REACT_IMPL::StateRefNode;
+    using REACT_IMPL::CreateWrappedNode;
+
+    return CreateWrappedNode<State<Ref<S>>, StateRefNode<S>>(state.GetGroup(), state);
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ObjectContext

@@ -171,22 +171,19 @@ public:
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
-    {   
-        bool changed = false;
-
+    {
         S newValue = apply([this] (const auto& ... deps)
             { return this->func_(GetInternals(deps).Value() ...); }, depHolder_);
 
-        if (! (this->Value() == newValue))
+        if (HasChanged(this->Value(), newValue))
         {
             this->Value() = std::move(newValue);
-            changed = true;
-        }
-
-        if (changed)
             return UpdateResult::changed;
+        }
         else
+        {
             return UpdateResult::unchanged;
+        }
     }
 
 private:
@@ -437,6 +434,37 @@ public:
 
 private:
     std::shared_ptr<StateNode<S>> nodePtr_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// StateRefNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename S>
+class StateRefNode : public StateNode<Ref<S>>
+{
+public:
+    StateRefNode(const Group& group, const State<S>& input) :
+        StateRefNode::StateNode( group, std::cref(GetInternals(input).Value()) ),
+        input_( input )
+    {
+        this->RegisterMe();
+        this->AttachToMe(GetInternals(input).GetNodeId());
+    }
+
+    ~StateRefNode()
+    {
+        this->DetachFromMe(GetInternals(input_).GetNodeId());
+        this->UnregisterMe();
+    }
+
+    virtual UpdateResult Update(TurnId turnId) noexcept override
+    {
+        this->Value() = std::cref(GetInternals(input_).Value());
+        return UpdateResult::changed;
+    }
+
+private:
+    State<S> input_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
