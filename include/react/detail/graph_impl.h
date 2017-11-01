@@ -180,7 +180,7 @@ private:
 
     LinkCache linkCache_;
 
-    bool isTransactionActive_ = false;
+    int  transactionLevel_ = 0;
     bool allowLinkedTransactionMerging_ = false;
 };
 
@@ -195,7 +195,7 @@ void ReactGraph::PushInput(NodeId nodeId, F&& inputCallback)
     
     changedInputs_.push_back(nodeId);
 
-    if (!isTransactionActive_)
+    if (transactionLevel_ == 0)
         Propagate();
 }
 
@@ -203,9 +203,9 @@ template <typename F>
 void ReactGraph::DoTransaction(F&& transactionCallback)
 {
     // Transaction callback may add multiple inputs.
-    isTransactionActive_ = true;
+    ++transactionLevel_;
     std::forward<F>(transactionCallback)();
-    isTransactionActive_ = false;
+    --transactionLevel_;
 
     Propagate();
 }

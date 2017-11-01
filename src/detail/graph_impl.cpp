@@ -72,7 +72,9 @@ void ReactGraph::Propagate()
         auto& node = nodeData_[nodeId];
         auto* nodePtr = node.nodePtr;
 
-        if (nodePtr->Update(0u) == UpdateResult::changed)
+        UpdateResult res = nodePtr->Update(0u);
+
+        if (res == UpdateResult::changed)
         {
             changedNodes_.push_back(nodePtr);
             ScheduleSuccessors(node);
@@ -87,10 +89,12 @@ void ReactGraph::Propagate()
             auto& node = nodeData_[nodeId];
             auto* nodePtr = node.nodePtr;
 
+            // A predecessor of this node has shifted to a lower level?
             if (node.level < node.newLevel)
             {
-                // Re-schedule this node
+                // Re-schedule this node.
                 node.level = node.newLevel;
+
                 RecalculateSuccessorLevels(node);
                 scheduledNodes_.Push(nodeId, node.level);
                 continue;
@@ -103,7 +107,18 @@ void ReactGraph::Propagate()
                 continue;
             }
 
-            if (nodePtr->Update(0u) == UpdateResult::changed)
+            UpdateResult res = nodePtr->Update(0u);
+
+            // Topology changed?
+            if (res == UpdateResult::shifted)
+            {
+                // Re-schedule this node.
+                RecalculateSuccessorLevels(node);
+                scheduledNodes_.Push(nodeId, node.level);
+                continue;
+            }
+            
+            if (res == UpdateResult::changed)
             {
                 changedNodes_.push_back(nodePtr);
                 ScheduleSuccessors(node);
