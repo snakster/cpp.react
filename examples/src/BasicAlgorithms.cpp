@@ -37,19 +37,18 @@ namespace example1
     {
         cout << "Example 1 - Converting events to signals" << endl;
 
-        auto sensor = ObjectState<Sensor>::Create(g, Sensor{ });
+        Sensor sensor;
 
-        auto obs = Observer::Create(g, [] (const auto& ctx)
+        auto obs = Observer::Create(g, [] (int v)
             {
-                const Sensor& obj = ctx.GetObject();
-                cout << ctx.Get(obj.lastSample) << endl;
-            }, sensor);
+                cout << v << endl;
+            }, sensor.lastSample);
 
-        sensor->samples << 20 << 21 << 21 << 22; // output: 20, 21, 22
+        sensor.samples << 20 << 21 << 21 << 22; // output: 20, 21, 22
 
         g.DoTransaction([&]
             {
-                sensor->samples << 30 << 31 << 31 << 32;
+                sensor.samples << 30 << 31 << 31 << 32;
             }); // output: 32
 
         cout << endl;
@@ -343,40 +342,6 @@ namespace example6
 
 using namespace react;
 
-
-template <typename T>
-class MyContainer { };
-
-template <typename C>
-struct Flattened : public C
-{
-    using C::C;
-
-    Flattened(const C& base) :
-        C( base )
-    { }
-
-    Flattened(const C& base, int m) :
-        C( base ),
-        mode( m )
-    { }
-
-    template <typename T>
-    T* Flatten(State<T>& signal)
-    {
-        if (mode == 1)
-        {
-            memberIds_.push_back(GetInternals(signal).GetNodeId());
-        }
-        
-        return &GetInternals(signal).Value();
-    }
-
-public:
-    int mode = 0;
-    std::vector<REACT_IMPL::NodeId> memberIds_;
-};
-
 Group g;
 
 struct MyClass
@@ -384,10 +349,8 @@ struct MyClass
     StateVar<int> a = StateVar<int>::Create(g, 10);
     StateVar<int> b = StateVar<int>::Create(g, 20);
 
-    int hello = 12435;
-
     bool operator==(const MyClass& other)
-        { return hello == other.hello; }
+        { return a == other.a; }
 
     struct Flat;
 };
@@ -396,14 +359,16 @@ struct MyClass::Flat : public Flattened<MyClass>
 {
     using Flattened::Flattened;
 
-    int* a = this->Flatten(MyClass::a);
-    int* b = this->Flatten(MyClass::b);
+    Ref<int> a = this->Flatten(MyClass::a);
+    Ref<int> b = this->Flatten(MyClass::b);
 };
 
+using namespace react;
+using namespace std;
 
 void test1()
 {
-    using namespace react;
+    
 
     /*StateVar<int> x;
     State<int> y;
@@ -422,37 +387,145 @@ void test1()
 
     Flatten(g, sig);*/
 
-    StateVar<MyClass> st = StateVar<MyClass>::Create(g);
+    auto w1 = StateVar<string>::Create(g, "Widget1");
+    auto w2 = StateVar<string>::Create(g, "Widget2");
+    auto w3 = StateVar<string>::Create(g, "Widget3");
 
-    State<Ref<MyClass>> ref = CreateRef(st);
+    auto allWidgets = { CreateRef(w1), CreateRef(w2), CreateRef(w3) };
 
-    auto obs2 = Observer::Create([] (const MyClass& obj)
+    auto d1 = StateVar<string>::Create(g, "Data1");
+    auto d2 = StateVar<string>::Create(g, "Data2");
+    auto d3 = StateVar<string>::Create(g, "Data3");
+
+    auto allData = { CreateRef(d1), CreateRef(d2), CreateRef(d3) };
+
+    auto objects = StateVar<vector<StateRef<string>>>::Create(g);
+
+    auto obs = Observer::Create([] (const auto& flatList)
         {
-            printf("aa %d\n", obj.hello);
-        }, ref);
+            cout << "Objects: ";
+            for (const string& s : flatList)
+                cout << s << " ";
+            cout << endl;
+        }, FlattenList(objects));
+    // Objects:
 
-    auto flat = FlattenObject(st);
-
-    auto flat2 = FlattenObject(ref);
-
-    auto obs = Observer::Create([] (const MyClass::Flat& obj)
+    objects.Modify([&] (auto& w)
         {
-            int x = *obj.a;
-            int y = *obj.b;
-            printf("%d\n", x);
-            printf("%d\n", y);
-        }, flat2);
+            w.push_back(CreateRef(w1));
+        });
+    // Objects: Widget1
 
+    w1.Set("Widget1 (x)");
+    // Objects: Widget1 (x)
 
-    GetInternals(st).Value().a.Set(999);
+    objects.Set(allWidgets);
+    // Objects: Widget1 (x) Widget2 Widget3
 
-    MyClass a2{ };
-    a2.hello = 3333;
+    objects.Set(allData);
+    // Objects: Data1 Data2 Data3
 
-    st.Set(a2);
-    st.Set(a2);
+    w2.Set("Widget2 (x)");
+    
+    g.DoTransaction([&]
+        {
+            w3.Set("Widget3 (x)");
 
+            d1.Set("Data1 (x)");
+            d2.Set("Data2 (x)");
+
+            objects.Set(allWidgets);
+        });
+    // Objects: Widget1 (x) Widget2 (x) Widget3 (x)
+
+    objects.Modify([&] (auto& w)
+        {
+            w.clear();
+            w.insert(end(w), allWidgets);
+            w.insert(end(w), allData);
+        });
+    // Objects: Widget1 (x) Widget2 (x) Widget3 (x) Data1 (x) Data2 (x) Data3
+    
 }
+
+class Office;
+class Company;
+class Employee;
+
+//----
+class Office
+{
+public:
+    StateVar<string> location;
+
+    StateVar<vector<State<Employee>>> employees;
+
+    State<int> employeeCount = State<int>::Create(CalcEmployeeCount, FlattenList(employees));
+
+    struct Flat;
+
+private:
+    static int CalcEmployeeCount(const vector<Employee>& offices)
+        { return offices.size(); }
+};
+
+struct Office::Flat : public Flattened<Office>
+{
+    using Flattened::Flattened;
+
+    int employeeCount = this->Flatten(Office::employeeCount);
+};
+
+//----
+class Employee
+{
+public:
+    StateVar<string> name;
+
+    StateRef<Office> office;
+
+    struct Flat;
+
+private:
+};
+
+struct Employee::Flat : public Flattened<Employee>
+{
+    using Flattened::Flattened;
+
+    Ref<string> name = this->Flatten(Employee::name);
+    Ref<Office> office = this->Flatten(Employee::office);
+};
+
+//----
+class Company
+{
+public:
+    StateVar<vector<State<Office>>> offices;
+
+    State<int> employeeCount;
+
+    struct Flat;
+
+private:
+    static int CalcEmployeeCount(const vector<Office::Flat>& offices)
+    {
+        int count = 0;
+
+        for (const auto& office : offices)
+            count += office.employeeCount;
+
+        return count;
+    }
+};
+
+struct Company::Flat : public Flattened<Company>
+{
+    using Flattened::Flattened;
+
+    Ref<vector<State<Office>>> offices = this->Flatten(Company::offices);
+    int employeeCount = this->Flatten(Company::employeeCount);
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Run examples

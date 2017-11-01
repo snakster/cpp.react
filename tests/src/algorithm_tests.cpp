@@ -714,3 +714,74 @@ TEST(AlgorithmTest, IterateByRefWithState)
         EXPECT_EQ(turns2, 4);
     }
 }
+
+Group flattenGroup;
+
+class FlattenDummy
+{
+public:
+    StateVar<int> value1 = StateVar<int>::Create(flattenGroup, 10);
+    StateVar<int> value2 = StateVar<int>::Create(flattenGroup, 20);
+
+    bool operator==(const FlattenDummy& other) const
+        { return value1 == other.value1 && value2 == other.value2; }
+
+    struct Flat;
+};
+
+struct FlattenDummy::Flat : public Flattened<FlattenDummy>
+{
+    using Flattened::Flattened;
+
+    Ref<int> value1 = this->Flatten(FlattenDummy::value1);
+    Ref<int> value2 = this->Flatten(FlattenDummy::value2);
+};
+
+TEST(AlgorithmTest, FlattenObject1)
+{
+    Group g;
+
+    FlattenDummy o1;
+    FlattenDummy o2;
+
+    auto outer = StateVar<FlattenDummy>::Create(flattenGroup, o1);
+    auto flat = FlattenObject(outer);
+
+    int turns = 0;
+    int output1 = 0;
+    int output2 = 0;
+
+    auto obs = Observer::Create([&] (const FlattenDummy::Flat& v)
+        {
+            ++turns;
+            output1 = v.value1;
+            output2 = v.value2;
+        }, flat);
+
+    EXPECT_EQ(turns, 1);
+    EXPECT_EQ(output1, 10);
+    EXPECT_EQ(output2, 20);
+
+    o1.value1.Set(30);
+    o1.value2.Set(40);
+
+    EXPECT_EQ(turns, 3);
+    EXPECT_EQ(output1, 30);
+    EXPECT_EQ(output2, 40);
+
+    outer.Set(o2);
+
+    EXPECT_EQ(turns, 4);
+    EXPECT_EQ(output1, 10);
+    EXPECT_EQ(output2, 20);
+
+    o1.value1.Set(300);
+    o1.value2.Set(400);
+
+    o2.value1.Set(500);
+    o2.value2.Set(600);
+
+    EXPECT_EQ(turns, 6);
+    EXPECT_EQ(output1, 500);
+    EXPECT_EQ(output2, 600);
+}
