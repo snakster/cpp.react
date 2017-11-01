@@ -192,13 +192,13 @@ public:
     EventSlot& operator=(EventSlot&&) = default;
 
     void Add(const Event<E>& input)
-        { AddInput(input); }
+        { AddSlotInput(input); }
 
     void Remove(const Event<E>& input)
-        { RemoveInput(input); }
+        { RemoveSlotInput(input); }
 
     void RemoveAll()
-        { RemoveAllInputs(); }
+        { RemoveAllSlotInputs(); }
 
 protected:
     EventSlot(std::shared_ptr<REACT_IMPL::EventNode<E>>&& nodePtr) :
@@ -212,7 +212,7 @@ private:
         return std::make_shared<EventSlotNode<E>>(group);
     }
 
-    void AddInput(const Event<E>& input)
+    void AddSlotInput(const Event<E>& input)
     {
         using REACT_IMPL::NodeId;
         using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
@@ -222,10 +222,10 @@ private:
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->PushInput(nodeId, [this, castedPtr, &input] { castedPtr->AddInput(SameGroupOrLink(GetGroup(), input)); });
+        graphPtr->PushInput(nodeId, [this, castedPtr, &input] { castedPtr->AddSlotInput(SameGroupOrLink(GetGroup(), input)); });
     }
 
-    void RemoveInput(const Event<E>& input)
+    void RemoveSlotInput(const Event<E>& input)
     {
         using REACT_IMPL::NodeId;
         using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
@@ -235,10 +235,10 @@ private:
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->PushInput(nodeId, [this, castedPtr, &input] { castedPtr->RemoveInput(SameGroupOrLink(GetGroup(), input)); });
+        graphPtr->PushInput(nodeId, [this, castedPtr, &input] { castedPtr->RemoveSlotInput(SameGroupOrLink(GetGroup(), input)); });
     }
 
-    void RemoveAllInputs()
+    void RemoveAllSlotInputs()
     {
         using REACT_IMPL::NodeId;
         using SlotNodeType = REACT_IMPL::EventSlotNode<E>;
@@ -248,7 +248,7 @@ private:
         NodeId nodeId = castedPtr->GetInputNodeId();
         auto& graphPtr = GetInternals(this->GetGroup()).GetGraphPtr();
 
-        graphPtr->PushInput(nodeId, [castedPtr] { castedPtr->RemoveAllInputs(); });
+        graphPtr->PushInput(nodeId, [castedPtr] { castedPtr->RemoveAllSlotInputs(); });
     }
 };
 

@@ -45,12 +45,6 @@ template <typename E>
 class EventNode : public NodeBase
 {
 public:
-    EventNode(EventNode&&) = default;
-    EventNode& operator=(EventNode&&) = default;
-
-    EventNode(const EventNode&) = delete;
-    EventNode& operator=(const EventNode&) = delete;
-
     explicit EventNode(const Group& group) :
         EventNode::NodeBase( group )
     { }
@@ -161,7 +155,7 @@ public:
 
     ~EventSlotNode()
     {
-        RemoveAllInputs();
+        RemoveAllSlotInputs();
         this->DetachFromMe(inputNodeId_);
 
         this->UnregisterMe();
@@ -182,7 +176,7 @@ public:
             return UpdateResult::unchanged;
     }
 
-    void AddInput(const Event<E>& input)
+    void AddSlotInput(const Event<E>& input)
     {
         auto it = std::find(inputs_.begin(), inputs_.end(), input);
         if (it == inputs_.end())
@@ -192,7 +186,7 @@ public:
         }
     }
 
-    void RemoveInput(const Event<E>& input)
+    void RemoveSlotInput(const Event<E>& input)
     {
         auto it = std::find(inputs_.begin(), inputs_.end(), input);
         if (it != inputs_.end())
@@ -202,7 +196,7 @@ public:
         }
     }
 
-    void RemoveAllInputs()
+    void RemoveAllSlotInputs()
     {
         for (const auto& e : inputs_)
             this->DetachFromMe(GetInternals(e).GetNodeId());
