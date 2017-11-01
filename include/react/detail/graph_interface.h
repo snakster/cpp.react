@@ -35,7 +35,8 @@ static LinkId invalid_link_id = (std::numeric_limits<size_t>::max)();
 enum class UpdateResult
 {
     unchanged,
-    changed
+    changed,
+    shifted
 };
 
 enum class NodeCategory

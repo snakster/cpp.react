@@ -11,6 +11,7 @@
 
 #include "react/detail/defs.h"
 
+#include <algorithm>
 #include <memory>
 #include <utility>
 
@@ -369,6 +370,241 @@ public:
 private:
     State<S>    input_;
     Event<E>    trigger_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FlattenStateNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename S>
+class FlattenStateNode : public StateNode<S>
+{
+public:
+    FlattenStateNode(const Group& group, const State<State<S>>& outer) :
+        FlattenStateNode::StateNode( group, GetInternals(GetInternals(outer).Value()).Value() ),
+        outer_( outer ),
+        inner_( GetInternals(outer).Value() )
+    {
+        this->RegisterMe();
+        this->AttachToMe(GetInternals(outer_).GetNodeId());
+        this->AttachToMe(GetInternals(inner_).GetNodeId());
+    }
+
+    ~FlattenStateNode()
+    {
+        this->DetachFromMe(GetInternals(inner_).GetNodeId());
+        this->DetachFromMe(GetInternals(outer_).GetNodeId());
+        this->UnregisterMe();
+    }
+
+    virtual UpdateResult Update(TurnId turnId) noexcept override
+    {
+        const State<S>& newInner = GetInternals(outer_).Value();
+
+        // Check if there's a new inner node.
+        if (! (newInner == inner_))
+        {
+            this->DetachFromMe(GetInternals(inner_).GetNodeId());
+            this->AttachToMe(GetInternals(newInner).GetNodeId());
+            inner_ = newInner;
+            return UpdateResult::shifted;
+        }
+
+        const S& newValue = GetInternals(inner_).Value();
+
+        if (HasChanged(newValue, this->Value()))
+        {
+            this->Value() = newValue;
+            return UpdateResult::changed;
+        }
+
+        return UpdateResult::unchanged;
+    }
+
+private:
+    State<State<S>> outer_;
+    State<S>        inner_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FlattenStateListNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <template <typename ...> class TList, typename V, typename ... TParams>
+class FlattenStateListNode : public StateNode<TList<V>>
+{
+public:
+    using InputListType = TList<State<V>, TParams ...>;
+    using FlatListType = TList<V>;
+
+    FlattenStateListNode(const Group& group, const State<InputListType>& outer) :
+        FlattenStateListNode::StateNode( group, MakeFlatList(GetInternals(outer).Value()) ),
+        outer_( outer ),
+        inner_( GetInternals(outer).Value() )
+    {
+        this->RegisterMe();
+        this->AttachToMe(GetInternals(outer_).GetNodeId());
+
+        for (const State<V>& state : inner_)
+            this->AttachToMe(GetInternals(state).GetNodeId());
+    }
+
+    ~FlattenStateListNode()
+    {
+        for (const State<V>& state : inner_)
+            this->DetachFromMe(GetInternals(state).GetNodeId());
+
+        this->DetachFromMe(GetInternals(outer_).GetNodeId());
+        this->UnregisterMe();
+    }
+
+    virtual UpdateResult Update(TurnId turnId) noexcept override
+    {
+        const InputListType& newInner = GetInternals(outer_).Value();
+
+        // Check if there's a new inner node.
+        if (! (std::equal(begin(newInner), end(newInner), begin(inner_), end(inner_))))
+        {
+            for (const State<V>& state : inner_)
+                this->DetachFromMe(GetInternals(state).GetNodeId());
+            for (const State<V>& state : newInner)
+                this->AttachToMe(GetInternals(state).GetNodeId());
+
+            inner_ = newInner;
+            return UpdateResult::shifted;
+        }
+
+        FlatListType newValue = MakeFlatList(inner_);
+        const FlatListType& curValue = this->Value();
+
+        if (! (std::equal(begin(newValue), end(newValue), begin(curValue), end(curValue), [] (const auto& a, const auto& b)
+            { return !HasChanged(a, b); })))
+        {
+            this->Value() = std::move(newValue);
+            return UpdateResult::changed;
+        }
+
+        return UpdateResult::unchanged;
+    }
+
+private:
+    static FlatListType MakeFlatList(const InputListType& list)
+    {
+        FlatListType res;
+        for (const State<V>& state : list)
+            ListInsert(res, GetInternals(state).Value());
+        return res;
+    }
+
+    State<InputListType>    outer_;
+    InputListType           inner_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FlattenStateListNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <template <typename ...> class TMap, typename K, typename V, typename ... TParams>
+class FlattenStateMapNode : public StateNode<TMap<K, V>>
+{
+public:
+    using InputMapType = TMap<K, State<V>, TParams ...>;
+    using FlatMapType = TMap<K, V>;
+
+    FlattenStateMapNode(const Group& group, const State<InputMapType>& outer) :
+        FlattenStateMapNode::StateNode( group, MakeFlatMap(GetInternals(outer).Value()) ),
+        outer_( outer ),
+        inner_( GetInternals(outer).Value() )
+    {
+        this->RegisterMe();
+        this->AttachToMe(GetInternals(outer_).GetNodeId());
+
+        for (const auto& entry : inner_)
+            this->AttachToMe(GetInternals(entry.second).GetNodeId());
+    }
+
+    ~FlattenStateMapNode()
+    {
+        for (const auto& entry : inner_)
+            this->DetachFromMe(GetInternals(entry.second).GetNodeId());
+
+        this->DetachFromMe(GetInternals(outer_).GetNodeId());
+        this->UnregisterMe();
+    }
+
+    virtual UpdateResult Update(TurnId turnId) noexcept override
+    {
+        const InputMapType& newInner = GetInternals(outer_).Value();
+
+        // Check if there's a new inner node.
+        if (! (std::equal(begin(newInner), end(newInner), begin(inner_), end(inner_))))
+        {
+            for (const auto& entry : inner_)
+                this->DetachFromMe(GetInternals(entry.second).GetNodeId());
+            for (const auto& entry : newInner)
+                this->AttachToMe(GetInternals(entry.second).GetNodeId());
+
+            inner_ = newInner;
+            return UpdateResult::shifted;
+        }
+
+        FlatMapType newValue = MakeFlatMap(inner_);
+        const FlatMapType& curValue = this->Value();
+
+        if (! (std::equal(begin(newValue), end(newValue), begin(curValue), end(curValue), [] (const auto& a, const auto& b)
+            { return !HasChanged(a.first, b.first) && !HasChanged(a.second, b.second); })))
+        {
+            this->Value() = std::move(newValue);
+            return UpdateResult::changed;
+        }
+
+        return UpdateResult::unchanged;
+    }
+
+private:
+    static FlatMapType MakeFlatMap(const InputMapType& map)
+    {
+        FlatMapType res;
+        for (const auto& entry : map)
+            MapInsert(res, typename FlatMapType::value_type{ entry.first, GetInternals(entry.second).Value() });
+        return res;
+    }
+
+    State<InputMapType>    outer_;
+    InputMapType           inner_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FlattenObjectNode
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T, typename TFlat>
+class FlattenObjectNode : public StateNode<TFlat>
+{
+public:
+    FlattenObjectNode(const Group& group, const State<T>& obj) :
+        StateNode::StateNode( in_place, group, GetInternals(obj).Value(), 1 )
+    {
+        this->RegisterMe();
+
+        for (NodeId id : Value().memberIds_)
+        {
+            this->AttachToMe(id);
+        }
+
+        Value().mode = 0;
+    }
+
+    ~FlattenObjectNode()
+    {
+        for (NodeId id :  Value().memberIds_)
+            this->DetachFromMe(id);
+
+        this->UnregisterMe();
+    }
+
+    virtual UpdateResult Update(TurnId turnId) noexcept override
+    {
+        return UpdateResult::changed;
+    }
+
+private:
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

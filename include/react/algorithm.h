@@ -169,6 +169,90 @@ template <typename S, typename E>
 auto Pulse(const State<S>& state, const Event<E>& evnt) -> Event<S>
     { return Pulse(state.GetGroup(), state, evnt); }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Flatten
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename S>
+auto Flatten(const Group& group, const State<State<S>>& state) -> State<S>
+{
+    using REACT_IMPL::FlattenStateNode;
+    using REACT_IMPL::SameGroupOrLink;
+    using REACT_IMPL::CreateWrappedNode;
+
+    return CreateWrappedNode<State<S>, FlattenStateNode<S>>(group, SameGroupOrLink(group, state));
+}
+
+template <typename S>
+auto Flatten(const State<State<S>>& state) -> State<S>
+    { return Flatten(state.GetGroup(), state); }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FlattenList
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <template <typename ...> class TList, typename V, typename ... TParams>
+auto FlattenList(const Group& group, const State<TList<State<V>, TParams ...>>& list) -> State<TList<V>>
+{
+    using REACT_IMPL::FlattenStateListNode;
+    using REACT_IMPL::SameGroupOrLink;
+    using REACT_IMPL::CreateWrappedNode;
+
+    return CreateWrappedNode<State<TList<V>>, FlattenStateListNode<TList, V, TParams ...>>(
+        group, SameGroupOrLink(group, list));
+}
+
+template <template <typename ...> class TList, typename V, typename ... TParams>
+auto FlattenList(const State<TList<State<V>, TParams ...>>& list) -> State<TList<V>>
+    { return FlattenList(list.GetGroup(), list); }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FlattenMap
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <template <typename ...> class TMap, typename K, typename V, typename ... TParams>
+auto FlattenMap(const Group& group, const State<TMap<K, State<V>, TParams ...>>& map) -> State<TMap<K, V>>
+{
+    using REACT_IMPL::FlattenStateMapNode;
+    using REACT_IMPL::SameGroupOrLink;
+    using REACT_IMPL::CreateWrappedNode;
+
+    return CreateWrappedNode<State<TMap<K, V>>, FlattenStateMapNode<TMap, K, V, TParams ...>>(
+        group, SameGroupOrLink(group, map));
+}
+
+template <template <typename ...> class TMap, typename K, typename V, typename ... TParams>
+auto FlattenMap(const State<TMap<K, State<V>, TParams ...>>& map) -> State<TMap<K, V>>
+    { return FlattenMap(map.GetGroup(), map); }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// FlattenObject
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T, typename TFlat = typename T::Flat>
+auto FlattenObject(const Group& group, const State<T>& obj) -> State<TFlat>
+{
+    using REACT_IMPL::FlattenObjectNode;
+    using REACT_IMPL::SameGroupOrLink;
+    using REACT_IMPL::CreateWrappedNode;
+
+    return CreateWrappedNode<State<TFlat>, FlattenObjectNode<T, TFlat>>(group, obj);
+}
+
+template <typename T, typename TFlat = typename T::Flat>
+auto FlattenObject(const State<T>& obj) -> State<TFlat>
+    { return FlattenObject(obj.GetGroup(), obj); }
+
+template <typename T, typename TFlat = typename T::Flat>
+auto FlattenObject(const Group& group, const State<Ref<T>>& obj) -> State<TFlat>
+{
+    using REACT_IMPL::FlattenObjectNode;
+    using REACT_IMPL::SameGroupOrLink;
+    using REACT_IMPL::CreateWrappedNode;
+
+    return CreateWrappedNode<State<TFlat>, FlattenObjectNode<Ref<T>, TFlat>>(group, obj);
+}
+
+template <typename T, typename TFlat = typename T::Flat>
+auto FlattenObject(const State<Ref<T>>& obj) -> State<TFlat>
+    { return FlattenObject(obj.GetGroup(), obj); }
+
 /******************************************/ REACT_END /******************************************/
 
 #endif // REACT_ALGORITHM_H_INCLUDED

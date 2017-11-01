@@ -340,17 +340,133 @@ namespace example6
     }
 }
 
+
+using namespace react;
+
+
+template <typename T>
+class MyContainer { };
+
+template <typename C>
+struct Flattened : public C
+{
+    using C::C;
+
+    Flattened(const C& base) :
+        C( base )
+    { }
+
+    Flattened(const C& base, int m) :
+        C( base ),
+        mode( m )
+    { }
+
+    template <typename T>
+    T* Flatten(State<T>& signal)
+    {
+        if (mode == 1)
+        {
+            memberIds_.push_back(GetInternals(signal).GetNodeId());
+        }
+        
+        return &GetInternals(signal).Value();
+    }
+
+public:
+    int mode = 0;
+    std::vector<REACT_IMPL::NodeId> memberIds_;
+};
+
+Group g;
+
+struct MyClass
+{
+    StateVar<int> a = StateVar<int>::Create(g, 10);
+    StateVar<int> b = StateVar<int>::Create(g, 20);
+
+    int hello = 12435;
+
+    bool operator==(const MyClass& other)
+        { return hello == other.hello; }
+
+    struct Flat;
+};
+
+struct MyClass::Flat : public Flattened<MyClass>
+{
+    using Flattened::Flattened;
+
+    int* a = this->Flatten(MyClass::a);
+    int* b = this->Flatten(MyClass::b);
+};
+
+
+void test1()
+{
+    using namespace react;
+
+    /*StateVar<int> x;
+    State<int> y;
+    State<int> z;
+
+    State<std::vector<State<int>>>   list;
+    State<std::map<int, State<int>>> map;
+
+    State<std::vector<int>> flatlist = FlattenList(list);
+    State<std::map<int, int>> flatmap = FlattenMap(map);
+
+    MyClass cls1;
+    MyClass::Flat cls2(cls1);
+
+    StateVar<State<int>> sig;
+
+    Flatten(g, sig);*/
+
+    StateVar<MyClass> st = StateVar<MyClass>::Create(g);
+
+    State<Ref<MyClass>> ref = CreateRef(st);
+
+    auto obs2 = Observer::Create([] (const MyClass& obj)
+        {
+            printf("aa %d\n", obj.hello);
+        }, ref);
+
+    auto flat = FlattenObject(st);
+
+    auto flat2 = FlattenObject(ref);
+
+    auto obs = Observer::Create([] (const MyClass::Flat& obj)
+        {
+            int x = *obj.a;
+            int y = *obj.b;
+            printf("%d\n", x);
+            printf("%d\n", y);
+        }, flat2);
+
+
+    GetInternals(st).Value().a.Set(999);
+
+    MyClass a2{ };
+    a2.hello = 3333;
+
+    st.Set(a2);
+    st.Set(a2);
+
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Run examples
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    example1::Run();
+    /*example1::Run();
     example2::Run();
     example3::Run();
     example4::Run();
     example5::Run();
-    example6::Run();
+    example6::Run();*/
+
+    test1();
 
     return 0;
 }
