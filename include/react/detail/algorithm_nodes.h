@@ -571,6 +571,8 @@ private:
     InputMapType           inner_;
 };
 
+struct FlattenedInitTag { };
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlattenObjectNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -579,32 +581,51 @@ class FlattenObjectNode : public StateNode<TFlat>
 {
 public:
     FlattenObjectNode(const Group& group, const State<T>& obj) :
-        StateNode::StateNode( in_place, group, GetInternals(obj).Value(), 1 )
+        StateNode::StateNode( in_place, group, GetInternals(obj).Value(), FlattenedInitTag{ } ),
+        obj_( obj )
     {
         this->RegisterMe();
+        this->AttachToMe(GetInternals(obj).GetNodeId());
 
-        for (NodeId id : Value().memberIds_)
-        {
-            this->AttachToMe(id);
-        }
+        for (NodeId nodeId : Value().memberIds_)
+            this->AttachToMe(nodeId);
 
-        Value().mode = 0;
+        this->Value().initMode_ = false;
     }
 
     ~FlattenObjectNode()
     {
-        for (NodeId id :  Value().memberIds_)
-            this->DetachFromMe(id);
+        for (NodeId nodeId :  Value().memberIds_)
+            this->DetachFromMe(nodeId);
 
+        this->DetachFromMe(GetInternals(obj_).GetNodeId());
         this->UnregisterMe();
     }
 
     virtual UpdateResult Update(TurnId turnId) noexcept override
     {
+        const T& newValue = GetInternals(obj_).Value();
+
+        if (HasChanged(newValue, static_cast<const T&>(this->Value())))
+        {
+            for (NodeId nodeId : this->Value().memberIds_)
+                this->DetachFromMe(nodeId);
+
+            // Steal array from old value for new value so we don't have to re-allocate.
+            // The old value will freed after the assignment.
+            this->Value().memberIds_.clear();
+            this->Value() = TFlat { newValue, FlattenedInitTag{ }, std::move(this->Value().memberIds_) };
+
+            for (NodeId nodeId : this->Value().memberIds_)
+                this->AttachToMe(nodeId);
+
+            return UpdateResult::shifted;
+        }
+
         return UpdateResult::changed;
     }
-
 private:
+    State<T> obj_;
 };
 
 /****************************************/ REACT_IMPL_END /***************************************/

@@ -223,6 +223,47 @@ auto FlattenMap(const State<TMap<K, State<V>, TParams ...>>& map) -> State<TMap<
     { return FlattenMap(map.GetGroup(), map); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Flattened
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename C>
+class Flattened : public C
+{
+public:
+    using C::C;
+
+    Flattened(const C& base) :
+        C( base )
+    { }
+
+    Flattened(const C& base, REACT_IMPL::FlattenedInitTag) :
+        C( base ),
+        initMode_( true )
+    { }
+
+    Flattened(const C& base, REACT_IMPL::FlattenedInitTag, std::vector<REACT_IMPL::NodeId>&& emptyMemberIds) :
+        C( base ),
+        initMode_( true ),
+        memberIds_( std::move(emptyMemberIds) ) // This will be empty, but has pre-allocated storage. It's a tweak.
+    { }
+
+    template <typename T>
+    Ref<T> Flatten(State<T>& signal)
+    {
+        if (initMode_)
+            memberIds_.push_back(GetInternals(signal).GetNodeId());
+        
+        return GetInternals(signal).Value();
+    }
+
+private:
+    bool initMode_ = false;
+    std::vector<REACT_IMPL::NodeId> memberIds_;
+
+    template <typename T, typename TFlat>
+    friend class impl::FlattenObjectNode;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlattenObject
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T, typename TFlat = typename T::Flat>

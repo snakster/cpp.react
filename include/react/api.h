@@ -53,6 +53,10 @@ static constexpr InPlaceTag in_place = InPlaceTag::value;
 // Group
 class Group;
 
+// Ref
+template <typename T>
+using Ref = std::reference_wrapper<const T>;
+
 // State
 template <typename S>
 class State;
@@ -66,12 +70,8 @@ class StateSlot;
 template <typename S>
 class StateLink;
 
-// Object state
 template <typename S>
-class ObjectContext;
-
-template <typename T>
-class ObjectState;
+using StateRef = State<Ref<S>>;
 
 // Event
 enum class Token;
@@ -93,10 +93,6 @@ using EventValueSink = std::back_insert_iterator<std::vector<E>>;
 
 // Observer
 class Observer;
-
-// Ref
-template <typename T>
-using Ref = std::reference_wrapper<const T>;
 
 template <typename T>
 bool HasChanged(const T& a, const T& b)

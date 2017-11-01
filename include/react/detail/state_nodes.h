@@ -87,7 +87,7 @@ public:
         {
             isInputAdded_ = false;
 
-            if (! (this->Value() == newValue_))
+            if (HasChanged(this->Value(), newValue_))
             {
                 this->Value() = std::move(newValue_);
                 return UpdateResult::changed;
@@ -310,14 +310,12 @@ private:
             if (auto p = parent.lock())
             {
                 auto* rawPtr = p->GetGraphPtr().get();
-                output[rawPtr].push_back(
-                    [storedParent = std::move(p), storedValue = GetInternals(p->dep_).Value()] () mutable -> void
+                output[rawPtr].push_back([storedParent = std::move(p), storedValue = GetInternals(p->dep_).Value()] () mutable -> void
                     {
                         NodeId nodeId = storedParent->GetNodeId();
                         auto& graphPtr = storedParent->GetGraphPtr();
 
-                        graphPtr->PushInput(nodeId,
-                            [&storedParent, &storedValue]
+                        graphPtr->PushInput(nodeId, [&storedParent, &storedValue]
                             {
                                 storedParent->SetValue(std::move(storedValue));
                             });
@@ -333,69 +331,6 @@ private:
     NodeId      outputNodeId_;
 
     VirtualOutputNode linkOutput_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ObjectStateNode
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class ObjectStateNode : public StateNode<ObjectContext<S>>
-{
-public:
-    ObjectStateNode(const Group& group, S&& obj, const std::initializer_list<NodeId>& memberIds) :
-        ObjectStateNode::StateNode( group, &object_ ),
-        object_( std::move(obj) )
-    {
-        this->RegisterMe();
-
-        if (memberIds.size() == 0)
-        {
-            apply([this] (const auto& ... members)
-                {
-                    REACT_EXPAND_PACK(memberIds_.push_back(GetInternals(members).GetNodeId()));
-                    REACT_EXPAND_PACK(this->AttachToMe(GetInternals(members).GetNodeId()));
-                }, object_.GetReactiveMembers());
-        }
-        else
-        {
-            memberIds_.reserve(memberIds.size());
-
-            for (NodeId id : memberIds)
-            {
-                memberIds_.push_back(id);
-                this->AttachToMe(id);
-            }
-        }
-    }
-
-    template <typename ... Us>
-    ObjectStateNode(InPlaceTag, const Group& group, Us&& ... args) :
-        ObjectStateNode::StateNode( group, &object_ ),
-        object_( group, std::forward<Us>(args) ... )
-    {
-        this->RegisterMe();
-
-        apply([this] (const auto& ... members)
-            { REACT_EXPAND_PACK(memberIds_.push_back(GetInternals(members).GetNodeId())); }, object_.GetReactiveMembers());
-    }
-
-    ~ObjectStateNode()
-    {
-        // TODO: This must happen inside of the node
-        for (NodeId id : memberIds_)
-            this->DetachFromMe(id);
-
-        this->UnregisterMe();
-    }
-
-    virtual UpdateResult Update(TurnId turnId) noexcept override
-    {
-        return UpdateResult::changed;
-    }
-
-private:
-    S object_;
-    std::vector<NodeId> memberIds_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

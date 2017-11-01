@@ -130,6 +130,9 @@ public:
     friend bool operator!=(const StateVar<S>& a, StateVar<S>& b)
         { return !(a == b); }
 
+    S* operator->()
+        { return &this->Value(); }
+
 protected:
     StateVar(std::shared_ptr<REACT_IMPL::StateNode<S>>&& nodePtr) :
         StateVar::State( std::move(nodePtr) )
@@ -290,103 +293,6 @@ auto CreateRef(const State<S>& state) -> State<Ref<S>>
 
     return CreateWrappedNode<State<Ref<S>>, StateRefNode<S>>(state.GetGroup(), state);
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ObjectContext
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class ObjectContext
-{
-public:
-    ObjectContext() = default;
-
-    ObjectContext(const ObjectContext&) = default;
-    ObjectContext& operator=(const ObjectContext&) = default;
-
-    ObjectContext(ObjectContext&&) = default;
-    ObjectContext& operator=(ObjectContext&&) = default;
-
-    S& GetObject()
-        { return *objectPtr_; }
-
-    const S& GetObject() const
-        { return *objectPtr_; }
-
-    template <typename U>
-    const U& Get(const State<U>& member) const
-        { return GetInternals(member).Value(); }
-
-    template <typename U>
-    const EventValueList<U>& Get(const Event<U>& member) const
-        { return GetInternals(member).Events(); }
-
-private:
-    template <typename ... Us>
-    explicit ObjectContext(S* objectPtr) :
-        objectPtr_( objectPtr )
-    { }
-
-    S* objectPtr_;
-
-    template <typename U>
-    friend class impl::StateNode;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// ObjectState
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-class ObjectState : public State<ObjectContext<S>>
-{
-public:
-    // Construct with group
-    template <typename ... Us>
-    static ObjectState Create(const Group& group, S&& obj, const Us& ... members)
-    {
-        using REACT_IMPL::NodeId;
-
-        std::initializer_list<NodeId> memberIds = { GetInternals(members).GetNodeId() ... };
-
-        return CreateObjectStateNode(group, std::move(obj), memberIds);
-    }
-
-    template <typename ... Us>
-    static ObjectState Create(InPlaceTag, const Group& group, Us&& ... args)
-        { return CreateObjectStateNode(in_place, group, std::forward<Us>(args) ...); }
-
-    ObjectState() = default;
-
-    ObjectState(const ObjectState&) = default;
-    ObjectState& operator=(const ObjectState&) = default;
-
-    ObjectState(ObjectState&&) = default;
-    ObjectState& operator=(ObjectState&&) = default;
-
-    S* operator->()
-        { return &this->Value().GetObject(); }
-
-protected:
-    ObjectState(std::shared_ptr<REACT_IMPL::StateNode<ObjectContext<S>>>&& nodePtr) :
-        ObjectState::State( std::move(nodePtr) )
-    { }
-
-private:
-    static auto CreateObjectStateNode(const Group& group, S&& obj, const std::initializer_list<REACT_IMPL::NodeId>& memberIds) -> decltype(auto)
-    {
-        using REACT_IMPL::ObjectStateNode;
-
-        return std::make_shared<ObjectStateNode<S>>(group, std::move(obj), memberIds);
-    }
-
-    template <typename ... Us>
-    static auto CreateObjectStateNode(InPlaceTag, const Group& group, Us&& ... args) -> decltype(auto)
-    {
-        using REACT_IMPL::ObjectStateNode;
-        using REACT_IMPL::SameGroupOrLink;
-
-        return std::make_shared<ObjectStateNode<S>>(in_place, group, std::forward<Us>(args) ...);
-    }
-};
 
 /******************************************/ REACT_END /******************************************/
 
