@@ -6,8 +6,8 @@
 
 #pragma once
 
-#ifndef REACT_DETAIL_GRAPH_STATENODES_H_INCLUDED
-#define REACT_DETAIL_GRAPH_STATENODES_H_INCLUDED
+#ifndef REACT_DETAIL_GRAPH_STATE_NODES_H_INCLUDED
+#define REACT_DETAIL_GRAPH_STATE_NODES_H_INCLUDED
 
 #include "react/detail/defs.h"
 
@@ -416,4 +416,4 @@ static State<S> SameGroupOrLink(const Group& targetGroup, const State<S>& dep)
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
-#endif // REACT_DETAIL_GRAPH_STATENODES_H_INCLUDED
+#endif // REACT_DETAIL_GRAPH_STATE_NODES_H_INCLUDED

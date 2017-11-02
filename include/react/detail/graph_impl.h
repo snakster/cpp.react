@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef REACT_DETAIL_PROPAGATION_H_INCLUDED
-#define REACT_DETAIL_PROPAGATION_H_INCLUDED
+#ifndef REACT_DETAIL_GRAPH_IMPL_H_INCLUDED
+#define REACT_DETAIL_GRAPH_IMPL_H_INCLUDED
 
 #pragma once
 
@@ -244,4 +244,4 @@ private:
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
-#endif // REACT_DETAIL_PROPAGATION_H_INCLUDED
+#endif // REACT_DETAIL_GRAPH_IMPL_H_INCLUDED

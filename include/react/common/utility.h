@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef REACT_COMMON_UTIL_H_INCLUDED
-#define REACT_COMMON_UTIL_H_INCLUDED
+#ifndef REACT_COMMON_UTILITY_H_INCLUDED
+#define REACT_COMMON_UTILITY_H_INCLUDED
 
 #pragma once
 
@@ -84,4 +84,4 @@ bool IsBitmaskSet(T flags, T mask)
     inline t& operator^=(t& lhs, t rhs) \
         { lhs = static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) ^ static_cast<std::underlying_type<t>::type>(rhs)); return lhs; }
 
-#endif // REACT_COMMON_UTIL_H_INCLUDED
+#endif // REACT_COMMON_UTILITY_H_INCLUDED

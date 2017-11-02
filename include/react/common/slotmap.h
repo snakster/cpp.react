@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef REACT_COMMON_INDEXED_STORAGE_H_INCLUDED
-#define REACT_COMMON_INDEXED_STORAGE_H_INCLUDED
+#ifndef REACT_COMMON_SLOTMAP_H_INCLUDED
+#define REACT_COMMON_SLOTMAP_H_INCLUDED
 
 #pragma once
 
@@ -189,4 +189,4 @@ private:
 
 /******************************************/ REACT_END /******************************************/
 
-#endif // REACT_COMMON_INDEXED_STORAGE_H_INCLUDED
+#endif // REACT_COMMON_SLOTMAP_H_INCLUDED

@@ -69,4 +69,4 @@ private:
 
 /******************************************/ REACT_END /******************************************/
 
-#endif // REACT_COMMON_INDEXED_STORAGE_H_INCLUDED
+#endif // REACT_COMMON_PTR_CACHE_H_INCLUDED

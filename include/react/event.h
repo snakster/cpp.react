@@ -59,9 +59,6 @@ public:
     Event(Event&&) = default;
     Event& operator=(Event&&) = default;
 
-    auto Tokenize() const -> decltype(auto)
-        { return REACT::Tokenize(*this); }
-
     auto GetGroup() const -> const Group&
         { return GetNodePtr()->GetGroup(); }
 

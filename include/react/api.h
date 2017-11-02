@@ -82,13 +82,13 @@ class Event;
 template <typename E = Token>
 class EventSource;
 
-template <typename E>
+template <typename E = Token>
 class EventSlot;
 
 template <typename E = Token>
 using EventValueList = std::vector<E>;
 
-template <typename E>
+template <typename E = Token>
 using EventValueSink = std::back_insert_iterator<std::vector<E>>;
 
 // Observer
@@ -112,4 +112,4 @@ void MapInsert(T& map, V&& value)
 
 /******************************************/ REACT_END /******************************************/
 
-#endif // REACT_TYPETRAITS_H_INCLUDED
+#endif // REACT_API_H_INCLUDED
