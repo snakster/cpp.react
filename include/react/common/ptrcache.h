@@ -18,12 +18,16 @@
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Stores weak pointers to V indexed by K.
+/// A cache to objects of type shared_ptr<V> that stores weak pointers.
+/// Thread-safe.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename K, typename V>
 class WeakPtrCache
 {
 public:
+    /// Returns a shared pointer to an object that existings in the cache, indexed by key.
+    /// If no hit was found, createFunc is used to construct the object managed by shared pointer.
+    /// A weak pointer to the result is stored in the cache.
     template <typename F>
     std::shared_ptr<V> LookupOrCreate(const K& key, F&& createFunc)
     {
@@ -32,6 +36,8 @@ public:
         auto it = map_.find(key);
         if (it != map_.end())
         {
+            // Lock fails, if the object was cached before, but has been released already.
+            // In that case we re-create it.
             if (auto ptr = it->second.lock())
             {
                 return ptr;
@@ -43,6 +49,7 @@ public:
         return v;
     }
 
+    /// Removes an entry from the cache.
     void Erase(const K& key)
     {
         std::lock_guard<std::mutex> scopedLock(mutex_);

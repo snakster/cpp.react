@@ -24,7 +24,7 @@
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Hold the most recent event in a state
+/// Holds the most recent event in a state
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T, typename E>
 auto Hold(const Group& group, T&& initialValue, const Event<E>& evnt) -> State<E>
@@ -60,7 +60,7 @@ auto Monitor(const State<S>& state) -> Event<S>
     { return Monitor(state.GetGroup(), state); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// Iterate - Iteratively combines state value with values from event stream (aka Fold)
+/// Iteratively combines state value with values from event stream (aka Fold)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename S, typename T, typename F, typename E>
 auto Iterate(const Group& group, T&& initialValue, F&& func, const Event<E>& evnt) -> State<S>

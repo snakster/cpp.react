@@ -38,6 +38,7 @@ struct Apply<0>
     }
 };
 
+/// Use until C++17 std::apply is available.
 template<typename F, typename T>
 inline auto apply(F&& f, T&& t) -> decltype(auto)
 {
@@ -61,10 +62,12 @@ bool IsBitmaskSet(T flags, T mask)
 
 /****************************************/ REACT_IMPL_END /***************************************/
 
-// Expand args by wrapping them in a dummy function
-// Use comma operator to replace potential void return value with 0
+/// Expand args by wrapping them in a dummy function
+/// Use comma operator to replace potential void return value with 0
+/// Bware that order of calls is unspecified.
 #define REACT_EXPAND_PACK(...) REACT_IMPL::pass((__VA_ARGS__ , 0) ...)
 
+/// Bitmask helpers
 #define REACT_DEFINE_BITMASK_OPERATORS(t) \
     inline t operator|(t lhs, t rhs) \
         { return static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) | static_cast<std::underlying_type<t>::type>(rhs)); } \
@@ -80,7 +83,5 @@ bool IsBitmaskSet(T flags, T mask)
         { lhs = static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) & static_cast<std::underlying_type<t>::type>(rhs)); return lhs; } \
     inline t& operator^=(t& lhs, t rhs) \
         { lhs = static_cast<t>(static_cast<std::underlying_type<t>::type>(lhs) ^ static_cast<std::underlying_type<t>::type>(rhs)); return lhs; }
-
-// Bitmask helper
 
 #endif // REACT_COMMON_UTIL_H_INCLUDED

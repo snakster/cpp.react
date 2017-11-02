@@ -22,7 +22,16 @@
 /*****************************************/ REACT_BEGIN /*****************************************/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/// SyncPoint
+/// A synchronization primitive that is essentially a cooperative semaphore, i.e. it blocks a
+/// consumer until all producers are done.
+/// Usage:
+///     SyncPoint sp;
+///     // Add a dependency the sync point should wait for. The depenency is released on destruction.
+///     SyncPoint::Depenency dep(sp);
+///     // Pass dependency to some operation. Dependencies can be copied as well.
+///     SomeAsyncOperation(std::move(dep));
+///     // Wait until all dependencies are released.
+///     sp.Wait()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class SyncPoint
 {
@@ -104,6 +113,7 @@ private:
     };
 
 public:
+    /// Creates a sync point.
     SyncPoint() :
         state_( std::make_shared<SyncPointState>() )
     { }
@@ -116,36 +126,42 @@ public:
 
     SyncPoint& operator=(SyncPoint&&) = default;
 
+    /// Blocks the calling thread until all dependencies of this sync point are released.
     void Wait()
     {
         state_->Wait();
     }
 
+    /// Like Wait, but times out after relTime. Returns false if the timeout was hit.
     template <typename TRep, typename TPeriod>
     bool WaitFor(const std::chrono::duration<TRep, TPeriod>& relTime)
     {
         return state_->WaitFor(relTime);
     }
 
+    /// Like Wait, but times out at relTime. Returns false if the timeout was hit.
     template <typename TRep, typename TPeriod>
     bool WaitUntil(const std::chrono::duration<TRep, TPeriod>& relTime)
     {
         return state_->WaitUntil(relTime);
     }
 
+    /// A RAII-style token object that represents a dependency of a SyncPoint.
     class Dependency
     {
     public:
+        /// Constructs an unbound dependency.
         Dependency() = default;
 
-        // Construct from single sync point.
+        /// Constructs a single dependency for a sync point.
         explicit Dependency(const SyncPoint& sp) :
             target_( sp.state_ )
         {
             target_->IncrementWaitCount();
         }
 
-        // Construct from vector of other dependencies.
+        /// Merges an input range of other dependencies into a single dependency.
+        /// This allows to create APIs that are agnostic of how many dependent operations they process.        
         template <typename TBegin, typename TEnd>
         Dependency(TBegin first, TEnd last)
         {
@@ -172,6 +188,8 @@ public:
             }
         }
 
+        /// Copy constructor and assignment split a dependency.
+        /// The new dependency that has the same target(s) as other.
         Dependency(const Dependency& other) :
             target_( other.target_ )
         {
@@ -191,6 +209,8 @@ public:
             return *this;
         }
 
+        /// Move constructor and assignment transfer a dependency.
+        /// The moved from object is left unbound.
         Dependency(Dependency&& other) :
             target_( std::move(other.target_) )
         { }
@@ -204,12 +224,14 @@ public:
             return *this;
         }
 
+        /// The destructor releases a dependency, if it's not unbound.
         ~Dependency()
         {
             if (target_)
                 target_->DecrementWaitCount();
         }
 
+        /// Manually releases the dependency. Afterwards it is unbound.
         void Release()
         {
             if (target_)
@@ -219,6 +241,7 @@ public:
             }
         }
 
+        /// Returns if a dependency is released, i.e. if it is unbound.
         bool IsReleased() const
             { return target_ == nullptr; }
 
