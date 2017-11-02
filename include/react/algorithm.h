@@ -172,54 +172,60 @@ auto Pulse(const State<S>& state, const Event<E>& evnt) -> Event<S>
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Flatten
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
-auto Flatten(const Group& group, const State<State<S>>& state) -> State<S>
+template <typename S, template <typename> class TState,
+    typename = std::enable_if_t<std::is_base_of_v<State<S>, TState<S>>>>
+auto Flatten(const Group& group, const State<TState<S>>& state) -> State<S>
 {
     using REACT_IMPL::FlattenStateNode;
     using REACT_IMPL::SameGroupOrLink;
     using REACT_IMPL::CreateWrappedNode;
 
-    return CreateWrappedNode<State<S>, FlattenStateNode<S>>(group, SameGroupOrLink(group, state));
+    return CreateWrappedNode<State<S>, FlattenStateNode<S, TState>>(group, SameGroupOrLink(group, state));
 }
 
-template <typename S>
-auto Flatten(const State<State<S>>& state) -> State<S>
+template <typename S, template <typename> class TState,
+    typename = std::enable_if_t<std::is_base_of_v<State<S>, TState<S>>>>
+auto Flatten(const State<TState<S>>& state) -> State<S>
     { return Flatten(state.GetGroup(), state); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlattenList
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <template <typename ...> class TList, typename V, typename ... TParams>
-auto FlattenList(const Group& group, const State<TList<State<V>, TParams ...>>& list) -> State<TList<V>>
+template <template <typename ...> class TList, template <typename> class TState, typename V, typename ... TParams,
+    typename = std::enable_if_t<std::is_base_of_v<State<V>, TState<V>>>>
+auto FlattenList(const Group& group, const State<TList<TState<V>, TParams ...>>& list) -> State<TList<V>>
 {
     using REACT_IMPL::FlattenStateListNode;
     using REACT_IMPL::SameGroupOrLink;
     using REACT_IMPL::CreateWrappedNode;
 
-    return CreateWrappedNode<State<TList<V>>, FlattenStateListNode<TList, V, TParams ...>>(
+    return CreateWrappedNode<State<TList<V>>, FlattenStateListNode<TList, TState, V, TParams ...>>(
         group, SameGroupOrLink(group, list));
 }
 
-template <template <typename ...> class TList, typename V, typename ... TParams>
-auto FlattenList(const State<TList<State<V>, TParams ...>>& list) -> State<TList<V>>
+template <template <typename ...> class TList, template <typename> class TState, typename V, typename ... TParams,
+    typename = std::enable_if_t<std::is_base_of_v<State<V>, TState<V>>>>
+auto FlattenList(const State<TList<TState<V>, TParams ...>>& list) -> State<TList<V>>
     { return FlattenList(list.GetGroup(), list); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlattenMap
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <template <typename ...> class TMap, typename K, typename V, typename ... TParams>
-auto FlattenMap(const Group& group, const State<TMap<K, State<V>, TParams ...>>& map) -> State<TMap<K, V>>
+template <template <typename ...> class TMap, template <typename> class TState, typename K, typename V, typename ... TParams,
+    typename = std::enable_if_t<std::is_base_of_v<State<V>, TState<V>>>>
+auto FlattenMap(const Group& group, const State<TMap<K, TState<V>, TParams ...>>& map) -> State<TMap<K, V>>
 {
     using REACT_IMPL::FlattenStateMapNode;
     using REACT_IMPL::SameGroupOrLink;
     using REACT_IMPL::CreateWrappedNode;
 
-    return CreateWrappedNode<State<TMap<K, V>>, FlattenStateMapNode<TMap, K, V, TParams ...>>(
+    return CreateWrappedNode<State<TMap<K, V>>, FlattenStateMapNode<TMap, TState, K, V, TParams ...>>(
         group, SameGroupOrLink(group, map));
 }
 
-template <template <typename ...> class TMap, typename K, typename V, typename ... TParams>
-auto FlattenMap(const State<TMap<K, State<V>, TParams ...>>& map) -> State<TMap<K, V>>
+template <template <typename ...> class TMap, template <typename> class TState, typename K, typename V, typename ... TParams,
+    typename = std::enable_if_t<std::is_base_of_v<State<V>, TState<V>>>>
+auto FlattenMap(const State<TMap<K, TState<V>, TParams ...>>& map) -> State<TMap<K, V>>
     { return FlattenMap(map.GetGroup(), map); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

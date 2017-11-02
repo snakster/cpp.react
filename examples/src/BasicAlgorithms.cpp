@@ -391,15 +391,15 @@ void test1()
     auto w2 = StateVar<string>::Create(g, "Widget2");
     auto w3 = StateVar<string>::Create(g, "Widget3");
 
-    auto allWidgets = { CreateRef(w1), CreateRef(w2), CreateRef(w3) };
+    auto allWidgets = { w1, w2, w3 };
 
     auto d1 = StateVar<string>::Create(g, "Data1");
     auto d2 = StateVar<string>::Create(g, "Data2");
     auto d3 = StateVar<string>::Create(g, "Data3");
 
-    auto allData = { CreateRef(d1), CreateRef(d2), CreateRef(d3) };
+    auto allData = { d1, d2, d3 };
 
-    auto objects = StateVar<vector<StateRef<string>>>::Create(g);
+    auto objects = StateVar<vector<StateVar<string>>>::Create(g);
 
     auto obs = Observer::Create([] (const auto& flatList)
         {
@@ -412,7 +412,7 @@ void test1()
 
     objects.Modify([&] (auto& w)
         {
-            w.push_back(CreateRef(w1));
+            w.push_back(w1);
         });
     // Objects: Widget1
 

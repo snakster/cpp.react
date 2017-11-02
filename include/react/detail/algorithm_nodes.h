@@ -375,11 +375,11 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlattenStateNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename S>
+template <typename S, template <typename> class TState>
 class FlattenStateNode : public StateNode<S>
 {
 public:
-    FlattenStateNode(const Group& group, const State<State<S>>& outer) :
+    FlattenStateNode(const Group& group, const State<TState<S>>& outer) :
         FlattenStateNode::StateNode( group, GetInternals(GetInternals(outer).Value()).Value() ),
         outer_( outer ),
         inner_( GetInternals(outer).Value() )
@@ -421,18 +421,18 @@ public:
     }
 
 private:
-    State<State<S>> outer_;
-    State<S>        inner_;
+    State<TState<S>>    outer_;
+    State<S>            inner_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlattenStateListNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <template <typename ...> class TList, typename V, typename ... TParams>
+template <template <typename ...> class TList, template <typename> class TState, typename V, typename ... TParams>
 class FlattenStateListNode : public StateNode<TList<V>>
 {
 public:
-    using InputListType = TList<State<V>, TParams ...>;
+    using InputListType = TList<TState<V>, TParams ...>;
     using FlatListType = TList<V>;
 
     FlattenStateListNode(const Group& group, const State<InputListType>& outer) :
@@ -501,11 +501,11 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlattenStateListNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <template <typename ...> class TMap, typename K, typename V, typename ... TParams>
+template <template <typename ...> class TMap, template <typename> class TState, typename K, typename V, typename ... TParams>
 class FlattenStateMapNode : public StateNode<TMap<K, V>>
 {
 public:
-    using InputMapType = TMap<K, State<V>, TParams ...>;
+    using InputMapType = TMap<K, TState<V>, TParams ...>;
     using FlatMapType = TMap<K, V>;
 
     FlattenStateMapNode(const Group& group, const State<InputMapType>& outer) :
