@@ -23,5 +23,5 @@ add_executable(Example_BasicSynchronization src/BasicSynchronization.cpp)
 target_link_libraries(Example_BasicSynchronization CppReact)
 
 ### Example_Sandbox
-add_executable(Example_Sandbox src/Main.cpp)
+add_executable(Example_Sandbox src/main.cpp)
 target_link_libraries(Example_Sandbox CppReact)
