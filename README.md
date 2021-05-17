@@ -1,4 +1,4 @@
-# ![C++React](http://schlangster.github.io/cpp.react//media/logo_banner3.png)
+# ![C++React](http://snakster.github.io/cpp.react//media/logo_banner3.png)
 
 C++React is reactive programming library for C++14. It enables the declarative definition of data dependencies between state and event flows.
 Based on these definitions, propagation of changes is handled automatically.
@@ -37,4 +37,4 @@ The system also knows when it's safe to update values in parallel from multiple 
 
 I'm currently in the process of rewriting the library more or less from scratch and many things are still broken or outdated.
 
-[The old, but stable and documented version is still available in this branch.](https://github.com/schlangster/cpp.react/tree/legacy1)
+[The old, but stable and documented version is still available in this branch.](https://github.com/snakster/cpp.react/tree/legacy1)
