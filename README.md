@@ -1,4 +1,4 @@
-# ![C++React](http://schlangster.github.io/cpp.react//media/logo_banner3.png)
+# ![C++React](http://snakster.github.io/cpp.react//media/logo_banner3.png)
 
 C++React is reactive programming library for C++11.
 
@@ -27,7 +27,7 @@ Additional features include
 
 ## Documentation
 
-[If you're interested in learning about C++React, have a look at its documentation.](http://schlangster.github.io/cpp.react/)
+[If you're interested in learning about C++React, have a look at its documentation.](http://snakster.github.io/cpp.react/)
 
 
 ## Using the library
@@ -59,7 +59,7 @@ cmake ..
 make
 ```
 
-For more details, refer to the [Build instructions](https://github.com/schlangster/cpp.react/wiki/Build-instructions).
+For more details, refer to the [Build instructions](https://github.com/snakster/cpp.react/wiki/Build-instructions).
 
 
 ## Features by example
