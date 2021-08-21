@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "react/detail/Defs.h"
+#include "react/detail/defs.h"
 
 #include <memory>
 #include <mutex>

@@ -14,7 +14,7 @@
 #include <memory>
 #include <utility>
 
-#include "react/API.h"
+#include "react/api.h"
 #include "react/common/syncpoint.h"
 
 #include "react/detail/graph_interface.h"
